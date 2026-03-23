@@ -1,9 +1,9 @@
 # PiBun v2 — Build Plan
 
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
-> **Status:** In Progress
-> **Current Phase:** Phase 1 — Multi-Session & Tabs
-> **Last Session:** Session 60 — 2026-03-23
+> **Status:** Phase 1 Complete
+> **Current Phase:** Phase 2 — Project Management
+> **Last Session:** Session 61 — 2026-03-23
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -43,9 +43,9 @@
 - [x] 1.9 — Keyboard shortcuts: Ctrl+T new tab, Ctrl+W close tab, Ctrl+Tab / Ctrl+Shift+Tab cycle tabs, Ctrl+1-9 jump to tab
 - [x] 1.10 — Update Sidebar to show tabs grouped by CWD, or remove session list in favor of tabs
 - [x] 1.11 — Desktop: update native menus with tab actions (New Tab, Close Tab, Next/Previous Tab)
-- [ ] 1.12 — Verify: 3 simultaneous sessions streaming, switch between them, close one, verify no orphaned processes
+- [x] 1.12 — Verify: 3 simultaneous sessions streaming, switch between them, close one, verify no orphaned processes
 
-**Exit criteria:** Multiple Pi sessions run in parallel. Tabs show streaming state. Switch is instant (messages cached). No process leaks on close.
+**Exit criteria:** Multiple Pi sessions run in parallel. Tabs show streaming state. Switch is instant (messages cached). No process leaks on close. ✅ ALL VERIFIED — 40/40 automated checks passed.
 
 ---
 

@@ -5,6 +5,35 @@
 
 ---
 
+## Session 61 — Multi-session verification (Phase 1 complete) (2026-03-23)
+
+**What happened:**
+- Created `fake-pi-streaming.ts` test fixture — enhanced version of `fake-pi.ts` that emits the full Pi agent lifecycle (agent_start → message_start → text_delta streaming → message_end → agent_end) when receiving a `prompt` command. Configurable via env vars.
+- Added `PiRpcManagerOptions` with `defaultPiCommand` to `PiRpcManager` constructor — allows injecting a custom Pi binary for all sessions created by the manager. No breaking change (optional arg).
+- Wrote `multi-session-test.ts` with **40 automated checks** covering all Phase 1 exit criteria:
+  - 3 simultaneous sessions created and running
+  - Parallel streaming from all 3 with events correctly tagged per sessionId
+  - Per-session state retrieval (simulates tab switching)
+  - Event routing isolation (no cross-session event leaks)
+  - Close one session — removed from RPC manager, remaining sessions unaffected
+  - Remaining sessions still respond to prompts after close
+  - WebSocket disconnect cleanup — all sessions stopped, no orphaned processes
+- Added `test:smoke:multi-session` root script
+- All 40 checks pass. All Phase 1 exit criteria verified.
+
+**Items completed:**
+- [x] 1.12 — Verify: 3 simultaneous sessions streaming, switch between them, close one, verify no orphaned processes
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- **Phase 1 is COMPLETE.** All 12 items done, exit criteria verified.
+- Next: Phase 2 — Project Management (item 2.1: Define `Project` type)
+- Phase 2 goal: Sidebar with project directories, persistence across restarts, per-project session/CWD/model preferences
+
+---
+
 ## Session 60 — Desktop native menus with tab actions (2026-03-23)
 
 **What happened:**

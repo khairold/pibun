@@ -23,6 +23,7 @@
 		"lint": "biome check .",
 		"format": "biome format --write .",
 		"test:smoke": "bun run apps/server/src/smoke-test.ts",
+		"test:smoke:multi-session": "bun run apps/server/src/multi-session-test.ts",
 		"test:smoke:artifacts": "cd apps/desktop && bun scripts/smoke-test.ts"
 	},
 	"devDependencies": {

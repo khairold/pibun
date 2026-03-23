@@ -46,6 +46,12 @@ export interface CreateSessionOptions extends PiProcessOptions {
 	sessionId?: string;
 }
 
+/** Options for PiRpcManager constructor. */
+export interface PiRpcManagerOptions {
+	/** Default piCommand for all sessions (overridable per-session). */
+	defaultPiCommand?: string;
+}
+
 // ============================================================================
 // PiRpcManager
 // ============================================================================
@@ -54,9 +60,14 @@ export class PiRpcManager {
 	private sessions = new Map<string, ManagedSession>();
 	private sessionListeners: SessionEventListener[] = [];
 	private sessionCounter = 0;
+	private readonly defaultPiCommand: string | undefined;
 
 	/** Unsubscribe functions for PiProcess listeners, keyed by session ID. */
 	private cleanupFns = new Map<string, (() => void)[]>();
+
+	constructor(options?: PiRpcManagerOptions) {
+		this.defaultPiCommand = options?.defaultPiCommand;
+	}
 
 	// =========================================================================
 	// Session Lifecycle
@@ -76,7 +87,14 @@ export class PiRpcManager {
 			throw new Error(`Session '${id}' already exists`);
 		}
 
-		const piProcess = new PiProcess(processOptions);
+		// Apply default piCommand if not specified per-session
+		const resolvedOptions = {
+			...processOptions,
+			...(this.defaultPiCommand &&
+				!processOptions.piCommand && { piCommand: this.defaultPiCommand }),
+		};
+
+		const piProcess = new PiProcess(resolvedOptions);
 
 		// Wire up crash/exit handling BEFORE starting the process
 		const cleanups = this.attachProcessListeners(id, piProcess);
