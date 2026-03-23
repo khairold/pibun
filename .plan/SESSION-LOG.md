@@ -5,6 +5,36 @@
 
 ---
 
+## Session 68 — Window title + Phase 2 verification (2026-03-23)
+
+**What happened:**
+- Implemented desktop window title sync (2.9):
+  - Added `app.setWindowTitle` WS method to contracts (`WsAppSetWindowTitleParams` with `title: string`)
+  - Added `onSetWindowTitle` hook to `ServerHooks` in server
+  - Added `handleAppSetWindowTitle` handler in `apps/server/src/handlers/app.ts` — calls hook if registered, silently succeeds otherwise (browser mode)
+  - Registered handler in handler index
+  - Desktop registers hook using module-level `mainWindowRef` set in `bootstrap()` after BrowserWindow creation
+  - Created `useWindowTitle` React hook in `apps/web/src/hooks/useWindowTitle.ts` — watches `activeProjectId`, `projects`, `activeTabId`, `tabs`, `connectionStatus`. Computes title: `{ProjectName} — PiBun` or `{cwdBasename} — PiBun` or just `PiBun`. Sets both `document.title` and calls `app.setWindowTitle` when WS is open.
+  - Wired `useWindowTitle()` into `AppShell.tsx`
+- Phase 2 verification (2.10):
+  - Created `apps/server/src/project-verify-test.ts` — 28 checks: add 3 projects, CRUD operations, CWD deduplication, window title method, persistence across server restart
+  - Added `test:smoke:projects` root script
+  - All 28/28 checks pass, existing 20/20 smoke tests still pass
+
+**Items completed:**
+- [x] 2.9 — Desktop: window title shows active project name
+- [x] 2.10 — Verify: add 3 projects, switch between them, close app, reopen, projects persist
+
+**Issues encountered:**
+- TransportState uses `"open"` not `"connected"` — caught by typecheck, fixed immediately
+
+**Handoff to next session:**
+- **Phase 2 COMPLETE** — all 10 items done. Moving to Phase 3 — Git Integration.
+- Next: 3.1 — Server-side git module: `git status --porcelain`, `git branch --show-current`, `git diff`, `git log --oneline -10`
+- Key pattern: same as project handlers — server-side module + WS methods. Git commands run via `Bun.spawn` in the session's CWD. No Pi RPC involved.
+
+---
+
 ## Session 67 — Open Recent + Cmd+O adds project (2026-03-23)
 
 **What happened:**

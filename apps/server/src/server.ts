@@ -55,6 +55,8 @@ export interface ServerHooks {
 	onOpenFolderDialog?: () => Promise<string | null>;
 	/** Called when the project list changes (add/remove/update). Desktop uses this to rebuild the "Open Recent" menu. */
 	onProjectsChanged?: () => void;
+	/** Called when the web app requests `app.setWindowTitle`. Sets the native window title. */
+	onSetWindowTitle?: (title: string) => void;
 }
 
 /** Options for creating the server. */

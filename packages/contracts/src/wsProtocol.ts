@@ -67,6 +67,7 @@ export const WS_METHODS = {
 	appApplyUpdate: "app.applyUpdate",
 	appCheckForUpdates: "app.checkForUpdates",
 	appOpenFolderDialog: "app.openFolderDialog",
+	appSetWindowTitle: "app.setWindowTitle",
 } as const;
 
 /** Union of all WebSocket method strings. */
@@ -211,6 +212,11 @@ export interface WsProjectUpdateParams {
 	sessionCount?: number;
 }
 
+/** Params for `app.setWindowTitle` — set the native window title. */
+export interface WsAppSetWindowTitleParams {
+	title: string;
+}
+
 // ============================================================================
 // Method → Params Type Map
 // ============================================================================
@@ -255,6 +261,7 @@ export interface WsMethodParamsMap {
 	"app.applyUpdate": undefined;
 	"app.checkForUpdates": undefined;
 	"app.openFolderDialog": undefined;
+	"app.setWindowTitle": WsAppSetWindowTitleParams;
 }
 
 // ============================================================================
@@ -397,6 +404,7 @@ export interface WsMethodResultMap {
 	"app.applyUpdate": WsOkResult;
 	"app.checkForUpdates": WsOkResult;
 	"app.openFolderDialog": WsAppOpenFolderDialogResult;
+	"app.setWindowTitle": WsOkResult;
 }
 
 // ============================================================================

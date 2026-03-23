@@ -11,7 +11,11 @@
  * these methods return errors.
  */
 
-import type { WsAppOpenFolderDialogResult, WsOkResult } from "@pibun/contracts";
+import type {
+	WsAppOpenFolderDialogResult,
+	WsAppSetWindowTitleParams,
+	WsOkResult,
+} from "@pibun/contracts";
 import type { HandlerContext, WsHandler } from "./types.js";
 
 // ============================================================================
@@ -71,4 +75,24 @@ export const handleAppOpenFolderDialog: WsHandler<"app.openFolderDialog"> = asyn
 	}
 	const folderPath = await ctx.hooks.onOpenFolderDialog();
 	return { folderPath };
+};
+
+// ============================================================================
+// app.setWindowTitle
+// ============================================================================
+
+/**
+ * Set the native window title.
+ * Only works in desktop mode where the `onSetWindowTitle` hook is registered.
+ * In browser mode, silently succeeds (the web app also sets document.title).
+ */
+export const handleAppSetWindowTitle: WsHandler<"app.setWindowTitle"> = (
+	params: WsAppSetWindowTitleParams,
+	ctx: HandlerContext,
+): WsOkResult => {
+	if (ctx.hooks.onSetWindowTitle) {
+		ctx.hooks.onSetWindowTitle(params.title);
+	}
+	// Don't throw in browser mode — the web app also sets document.title as fallback
+	return { ok: true };
 };

@@ -139,6 +139,9 @@ const WEB_DIST_DIR = resolveWebDistDir();
 /** The running PiBun server (null in dev mode). */
 let pibunServer: PiBunServer | null = null;
 
+/** Reference to the main BrowserWindow. Set after creation in bootstrap(). */
+let mainWindowRef: BrowserWindow | null = null;
+
 /** Current tracked window frame. Updated by resize/move events. */
 let currentFrame: WindowFrame;
 
@@ -258,6 +261,9 @@ function startServer(): { server: PiBunServer; url: string } {
 			onOpenFolderDialog: () => openFolderDialogAsync(),
 			onProjectsChanged: () => {
 				refreshRecentMenu();
+			},
+			onSetWindowTitle: (title: string) => {
+				mainWindowRef?.setTitle(title);
 			},
 		},
 	});
@@ -497,6 +503,10 @@ async function bootstrap(): Promise<void> {
 		url: webviewUrl,
 		frame: savedFrame,
 	});
+
+	// Set the module-level reference so server hooks can access the window
+	// (e.g., onSetWindowTitle updates the native window title).
+	mainWindowRef = mainWindow;
 
 	// Step 5: Wire window lifecycle events (state persistence + shutdown)
 	wireWindowLifecycle(mainWindow);

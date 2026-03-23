@@ -26,10 +26,12 @@ import { ToastContainer } from "@/components/ToastContainer";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { ExtensionDialog } from "@/components/extension";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useWindowTitle } from "@/hooks/useWindowTitle";
 import { useStore } from "@/store";
 
 export function AppShell() {
 	useKeyboardShortcuts();
+	useWindowTitle();
 
 	const sidebarOpen = useStore((s) => s.sidebarOpen);
 	const toggleSidebar = useStore((s) => s.toggleSidebar);

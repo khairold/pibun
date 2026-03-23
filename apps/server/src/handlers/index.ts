@@ -9,6 +9,7 @@ import {
 	handleAppApplyUpdate,
 	handleAppCheckForUpdates,
 	handleAppOpenFolderDialog,
+	handleAppSetWindowTitle,
 } from "./app.js";
 import {
 	handleProjectAdd,
@@ -92,4 +93,5 @@ export const handlers: HandlerRegistry = {
 	"app.applyUpdate": handleAppApplyUpdate,
 	"app.checkForUpdates": handleAppCheckForUpdates,
 	"app.openFolderDialog": handleAppOpenFolderDialog,
+	"app.setWindowTitle": handleAppSetWindowTitle,
 };
