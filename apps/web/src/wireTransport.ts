@@ -11,7 +11,7 @@
  * Use `getTransport()` to access the singleton for sending requests.
  */
 
-import { fetchProjects } from "@/lib/projectActions";
+import { addProject, fetchProjects, openProject } from "@/lib/projectActions";
 import {
 	compactSession,
 	fetchSessionList,
@@ -389,6 +389,56 @@ function handleExtensionUiRequest(event: PiExtensionUIRequest): void {
 }
 
 // ============================================================================
+// Open Folder / Open Recent Helpers
+// ============================================================================
+
+/**
+ * Open a folder as a project: add to the project list (if not present),
+ * then open it (switch to existing tab or create new one).
+ *
+ * Used by:
+ * - `file.open-folder` menu action (Cmd+O — native folder picker)
+ * - 2.8: Ensures the opened folder is always tracked as a project.
+ */
+async function openFolderAsProject(folderPath: string): Promise<void> {
+	const project = await addProject(folderPath);
+	if (project) {
+		await openProject(project);
+	} else {
+		// Fallback if addProject failed — just start a session
+		await startSessionInFolder(folderPath);
+	}
+	await fetchSessionList();
+}
+
+/**
+ * Open a recent project from the desktop "Open Recent" menu.
+ *
+ * Looks up the project by CWD in the store. If found, uses openProject()
+ * for switch-or-create behavior. If the project was removed but still
+ * in the menu, re-adds it and opens.
+ */
+async function openRecentProject(cwd: string): Promise<void> {
+	const currentStore = useStore.getState();
+	const normalizedCwd = cwd.replace(/\/$/, "");
+
+	const project = currentStore.projects.find((p) => p.cwd.replace(/\/$/, "") === normalizedCwd);
+
+	if (project) {
+		await openProject(project);
+	} else {
+		// Project was removed but still in Open Recent — re-add and open
+		const newProject = await addProject(cwd);
+		if (newProject) {
+			await openProject(newProject);
+		} else {
+			await startSessionInFolder(cwd);
+		}
+	}
+	await fetchSessionList();
+}
+
+// ============================================================================
 // Menu Action Dispatch (desktop native menus → web app)
 // ============================================================================
 
@@ -432,14 +482,25 @@ function handleMenuAction(data: WsMenuActionData): void {
 		}
 
 		case "file.open-folder": {
-			// Extract the folder path from the data payload
+			// Extract the folder path from the data payload.
+			// 2.8: Also adds to the project list if not already present.
 			const folderPath = data.data?.folderPath;
 			if (typeof folderPath === "string" && folderPath) {
-				startSessionInFolder(folderPath)
-					.then(() => fetchSessionList())
-					.catch((err: unknown) => {
-						console.error("[Menu] Failed to open folder:", err);
-					});
+				openFolderAsProject(folderPath).catch((err: unknown) => {
+					console.error("[Menu] Failed to open folder:", err);
+				});
+			}
+			break;
+		}
+
+		case "file.open-recent": {
+			// Open a recent project from the desktop "Open Recent" submenu.
+			// Uses openProject() for switch-or-create behavior.
+			const recentPath = data.data?.folderPath;
+			if (typeof recentPath === "string" && recentPath) {
+				openRecentProject(recentPath).catch((err: unknown) => {
+					console.error("[Menu] Failed to open recent project:", err);
+				});
 			}
 			break;
 		}

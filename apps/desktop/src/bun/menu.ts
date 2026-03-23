@@ -45,23 +45,40 @@ export const MENU_ACTIONS = {
 	setThinking: "session.set-thinking",
 } as const;
 
+/**
+ * Prefix for dynamic "Open Recent" menu item actions.
+ * Each recent project gets an action like `file.open-recent:0`, `file.open-recent:1`, etc.
+ * The index maps into the `recentProjectCwds` array maintained by the main process.
+ */
+export const OPEN_RECENT_ACTION_PREFIX = "file.open-recent:";
+
 export type MenuAction = (typeof MENU_ACTIONS)[keyof typeof MENU_ACTIONS];
 
 // ============================================================================
 // Menu Configuration
 // ============================================================================
 
+/** Recent project entry for building the "Open Recent" submenu. */
+export interface RecentProject {
+	/** Display name (basename of the directory). */
+	name: string;
+	/** Full directory path. */
+	cwd: string;
+}
+
 /**
  * Build the full application menu config array.
  *
  * Structure follows DESKTOP.md spec:
  * - PiBun (app menu — first entry with no label on macOS)
- * - File (New Session, New Tab, Open Folder, Close Tab, Close Window)
+ * - File (New Session, New Tab, Open Folder, Open Recent, Close Tab, Close Window)
  * - Edit (standard roles: Undo, Redo, Cut, Copy, Paste, Select All)
  * - View (Toggle Sidebar, Zoom controls)
  * - Session (Abort, Compact, Switch Model, Set Thinking)
+ *
+ * @param recentProjects - Optional list of recent projects for the "Open Recent" submenu.
  */
-export function buildMenuConfig(): ApplicationMenuItemConfig[] {
+export function buildMenuConfig(recentProjects?: RecentProject[]): ApplicationMenuItemConfig[] {
 	return [
 		// ── PiBun (App Menu) ─────────────────────────────────────
 		// On macOS, the first menu item without a label becomes the app menu.
@@ -100,6 +117,10 @@ export function buildMenuConfig(): ApplicationMenuItemConfig[] {
 					label: "Open Folder…",
 					action: MENU_ACTIONS.openFolder,
 					accelerator: "CommandOrControl+O",
+				},
+				{
+					label: "Open Recent",
+					submenu: buildOpenRecentSubmenu(recentProjects),
 				},
 				{ type: "separator" },
 				{
@@ -200,6 +221,33 @@ export function buildMenuConfig(): ApplicationMenuItemConfig[] {
 }
 
 // ============================================================================
+// Open Recent Submenu Builder
+// ============================================================================
+
+/**
+ * Build the "Open Recent" submenu items.
+ *
+ * Each project becomes a menu item with a dynamic action string.
+ * The label shows the project name, and the action encodes the index
+ * into the recent projects list maintained by the main process.
+ *
+ * Up to 10 recent projects are shown, matching the plan spec.
+ */
+function buildOpenRecentSubmenu(recentProjects?: RecentProject[]): ApplicationMenuItemConfig[] {
+	if (!recentProjects || recentProjects.length === 0) {
+		return [{ label: "No Recent Projects", enabled: false }];
+	}
+
+	// Limit to 10 most recent
+	const items: ApplicationMenuItemConfig[] = recentProjects.slice(0, 10).map((project, index) => ({
+		label: `${project.name} — ${project.cwd}`,
+		action: `${OPEN_RECENT_ACTION_PREFIX}${String(index)}`,
+	}));
+
+	return items;
+}
+
+// ============================================================================
 // Menu Click Handler
 // ============================================================================
 
@@ -223,7 +271,11 @@ export type MenuActionHandler = (action: MenuAction) => void;
  * Create a handler for `application-menu-clicked` events.
  *
  * The returned function can be passed to `Electrobun.events.on()`.
- * It filters for known action strings and delegates to the provided handler.
+ * It filters for known action strings (static and dynamic) and delegates
+ * to the provided handler.
+ *
+ * Static actions are matched by exact string (from `MENU_ACTIONS`).
+ * Dynamic actions are matched by prefix (e.g., `file.open-recent:N`).
  *
  * @param onAction - Callback invoked with the menu action string.
  * @returns Event handler function for Electrobun's event emitter.
@@ -236,6 +288,9 @@ export function createMenuClickHandler(onAction: MenuActionHandler): (event: unk
 		const action = data.action;
 
 		if (knownActions.has(action)) {
+			onAction(action as MenuAction);
+		} else if (action.startsWith(OPEN_RECENT_ACTION_PREFIX)) {
+			// Dynamic "Open Recent" action — pass through to handler
 			onAction(action as MenuAction);
 		} else {
 			// Role-based items or unknown actions — no-op on bun side.

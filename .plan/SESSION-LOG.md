@@ -5,6 +5,34 @@
 
 ---
 
+## Session 67 — Open Recent + Cmd+O adds project (2026-03-23)
+
+**What happened:**
+- Implemented "Open Recent" list (2.7) across three layers:
+  - **Web ChatView empty state**: Added `EmptyState` component with `RecentProjectItem` list showing top 10 projects sorted by `lastOpened`. Each project shows name + CWD path, click opens via `openProject()`.
+  - **Desktop native menu**: Added "Open Recent" submenu to File menu with dynamic project entries. `buildMenuConfig()` accepts optional `RecentProject[]` parameter. Each menu item uses indexed action (`file.open-recent:N`). `createMenuClickHandler` updated to pass through dynamic prefix actions.
+  - **Desktop menu refresh**: `refreshRecentMenu()` loads projects from `projectStore`, rebuilds full native menu via `ApplicationMenu.setApplicationMenu()`. Called on startup and whenever projects change via `onProjectsChanged` server hook.
+- Implemented Cmd+O adds to project list (2.8):
+  - `file.open-folder` handler in `wireTransport.ts` now calls `addProject(folderPath)` before `openProject()`, ensuring every opened folder is tracked as a project. Server deduplicates by CWD.
+- Added `onProjectsChanged` hook to `ServerHooks` — project handlers call it after add/remove/update.
+- Added `./projectStore` subpath export to `@pibun/server` package.
+- Added `file.open-recent` action handler in `wireTransport.ts` with fallback for stale menu entries.
+- Extracted `openFolderAsProject()` and `openRecentProject()` async helpers to keep handler code clean.
+
+**Items completed:**
+- [x] 2.7 — "Open Recent" list: last 10 opened project directories, persisted across app restarts
+- [x] 2.8 — Desktop: "Open Folder…" (Cmd+O) adds to project list if not already present
+
+**Issues encountered:**
+- Type error: `openProject()` returns `"switched"|"created"|null` vs `startSessionInFolder()` returns `boolean`. Mixed return types in `.then()` chains caused TS error. Fixed by extracting separate async helper functions instead of chaining incompatible promises.
+
+**Handoff to next session:**
+- Next: 2.9 — Desktop: window title shows active project name
+- The window title currently shows "PiBun" (set in `bootstrap()`). Need to update it when project/tab changes. Electrobun's `BrowserWindow.setTitle()` should work. May need a `menu.action` push or a new WS channel to communicate title changes from web→desktop. Or the desktop can derive it from the active session's CWD.
+- Key files: `apps/desktop/src/bun/index.ts`, `apps/web/src/wireTransport.ts`
+
+---
+
 ## Session 66 — Project switching (2026-03-23)
 
 **What happened:**

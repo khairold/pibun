@@ -53,6 +53,8 @@ export interface ServerHooks {
 	onCheckForUpdates?: () => void;
 	/** Called when the web app requests `app.openFolderDialog`. Returns selected path or null if cancelled. */
 	onOpenFolderDialog?: () => Promise<string | null>;
+	/** Called when the project list changes (add/remove/update). Desktop uses this to rebuild the "Open Recent" menu. */
+	onProjectsChanged?: () => void;
 }
 
 /** Options for creating the server. */

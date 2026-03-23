@@ -51,13 +51,14 @@ export const handleProjectList: WsHandler<"project.list"> = async (
  */
 export const handleProjectAdd: WsHandler<"project.add"> = async (
 	params: WsProjectAddParams,
-	_ctx: HandlerContext,
+	ctx: HandlerContext,
 ): Promise<WsProjectAddResult> => {
 	if (!params.cwd) {
 		throw new Error("project.add requires a 'cwd' parameter");
 	}
 
 	const project = await addProject(params.cwd, params.name);
+	ctx.hooks.onProjectsChanged?.();
 	return { project };
 };
 
@@ -71,13 +72,14 @@ export const handleProjectAdd: WsHandler<"project.add"> = async (
  */
 export const handleProjectRemove: WsHandler<"project.remove"> = async (
 	params: WsProjectRemoveParams,
-	_ctx: HandlerContext,
+	ctx: HandlerContext,
 ): Promise<WsOkResult> => {
 	if (!params.projectId) {
 		throw new Error("project.remove requires a 'projectId' parameter");
 	}
 
 	await removeProject(params.projectId);
+	ctx.hooks.onProjectsChanged?.();
 	return { ok: true };
 };
 
@@ -93,7 +95,7 @@ export const handleProjectRemove: WsHandler<"project.remove"> = async (
  */
 export const handleProjectUpdate: WsHandler<"project.update"> = async (
 	params: WsProjectUpdateParams,
-	_ctx: HandlerContext,
+	ctx: HandlerContext,
 ): Promise<WsOkResult> => {
 	if (!params.projectId) {
 		throw new Error("project.update requires a 'projectId' parameter");
@@ -108,5 +110,6 @@ export const handleProjectUpdate: WsHandler<"project.update"> = async (
 		...(params.lastOpened !== undefined && { lastOpened: params.lastOpened }),
 		...(params.sessionCount !== undefined && { sessionCount: params.sessionCount }),
 	});
+	ctx.hooks.onProjectsChanged?.();
 	return { ok: true };
 };

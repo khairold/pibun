@@ -3,7 +3,7 @@
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
 > **Status:** Phase 2 in progress
 > **Current Phase:** Phase 2 — Project Management
-> **Last Session:** Session 66 — 2026-03-23
+> **Last Session:** Session 67 — 2026-03-23
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -59,8 +59,8 @@
 - [x] 2.4 — Build `ProjectSidebar` section: project list with icons, last-opened date, session count badge
 - [x] 2.5 — "Add Project" flow: folder picker (native dialog in desktop, text input in browser) → creates project entry
 - [x] 2.6 — Project switching: click project → starts new tab with that CWD, or switches to existing tab for that CWD
-- [ ] 2.7 — "Open Recent" list: last 10 opened project directories, persisted across app restarts
-- [ ] 2.8 — Desktop: "Open Folder…" (Cmd+O) adds to project list if not already present
+- [x] 2.7 — "Open Recent" list: last 10 opened project directories, persisted across app restarts
+- [x] 2.8 — Desktop: "Open Folder…" (Cmd+O) adds to project list if not already present
 - [ ] 2.9 — Desktop: window title shows active project name
 - [ ] 2.10 — Verify: add 3 projects, switch between them, close app, reopen, projects persist
 

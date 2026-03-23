@@ -15,9 +15,16 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { PiRpcManager } from "@pibun/server/piRpcManager";
+import { loadProjects } from "@pibun/server/projectStore";
 import { type PiBunServer, broadcastPush, createServer } from "@pibun/server/server";
 import Electrobun, { ApplicationMenu, BrowserWindow, Utils } from "electrobun/bun";
-import { type MenuAction, buildMenuConfig, createMenuClickHandler } from "./menu";
+import {
+	type MenuAction,
+	OPEN_RECENT_ACTION_PREFIX,
+	type RecentProject,
+	buildMenuConfig,
+	createMenuClickHandler,
+} from "./menu";
 import { initNotifications } from "./notifications";
 import { handleApplyUpdate, handleCheckForUpdates, initUpdater, stopUpdater } from "./updater";
 import {
@@ -138,6 +145,13 @@ let currentFrame: WindowFrame;
 /** Whether the shutdown sequence is in progress. */
 let isShuttingDown = false;
 
+/**
+ * Recent project CWDs used by the "Open Recent" menu.
+ * Indexed by position — the menu action `file.open-recent:N` maps to index N.
+ * Updated when projects change (add/remove/update) via the server hook.
+ */
+let recentProjectCwds: string[] = [];
+
 // ============================================================================
 // Health / Ready Check
 // ============================================================================
@@ -188,6 +202,36 @@ async function waitForReady(
 }
 
 // ============================================================================
+// Open Recent Menu
+// ============================================================================
+
+/**
+ * Refresh the native "Open Recent" submenu with the current project list.
+ *
+ * Loads projects from `~/.pibun/projects.json`, takes the top 10 by
+ * `lastOpened`, rebuilds the full application menu, and replaces it.
+ *
+ * Also updates the `recentProjectCwds` module state so that menu
+ * action handlers can look up the CWD by index.
+ */
+async function refreshRecentMenu(): Promise<void> {
+	try {
+		const projects = await loadProjects();
+		const recent: RecentProject[] = projects.slice(0, 10).map((p) => ({
+			name: p.name,
+			cwd: p.cwd,
+		}));
+
+		recentProjectCwds = recent.map((r) => r.cwd);
+
+		ApplicationMenu.setApplicationMenu(buildMenuConfig(recent));
+		console.log(`[Menu] Open Recent updated (${String(recent.length)} projects)`);
+	} catch (err) {
+		console.warn("[Menu] Failed to refresh Open Recent menu:", err);
+	}
+}
+
+// ============================================================================
 // Start Embedded Server
 // ============================================================================
 
@@ -212,6 +256,9 @@ function startServer(): { server: PiBunServer; url: string } {
 			onApplyUpdate: () => handleApplyUpdate(),
 			onCheckForUpdates: () => handleCheckForUpdates(),
 			onOpenFolderDialog: () => openFolderDialogAsync(),
+			onProjectsChanged: () => {
+				refreshRecentMenu();
+			},
 		},
 	});
 
@@ -454,8 +501,12 @@ async function bootstrap(): Promise<void> {
 	// Step 5: Wire window lifecycle events (state persistence + shutdown)
 	wireWindowLifecycle(mainWindow);
 
-	// Step 6: Set up native application menu
+	// Step 6: Set up native application menu (initially without recent projects)
 	ApplicationMenu.setApplicationMenu(buildMenuConfig());
+
+	// Load recent projects and rebuild menu with "Open Recent" submenu.
+	// Fire-and-forget — menu works without it, just shows "No Recent Projects" initially.
+	refreshRecentMenu();
 
 	// Handle menu click events from native menu items.
 	// Native-only actions (close, zoom) are handled directly in the main process.
@@ -464,6 +515,28 @@ async function bootstrap(): Promise<void> {
 	// appropriate session actions or UI toggles.
 	const handleMenuAction = (action: MenuAction): void => {
 		console.log(`[Menu] Action: ${action}`);
+
+		// ── Dynamic "Open Recent" actions ────────────────────────
+		if (typeof action === "string" && action.startsWith(OPEN_RECENT_ACTION_PREFIX)) {
+			const indexStr = action.slice(OPEN_RECENT_ACTION_PREFIX.length);
+			const index = Number.parseInt(indexStr, 10);
+			const cwd = recentProjectCwds[index];
+
+			if (cwd && pibunServer) {
+				// Forward to the React app — same pattern as file.open-folder
+				// but uses the "file.open-recent" action so the web app can
+				// use openProject() instead of startSessionInFolder().
+				broadcastPush(pibunServer.connections, "menu.action", {
+					action: "file.open-recent",
+					data: { folderPath: cwd },
+				});
+			} else if (!cwd) {
+				console.warn(`[Menu] No CWD at recent index ${String(index)}`);
+			} else {
+				console.warn("[Menu] No server to forward Open Recent action");
+			}
+			return;
+		}
 
 		switch (action) {
 			// ── App-level actions ────────────────────────────────────

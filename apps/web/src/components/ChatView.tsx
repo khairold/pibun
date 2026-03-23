@@ -27,8 +27,10 @@ import { ToolExecutionCard } from "@/components/chat/ToolExecutionCard";
 import { ToolResultMessage } from "@/components/chat/ToolResultMessage";
 import { UserMessage } from "@/components/chat/UserMessage";
 import { cn } from "@/lib/cn";
+import { openProject } from "@/lib/projectActions";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
+import type { Project } from "@pibun/contracts";
 import { type ReactElement, memo, useCallback, useMemo, useRef, useState } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 
@@ -150,6 +152,97 @@ function VirtuosoItem({ children, ...props }: React.HTMLAttributes<HTMLDivElemen
 }
 
 // ============================================================================
+// Recent Project Item
+// ============================================================================
+
+/** Maximum number of recent projects to show in the empty state. */
+const MAX_RECENT_PROJECTS = 10;
+
+interface RecentProjectItemProps {
+	project: Project;
+	onOpen: (project: Project) => void;
+}
+
+const RecentProjectItem = memo(function RecentProjectItem({
+	project,
+	onOpen,
+}: RecentProjectItemProps) {
+	return (
+		<button
+			type="button"
+			onClick={() => onOpen(project)}
+			className={cn(
+				"flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
+				"text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200",
+			)}
+		>
+			{/* Folder icon */}
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 16 16"
+				fill="currentColor"
+				className="h-4 w-4 shrink-0 text-neutral-600"
+				aria-label="Project folder"
+				role="img"
+			>
+				<path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h2.879a1.5 1.5 0 0 1 1.06.44l1.122 1.12A1.5 1.5 0 0 0 9.62 4H12.5A1.5 1.5 0 0 1 14 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12.5v-9z" />
+			</svg>
+			<div className="min-w-0 flex-1">
+				<span className="block truncate text-sm font-medium">{project.name}</span>
+				<span className="block truncate text-[11px] text-neutral-600">{project.cwd}</span>
+			</div>
+		</button>
+	);
+});
+
+// ============================================================================
+// Empty State
+// ============================================================================
+
+/**
+ * Empty state shown when there are no messages in the current tab.
+ *
+ * Shows a welcome prompt and recent projects (top 10 by lastOpened)
+ * for quick access. Clicking a project opens it in a new tab or
+ * switches to an existing tab with the same CWD.
+ */
+function EmptyState() {
+	const projects = useStore((s) => s.projects);
+
+	const recentProjects = useMemo(() => projects.slice(0, MAX_RECENT_PROJECTS), [projects]);
+
+	const handleOpenProject = useCallback((project: Project) => {
+		openProject(project).catch((err: unknown) => {
+			console.error("[ChatView] Failed to open project:", err);
+		});
+	}, []);
+
+	return (
+		<div className="flex flex-1 flex-col items-center justify-center px-4">
+			<div className="w-full max-w-md text-center">
+				<div className="mb-3 text-3xl">{"\u{1F967}"}</div>
+				<p className="text-sm text-neutral-400">Send a message to start a conversation with Pi</p>
+				<p className="mt-1 text-xs text-neutral-600">A session will be created automatically</p>
+
+				{/* Recent projects */}
+				{recentProjects.length > 0 && (
+					<div className="mt-8">
+						<p className="mb-2 text-xs font-medium uppercase tracking-wider text-neutral-600">
+							Recent Projects
+						</p>
+						<div className="flex flex-col gap-0.5 rounded-lg border border-neutral-800 bg-neutral-900/50 p-1">
+							{recentProjects.map((project) => (
+								<RecentProjectItem key={project.id} project={project} onOpen={handleOpenProject} />
+							))}
+						</div>
+					</div>
+				)}
+			</div>
+		</div>
+	);
+}
+
+// ============================================================================
 // ChatView
 // ============================================================================
 
@@ -256,15 +349,7 @@ export function ChatView() {
 	// ── Empty state ──────────────────────────────────────────────────
 
 	if (items.length === 0) {
-		return (
-			<div className="flex flex-1 flex-col items-center justify-center px-4">
-				<div className="text-center">
-					<div className="mb-3 text-3xl">{"\u{1F967}"}</div>
-					<p className="text-sm text-neutral-400">Send a message to start a conversation with Pi</p>
-					<p className="mt-1 text-xs text-neutral-600">A session will be created automatically</p>
-				</div>
-			</div>
-		);
+		return <EmptyState />;
 	}
 
 	// ── Virtualized message list ─────────────────────────────────────
