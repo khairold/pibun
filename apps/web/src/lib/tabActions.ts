@@ -19,6 +19,106 @@ import { getTransport } from "@/wireTransport";
 import { loadSessionMessages, refreshSessionState } from "./sessionActions";
 
 // ============================================================================
+// Tab Close
+// ============================================================================
+
+/**
+ * Close a tab — stops its Pi session and removes the tab from the store.
+ *
+ * Flow:
+ * 1. Find the tab to close
+ * 2. If the tab has a Pi session:
+ *    a. Abort streaming if active
+ *    b. Stop the Pi process via `session.stop` (targeting the tab's sessionId)
+ * 3. Remove the tab from the store (store handles adjacent tab switching)
+ * 4. Route transport to the new active tab's session (or null if last tab)
+ * 5. If the new active tab has a session, refresh its state; fetch messages if cache empty
+ *
+ * If this was the last tab, the store clears everything → empty state.
+ * Session stop failures don't block tab removal (no orphan UI).
+ */
+export async function closeTab(tabId: string): Promise<void> {
+	const store = useStore.getState();
+	const transport = getTransport();
+
+	// Find the tab we're closing
+	const tabToClose = store.tabs.find((t) => t.id === tabId);
+	if (!tabToClose) return;
+
+	const isActiveTab = tabId === store.activeTabId;
+
+	// ── Stop the Pi session ──────────────────────────────────────
+	if (tabToClose.sessionId) {
+		// Save and temporarily switch transport to target the closing tab's session
+		const previousActiveSession = transport.activeSessionId;
+		transport.setActiveSession(tabToClose.sessionId);
+
+		try {
+			// Abort streaming first — session.stop may hang if agent is running
+			if (tabToClose.isStreaming) {
+				try {
+					await transport.request("session.abort");
+				} catch {
+					// Continue even if abort fails
+				}
+			}
+
+			await transport.request("session.stop");
+		} catch (err) {
+			console.warn(`[closeTab] Failed to stop session for tab ${tabId}:`, err);
+			// Continue with tab removal — don't leave orphan UI
+		}
+
+		// Restore transport routing if we didn't close the active tab
+		if (!isActiveTab) {
+			transport.setActiveSession(previousActiveSession);
+		}
+	}
+
+	// ── Determine next tab before removal ────────────────────────
+	// We need this to know if we should fetch messages after removal
+	let nextTab: { id: string; sessionId: string | null } | null = null;
+	if (isActiveTab) {
+		const oldIndex = store.tabs.findIndex((t) => t.id === tabId);
+		const remaining = store.tabs.filter((t) => t.id !== tabId);
+		const candidate = remaining[oldIndex > 0 ? oldIndex - 1 : 0] ?? null;
+		if (candidate) {
+			nextTab = { id: candidate.id, sessionId: candidate.sessionId };
+		}
+	}
+
+	// Check if the next tab has cached messages BEFORE removal
+	// (removeTab deletes the closed tab's cache but not others')
+	const nextTabHasCache = nextTab ? (store.tabMessages.get(nextTab.id)?.length ?? 0) > 0 : false;
+
+	// ── Remove the tab ───────────────────────────────────────────
+	// The store handles: adjacent tab switching, session state restore,
+	// message cache restore, and empty state if last tab.
+	store.removeTab(tabId);
+
+	// ── Route transport to new active tab ────────────────────────
+	if (isActiveTab) {
+		if (nextTab?.sessionId) {
+			transport.setActiveSession(nextTab.sessionId);
+
+			// Fetch messages from Pi if the cache was empty
+			if (!nextTabHasCache) {
+				await loadSessionMessages();
+			}
+
+			// Refresh session state for live data (model, thinking, etc.)
+			await refreshSessionState();
+
+			// Sync tab metadata with refreshed state
+			useStore.getState().syncActiveTabState();
+		} else {
+			// No session on the next tab, or no next tab at all
+			transport.setActiveSession(null);
+		}
+	}
+}
+
+// ============================================================================
 // Tab Creation
 // ============================================================================
 

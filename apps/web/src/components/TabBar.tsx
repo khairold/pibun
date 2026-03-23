@@ -13,7 +13,7 @@
  */
 
 import { cn } from "@/lib/cn";
-import { createNewTab, switchTabAction } from "@/lib/tabActions";
+import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
 import { useStore } from "@/store";
 import type { SessionTab } from "@pibun/contracts";
 import { type MouseEvent, memo, useCallback, useRef } from "react";
@@ -146,7 +146,6 @@ function shortModelName(name: string): string {
 export function TabBar() {
 	const tabs = useStore((s) => s.tabs);
 	const activeTabId = useStore((s) => s.activeTabId);
-	const removeTab = useStore((s) => s.removeTab);
 	const connectionStatus = useStore((s) => s.connectionStatus);
 
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -161,12 +160,12 @@ export function TabBar() {
 		});
 	}, [isConnected]);
 
-	const handleCloseTab = useCallback(
-		(tabId: string) => {
-			removeTab(tabId);
-		},
-		[removeTab],
-	);
+	const handleCloseTab = useCallback((tabId: string) => {
+		// Stop the Pi session, then remove the tab
+		closeTab(tabId).catch((err: unknown) => {
+			console.error("[TabBar] Failed to close tab:", err);
+		});
+	}, []);
 
 	const handleSwitchTab = useCallback((tabId: string) => {
 		// Async tab switch — coordinates store + transport + Pi message loading

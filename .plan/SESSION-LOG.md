@@ -5,6 +5,28 @@
 
 ---
 
+## Session 57 — Wire close tab (2026-03-23)
+
+**What happened:**
+- Added `closeTab()` async function to `apps/web/src/lib/tabActions.ts` — coordinates Pi session stop with tab removal
+- Flow: find tab → temporarily route transport to its session → abort streaming if active → `session.stop` → determine next tab + check cache → `removeTab` from store → route transport to new active tab → fetch messages if cache empty → refresh session state
+- Key design decisions: session stop failures don't block tab removal (no orphan UI), transport routing is temporarily swapped for background tab closes then restored, last-tab close clears transport active session (→ empty state)
+- Updated `TabBar.tsx` `handleCloseTab` to use `closeTab()` instead of raw `removeTab()` — close button now properly stops the Pi process before removing the tab
+- Removed unused `removeTab` selector from TabBar component
+
+**Items completed:**
+- [x] 1.7 — Wire close tab: stops Pi process via `session.stop`, removes tab, switches to adjacent tab (or empty state if last tab)
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1.8 — Tab drag-to-reorder (optional polish)
+- `closeTab()` handles all edge cases: active tab close (switches to adjacent), background tab close (no switch needed), last tab close (empty state), streaming tabs (aborts first), session-less tabs (no stop needed)
+- Key files: `apps/web/src/lib/tabActions.ts` (close/create/switch), `apps/web/src/components/TabBar.tsx` (UI), `apps/web/src/store/tabsSlice.ts` (store-level removal + adjacent switching)
+
+---
+
 ## Session 56 — Wire new tab creation (2026-03-23)
 
 **What happened:**
