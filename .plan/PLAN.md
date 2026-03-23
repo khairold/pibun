@@ -1,9 +1,10 @@
-# PiBun — Build Plan
+# PiBun v2 — Build Plan
 
-> **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 2C COMPLETE. All items done. Moving to Parking Lot.
-> **Current Phase:** 2C (complete)
-> **Last Session:** 51 (2026-03-23)
+> **Spec:** Parking lot items from v1 plan + new ideas from usage
+> **Status:** Not Started
+> **Current Phase:** —
+> **Last Session:** —
+> **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
 
@@ -23,189 +24,150 @@
 3. Update `DRIFT.md` if any spec changes occurred
 4. Log the session in `SESSION-LOG.md`
 5. Write a **Handoff** note at the bottom of the session log entry
-6. Run the build gate command (when applicable)
+6. Run the build gate command
 
 ---
 
-## Phase 0 — Scaffold & Project Setup
+## Phase 1 — Multi-Session & Tabs
 
-**Goal:** Monorepo builds, lints, and all package scaffolds exist. Pi RPC verified locally.
+**Goal:** Run multiple Pi processes simultaneously with a tabbed interface. Each tab is an independent session with its own CWD, model, and conversation.
 
-- [x] 0.1 — Document architecture (ARCHITECTURE.md)
-- [x] 0.2 — Document Pi RPC integration (PI_INTEGRATION.md)
-- [x] 0.3 — Document WebSocket protocol (WS_PROTOCOL.md)
-- [x] 0.4 — Document web UI design (WEB_UI.md)
-- [x] 0.5 — Document desktop plan (DESKTOP.md)
-- [x] 0.6 — Document roadmap (ROADMAP.md)
-- [x] 0.7 — Set up agent system (.plan/, .pi/, .agents/, CLAUDE.md)
-- [x] 0.8 — Initialize Bun workspace root (package.json with workspaces, bun install)
-- [x] 0.9 — Set up Turbo for build orchestration (turbo.json with build/dev/typecheck/lint pipelines)
-- [x] 0.10 — Set up base TypeScript config (tsconfig.base.json — strict, Bun types, path aliases)
-- [x] 0.11 — Set up Biome for lint + format (biome.json)
-- [x] 0.12 — Create `packages/contracts/` scaffold (package.json, tsconfig.json, empty src/index.ts)
-- [x] 0.13 — Create `packages/shared/` scaffold (package.json, tsconfig.json, empty src/)
-- [x] 0.14 — Create `apps/server/` scaffold (package.json, tsconfig.json, empty src/index.ts)
-- [x] 0.15 — Create `apps/web/` scaffold (package.json, tsconfig.json, Vite config, empty src/)
-- [x] 0.16 — Create `apps/desktop/` scaffold (package.json, tsconfig.json, empty src/)
-- [x] 0.17 — Verify monorepo: `bun install` succeeds, `bun run typecheck` passes, `bun run lint` passes
-- [x] 0.18 — Verify `pi --mode rpc` works locally (manual test, document any setup notes in MEMORY.md)
+- [ ] 1.1 — Extend `PiRpcManager` to support multiple concurrent sessions (currently supports multiple but UI is single-session)
+- [ ] 1.2 — Add `SessionTab` type to contracts: `{ id, name, cwd, model, isStreaming, isActive, messageCount, createdAt }`
+- [ ] 1.3 — Add `tabsSlice` to Zustand store: `tabs: SessionTab[]`, `activeTabId`, `addTab`, `removeTab`, `switchTab`, `updateTab`
+- [ ] 1.4 — Build `TabBar` component: horizontal tabs with session name, model badge, streaming indicator, close button, "+" new tab button
+- [ ] 1.5 — Wire tab switching: switching tab saves current messages to tab state, loads target tab's messages from Pi via `get_messages`
+- [ ] 1.6 — Wire new tab: creates new Pi process via `session.start`, adds tab, switches to it
+- [ ] 1.7 — Wire close tab: stops Pi process via `session.stop`, removes tab, switches to adjacent tab (or empty state if last tab)
+- [ ] 1.8 — Tab drag-to-reorder (optional polish)
+- [ ] 1.9 — Keyboard shortcuts: Ctrl+T new tab, Ctrl+W close tab, Ctrl+Tab / Ctrl+Shift+Tab cycle tabs, Ctrl+1-9 jump to tab
+- [ ] 1.10 — Update Sidebar to show tabs grouped by CWD, or remove session list in favor of tabs
+- [ ] 1.11 — Desktop: update native menus with tab actions (New Tab, Close Tab, Next/Previous Tab)
+- [ ] 1.12 — Verify: 3 simultaneous sessions streaming, switch between them, close one, verify no orphaned processes
 
-**Exit criteria:** All packages exist. `bun install && bun run typecheck && bun run lint` passes. Pi RPC verified.
+**Exit criteria:** Multiple Pi sessions run in parallel. Tabs show streaming state. Switch is instant (messages cached). No process leaks on close.
 
 ---
 
-## Phase 1A — Server: Pi RPC Bridge
+## Phase 2 — Project Management
 
-**Goal:** The server can spawn Pi, send prompts, and receive streaming JSONL events.
+**Goal:** Sidebar with project directories. Each project remembers its sessions, CWD, and model preferences.
 
-- [x] 1A.1 — Define Pi RPC event types in `packages/contracts/` (agent_start/end, turn_start/end, message_start/update/end, tool_execution_start/update/end, auto_compaction, auto_retry, extension_ui_request)
-- [x] 1A.2 — Define Pi RPC command types in `packages/contracts/` (prompt, steer, follow_up, abort, set_model, set_thinking_level, get_state, get_messages, compact, new_session, switch_session, fork, get_available_models, extension_ui_response)
-- [x] 1A.3 — Define Pi RPC response type in `packages/contracts/` (type, command, success, error, id, data)
-- [x] 1A.4 — Implement JSONL parser in `packages/shared/` (strict LF splitting, no readline, buffer accumulation)
-- [x] 1A.5 — Write unit tests for JSONL parser (partial lines, embedded newlines in JSON strings, Unicode line separators in payloads, empty lines, rapid multi-line)
-- [x] 1A.6 — Implement `PiProcess` class in `apps/server/` (spawn with flags, stdin write, stdout read via JSONL parser, stderr capture, process lifecycle)
-- [x] 1A.7 — Implement `PiRpcManager` in `apps/server/` (create session → spawn PiProcess, get session, stop session → kill process, stop all)
-- [x] 1A.8 — Handle Pi process crash/exit (emit error event, clean up session, log stderr)
-- [x] 1A.9 — Write unit tests for PiRpcManager (mock subprocess, verify event routing)
-- [x] 1A.10 — Manual integration test: spawn Pi, send prompt, log streaming events to console
+- [ ] 2.1 — Define `Project` type: `{ id, name, cwd, lastOpened, favoriteModel?, defaultThinking?, sessionCount }`
+- [ ] 2.2 — Add `projectsSlice` to Zustand store: `projects: Project[]`, `activeProjectId`, CRUD actions
+- [ ] 2.3 — Server-side project persistence: `~/.pibun/projects.json` (read/write via new WS methods `project.list`, `project.add`, `project.remove`, `project.update`)
+- [ ] 2.4 — Build `ProjectSidebar` section: project list with icons, last-opened date, session count badge
+- [ ] 2.5 — "Add Project" flow: folder picker (native dialog in desktop, text input in browser) → creates project entry
+- [ ] 2.6 — Project switching: click project → starts new tab with that CWD, or switches to existing tab for that CWD
+- [ ] 2.7 — "Open Recent" list: last 10 opened project directories, persisted across app restarts
+- [ ] 2.8 — Desktop: "Open Folder…" (Cmd+O) adds to project list if not already present
+- [ ] 2.9 — Desktop: window title shows active project name
+- [ ] 2.10 — Verify: add 3 projects, switch between them, close app, reopen, projects persist
 
-**Exit criteria:** A test script spawns Pi via RPC, sends "hello", and logs all streaming events. Process cleanup works on crash/exit.
-
----
-
-## Phase 1B — Server: WebSocket Bridge
-
-**Goal:** Browser can connect via WebSocket and interact with Pi through the server.
-
-- [x] 1B.1 — Define WebSocket protocol types in `packages/contracts/` (WsRequest, WsResponse, WsPush, method strings, push channels)
-- [x] 1B.2 — Set up Bun HTTP server with health endpoint (`/health`)
-- [x] 1B.3 — Static file serving (serve `apps/web/dist/` in production)
-- [x] 1B.4 — WebSocket upgrade handling with connection tracking
-- [x] 1B.5 — Implement request/response dispatch (method string → handler function)
-- [x] 1B.6 — Implement `session.start` → spawn Pi RPC via PiRpcManager
-- [x] 1B.7 — Implement `session.prompt` → forward to Pi process stdin
-- [x] 1B.8 — Implement `session.abort` → forward abort to Pi
-- [x] 1B.9 — Implement `session.stop` → stop Pi process
-- [x] 1B.10 — Pi event forwarding: subscribe to PiProcess events → push to all connected WebSocket clients on `pi.event` channel
-- [x] 1B.11 — Pi response forwarding: push on `pi.response` channel
-- [x] 1B.12 — `server.welcome` push on WebSocket connect (cwd, version)
-- [x] 1B.13 — Write unit tests for WebSocket message routing
-- [x] 1B.14 — Test with wscat: connect → start session → send prompt → receive streaming events → abort → stop
-
-**Exit criteria:** Full round-trip works via wscat. Events stream in real-time. Session start/stop/abort all function.
+**Exit criteria:** Projects sidebar works. Projects persist across restarts. Opening a project starts a session in that CWD.
 
 ---
 
-## Phase 1C — Web UI: Minimal Chat
+## Phase 3 — Git Integration
 
-**Goal:** Usable chat interface in the browser. Type a prompt, see streaming response.
+**Goal:** Show git status for the active project's CWD. Branch indicator, changed file count, diff viewer.
 
-- [x] 1C.1 — Vite + React 19 + Tailwind v4 setup in `apps/web/`
-- [x] 1C.2 — Implement `WsTransport` class (connect, disconnect, request with correlation, subscribe to push channels, reconnect with backoff)
-- [x] 1C.3 — Create Zustand store: `connection` slice (status, reconnectAttempt)
-- [x] 1C.4 — Create Zustand store: `session` slice (isStreaming, model, thinkingLevel)
-- [x] 1C.5 — Create Zustand store: `messages` slice (ChatMessage array, append, update streaming message)
-- [x] 1C.6 — Wire WsTransport → Zustand (pi.event push → state updates, see event→state mapping in WEB_UI.md)
-- [x] 1C.7 — Build AppShell layout (sidebar placeholder left, main chat area right, composer bottom)
-- [x] 1C.8 — Build Composer (multi-line input, Enter to send, Shift+Enter for newline, abort button during streaming)
-- [x] 1C.9 — Build ChatView — render user messages and assistant text blocks
-- [x] 1C.10 — Wire text_delta streaming (append to current message content in real-time)
-- [x] 1C.11 — Auto-scroll to bottom on new content, "↓ New messages" button when scrolled up
-- [x] 1C.12 — Basic tool output rendering (show tool name + raw text output, collapsible)
-- [x] 1C.13 — Loading/connecting/error state indicators
-- [x] 1C.14 — Wire Vite dev proxy to server (or configure CORS)
-- [x] 1C.15 — End-to-end test: open browser → type prompt → see streaming response with tool calls
+- [ ] 3.1 — Server-side git module: `git status --porcelain`, `git branch --show-current`, `git diff`, `git log --oneline -10` — execute via `Bun.spawn` in the session's CWD
+- [ ] 3.2 — New WS methods: `git.status`, `git.branch`, `git.diff`, `git.log`
+- [ ] 3.3 — Add `gitSlice` to Zustand store: `branch`, `changedFiles`, `isDirty`, `lastFetched`
+- [ ] 3.4 — `GitStatusBar` component: branch name + changed file count in toolbar or status bar area
+- [ ] 3.5 — Auto-refresh git status after `agent_end` events (agent likely modified files)
+- [ ] 3.6 — `GitChangedFiles` panel: list of changed files with status badges (M/A/D/?), click to view diff
+- [ ] 3.7 — `DiffViewer` component: side-by-side or unified diff view with syntax highlighting (reuse Shiki)
+- [ ] 3.8 — Git status in tab bar: dirty indicator dot on tabs with uncommitted changes
+- [ ] 3.9 — Keyboard shortcut: Ctrl+G toggle git panel
+- [ ] 3.10 — Verify: make changes via Pi, see git status update, view diffs, switch branches reflected
 
-**Exit criteria:** Working chat with Pi in the browser. Streaming text renders smoothly. Tool calls visible. Session starts automatically on page load.
+**Exit criteria:** Branch + dirty status visible at all times. Changed files list accessible. Diffs viewable with syntax highlighting. Updates after agent actions.
 
 ---
 
-## Phase 1D — Web UI: Full Features
+## Phase 4 — Terminal Integration
 
-**Goal:** Feature-complete web experience with all Pi capabilities exposed.
+**Goal:** Embedded terminal pane for running commands alongside Pi conversations.
 
-- [x] 1D.1 — Thinking blocks (collapsible section, streaming via thinking_delta)
-- [x] 1D.2 — Tool call cards (tool name + args header, expandable output body)
-- [x] 1D.3 — Syntax highlighting for code blocks (Shiki, lazy-loaded per language)
-- [x] 1D.4 — Markdown rendering for assistant text (react-markdown or similar)
-- [x] 1D.5 — Tool-specific output rendering: `bash` as terminal, `read` as highlighted code with path, `edit` as diff view, `write` as file preview
-- [x] 1D.6 — Model selector UI (list from `get_available_models`, grouped by provider)
-- [x] 1D.7 — Thinking level selector (off → xhigh)
-- [x] 1D.8 — Wire model/thinking commands (session.setModel, session.setThinking)
-- [x] 1D.9 — Session management: new session, switch session, fork from message
-- [x] 1D.10 — Session stats display (tokens, cost from get_session_stats)
-- [x] 1D.11 — Compaction controls (manual compact button, auto-compaction start/end indicators)
-- [x] 1D.12 — Extension UI dialogs (select list, confirm yes/no, text input, multi-line editor)
-- [x] 1D.13 — Extension notifications (toast) and status (persistent indicator)
-- [x] 1D.14 — Message steering (Enter during streaming → steer) and follow-up support
-- [x] 1D.15 — Image paste in composer (Ctrl+V, convert to base64, attach to prompt)
-- [x] 1D.16 — Keyboard shortcuts (Ctrl+C abort, Ctrl+L model selector, Ctrl+N new session)
-- [x] 1D.17 — Sidebar: session list with switch, current session info, new session button
-- [x] 1D.18 — Error handling: retry indicators (auto_retry events), error banners
-- [x] 1D.19 — Message virtualization for long conversations (only render visible messages)
-- [x] 1D.20 — Responsive layout (collapsible sidebar on narrow viewports)
+- [ ] 4.1 — Research PTY options for Bun (node-pty, Bun's native PTY if available, or xterm.js with WebSocket bridge)
+- [ ] 4.2 — Server-side terminal manager: spawn shell, pipe stdin/stdout via WebSocket
+- [ ] 4.3 — New WS methods: `terminal.create`, `terminal.write`, `terminal.resize`, `terminal.close`
+- [ ] 4.4 — New WS push channel: `terminal.data` (stdout chunks from shell)
+- [ ] 4.5 — Install `@xterm/xterm` + `@xterm/addon-fit` in apps/web
+- [ ] 4.6 — Build `TerminalPane` component: xterm.js instance, resizable, theme-matched
+- [ ] 4.7 — Layout: terminal as bottom panel (resizable splitter between chat and terminal)
+- [ ] 4.8 — Multiple terminal tabs (like VS Code)
+- [ ] 4.9 — Terminal inherits CWD from active session/project
+- [ ] 4.10 — Keyboard shortcut: Ctrl+` toggle terminal panel
+- [ ] 4.11 — Desktop: native menu "View → Toggle Terminal"
+- [ ] 4.12 — Verify: open terminal, run commands, resize, multiple terminals, CWD matches project
 
-**Exit criteria:** All Pi features accessible through the UI. Extension dialogs work. Keyboard shortcuts function. Performance acceptable for 100+ message conversations.
+**Exit criteria:** Embedded terminal works alongside chat. Multiple terminal tabs. Resizable. CWD-aware.
 
 ---
 
-## Phase 2A — Desktop: Electrobun Scaffold
+## Phase 5 — Session Export & Sharing
 
-**Goal:** Desktop app opens and loads the web app in a native webview.
+**Goal:** Export conversations as HTML, Markdown, or JSON for sharing and archival.
 
-- [x] 2A.1 — Electrobun project setup (`electrobun.config.ts`, source structure)
-- [x] 2A.2 — Main process: find available port, start PiBun server
-- [x] 2A.3 — Wait for server health check, then open native webview at localhost URL
-- [x] 2A.4 — Window lifecycle (open, close, remember size/position via localStorage or config)
-- [x] 2A.5 — Shutdown: close webview → stop server → stop all Pi processes → exit
-- [x] 2A.6 — Dev mode: point webview at Vite dev server URL for hot reload
+- [ ] 5.1 — Pi's `export_html` RPC command already exists — wire it through: `session.exportHtml` WS method
+- [ ] 5.2 — Build `ExportDialog` component: format picker (HTML, Markdown, JSON), filename, download button
+- [ ] 5.3 — Markdown export: render messages to markdown (user blocks, assistant blocks, tool calls as code blocks)
+- [ ] 5.4 — JSON export: raw message array dump with metadata (model, tokens, timestamps)
+- [ ] 5.5 — Desktop: native "Save As…" dialog for export destination
+- [ ] 5.6 — Browser: trigger download via blob URL
+- [ ] 5.7 — Keyboard shortcut: Ctrl+Shift+E export dialog
+- [ ] 5.8 — Verify: export a conversation in all 3 formats, verify content is complete and readable
 
-**Exit criteria:** `bun run dev:desktop` opens a native window with the working web app inside.
-
----
-
-## Phase 2B — Desktop: Native Integration
-
-**Goal:** Desktop app feels native with menus, shortcuts, and OS integration.
-
-- [x] 2B.1 — Native menu bar (PiBun, File, Edit, View, Session menus per DESKTOP.md spec)
-- [x] 2B.2 — Menu actions → WebSocket commands (New Session, Abort, Compact, Switch Model)
-- [x] 2B.3 — IPC: forward native menu events to React app
-- [x] 2B.4 — File dialogs for project/folder selection
-- [x] 2B.5 — System notifications for long-running operations
-- [x] 2B.6 — Keyboard shortcuts mapped to native accelerators
-- [x] 2B.7 — App icon and branding
-
-**Exit criteria:** Menus work. Keyboard shortcuts trigger correct actions. Feels like a native app.
+**Exit criteria:** All 3 export formats work. HTML is self-contained and styled. Markdown is clean. JSON is complete.
 
 ---
 
-## Phase 2C — Desktop: Distribution
+## Phase 6 — Custom Themes
 
-**Goal:** Users can download and install PiBun.
+**Goal:** Light/dark mode plus custom color themes. Theme persists across sessions.
 
-- [x] 2C.1 — macOS .dmg build
-- [x] 2C.2 — Code signing + notarization (macOS)
-- [x] 2C.3 — Linux AppImage build
-- [x] 2C.4 — Windows NSIS installer
-- [x] 2C.5 — Auto-update mechanism
-- [x] 2C.6 — GitHub Releases CI pipeline
-- [x] 2C.7 — Smoke tests for each platform
+- [ ] 6.1 — Define `Theme` type: `{ id, name, isDark, colors: Record<string, string> }` with semantic color tokens
+- [ ] 6.2 — Built-in themes: light (default), dark, dimmed, high-contrast dark, high-contrast light
+- [ ] 6.3 — Theme CSS: convert hardcoded Tailwind colors to CSS custom properties, apply via `data-theme` attribute on `<html>`
+- [ ] 6.4 — Build `ThemeSelector` component: grid of theme previews, click to apply
+- [ ] 6.5 — Persist theme choice: `localStorage` in browser, `~/.pibun/settings.json` in desktop
+- [ ] 6.6 — System preference detection: `prefers-color-scheme` → auto-select light/dark
+- [ ] 6.7 — Desktop: respect macOS appearance changes (light → dark mode switch)
+- [ ] 6.8 — Shiki theme matching: switch code highlighting theme to match app theme
+- [ ] 6.9 — Verify: switch themes, code blocks re-highlight, persists across restart, system preference respected
 
-**Exit criteria:** Downloadable installers on GitHub Releases. Auto-update works.
+**Exit criteria:** 5 built-in themes work. Code highlighting matches. Persists. System preference followed.
+
+---
+
+## Phase 7 — Plugin System
+
+**Goal:** Extend PiBun's UI with custom panels via a plugin API.
+
+- [ ] 7.1 — Define plugin manifest: `{ id, name, version, description, panels: PanelConfig[] }`
+- [ ] 7.2 — Define `PanelConfig`: `{ id, title, icon, position: "sidebar" | "bottom" | "right", component: string (URL or path) }`
+- [ ] 7.3 — Plugin loading: read `~/.pibun/plugins/` directory, load manifests
+- [ ] 7.4 — Plugin panel rendering: sandboxed iframe (web) or Electrobun BrowserView (desktop) loading plugin URL
+- [ ] 7.5 — Plugin ↔ PiBun messaging: `postMessage` bridge for reading session state, sending prompts, subscribing to events
+- [ ] 7.6 — Plugin manager UI: list installed plugins, enable/disable, install from URL/path
+- [ ] 7.7 — Example plugin: "Prompt Library" — panel that shows saved prompts, click to insert into composer
+- [ ] 7.8 — Verify: install example plugin, see it in sidebar, interact with it, disable it
+
+**Exit criteria:** Plugins can add panels to the UI. Sandboxed. Can interact with session state via message bridge. Example plugin works.
 
 ---
 
 ## Parking Lot
 
-Ideas discussed but not scheduled:
+Ideas for future consideration:
 
-- [ ] Multi-session — multiple Pi processes, tabbed interface
-- [ ] Project management — sidebar with multiple project directories
-- [ ] Git integration — branch status, diff view
-- [ ] Terminal integration — embedded terminal pane
-- [ ] Pi extension marketplace — browse and install from UI
-- [ ] Session export — HTML export of conversations
-- [ ] Collaborative sessions — multiple users watching same Pi session
-- [ ] Custom themes — beyond light/dark
-- [ ] Plugin system — extend PiBun's UI with custom panels
+- [ ] Pi extension marketplace — browse and install Pi extensions from the UI (depends on Pi having a registry)
+- [ ] Collaborative sessions — multiple users watching the same Pi session (WebSocket fan-out already exists, needs auth + multi-user state)
+- [ ] Voice input — microphone → STT → prompt
+- [ ] Session search — full-text search across all conversations
+- [ ] Prompt templates UI — browse and use Pi's prompt templates from a panel
+- [ ] Diff review mode — after agent makes changes, show all diffs in a review panel before committing
+- [ ] Split view — two conversations side by side

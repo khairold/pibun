@@ -303,7 +303,16 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - `package/src/bun/core/BrowserWindow.ts` — Window management API
 - `package/src/bun/core/ApplicationMenu.ts` — Native menu API
 
-## What's Not Built Yet
+## What's Built (v1 Complete)
+
+All core features are shipped. See `.plan/archive/PLAN-v1.md` for the 97-item build history.
+
+**Server:** PiRpcManager, PiProcess, WebSocket server, 17+ WS method handlers, session listing, health endpoint, static file serving, fake-pi test fixture.
+**Web:** 9 Zustand slices, WsTransport with reconnect, ChatView with react-virtuoso, Composer with steer/follow-up/image paste, Shiki syntax highlighting, react-markdown, tool-specific renderers (bash/read/edit/write), ModelSelector, ThinkingSelector, SessionStats, CompactButton, ForkDialog, Sidebar with session list, extension UI dialogs (select/confirm/input/editor), toasts, status bar, keyboard shortcuts, responsive layout.
+**Desktop:** Electrobun wrapper, embedded server, native menus with WS forwarding, window state persistence, system notifications, auto-update, folder picker, app icon.
+**CI/CD:** GitHub Actions (ci.yml + release.yml), macOS signing/notarization, Linux/Windows builds, smoke tests.
+
+## What's Not Built Yet (v2 Plan)
 
 - Pi RPC types fully defined in `packages/contracts/` ✅
 - JSONL parser in `packages/shared/` ✅
