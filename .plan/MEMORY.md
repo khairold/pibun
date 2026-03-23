@@ -453,6 +453,10 @@ All core features are shipped. See `.plan/archive/PLAN-v1.md` for the 97-item bu
 - **Electrobun distributes raw .ts files**: Can't use `skipLibCheck` to suppress errors in Electrobun's source. Must disable `exactOptionalPropertyTypes` in desktop tsconfig. Also needs `declare module "three"` for its WGPU dependency.
 - **DOM lib + ReadableStream async iteration**: Desktop tsconfig has `lib: ["ESNext", "DOM"]`. The DOM `ReadableStream` type lacks `[Symbol.asyncIterator]()` (Bun's `bun-types` augments it, but DOM lib overrides). Avoid `for await...of` on `ReadableStream` in code shared with desktop. Use `getReader()` or `Blob.slice().text()` instead.
 
+| 250 | Git types in `packages/contracts/src/gitTypes.ts`: `GitChangedFile`, `GitStatusResult`, `GitLogEntry`, `GitLogResult`, `GitDiffResult` | Pure type definitions for git data. Re-exported from `index.ts`. `GitChangedFile` uses porcelain v1 two-char status codes. `GitStatusResult` includes `isRepo` boolean for graceful non-git-repo handling. | 2026-03-23 |
+| 251 | `gitService.ts` at `apps/server/src/gitService.ts` with 5 exported functions | `isGitRepo(cwd)`, `gitStatus(cwd)`, `gitBranch(cwd)`, `gitDiff(cwd, opts?)`, `gitLog(cwd, count?)`. All run git via `Bun.spawn` with `GIT_PAGER=""` and `LC_ALL=C` env overrides. `gitStatus` returns `{ isRepo: false }` for non-repos. `gitDiff`/`gitLog` throw for non-repos. `gitDiff` supports `staged` and `path` options. Parallel execution of branch + status in `gitStatus()`. | 2026-03-23 |
+| 252 | `parsePorcelainStatus()` handles renames/copies with `->` separator | Porcelain v1: 2-char status + space + path. Renames: `R  old -> new`. Parser checks for R/C in either status position and extracts `originalPath`. All other files get `originalPath: null`. | 2026-03-23 |
+
 ## Technical Context
 
 - **Project dir:** `/Users/khairold/Pi/pibun/`

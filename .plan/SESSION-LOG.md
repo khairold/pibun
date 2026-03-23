@@ -5,6 +5,38 @@
 
 ---
 
+## Session 69 — Server-side git module (2026-03-23)
+
+**What happened:**
+- Created `packages/contracts/src/gitTypes.ts` with 5 types: `GitChangedFile`, `GitStatusResult`, `GitLogEntry`, `GitLogResult`, `GitDiffResult`
+- Re-exported all git types from `packages/contracts/src/index.ts`
+- Created `apps/server/src/gitService.ts` with 5 exported functions:
+  - `isGitRepo(cwd)` — checks via `git rev-parse --is-inside-work-tree`
+  - `gitStatus(cwd)` — combines branch + porcelain status, returns `{ isRepo: false }` for non-repos
+  - `gitBranch(cwd)` — returns branch name or null (detached HEAD, non-repo)
+  - `gitDiff(cwd, opts?)` — unified diff with `staged` and `path` filter options
+  - `gitLog(cwd, count?)` — last N commits as oneline entries
+- All functions use `Bun.spawn` with `GIT_PAGER=""` and `LC_ALL=C` env overrides
+- `parsePorcelainStatus()` handles standard files and renames/copies with `->` separator
+- `parseOnelineLog()` splits `hash message` lines
+- Smoke tested against the pibun repo itself: all functions return correct data, error cases throw appropriately, non-git dirs handled gracefully
+
+**Items completed:**
+- [x] 3.1 — Server-side git module
+
+**Issues encountered:**
+- Biome formatter adjustments needed (line wrapping style) — fixed via `bun run format`
+
+**Handoff to next session:**
+- Next: 3.2 — New WS methods: `git.status`, `git.branch`, `git.diff`, `git.log`
+- Follow the same pattern as project handlers: add types to `wsProtocol.ts` (method names, params, results, maps), create `handlers/git.ts`, register in `handlers/index.ts`
+- Key files: `packages/contracts/src/wsProtocol.ts`, `apps/server/src/handlers/index.ts`, `apps/server/src/gitService.ts`
+- The git service takes `cwd` as input. The WS handler needs to resolve CWD from the session's process (via `rpcManager`) or from request params.
+
+---
+
+---
+
 ## Session 68 — Window title + Phase 2 verification (2026-03-23)
 
 **What happened:**

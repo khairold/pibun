@@ -142,6 +142,15 @@ export type { SessionTab } from "./sessionTab.js";
 // Project types (project management)
 export type { Project, ProjectModelPreference } from "./project.js";
 
+// Git types (git integration)
+export type {
+	GitChangedFile,
+	GitDiffResult,
+	GitLogEntry,
+	GitLogResult,
+	GitStatusResult,
+} from "./gitTypes.js";
+
 // WebSocket protocol types (browser ↔ server)
 export { WS_CHANNELS, WS_METHODS } from "./wsProtocol.js";
 export type {
