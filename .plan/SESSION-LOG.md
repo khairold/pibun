@@ -1551,3 +1551,34 @@
 - App icon is a development placeholder (Pillow-generated) — should be replaced with professionally designed icon for production distribution
 
 ---
+
+## Session 45 — macOS .dmg Build (2026-03-23)
+
+**What happened:**
+- Implemented macOS .dmg build pipeline for Electrobun desktop app
+- Updated `electrobun.config.ts`: added `build.copy` to include web dist in bundle, added `scripts.preBuild` to auto-build web app before packaging, set `codesign: false` and `notarize: false` (Phase 2C.2)
+- Created `apps/desktop/scripts/prebuild.ts`: runs `turbo run build --filter=@pibun/web` from monorepo root before Electrobun packaging
+- Updated `apps/desktop/src/bun/index.ts`: replaced hardcoded monorepo path for `WEB_DIST_DIR` with `resolveWebDistDir()` function that first checks the Electrobun bundle path (`../web-dist` relative to `import.meta.dir`) and falls back to the monorepo layout
+- Added `existsSync` import from `node:fs` for bundle path detection
+- Added root `package.json` scripts: `build:web`, `build:desktop`, `build:desktop:canary`
+- Updated `.gitignore` to exclude `apps/desktop/build/` and `apps/desktop/artifacts/`
+- Verified `electrobun build` (dev) produces PiBun-dev.app with web-dist correctly copied
+- Verified `electrobun build --env=stable` produces `stable-macos-arm64-PiBun.dmg` (19.3MB) with correct DMG contents (PiBun.app + Applications symlink)
+- DMG contains self-extracting bundle: launcher binary + tar.zst payload in Resources
+
+**Items completed:**
+- [x] 2C.1 — macOS .dmg build
+
+**Issues encountered:**
+- `electrobun` CLI not in PATH — must use `../../node_modules/.bin/electrobun` or npx
+- Dev builds (default `electrobun build`) only produce .app, not .dmg. Need `--env=stable` for DMG.
+- Stable builds use self-extracting archive pattern (tar.zst), not raw .app files. The launcher extracts on first run.
+
+**Handoff to next session:**
+- Next: 2C.2 — Code signing + notarization (macOS)
+- Config already has `codesign: false`, `notarize: false` — need to enable and configure Apple Developer certificates
+- Electrobun's cli handles codesign via `codesign` tool and notarize via `xcrun notarytool`
+- Will need `APPLE_TEAM_ID`, `APPLE_ID`, `APPLE_PASSWORD` (or app-specific password) env vars
+- Build artifacts are at `apps/desktop/artifacts/` — `stable-macos-arm64-PiBun.dmg` ready for signing
+
+---

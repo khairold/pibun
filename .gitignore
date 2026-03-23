@@ -5,6 +5,10 @@ node_modules/
 dist/
 .turbo/
 
+# Electrobun build output
+apps/desktop/build/
+apps/desktop/artifacts/
+
 # Bun
 bun.lockb
 

@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 2B complete. Phase 2C next.
+> **Status:** Phase 2C in progress. 2C.1 (macOS .dmg build) complete.
 > **Current Phase:** 2C
-> **Last Session:** 44 (2026-03-23)
+> **Last Session:** 45 (2026-03-23)
 
 ---
 
@@ -184,7 +184,7 @@
 
 **Goal:** Users can download and install PiBun.
 
-- [ ] 2C.1 — macOS .dmg build
+- [x] 2C.1 — macOS .dmg build
 - [ ] 2C.2 — Code signing + notarization (macOS)
 - [ ] 2C.3 — Linux AppImage build
 - [ ] 2C.4 — Windows NSIS installer

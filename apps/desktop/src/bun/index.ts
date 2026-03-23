@@ -12,6 +12,7 @@
  * @see docs/DESKTOP.md — Desktop integration plan
  */
 
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { PiRpcManager } from "@pibun/server/piRpcManager";
 import { type PiBunServer, broadcastPush, createServer } from "@pibun/server/server";
@@ -98,15 +99,30 @@ const DEV_URL = getDevUrl();
 // ============================================================================
 
 /**
- * Path to the web app's built output directory.
+ * Resolve the path to the web app's built output directory.
  *
- * In the monorepo dev layout:
- *   apps/desktop/src/bun/index.ts → ../../../../apps/web/dist
+ * In Electrobun builds (both `electrobun dev` and `electrobun build`):
+ *   The bun code is bundled to Resources/app/bun/index.js
+ *   The web dist is copied to Resources/app/web-dist/ (via electrobun.config copy)
+ *   So: import.meta.dir = .../Resources/app/bun/
+ *       resolve(import.meta.dir, "../web-dist") = .../Resources/app/web-dist/
  *
- * Note: For Electrobun production builds (Phase 2C), the static dir
- * will need to be resolved differently (bundled alongside the app).
+ * Falls back to monorepo layout if the bundled path doesn't exist (e.g.,
+ * running the source file directly with `bun run`, which shouldn't happen
+ * in practice since Electrobun always bundles).
  */
-const WEB_DIST_DIR = resolve(import.meta.dir, "../../../../apps/web/dist");
+function resolveWebDistDir(): string {
+	// Primary: bundled Electrobun app (web dist copied alongside bun code)
+	const bundledPath = resolve(import.meta.dir, "../web-dist");
+	if (existsSync(bundledPath)) {
+		return bundledPath;
+	}
+
+	// Fallback: monorepo dev layout (running unbundled source directly)
+	return resolve(import.meta.dir, "../../../../apps/web/dist");
+}
+
+const WEB_DIST_DIR = resolveWebDistDir();
 
 // ============================================================================
 // Module State

@@ -10,6 +10,9 @@
 		"dev:server": "turbo run dev --filter=@pibun/server",
 		"dev:web": "turbo run dev --filter=@pibun/web",
 		"dev:desktop": "turbo run dev --filter=@pibun/desktop",
+		"build:web": "turbo run build --filter=@pibun/web",
+		"build:desktop": "cd apps/desktop && npx electrobun build --env=stable",
+		"build:desktop:canary": "cd apps/desktop && npx electrobun build --env=canary",
 		"typecheck": "turbo run typecheck",
 		"lint": "biome check .",
 		"format": "biome format --write ."
