@@ -446,3 +446,31 @@
 - Key: `WsTransport.onStateChange()` feeds the connection slice, `subscribe("pi.event", ...)` feeds the messages slice
 
 ---
+
+## Session 13 — Zustand Store Slices (2026-03-23)
+
+**What happened:**
+- Created `apps/web/src/store/` directory with 5 files:
+  - `types.ts` — `ChatMessage` type (non-optional fields for `exactOptionalPropertyTypes`), `ChatToolCall`, `ChatToolResult`, slice interfaces (`ConnectionSlice`, `SessionSlice`, `MessagesSlice`), combined `AppStore` type
+  - `connectionSlice.ts` — WebSocket transport status + reconnect attempt counter
+  - `sessionSlice.ts` — Pi session ID, model, thinking level, streaming flag, stats, reset action
+  - `messagesSlice.ts` — Messages array with streaming-optimized actions: `appendMessage`, `appendToContent`, `appendToThinking`, `setMessageStreaming`, `updateToolOutput` (accumulated/replace), `finalizeToolResult`, `setMessages`, `clearMessages`. Uses reverse-scan `findMessageIndex` for O(1)-ish tail updates.
+  - `index.ts` — Combines slices via `create<AppStore>()((...a) => ({ ...slice1(...a), ...slice2(...a), ...slice3(...a) }))`, re-exports types
+- Zustand slice pattern uses `StateCreator<AppStore, [], [], SliceType>` generic for cross-slice type safety
+
+**Items completed:**
+- [x] 1C.3 — Create Zustand store: `connection` slice (status, reconnectAttempt)
+- [x] 1C.4 — Create Zustand store: `session` slice (isStreaming, model, thinkingLevel)
+- [x] 1C.5 — Create Zustand store: `messages` slice (ChatMessage array, append, update streaming message)
+
+**Issues encountered:**
+- Biome sorts `@/` path alias imports before `@pibun/` scoped packages (alphabetical: `@/` < `@p`). Fixed immediately.
+
+**Handoff to next session:**
+- Next: 1C.6 — Wire WsTransport → Zustand (pi.event push → state updates)
+- The WsTransport is at `apps/web/src/transport.ts`, store at `apps/web/src/store/`
+- Key: subscribe to `pi.event` push channel, map each event type to store actions (see WEB_UI.md event→state mapping)
+- Also need to wire `WsTransport.onStateChange()` → `setConnectionStatus`
+- Consider creating a `bridge.ts` or wiring in `App.tsx` with a useEffect
+
+---

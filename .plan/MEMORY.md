@@ -68,6 +68,10 @@
 | 58 | WsTransport stores push data (not full WsPush envelope) in latestPushByChannel | Listeners receive `WsChannelDataMap[C]` (the data payload), not the full push envelope. Simpler API — subscribers don't need to unwrap. | 2026-03-23 |
 | 59 | WsTransport.onStateChange() for Zustand integration | Separate from push subscriptions. Returns unsubscribe function. Used by the Zustand connection slice to sync transport state. | 2026-03-23 |
 | 60 | Vite dev proxy: `/ws` → `ws://localhost:24242` | Added to vite.config.ts for development. WebSocket connections from the Vite dev server at :5173 are proxied to the PiBun server at :24242. | 2026-03-23 | 2026-03-23 |
+| 61 | Zustand store uses slice pattern with `StateCreator` generics | Each slice is a `StateCreator<AppStore, [], [], SliceType>` function. Combined via spread in `create<AppStore>()((...a) => ({ ...slice1(...a), ...slice2(...a), ... }))`. Slices in `store/` directory: `connectionSlice.ts`, `sessionSlice.ts`, `messagesSlice.ts`. | 2026-03-23 |
+| 62 | ChatMessage uses non-optional fields (no `undefined`) for `exactOptionalPropertyTypes` compat | All fields have default values: `content: ""`, `thinking: ""`, `toolCall: null`, `toolResult: null`, `streaming: false`. Avoids `undefined` assignment issues. | 2026-03-23 |
+| 63 | Messages slice uses reverse-scan `findMessageIndex` for O(1)-ish streaming updates | Streaming messages are always at the tail. Scanning from the end finds them in 1-2 iterations. Tool results use `result-{toolCallId}` ID convention. | 2026-03-23 |
+| 64 | Biome sorts `@/` path alias imports BEFORE `@pibun/` scoped packages | Alphabetical: `@/` < `@p`. Always put `@/` imports first in web app files. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -184,7 +188,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - WsTransport class at `apps/web/src/transport.ts` ✅ — typed request/response, push subscriptions, reconnect with backoff, outbound queue, latest-push replay, state change events
 - Zustand 5.0.12 added as dependency ✅
 - Vite dev proxy configured for WebSocket ✅
-- Next: 1C.3-1C.5 — Zustand store slices (connection, session, messages)
+- Zustand store at `apps/web/src/store/` ✅ — 3 slices (connection, session, messages), ChatMessage type, combined AppStore, reverse-scan find for streaming perf
+- Next: 1C.6 — Wire WsTransport → Zustand (pi.event push → state updates)
 - Pi RPC verified with Pi 0.61.1 — `get_available_models` and `get_state` work, commands use `{"type":"..."}` format
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
