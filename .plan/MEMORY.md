@@ -38,6 +38,10 @@
 | 28 | Tool args typed as `Record<string, unknown>` not `any` | Stricter than Pi's source (which uses `any`) but still flexible for varied tool argument shapes. Encourages explicit narrowing at usage sites. | 2026-03-23 |
 | 29 | JSONL parser is a stateful `JsonlParser` class with `feed`/`flush`/`reset` | Follows Pi's own `attachJsonlLineReader` pattern but is framework-agnostic (not tied to Node `Readable`). Callback-based: constructor takes `onLine` callback. Works with any chunk source. | 2026-03-23 |
 | 30 | Test files use `lineAt()` helper instead of non-null assertions for array access | Biome's `noNonNullAssertion` rule forbids `!`. Combined with TS `noUncheckedIndexedAccess`, array indexing needs a safe accessor. `lineAt(lines, i)` throws if out of bounds. | 2026-03-23 |
+| 31 | Server tsconfig does NOT use project references — uses direct `.ts` resolution | Workspace packages export `.ts` source files directly (via `exports` in package.json). With `moduleResolution: "Bundler"`, TypeScript resolves these without needing compiled `.d.ts` files. Removed `composite`, `declaration`, `declarationMap`, and `references` from server tsconfig. | 2026-03-23 |
+| 32 | `PiProcess` uses `Subprocess<"pipe","pipe","pipe">` type for full stdin/stdout/stderr typing | Bun's `Bun.spawn()` with `const` generic parameters infers literal types from options. `Subprocess<"pipe","pipe","pipe">` narrows `stdin` to `FileSink`, `stdout`/`stderr` to `ReadableStream<Uint8Array>`. Alias: `PipedSubprocess`. | 2026-03-23 |
+| 33 | `Bun.spawn` cwd must not be `undefined` with `exactOptionalPropertyTypes` | Use `cwd: options.cwd ?? process.cwd()` to always provide a string. Same pattern for `env`: always pass `process.env` (merged or not). | 2026-03-23 |
+| 34 | `PiProcess.sendExtensionResponse()` is fire-and-forget, not correlated | Extension UI responses use the original request ID. Pi sends back an acknowledgment but PiProcess doesn't wait for it. Separate from `sendCommand()` which correlates request/response via generated IDs. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -131,8 +135,10 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 
 ## What's Not Built Yet
 
-- Pi RPC types fully defined in `packages/contracts/` (piTypes.ts, piEvents.ts, piCommands.ts, piResponses.ts)
-- Next: 1A.6 — implement PiProcess class in `apps/server/`, then PiRpcManager
+- Pi RPC types fully defined in `packages/contracts/` ✅
+- JSONL parser in `packages/shared/` ✅
+- PiProcess class in `apps/server/src/piProcess.ts` ✅ — wraps Bun.spawn of `pi --mode rpc`, uses JsonlParser, typed listeners, command correlation
+- Next: 1A.7 — PiRpcManager (session → PiProcess mapping), then crash handling, tests, integration test
 - Pi RPC verified with Pi 0.61.1 — `get_available_models` and `get_state` work, commands use `{"type":"..."}` format
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 

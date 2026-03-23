@@ -139,6 +139,41 @@
 
 ---
 
+## Session 5 — PiProcess Class (2026-03-23)
+
+**What happened:**
+- Implemented `PiProcess` class in `apps/server/src/piProcess.ts` — the core subprocess wrapper for Pi RPC:
+  - **Spawn**: Uses `Bun.spawn()` with all stdio piped. Builds CLI args from options (provider, model, thinking, session, etc.)
+  - **Stdout reading**: Background async loop reads `ReadableStream<Uint8Array>`, feeds chunks through `JsonlParser` from `@pibun/shared/jsonl`
+  - **JSONL dispatch**: Parsed lines are dispatched — `type === "response"` goes to response listeners + pending request correlation; other types go to event listeners
+  - **Command correlation**: `sendCommand()` auto-generates IDs, writes JSONL to stdin, returns `Promise<PiResponse>` with 30s timeout
+  - **Extension UI**: `sendExtensionResponse()` writes fire-and-forget to stdin (uses original request ID)
+  - **Stderr capture**: Background reader accumulates all stderr in buffer, notifies listeners
+  - **Process lifecycle**: States: idle → running → stopped/crashed. `start()` spawns, `stop()` sends SIGTERM → 3s timeout → SIGKILL
+  - **Crash detection**: If process exits while in "running" state, marks as "crashed" and rejects all pending requests
+  - **Typed subprocess**: Uses `Subprocess<"pipe","pipe","pipe">` which gives `FileSink` stdin and `ReadableStream<Uint8Array>` stdout/stderr
+  - **5 listener types**: `onEvent`, `onResponse`, `onExit`, `onError`, `onStderr` — all return unsubscribe functions
+- Fixed server tsconfig: removed `composite`, `declaration`, `declarationMap`, and `references` — workspace packages export `.ts` directly via package.json `exports`, so project references are unnecessary and caused TS6305 errors
+- Fixed `exactOptionalPropertyTypes` issue with `Bun.spawn` cwd/env: always provide values (cwd defaults to `process.cwd()`, env always passes `process.env`)
+- Fixed Biome import ordering: `@pibun/*` before `bun` (bare specifiers)
+
+**Items completed:**
+- [x] 1A.6 — Implement `PiProcess` class in `apps/server/`
+
+**Issues encountered:**
+- TS6305 errors from project references expecting `.d.ts` files that don't exist — resolved by removing project references from server tsconfig
+- Bun's `exactOptionalPropertyTypes` rejects `cwd: undefined` — resolved by always providing a value
+- Biome import ordering: `bun` (bare specifier) sorts after `@pibun/*` (scoped packages)
+
+**Handoff to next session:**
+- Next: 1A.7 — Implement `PiRpcManager` in `apps/server/`
+- PiRpcManager maps session ID → PiProcess instance. Methods: `createSession()` → spawn PiProcess, `getSession()`, `stopSession()` → kill process, `stopAll()`
+- Then: 1A.8 (crash/exit handling with cleanup), 1A.9 (unit tests with mock subprocess), 1A.10 (manual integration test)
+- Key: PiProcess is fully functional but not yet tested. PiRpcManager is the next layer.
+- Other app tsconfigs (desktop, web) may also need project references removed when they start importing workspace packages.
+
+---
+
 ## Session 3 — Pi RPC Contract Types (2026-03-23)
 
 **What happened:**
