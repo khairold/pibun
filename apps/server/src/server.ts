@@ -14,7 +14,9 @@
 
 import { existsSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
+import type { WsMethod, WsRequest, WsResponseError, WsResponseOk } from "@pibun/contracts";
 import type { Server, ServerWebSocket } from "bun";
+import { type HandlerContext, handlers } from "./handlers/index.js";
 import type { PiRpcManager } from "./piRpcManager.js";
 
 // ============================================================================
@@ -164,11 +166,18 @@ export function createServer(options: ServerOptions): PiBunServer {
 		websocket: {
 			open(ws) {
 				connections.add(ws);
+
+				// 1B.12 — Send server.welcome push on connect
+				sendPush(ws, "server.welcome", {
+					cwd: process.cwd(),
+					version: "0.1.0",
+				});
 			},
 
-			message(_ws, _message) {
-				// Dispatch will be implemented in 1B.5.
-				// For now, just track connections.
+			message(ws, message) {
+				// Parse and dispatch the incoming WebSocket message.
+				// Errors are caught and returned as WsResponseError.
+				handleWsMessage(ws, message, config.rpcManager, connections);
 			},
 
 			close(ws, _code, _reason) {
@@ -192,6 +201,141 @@ export function createServer(options: ServerOptions): PiBunServer {
 			server.stop(true);
 		},
 	};
+}
+
+// ============================================================================
+// WebSocket Message Dispatch
+// ============================================================================
+
+/**
+ * Handle an incoming WebSocket message.
+ *
+ * Parses the raw message as a WsRequest, looks up the handler in the
+ * registry, calls it, and sends the response back.
+ *
+ * All errors are caught and returned as WsResponseError with the
+ * original request ID (or "unknown" if the message couldn't be parsed).
+ */
+function handleWsMessage(
+	ws: ServerWebSocket<WsConnectionData>,
+	message: string | Buffer,
+	rpcManager: PiRpcManager,
+	connections: Set<ServerWebSocket<WsConnectionData>>,
+): void {
+	let requestId = "unknown";
+
+	try {
+		// Parse the raw message
+		const raw = typeof message === "string" ? message : message.toString("utf-8");
+		const parsed: unknown = JSON.parse(raw);
+
+		// Validate shape: must have id and method
+		if (!isWsRequest(parsed)) {
+			sendError(ws, requestId, "Invalid request: missing 'id' or 'method' field");
+			return;
+		}
+
+		requestId = parsed.id;
+		const { method, params } = parsed;
+
+		// Look up the handler
+		const handler = handlers[method as WsMethod];
+		if (!handler) {
+			sendError(ws, requestId, `Method not implemented: ${method}`);
+			return;
+		}
+
+		// Build handler context
+		const ctx: HandlerContext = {
+			ws,
+			connection: ws.data,
+			rpcManager,
+			connections,
+			sendPush,
+		};
+
+		// Call the handler (may be sync or async)
+		const result = handler(params, ctx);
+
+		if (result instanceof Promise) {
+			result.then(
+				(data) => sendResult(ws, requestId, data),
+				(error) => sendError(ws, requestId, errorMessage(error)),
+			);
+		} else {
+			sendResult(ws, requestId, result);
+		}
+	} catch (error) {
+		// JSON parse error or unexpected throw
+		sendError(ws, requestId, errorMessage(error));
+	}
+}
+
+/**
+ * Type guard for validating a parsed message as a WsRequest.
+ * Checks structural shape (id: string, method: string).
+ */
+function isWsRequest(value: unknown): value is WsRequest {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		"id" in value &&
+		typeof (value as Record<string, unknown>).id === "string" &&
+		"method" in value &&
+		typeof (value as Record<string, unknown>).method === "string"
+	);
+}
+
+/** Send a success response to the WebSocket client. */
+function sendResult(ws: ServerWebSocket<WsConnectionData>, id: string, result: unknown): void {
+	const response: WsResponseOk = {
+		id,
+		result: (result ?? { ok: true }) as Record<string, unknown>,
+	};
+	ws.send(JSON.stringify(response));
+}
+
+/** Send an error response to the WebSocket client. */
+function sendError(ws: ServerWebSocket<WsConnectionData>, id: string, message: string): void {
+	const response: WsResponseError = {
+		id,
+		error: { message },
+	};
+	ws.send(JSON.stringify(response));
+}
+
+/** Extract an error message from an unknown thrown value. */
+function errorMessage(error: unknown): string {
+	if (error instanceof Error) return error.message;
+	return String(error);
+}
+
+/**
+ * Send a push message to a WebSocket client.
+ *
+ * Used by handlers and event forwarding to send unsolicited events
+ * (pi.event, pi.response, server.welcome, server.error).
+ */
+export function sendPush(
+	ws: ServerWebSocket<WsConnectionData>,
+	channel: string,
+	data: unknown,
+): void {
+	ws.send(JSON.stringify({ type: "push", channel, data }));
+}
+
+/**
+ * Broadcast a push message to all connected WebSocket clients.
+ */
+export function broadcastPush(
+	connections: Set<ServerWebSocket<WsConnectionData>>,
+	channel: string,
+	data: unknown,
+): void {
+	const message = JSON.stringify({ type: "push", channel, data });
+	for (const ws of connections) {
+		ws.send(message);
+	}
 }
 
 // ============================================================================
