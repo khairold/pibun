@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 2C in progress. 2C.1–2C.6 complete.
-> **Current Phase:** 2C
-> **Last Session:** 50 (2026-03-23)
+> **Status:** Phase 2C COMPLETE. All items done. Moving to Parking Lot.
+> **Current Phase:** 2C (complete)
+> **Last Session:** 51 (2026-03-23)
 
 ---
 
@@ -190,7 +190,7 @@
 - [x] 2C.4 — Windows NSIS installer
 - [x] 2C.5 — Auto-update mechanism
 - [x] 2C.6 — GitHub Releases CI pipeline
-- [ ] 2C.7 — Smoke tests for each platform
+- [x] 2C.7 — Smoke tests for each platform
 
 **Exit criteria:** Downloadable installers on GitHub Releases. Auto-update works.
 

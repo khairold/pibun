@@ -21,7 +21,9 @@
 		"build:desktop:windows:canary": "cd apps/desktop && bun scripts/build-windows.ts --env=canary",
 		"typecheck": "turbo run typecheck",
 		"lint": "biome check .",
-		"format": "biome format --write ."
+		"format": "biome format --write .",
+		"test:smoke": "bun run apps/server/src/smoke-test.ts",
+		"test:smoke:artifacts": "cd apps/desktop && bun scripts/smoke-test.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",

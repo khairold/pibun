@@ -1732,3 +1732,36 @@
 - If 2C.7 is the last item, verify Phase 2C exit criteria: "Downloadable installers on GitHub Releases. Auto-update works."
 
 ---
+
+## Session 51 — Smoke Tests for Each Platform (2026-03-23)
+
+**What happened:**
+- Created two-tier smoke test suite covering server infrastructure and platform-specific build artifacts
+- Server smoke test (`apps/server/src/smoke-test.ts`): 20 checks covering health endpoint, static file serving, SPA fallback, WebSocket connect/welcome, error handling (malformed JSON, missing method, unknown method), session ops without Pi process, and concurrent multi-connection support
+- Artifact smoke test (`apps/desktop/scripts/smoke-test.ts`): platform-aware validation of build artifacts — macOS (DMG naming/size, tar.zst, update.json), Linux (tar.gz installer, update.json), Windows (setup zip, update.json), plus cross-platform checks (electrobun config, icon assets, web dist structure)
+- Integrated smoke tests into CI: `ci.yml` now runs server smoke test as separate job after web build; `release.yml` runs artifact smoke test after each platform build
+- Fixed `exactOptionalPropertyTypes` issue with `createServer()` — used conditional spread pattern (MEMORY #52)
+- Fixed WebSocket welcome message race condition in multi-connection test — created `connectWsWithWelcome()` pattern that registers message listener before open event
+- Added root scripts: `test:smoke` and `test:smoke:artifacts`
+- All tests pass locally: server smoke 20/20, artifact smoke 18/18 (macOS)
+
+**Items completed:**
+- [x] 2C.7 — Smoke tests for each platform
+
+**Phase 2C Exit Criteria Verified:**
+- ✅ Downloadable installers: macOS DMG (2C.1), Linux tar.gz (2C.3), Windows zip (2C.4) — all produced by Electrobun build
+- ✅ Code signing + notarization: auto-detected from env vars (2C.2)
+- ✅ Auto-update: Electrobun Updater API, periodic checks, WS push to web app (2C.5)
+- ✅ CI pipeline: 5-job release workflow with draft GitHub Release (2C.6)
+- ✅ Smoke tests: server + artifact validation in CI (2C.7)
+
+**Issues encountered:**
+- WebSocket welcome message race: `connectWs()` resolves on `open` event, but welcome push fires during upgrade — by the time `waitForMessage()` is called, the message is already gone. Fixed with `connectWsWithWelcome()` that registers the listener before open.
+
+**Handoff to next session:**
+- Phase 2C is COMPLETE — this was the last item. All exit criteria verified.
+- All 8 phases (0, 1A, 1B, 1C, 1D, 2A, 2B, 2C) are now complete.
+- Only Parking Lot items remain (multi-session, git integration, terminal, etc.)
+- The project is feature-complete for its initial release scope.
+
+---

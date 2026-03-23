@@ -179,6 +179,9 @@ jobs:
       - name: List build artifacts
         run: ls -lh apps/desktop/artifacts/
 
+      - name: Smoke test macOS artifacts
+        run: bun run test:smoke:artifacts -- --platform=macos
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -225,6 +228,9 @@ jobs:
       - name: List build artifacts
         run: ls -lh apps/desktop/artifacts/
 
+      - name: Smoke test Linux artifacts
+        run: bun run test:smoke:artifacts -- --platform=linux
+
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -259,6 +265,9 @@ jobs:
 
       - name: List build artifacts
         run: Get-ChildItem -Path apps/desktop/artifacts/ -Recurse | Format-Table Name, Length
+
+      - name: Smoke test Windows artifacts
+        run: bun run test:smoke:artifacts -- --platform=windows
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4

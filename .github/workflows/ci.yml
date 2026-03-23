@@ -55,3 +55,23 @@ jobs:
           test -f apps/web/dist/index.html || (echo "❌ index.html missing from web dist" && exit 1)
           echo "✅ Web app built successfully"
           ls -lh apps/web/dist/
+
+  smoke-test:
+    name: Server Smoke Test
+    needs: build-web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build web app
+        run: bun run build:web
+
+      - name: Run server smoke tests
+        run: bun run test:smoke
