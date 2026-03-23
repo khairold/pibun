@@ -11,6 +11,7 @@ import { Composer } from "@/components/Composer";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { ModelSelector } from "@/components/ModelSelector";
+import { ThinkingSelector } from "@/components/ThinkingSelector";
 
 export function AppShell() {
 	return (
@@ -33,6 +34,7 @@ export function AppShell() {
 				{/* Toolbar — model selector, thinking level, etc. */}
 				<div className="flex items-center gap-2 border-b border-neutral-800 px-4 py-2">
 					<ModelSelector />
+					<ThinkingSelector />
 				</div>
 
 				<ChatView />

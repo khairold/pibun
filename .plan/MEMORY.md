@@ -110,7 +110,9 @@
 | 99 | `fileUtils.ts` maps 70+ file extensions to Shiki language IDs + filename matches | Extension map covers JS/TS, web, data/config, scripting, systems languages, docs, and misc. Filename map handles extensionless files like Dockerfile, Makefile, .gitignore. `inferLanguageFromPath()`, `getFileName()`, `getFileExtension()`, `shortPath()` exported. | 2026-03-23 |
 | 100 | `ModelsSlice` added to Zustand store for available models list | Stores `availableModels: PiModel[]` + `modelsLoading: boolean`. Separate from `SessionSlice.model` (current model). `modelsSlice.ts` follows same `StateCreator` pattern. | 2026-03-23 |
 | 101 | `ModelSelector` component: dropdown with provider-grouped models, lazy fetch, click-outside close | Trigger button shows current model name + chevron. Opens dropdown on click — fetches models via `session.getModels` on first open. Groups by `provider` field. Shows reasoning/vision badges per model. Optimistic model selection with rollback on error. Escape and click-outside to close. | 2026-03-23 |
-| 102 | Toolbar bar added to AppShell between ErrorBanner and ChatView | `<div>` with border-b, holds ModelSelector (and later ThinkingSelector). Separates session controls from the chat area. | 2026-03-23 |
+| 102 | Toolbar bar added to AppShell between ErrorBanner and ChatView | `<div>` with border-b, holds ModelSelector (and later ThinkingSelector). Separates session controls from the chat area. |
+| 103 | `ThinkingSelector` component with static level list and intensity bar | Dropdown with 6 levels (off→xhigh), each with label + description + visual intensity bar (6 small rectangles). Optimistic selection with rollback on error. Same dropdown pattern as ModelSelector (click-outside, Escape, disabled when not connected). No server fetch needed — level list is static. | 2026-03-23 |
+| 104 | 1D.8 model/thinking wiring already complete via selector components | `ModelSelector` calls `session.setModel` (since session 22), `ThinkingSelector` calls `session.setThinking`. Both use optimistic updates with rollback. Server handlers (`handleSessionSetModel`, `handleSessionSetThinking`) were built in session 11. | 2026-03-23 | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -244,8 +246,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - `lastError`/`setLastError`/`clearLastError` added to ConnectionSlice ✅
 - E2E test at `apps/server/src/e2e-test.ts` — 44 checks verifying full browser-to-Pi chain
 - **Phase 1C COMPLETE** — all items done, exit criteria met
-- Phase 1D in progress — thinking blocks (1D.1), tool call cards (1D.2), syntax highlighting (1D.3), markdown rendering (1D.4), tool-specific output rendering (1D.5), model selector (1D.6) complete
-- Next: 1D.7 — Thinking level selector
+- Phase 1D in progress — thinking blocks (1D.1), tool call cards (1D.2), syntax highlighting (1D.3), markdown rendering (1D.4), tool-specific output rendering (1D.5), model selector (1D.6), thinking selector (1D.7), model/thinking wiring (1D.8) complete
+- Next: 1D.9 — Session management (new session, switch session, fork from message)
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings

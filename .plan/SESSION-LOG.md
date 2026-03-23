@@ -783,3 +783,34 @@
 - Consider combining 1D.7 + 1D.8 since they're closely related
 
 ---
+
+## Session 23 — Thinking Level Selector + Wire Model/Thinking Commands (2026-03-23)
+
+**What happened:**
+- Built `ThinkingSelector` component at `apps/web/src/components/ThinkingSelector.tsx`:
+  - Trigger button showing current thinking level name + brain icon + chevron
+  - Dropdown panel with all 6 thinking levels: off, minimal, low, medium, high, xhigh
+  - Each level has label, description, and visual intensity bar (6 small rectangles filled proportionally)
+  - Optimistic level selection: updates store immediately, reverts on error
+  - Click-outside and Escape to close dropdown
+  - Disabled state when not connected or no session
+  - Active level indicator (blue dot + highlight) matching ModelSelector pattern
+  - Calls `session.setThinking` via WsTransport on selection
+- Added ThinkingSelector to AppShell toolbar next to ModelSelector
+- Verified 1D.8 (wire model/thinking commands): ModelSelector already calls `session.setModel` (since session 22), ThinkingSelector now calls `session.setThinking`. Server handlers were built in session 11.
+
+**Items completed:**
+- [x] 1D.7 — Thinking level selector (off → xhigh)
+- [x] 1D.8 — Wire model/thinking commands (session.setModel, session.setThinking)
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1D.9 — Session management (new session, switch session, fork from message)
+- This is a medium/large item involving multiple WS commands: `session.new`, `session.switchSession` (need to check if this exists), `session.fork`
+- The server handlers for `session.new` and `session.fork` are already wired in `handlers/session.ts`
+- Will need UI components for session list and fork point selection
+- 1D.10 (session stats) and 1D.11 (compaction controls) are independent and could be done in parallel
+
+---
