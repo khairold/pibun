@@ -169,6 +169,9 @@
 | 157 | `shutdown()` is idempotent — guarded by `isShuttingDown` flag | Safe to call from window close, SIGINT, SIGTERM simultaneously. First call wins, subsequent calls are no-ops. Stops server → stops all Pi processes → process.exit(0). In dev mode (no embedded server), just exits. | 2026-03-23 |
 | 158 | Dev mode via `PIBUN_DEV_URL` or `PIBUN_DEV=1` env vars | `PIBUN_DEV_URL` sets an explicit URL (any). `PIBUN_DEV=1` uses default `http://localhost:5173` (Vite). Dev mode skips embedded server startup — user runs server + Vite separately. Vite proxy at `/ws` handles WebSocket. Desktop is just a native window shell. | 2026-03-23 |
 | 159 | `waitForReady()` replaces `waitForHealth()` — configurable path parameter | In production, checks `/health` (our server endpoint). In dev mode, checks `/` (Vite serves index.html). Same retry logic (30 attempts, 200ms delay). | 2026-03-23 | 2026-03-23 |
+| 160 | Native menu bar in `apps/desktop/src/bun/menu.ts` with action constants and click handler factory | `MENU_ACTIONS` const object defines dot-namespaced action strings (e.g., `"file.new-session"`, `"session.abort"`). `buildMenuConfig()` returns Electrobun `ApplicationMenuItemConfig[]`. `createMenuClickHandler(onAction)` wraps event filtering — only dispatches known actions. Edit menu uses `role` items (undo/copy/paste/etc.) for native webview text editing. | 2026-03-23 |
+| 161 | Electrobun's first menu entry without a label becomes the macOS app menu | The `PiBun` menu (About, Hide, Quit) has no `label` — just `submenu`. On macOS this creates the leftmost app-named menu. Roles like `about`, `hide`, `hideOthers`, `showAll`, `quit` map to native NSApplication selectors. | 2026-03-23 |
+| 162 | Menu accelerators overlap with web `useKeyboardShortcuts` — native accelerators take priority | Cmd+N (new session), Cmd+B (sidebar), Cmd+L (model selector) are handled both as native menu accelerators and in the web's `useKeyboardShortcuts` hook. In desktop mode, native accelerators may intercept before the keydown event reaches the webview. This overlap is intentional — 2B.2/2B.3 will wire native menu actions to execute the same operations. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -321,6 +324,7 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - 2A.5 complete — Graceful shutdown: close → flush state → stop server → stop Pi processes → exit. `exitOnLastWindowClosed: false`. SIGINT/SIGTERM handlers.
 - 2A.6 complete — Dev mode via `PIBUN_DEV_URL` or `PIBUN_DEV=1`. Skips embedded server, points webview at Vite URL. `waitForReady()` checks `/` instead of `/health`.
 - **Phase 2A COMPLETE** — all 6 items done. Desktop app scaffold with embedded server, window persistence, graceful shutdown, and dev mode.
+- 2B.1 complete — Native menu bar in `apps/desktop/src/bun/menu.ts`. 5 menus: PiBun (About, Hide, Quit via roles), File (New Session, Close Window), Edit (standard roles), View (Toggle Sidebar, Zoom), Session (Abort, Compact, Switch Model, Set Thinking). `buildMenuConfig()` returns `ApplicationMenuItemConfig[]`, `createMenuClickHandler()` wraps action dispatch. Close Window handled natively, other actions logged (forwarding in 2B.2/2B.3).
 
 ## Gotchas & Warnings
 

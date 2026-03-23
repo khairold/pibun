@@ -15,7 +15,8 @@
 import { resolve } from "node:path";
 import { PiRpcManager } from "@pibun/server/piRpcManager";
 import { type PiBunServer, createServer } from "@pibun/server/server";
-import { BrowserWindow } from "electrobun/bun";
+import Electrobun, { ApplicationMenu, BrowserWindow } from "electrobun/bun";
+import { type MenuAction, buildMenuConfig, createMenuClickHandler } from "./menu";
 import {
 	type WindowFrame,
 	debouncedSaveWindowState,
@@ -364,7 +365,34 @@ async function bootstrap(): Promise<void> {
 	// Step 5: Wire window lifecycle events (state persistence + shutdown)
 	wireWindowLifecycle(mainWindow);
 
-	// Step 6: Wire signal handlers for graceful shutdown
+	// Step 6: Set up native application menu
+	ApplicationMenu.setApplicationMenu(buildMenuConfig());
+
+	// Handle menu click events from native menu items.
+	// For now, log the action. Items 2B.2/2B.3 will forward these
+	// to the React app via WebSocket or IPC.
+	const handleMenuAction = (action: MenuAction): void => {
+		console.log(`[Menu] Action: ${action}`);
+
+		// Handle native-only actions directly
+		switch (action) {
+			case "file.close-window": {
+				// Trigger window close → which triggers shutdown via wireWindowLifecycle
+				mainWindow.close();
+				break;
+			}
+			default:
+				// Custom actions (new session, abort, compact, switch model, etc.)
+				// will be forwarded to the React app in 2B.2/2B.3.
+				break;
+		}
+	};
+
+	Electrobun.events.on("application-menu-clicked", createMenuClickHandler(handleMenuAction));
+
+	console.log("[Menu] Application menu configured");
+
+	// Step 7: Wire signal handlers for graceful shutdown
 	process.on("SIGINT", () => shutdown("SIGINT"));
 	process.on("SIGTERM", () => shutdown("SIGTERM"));
 

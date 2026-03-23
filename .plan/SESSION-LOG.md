@@ -1402,3 +1402,41 @@
 - 7 items in Phase 2B
 
 ---
+## Session 41 — Desktop Native Menu Bar (2026-03-23)
+
+**What happened:**
+- Implemented 2B.1: Native menu bar with 5 menus per DESKTOP.md spec
+- Created `apps/desktop/src/bun/menu.ts` module:
+  - `MENU_ACTIONS` const object with dot-namespaced action strings
+  - `MenuAction` type derived from the const object
+  - `buildMenuConfig()` returns `ApplicationMenuItemConfig[]` for Electrobun
+  - `createMenuClickHandler(onAction)` factory — filters known actions, delegates to callback
+  - `MenuClickedEvent` interface for type-safe event casting
+- Menu structure:
+  - **PiBun** (app menu): About, Hide, Hide Others, Show All, Quit — all `role`-based
+  - **File**: New Session (Cmd+N), Close Window (Cmd+W) — custom actions
+  - **Edit**: Undo, Redo, Cut, Copy, Paste, Select All — all `role`-based for native webview text editing
+  - **View**: Toggle Sidebar (Cmd+B), Zoom In/Out/Actual (Cmd+=/−/0) — custom actions
+  - **Session**: Abort (Cmd+.), Compact (Cmd+Shift+K), Switch Model (Cmd+L), Set Thinking (Cmd+Shift+T) — custom actions
+- Updated `apps/desktop/src/bun/index.ts`:
+  - Imported `Electrobun`, `ApplicationMenu` from `electrobun/bun`
+  - Added menu setup step 6 in bootstrap: `setApplicationMenu()` + event handler registration
+  - `file.close-window` action handled natively (triggers `mainWindow.close()`)
+  - Other custom actions logged — forwarding to React app deferred to 2B.2/2B.3
+  - Renumbered signal handler step to 7
+
+**Items completed:**
+- [x] 2B.1 — Native menu bar (PiBun, File, Edit, View, Session menus per DESKTOP.md spec)
+
+**Issues encountered:**
+- Biome `noUnusedTemplateLiteral` flagged a log string with no interpolation — fixed to use regular string literal.
+- Native menu accelerators overlap with web `useKeyboardShortcuts` (Cmd+N, Cmd+B, Cmd+L). Native accelerators take priority in desktop mode, so 2B.2/2B.3 will need to execute the same operations from the bun side when the menu item is clicked.
+
+**Handoff to next session:**
+- Next: 2B.2 — Menu actions → WebSocket commands (New Session, Abort, Compact, Switch Model)
+- The `handleMenuAction` switch in `index.ts` needs to be expanded to send actual WS commands or call PiRpcManager methods directly
+- Need to decide: forward via WS (send commands to the server endpoint same as the web app does) or call server/piRpcManager methods directly (since server is embedded in-process)
+- Reference: the web app's `sessionActions.ts` and `wireTransport.ts` for what operations each action performs
+- 6 items remaining in Phase 2B (2B.2–2B.7)
+
+---

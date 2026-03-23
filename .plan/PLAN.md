@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 2A complete — all 6 items done. Phase 2B next.
+> **Status:** Phase 2B in progress — 2B.1 done, 6 items remain.
 > **Current Phase:** 2B
-> **Last Session:** 40 (2026-03-23)
+> **Last Session:** 41 (2026-03-23)
 
 ---
 
@@ -168,7 +168,7 @@
 
 **Goal:** Desktop app feels native with menus, shortcuts, and OS integration.
 
-- [ ] 2B.1 — Native menu bar (PiBun, File, Edit, View, Session menus per DESKTOP.md spec)
+- [x] 2B.1 — Native menu bar (PiBun, File, Edit, View, Session menus per DESKTOP.md spec)
 - [ ] 2B.2 — Menu actions → WebSocket commands (New Session, Abort, Compact, Switch Model)
 - [ ] 2B.3 — IPC: forward native menu events to React app
 - [ ] 2B.4 — File dialogs for project/folder selection
