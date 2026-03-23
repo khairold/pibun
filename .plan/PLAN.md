@@ -1,9 +1,9 @@
 # PiBun v2 — Build Plan
 
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
-> **Status:** Phase 4 in progress
-> **Current Phase:** Phase 4 — Terminal Integration
-> **Last Session:** Session 78 — 2026-03-23
+> **Status:** Phase 4 complete, Phase 5 next
+> **Current Phase:** Phase 5 — Session Export & Sharing
+> **Last Session:** Session 79 — 2026-03-23
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -102,9 +102,9 @@
 - [x] 4.9 — Terminal inherits CWD from active session/project
 - [x] 4.10 — Keyboard shortcut: Ctrl+` toggle terminal panel
 - [x] 4.11 — Desktop: native menu "View → Toggle Terminal"
-- [ ] 4.12 — Verify: open terminal, run commands, resize, multiple terminals, CWD matches project
+- [x] 4.12 — Verify: open terminal, run commands, resize, multiple terminals, CWD matches project
 
-**Exit criteria:** Embedded terminal works alongside chat. Multiple terminal tabs. Resizable. CWD-aware.
+**Exit criteria:** Embedded terminal works alongside chat. Multiple terminal tabs. Resizable. CWD-aware. ✅ ALL VERIFIED — 43/43 automated checks passed.
 
 ---
 

@@ -789,3 +789,42 @@
 - Key file: `apps/web/src/components/Sidebar.tsx`
 
 ---
+
+## Session 79 — Terminal verification + Phase 4 completion (2026-03-23)
+
+**What happened:**
+- Created comprehensive terminal integration verification test at `apps/server/src/terminal-verify-test.ts`
+- Test covers 43 checks across 11 test categories:
+  1. terminal.create — spawns PTY, returns terminalId + pid
+  2. terminal.write + terminal.data push — stdin/stdout echo test with unique markers
+  3. terminal.resize — resizes PTY dimensions, shell stays responsive
+  4. Multiple terminals — 3 concurrent terminals with independent data routing
+  5. CWD matches project — terminal CWD matches create param, verified via `pwd`
+  6. terminal.close + terminal.exit — kill shell triggers exit push with exitCode
+  7. Error handling — write/resize/close on closed/invalid terminals return errors
+  8. Natural shell exit — `exit` command triggers terminal.exit push with exitCode 0
+  9. Cleanup on WS disconnect — orphaned PTY processes killed, verified via cross-connection write failure
+  10. Remaining terminals unaffected — terminals from ws1 still work after ws2 terminals cleaned up
+  11. Default CWD — terminal.create with no CWD param inherits server process CWD
+- Added `test:smoke:terminal` root script to package.json
+- All 43/43 checks passed
+- Verified Phase 4 exit criteria:
+  - ✅ Embedded terminal works alongside chat (PTY spawn + data flow)
+  - ✅ Multiple terminal tabs (3 concurrent, independent routing)
+  - ✅ Resizable (terminal.resize accepted, shell responsive)
+  - ✅ CWD-aware (inherits from create param, defaults correctly)
+- Marked Phase 4 complete, updated plan header to Phase 5
+
+**Items completed:**
+- [x] 4.12 — Verify: open terminal, run commands, resize, multiple terminals, CWD matches project
+
+**Issues encountered:**
+- None — all terminal infrastructure from sessions 76-78 worked correctly on first test run
+
+**Handoff to next session:**
+- Phase 4 is COMPLETE. Next phase: Phase 5 — Session Export & Sharing
+- Next item: 5.1 — Pi's `export_html` RPC command already exists — wire it through: `session.exportHtml` WS method
+- Phase 5 is about export capabilities: HTML (via Pi), Markdown, and JSON export formats
+- Read `reference/pi-mono/packages/coding-agent/docs/rpc.md` for `export_html` command details
+
+---
