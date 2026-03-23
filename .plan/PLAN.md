@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 1D in progress — thinking blocks + tool cards done.
+> **Status:** Phase 1D in progress — thinking blocks, tool cards, syntax highlighting, markdown rendering done.
 > **Current Phase:** 1D
-> **Last Session:** 19 (2026-03-23)
+> **Last Session:** 20 (2026-03-23)
 
 ---
 
@@ -126,8 +126,8 @@
 
 - [x] 1D.1 — Thinking blocks (collapsible section, streaming via thinking_delta)
 - [x] 1D.2 — Tool call cards (tool name + args header, expandable output body)
-- [ ] 1D.3 — Syntax highlighting for code blocks (Shiki, lazy-loaded per language)
-- [ ] 1D.4 — Markdown rendering for assistant text (react-markdown or similar)
+- [x] 1D.3 — Syntax highlighting for code blocks (Shiki, lazy-loaded per language)
+- [x] 1D.4 — Markdown rendering for assistant text (react-markdown or similar)
 - [ ] 1D.5 — Tool-specific output rendering: `bash` as terminal, `read` as highlighted code with path, `edit` as diff view, `write` as file preview
 - [ ] 1D.6 — Model selector UI (list from `get_available_models`, grouped by provider)
 - [ ] 1D.7 — Thinking level selector (off → xhigh)

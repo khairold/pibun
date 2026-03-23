@@ -675,3 +675,49 @@
 - Current assistant text is `whitespace-pre-wrap` in a `<p>` — needs to become proper markdown
 
 ---
+
+## Session 20 — Syntax Highlighting + Markdown Rendering (2026-03-23)
+
+**What happened:**
+- Installed `shiki@4.0.2`, `react-markdown@10.1.0`, `remark-gfm@4.0.1` in apps/web
+- Created `apps/web/src/lib/highlighter.ts` — Shiki singleton with lazy language loading:
+  - Uses `shiki/bundle/web` (lighter than full bundle, web-focused languages)
+  - `createHighlighter` called once with zero langs, theme `github-dark-default`
+  - Languages loaded on demand via `loadLanguage()` when first code block of that lang appears
+  - `loadedLanguages` Set tracks what's been loaded; `availableLanguages` Set for fast validation
+  - Unsupported languages gracefully fall back to plain "text" rendering
+- Created `apps/web/src/components/CodeBlock.tsx` — syntax-highlighted code block:
+  - Async highlight via `useEffect` → `highlightCode()` → sets `html` state
+  - Plain text `<pre><code>` fallback while highlighter loads
+  - Copy-to-clipboard button (appears on hover, "Copied" confirmation for 2s)
+  - Language label in header bar
+  - Shiki output rendered via `dangerouslySetInnerHTML` (safe — Shiki only transforms code strings)
+  - Memoized with `React.memo`
+- Created `apps/web/src/components/Markdown.tsx` — markdown renderer:
+  - `react-markdown` with `remark-gfm` for GFM support (tables, strikethrough, task lists, autolinks)
+  - Custom component overrides for all markdown elements (dark theme styling with Tailwind)
+  - `pre` component returns bare Fragment (avoids HTMLPreElement/HTMLDivElement ref type mismatch)
+  - `code` component detects block vs inline: className presence OR multi-line → CodeBlock, else inline style
+  - Full element coverage: h1-h4, p, ul/ol/li, a (target=_blank), blockquote, table/thead/th/td, hr, strong/em/del, img
+  - Named `MarkdownContent` to avoid collision with react-markdown's own `Markdown` export
+- Updated `AssistantMessage.tsx` to use `MarkdownContent` instead of `<p className="whitespace-pre-wrap">`
+- Fixed: react-markdown v10 uses default export, not named export
+- Fixed: Biome a11y `useAltText` rule on img — use `alt || "Image"` and don't spread props after
+- Vite build produces ~130 separate lazy-loaded chunks for Shiki grammars/themes
+
+**Items completed:**
+- [x] 1D.3 — Syntax highlighting for code blocks (Shiki, lazy-loaded per language)
+- [x] 1D.4 — Markdown rendering for assistant text (react-markdown + remark-gfm)
+
+**Issues encountered:**
+- react-markdown v10 changed to default export (from named export in earlier versions)
+- Spreading `...props` from `<pre>` onto `<div>` caused TS ref type mismatch — solved by discarding props
+- Biome static analysis couldn't verify `alt` was set when `...props` was spread after — solved by not spreading
+
+**Handoff to next session:**
+- Next: 1D.5 — Tool-specific output rendering (bash as terminal, read as highlighted code, edit as diff, write as file preview)
+- CodeBlock component is ready to reuse for tool output rendering (read tool → CodeBlock with file extension as language)
+- Consider: ToolExecutionCard.tsx currently shows raw `<pre>` for output — needs to dispatch to tool-specific renderers
+- The `summarizeArgs` function in ToolExecutionCard already extracts paths/commands per tool — reuse for language detection
+
+---

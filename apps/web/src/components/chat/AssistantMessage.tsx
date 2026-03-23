@@ -5,9 +5,10 @@
  * - Streaming cursor (blinking block) while message is actively streaming
  * - Thinking section: auto-expands while thinking is streaming, collapsible toggle,
  *   character count indicator, visual distinction with indigo tint
- * - Content displayed as pre-wrapped text (markdown rendering in 1D.4)
+ * - Content rendered as markdown with syntax-highlighted code blocks (Shiki)
  */
 
+import { MarkdownContent } from "@/components/Markdown";
 import { cn } from "@/lib/cn";
 import type { ChatMessage } from "@/store/types";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -118,15 +119,13 @@ export const AssistantMessage = memo(function AssistantMessage({ message }: Assi
 				</div>
 			)}
 
-			{/* Main content */}
+			{/* Main content — rendered as markdown */}
 			{(hasContent || (!hasThinking && message.streaming)) && (
 				<div className="text-sm text-neutral-100">
-					<p className="whitespace-pre-wrap break-words leading-relaxed">
-						{message.content}
-						{message.streaming && (
-							<span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse bg-neutral-400" />
-						)}
-					</p>
+					{hasContent && <MarkdownContent content={message.content} />}
+					{message.streaming && (
+						<span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse bg-neutral-400" />
+					)}
 				</div>
 			)}
 

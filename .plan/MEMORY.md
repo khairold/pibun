@@ -97,6 +97,15 @@
 | 87 | Tool-specific arg summaries in ToolExecutionCard header | `bash` shows command, `read/edit/write` show path, `glob/grep` show pattern. Falls back to generic first-arg display. Makes collapsed tool cards immediately informative. | 2026-03-23 |
 | 88 | ChatView uses `ChatItem` union type for grouped rendering | `ChatItem = { kind: "message" } \| { kind: "tool_group" }`. `groupMessages()` produces the list, memoized with `useMemo`. `ChatItemRenderer` dispatches to MessageItem or ToolExecutionCard. Original ToolCallMessage/ToolResultMessage kept as fallback for orphan messages. | 2026-03-23 |
 
+| 89 | Shiki singleton via `lib/highlighter.ts` with lazy language loading | `createHighlighter` called once with zero langs, then `loadLanguage()` on demand per language. Languages cached in `loadedLanguages` Set. Available languages checked against `bundledLanguagesBase` keys. Uses `shiki/bundle/web` for smaller bundle. Theme: `github-dark-default`. | 2026-03-23 |
+| 90 | CodeBlock shows plain text fallback while Shiki loads | `useEffect` calls `highlightCode()` async, sets `html` state when ready. Until then renders `<pre><code>{code}</code></pre>`. Effect cancelled on unmount to prevent stale updates. | 2026-03-23 |
+| 91 | react-markdown v10 default export, not named export | `import ReactMarkdown from "react-markdown"`, not `import { Markdown }`. v10 changed the export. | 2026-03-23 |
+| 92 | Markdown `pre` component returns bare Fragment, not `<div>` | react-markdown wraps code blocks in `<pre><code>`. We intercept `<pre>` and discard its props (ref type `HTMLPreElement` ≠ `HTMLDivElement` causes TS error). CodeBlock handles its own wrapper. | 2026-03-23 |
+| 93 | Fenced code detection: `className` presence OR content contains `\n` | react-markdown sets `className="language-xxx"` on `<code>` inside `<pre>`. Single-line code without language falls through to inline `<code>` styling. Multi-line always treated as block. | 2026-03-23 |
+| 94 | Markdown component named `MarkdownContent` to avoid collision with react-markdown's `Markdown` | Avoids confusion with the library's own export. Used in AssistantMessage for rendering assistant text. | 2026-03-23 |
+| 95 | Shiki web bundle code-splits all grammars and themes as separate Vite chunks | Build produces ~130 separate `.js` chunks for languages/themes, loaded on demand. Core engine ~120KB gzipped, WASM ~230KB gzipped. Only loaded when first code block appears. | 2026-03-23 |
+| 96 | Dependencies added: `shiki@4.0.2`, `react-markdown@10.1.0`, `remark-gfm@4.0.1` | All in `apps/web/dependencies`. remark-gfm enables GFM tables, strikethrough, task lists, autolinks. | 2026-03-23 |
+
 ## Architecture Notes
 
 ### Server (apps/server)
@@ -229,8 +238,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - `lastError`/`setLastError`/`clearLastError` added to ConnectionSlice ✅
 - E2E test at `apps/server/src/e2e-test.ts` — 44 checks verifying full browser-to-Pi chain
 - **Phase 1C COMPLETE** — all items done, exit criteria met
-- Phase 1D in progress — thinking blocks (1D.1) and tool call cards (1D.2) complete
-- Next: 1D.3 — Syntax highlighting for code blocks (Shiki)
+- Phase 1D in progress — thinking blocks (1D.1), tool call cards (1D.2), syntax highlighting (1D.3), markdown rendering (1D.4) complete
+- Next: 1D.5 — Tool-specific output rendering
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings

@@ -13,3 +13,5 @@
 - 2026-03-23: [tooling] TS project references + `composite: true` conflict with Bun's direct `.ts` exports pattern. Packages export source `.ts` files, but project references expect compiled `.d.ts` in dist/. Solution: don't use project references in app tsconfigs — let Bun's module resolution handle it.
 - 2026-03-23: [tooling] Biome `useLiteralKeys` + `organizeImports` add small friction when writing code — bracket notation for env vars and import ordering of `type` vs value imports are unintuitive at first.
 - 2026-03-23: [plan] Several items in Phase 1C (1C.10, 1C.12, 1C.14) were already implemented by the time they came up for execution. Plan granularity may need adjustment — or items should be checked off as side-effects of earlier work when they're clearly done.
+- 2026-03-23: [deps] react-markdown v10 changed export format (default vs named) — documentation/examples online still show v9 patterns. Version-specific API checks needed.
+- 2026-03-23: [tooling] Biome's static analysis for a11y can't track `alt` attribute through prop spreading — had to restructure img component to not spread `...props`.
