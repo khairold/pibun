@@ -132,6 +132,8 @@
 | 121 | `ToastContainer` renders stacked toasts at fixed bottom-right (z-50) | Uses `flex-col-reverse` for newest-on-top stacking. Each toast has severity icon, message text, and dismiss button. Color-coded: blue (info), amber (warning), red (error). `pointer-events-none` on container, `pointer-events-auto` on individual toasts. | 2026-03-23 |
 | 122 | `StatusBar` renders above Composer, hidden when no statuses active | Thin bar with puzzle-piece extension icon, pulsing blue dots per status entry, dot-separated. Uses `Map<string, string>` in store — extensions can set/remove by key. | 2026-03-23 |
 | 123 | Extension `notify` → `addToast()`, `setStatus` → `setExtensionStatus()` in wireTransport | Fire-and-forget events now dispatch to store actions instead of just logging. `setWidget`, `setTitle`, `set_editor_text` still log-only (no UI for these). | 2026-03-23 |
+| 124 | Composer steer/follow-up: Enter during streaming → steer, Ctrl+Enter → follow-up | During streaming, Composer shows textarea + steer button + abort button. Enter sends `session.steer` (redirect Pi immediately after current tool calls). Ctrl+Enter/Cmd+Enter sends `session.followUp` (queued for after agent finishes). Both show toast confirmation. Textarea border turns blue during streaming to indicate steer mode. Hint text below textarea shows available shortcuts. | 2026-03-23 |
+| 125 | No optimistic user messages for steer/follow-up — relies on Pi event stream | Steer/follow-up messages will appear in the chat when Pi processes them and emits `message_start` (user) events. Toast confirms the action was sent. This avoids duplicate message logic. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -268,7 +270,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Phase 1D in progress — thinking blocks (1D.1), tool call cards (1D.2), syntax highlighting (1D.3), markdown rendering (1D.4), tool-specific output rendering (1D.5), model selector (1D.6), thinking selector (1D.7), model/thinking wiring (1D.8), session management (1D.9) complete
 - Session management: `NewSessionButton` in toolbar, `ForkDialog` with message picker, `sessionActions.ts` module for coordinated operations. `session.getForkMessages` WS method added end-to-end.
 - Extension UI dialogs (1D.12) complete — SelectDialog, ConfirmDialog, InputDialog, EditorDialog, ExtensionDialog modal, useExtensionResponse hook, wireTransport wiring, ExtensionUiSlice in store
-- Next: 1D.14 — Message steering (Enter during streaming → steer) and follow-up support
+- Composer steer/follow-up support (1D.14) complete — Enter to steer, Ctrl+Enter for follow-up, toast feedback, streaming-mode UI with blue border + hint text
+- Next: 1D.15 — Image paste in composer
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings

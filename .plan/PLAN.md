@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 1D in progress — thinking blocks, tool cards, syntax highlighting, markdown rendering, tool-specific rendering, model selector, thinking selector, model/thinking wiring, session management, session stats, compaction controls, extension UI dialogs, extension notifications/status done.
+> **Status:** Phase 1D in progress — thinking blocks, tool cards, syntax highlighting, markdown rendering, tool-specific rendering, model selector, thinking selector, model/thinking wiring, session management, session stats, compaction controls, extension UI dialogs, extension notifications/status, message steering/follow-up done.
 > **Current Phase:** 1D
-> **Last Session:** 28 (2026-03-23)
+> **Last Session:** 29 (2026-03-23)
 
 ---
 
@@ -137,7 +137,7 @@
 - [x] 1D.11 — Compaction controls (manual compact button, auto-compaction start/end indicators)
 - [x] 1D.12 — Extension UI dialogs (select list, confirm yes/no, text input, multi-line editor)
 - [x] 1D.13 — Extension notifications (toast) and status (persistent indicator)
-- [ ] 1D.14 — Message steering (Enter during streaming → steer) and follow-up support
+- [x] 1D.14 — Message steering (Enter during streaming → steer) and follow-up support
 - [ ] 1D.15 — Image paste in composer (Ctrl+V, convert to base64, attach to prompt)
 - [ ] 1D.16 — Keyboard shortcuts (Ctrl+C abort, Ctrl+L model selector, Ctrl+N new session)
 - [ ] 1D.17 — Sidebar: session list with switch, current session info, new session button

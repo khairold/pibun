@@ -1002,3 +1002,38 @@
 - 7 items remaining in Phase 1D
 
 ---
+
+## Session 29 — Message Steering & Follow-up (2026-03-23)
+
+**What happened:**
+- Rewrote `Composer.tsx` to support three input modes:
+  - **Not streaming**: Enter → `session.prompt` (unchanged behavior)
+  - **Streaming + Enter**: → `session.steer` (redirect Pi after current tool calls)
+  - **Streaming + Ctrl/Cmd+Enter**: → `session.followUp` (queued for after agent finishes)
+- New `handleSteer()` and `handleFollowUp()` callbacks:
+  - Call respective WS methods (`session.steer`, `session.followUp`)
+  - Clear input on success
+  - Show toast confirmation ("Steering message sent" / "Follow-up queued")
+- Updated Composer UI during streaming:
+  - Textarea remains visible with blue border (`border-blue-700/50`) indicating steer mode
+  - Placeholder changes to "Enter to steer · Ctrl+Enter for follow-up…"
+  - Shows steer button (blue, with curved arrow icon) when text is entered
+  - Abort button always visible alongside steer button
+  - Hint text below textarea: "Enter to steer · Ctrl+Enter for follow-up · Stop to abort"
+- Extracted `clearInput()` helper to DRY textarea reset logic
+- No store changes needed — relies on Pi's event stream for message display
+
+**Items completed:**
+- [x] 1D.14 — Message steering (Enter during streaming → steer) and follow-up support
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1D.15 — Image paste in composer (Ctrl+V, convert to base64, attach to prompt)
+- `PiPromptCommand.message` is a plain string, images go in separate `images` field (MEMORY #41)
+- `WsSessionPromptParams` already has `images?: string[]` field
+- Need: paste handler on textarea, base64 encoding, image preview in Composer, attach to prompt
+- 6 items remaining in Phase 1D
+
+---
