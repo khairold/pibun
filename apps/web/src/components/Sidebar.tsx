@@ -15,7 +15,7 @@
  */
 
 import { cn } from "@/lib/cn";
-import { addProject, fetchProjects, removeProject } from "@/lib/projectActions";
+import { addProject, fetchProjects, openProject, removeProject } from "@/lib/projectActions";
 import { fetchSessionList, switchSession } from "@/lib/sessionActions";
 import { onShortcut } from "@/lib/shortcuts";
 import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
@@ -507,7 +507,6 @@ export function Sidebar() {
 	const sessionListLoading = useStore((s) => s.sessionListLoading);
 	const projects = useStore((s) => s.projects);
 	const activeProjectId = useStore((s) => s.activeProjectId);
-	const setActiveProjectId = useStore((s) => s.setActiveProjectId);
 	const sidebarOpen = useStore((s) => s.sidebarOpen);
 	const toggleSidebar = useStore((s) => s.toggleSidebar);
 	const setSidebarOpen = useStore((s) => s.setSidebarOpen);
@@ -617,11 +616,8 @@ export function Sidebar() {
 	const handleOpenProject = useCallback(
 		async (project: Project) => {
 			if (!isConnected) return;
-			// Set as active project
-			setActiveProjectId(project.id);
-			// Start a session in the project's CWD via a new tab
 			try {
-				await createNewTab({ cwd: project.cwd });
+				await openProject(project);
 				// Auto-close sidebar on mobile after opening
 				if (isMobileWidth()) {
 					setSidebarOpen(false);
@@ -630,7 +626,7 @@ export function Sidebar() {
 				console.error("[Sidebar] Failed to open project:", err);
 			}
 		},
-		[isConnected, setActiveProjectId, setSidebarOpen],
+		[isConnected, setSidebarOpen],
 	);
 
 	const handleRemoveProject = useCallback((projectId: string) => {

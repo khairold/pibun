@@ -5,6 +5,30 @@
 
 ---
 
+## Session 66 — Project switching (2026-03-23)
+
+**What happened:**
+- Added `openProject()` function to `apps/web/src/lib/projectActions.ts` — encapsulates the full project open flow: check for existing tab with matching CWD, switch to it if found, or create new tab if not.
+- Added `findTabForCwd()` helper — scans tabs array for matching CWD with trailing slash normalization. Returns the last matching tab (most recently created).
+- `openProject()` sets `activeProjectId` immediately for visual feedback, updates `lastOpened` timestamp on the server fire-and-forget (doesn't block the tab switch).
+- Updated `handleOpenProject` in `Sidebar.tsx` to use `openProject()` instead of directly calling `createNewTab()` + `setActiveProjectId()`.
+- Removed unused `setActiveProjectId` store selector from Sidebar component (now handled inside `openProject()`).
+- Import of `openProject` added to Sidebar alongside existing project action imports.
+- Ran formatter, typecheck, and lint — all pass.
+
+**Items completed:**
+- [x] 2.6 — Project switching: click project → starts new tab with that CWD, or switches to existing tab for that CWD
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 2.7 — "Open Recent" list: last 10 opened project directories, persisted across app restarts
+- The project list is already sorted by `lastOpened` descending (MEMORY #231). "Open Recent" could be implemented as a filtered view of the top 10 projects, or as a separate recent-directories list for non-project paths.
+- Key files: `apps/web/src/lib/projectActions.ts`, `apps/web/src/components/Sidebar.tsx`, `apps/server/src/projectStore.ts`
+
+---
+
 ## Session 65 — "Add Project" flow (2026-03-23)
 
 **What happened:**

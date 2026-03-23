@@ -13,6 +13,7 @@
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import type { PiThinkingLevel, Project } from "@pibun/contracts";
+import { createNewTab, switchTabAction } from "./tabActions";
 
 /** Extract a user-friendly error message from any thrown value. */
 function errorMessage(err: unknown): string {
@@ -128,4 +129,69 @@ export async function updateProject(
 		store.setLastError(`Failed to update project: ${errorMessage(err)}`);
 		return false;
 	}
+}
+
+// ============================================================================
+// Open (switch-or-create)
+// ============================================================================
+
+/**
+ * Open a project — switches to an existing tab with the same CWD,
+ * or creates a new tab if none exists.
+ *
+ * Also sets the project as active and updates its `lastOpened` timestamp.
+ *
+ * When multiple tabs share the same CWD, switches to the most recently
+ * created one (last in the tabs array with matching CWD).
+ *
+ * @returns `"switched"` if switched to existing tab, `"created"` if new tab was created, `null` on failure.
+ */
+export async function openProject(project: Project): Promise<"switched" | "created" | null> {
+	const store = useStore.getState();
+
+	// Set as active project immediately for visual feedback
+	store.setActiveProjectId(project.id);
+
+	// Update lastOpened on the server (fire-and-forget — don't block the switch)
+	updateProject(project.id, { lastOpened: Date.now() }).catch((err: unknown) => {
+		console.warn("[openProject] Failed to update lastOpened:", err);
+	});
+
+	// Check for an existing tab with the same CWD
+	const existingTab = findTabForCwd(store.tabs, project.cwd);
+
+	if (existingTab) {
+		// Tab already open for this CWD — switch to it
+		if (existingTab.id !== store.activeTabId) {
+			await switchTabAction(existingTab.id);
+		}
+		return "switched";
+	}
+
+	// No existing tab — create a new one with the project's CWD
+	const tabId = await createNewTab({ cwd: project.cwd });
+	return tabId ? "created" : null;
+}
+
+/**
+ * Find the best tab to switch to for a given CWD.
+ *
+ * Prefers the active tab if it matches. Otherwise returns the most
+ * recently created tab with matching CWD (last in the array).
+ * Returns null if no matching tab exists.
+ */
+function findTabForCwd(
+	tabs: ReadonlyArray<{ id: string; cwd: string | null }>,
+	cwd: string,
+): { id: string } | null {
+	// Normalize: strip trailing slash for comparison
+	const normalizedCwd = cwd.replace(/\/$/, "");
+
+	let lastMatch: { id: string } | null = null;
+	for (const tab of tabs) {
+		if (tab.cwd && tab.cwd.replace(/\/$/, "") === normalizedCwd) {
+			lastMatch = tab;
+		}
+	}
+	return lastMatch;
 }
