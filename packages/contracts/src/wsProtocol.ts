@@ -51,6 +51,10 @@ export const WS_METHODS = {
 
 	// Extension UI
 	sessionExtensionUiResponse: "session.extensionUiResponse",
+
+	// Session listing (server-side, not Pi RPC)
+	sessionListSessions: "session.listSessions",
+	sessionSwitchSession: "session.switchSession",
 } as const;
 
 /** Union of all WebSocket method strings. */
@@ -145,6 +149,11 @@ export interface WsSessionExtensionUiResponseParams {
 	cancelled?: boolean;
 }
 
+/** Params for `session.switchSession` — switch to a different session file. */
+export interface WsSessionSwitchSessionParams {
+	sessionPath: string;
+}
+
 // ============================================================================
 // Method → Params Type Map
 // ============================================================================
@@ -180,6 +189,8 @@ export interface WsMethodParamsMap {
 	"session.setName": WsSessionSetNameParams;
 	"session.getForkMessages": undefined;
 	"session.extensionUiResponse": WsSessionExtensionUiResponseParams;
+	"session.listSessions": undefined;
+	"session.switchSession": WsSessionSwitchSessionParams;
 }
 
 // ============================================================================
@@ -237,6 +248,31 @@ export interface WsSessionGetForkMessagesResult {
 	messages: WsForkableMessage[];
 }
 
+/** Summary info for a session file in the session list. */
+export interface WsSessionSummary {
+	/** Full path to the session file. */
+	sessionPath: string;
+	/** Pi session UUID. */
+	sessionId: string;
+	/** Session creation timestamp (ISO string). */
+	createdAt: string;
+	/** Display name set via set_session_name, or null. */
+	name: string | null;
+	/** Working directory the session was started in. */
+	cwd: string;
+}
+
+/** Result for `session.listSessions`. */
+export interface WsSessionListSessionsResult {
+	sessions: WsSessionSummary[];
+}
+
+/** Result for `session.switchSession`. */
+export interface WsSessionSwitchSessionResult {
+	/** True if an extension cancelled the switch. */
+	cancelled: boolean;
+}
+
 // ============================================================================
 // Method → Result Type Map
 // ============================================================================
@@ -264,6 +300,8 @@ export interface WsMethodResultMap {
 	"session.setName": WsOkResult;
 	"session.getForkMessages": WsSessionGetForkMessagesResult;
 	"session.extensionUiResponse": WsOkResult;
+	"session.listSessions": WsSessionListSessionsResult;
+	"session.switchSession": WsSessionSwitchSessionResult;
 }
 
 // ============================================================================

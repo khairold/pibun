@@ -3,7 +3,7 @@
  *
  * Main area is a flex column: toolbar (model/thinking selectors + session controls) +
  * chat messages (scrollable) + composer (fixed bottom).
- * Sidebar is a placeholder for now (Phase 1D.17).
+ * Sidebar shows session list, current session info, and new session button.
  */
 
 import { ChatView } from "@/components/ChatView";
@@ -13,8 +13,8 @@ import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { ForkDialog } from "@/components/ForkDialog";
 import { ModelSelector } from "@/components/ModelSelector";
-import { NewSessionButton } from "@/components/NewSessionButton";
 import { SessionStats } from "@/components/SessionStats";
+import { Sidebar } from "@/components/Sidebar";
 import { StatusBar } from "@/components/StatusBar";
 import { ThinkingSelector } from "@/components/ThinkingSelector";
 import { ToastContainer } from "@/components/ToastContainer";
@@ -31,15 +31,8 @@ export function AppShell() {
 			{/* Toast notifications — fixed bottom-right overlay */}
 			<ToastContainer />
 
-			{/* Sidebar placeholder */}
-			<aside className="hidden w-64 shrink-0 border-r border-neutral-800 bg-neutral-900 md:flex md:flex-col">
-				<div className="border-b border-neutral-800 px-4 py-3">
-					<h1 className="text-sm font-bold tracking-tight text-neutral-200">PiBun</h1>
-				</div>
-				<div className="flex flex-1 items-center justify-center">
-					<p className="text-xs text-neutral-600">Sessions (coming soon)</p>
-				</div>
-			</aside>
+			{/* Sidebar — session list and management */}
+			<Sidebar />
 
 			{/* Main chat area */}
 			<main className="flex min-w-0 flex-1 flex-col">
@@ -60,7 +53,6 @@ export function AppShell() {
 					{/* Session management controls */}
 					<div className="flex items-center gap-1 border-l border-neutral-800 pl-2">
 						<CompactButton />
-						<NewSessionButton />
 						<ForkDialog />
 					</div>
 				</div>

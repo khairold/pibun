@@ -141,6 +141,12 @@
 | 130 | `Ctrl/Cmd+C` abort preserves copy behavior via `hasTextSelection()` check | Only aborts when streaming AND no text is selected in the document. If text is selected, Ctrl+C copies as usual. Both `metaKey` (Cmd on Mac) and `ctrlKey` (Ctrl everywhere) accepted. | 2026-03-23 |
 | 131 | `Ctrl/Cmd+L` toggles ModelSelector via shortcut event subscription | ModelSelector subscribes to `onShortcut("toggleModelSelector")` in a `useEffect`. Toggles its local `isOpen` state. `preventDefault()` blocks browser address bar focus. | 2026-03-23 |
 
+| 132 | `session.listSessions` and `session.switchSession` are server-side WS methods, not Pi RPC commands | Pi has no `list_sessions` RPC command. The server reads `~/.pi/agent/sessions/` directly to list session files. First JSONL line of each file contains `{"type":"session","id":"...","timestamp":"...","cwd":"..."}` header. `switch_session` does go through Pi RPC. | 2026-03-23 |
+| 133 | Session directory encoding: CWD `/Users/foo/bar` → `--Users-foo-bar--` | Pi encodes the CWD path by replacing `/` with `-` and wrapping with `--`. Server uses `encodeCwdToDirName()` to filter sessions by CWD. | 2026-03-23 |
+| 134 | `SessionSlice` extended with `sessionName`, `sessionFile`, `sessionList`, `sessionListLoading` | `sessionName` and `sessionFile` populated from `get_state` response. `sessionList` populated by `session.listSessions` server method. Session list fetched on connect and after new/switch operations. | 2026-03-23 |
+| 135 | Sidebar replaces placeholder `<aside>` in AppShell, `NewSessionButton` moved to sidebar | New session button is now in the sidebar header. Removed from toolbar to avoid duplication. Toolbar retains CompactButton and ForkDialog. Ctrl+N shortcut still works via `useKeyboardShortcuts`. | 2026-03-23 |
+| 136 | Session list auto-fetched on `server.welcome` push and on manual connect | `wireTransport.ts` calls `fetchSessionList()` when welcome received. Sidebar also fetches on mount when connected. List refreshed after new session, switch, and fork operations. | 2026-03-23 |
+
 ## Architecture Notes
 
 ### Server (apps/server)
@@ -279,7 +285,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Composer steer/follow-up support (1D.14) complete — Enter to steer, Ctrl+Enter for follow-up, toast feedback, streaming-mode UI with blue border + hint text
 - Image paste in composer (1D.15) complete — clipboard paste, drag-and-drop, preview strip, base64 encoding, mimeType forwarding
 - Keyboard shortcuts: `useKeyboardShortcuts` hook in AppShell, `lib/shortcuts.ts` event bus, ModelSelector subscribes to toggle event. Ctrl/Cmd+C (abort), Ctrl/Cmd+L (model selector), Ctrl/Cmd+N (new session).
-- Next: 1D.17 — Sidebar
+- Sidebar: `Sidebar.tsx` with session list, current session info, new session button. Server-side `sessionListing.ts` reads `~/.pi/agent/sessions/`. WS methods `session.listSessions` and `session.switchSession` added end-to-end (contracts, handlers, registry).
+- Next: 1D.18 — Error handling
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings

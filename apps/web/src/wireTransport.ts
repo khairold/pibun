@@ -11,7 +11,7 @@
  * Use `getTransport()` to access the singleton for sending requests.
  */
 
-import { fetchSessionStats } from "@/lib/sessionActions";
+import { fetchSessionList, fetchSessionStats } from "@/lib/sessionActions";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { WsTransport } from "@/transport";
@@ -387,10 +387,12 @@ export function initTransport(): () => void {
 	// pi.event → Zustand store
 	cleanups.push(transport.subscribe("pi.event", handlePiEvent));
 
-	// server.welcome → log
+	// server.welcome → log + fetch session list
 	cleanups.push(
 		transport.subscribe("server.welcome", (data) => {
 			console.log(`[PiBun] Connected to server — cwd: ${data.cwd}, version: ${data.version}`);
+			// Fetch available sessions for the sidebar
+			fetchSessionList();
 		}),
 	);
 

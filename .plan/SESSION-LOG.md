@@ -1099,3 +1099,40 @@
 - The shortcut event bus pattern (`lib/shortcuts.ts`) can be reused if sidebar needs keyboard shortcuts
 
 ---
+
+## Session 32 — Sidebar: Session List with Switch (2026-03-23)
+
+**What happened:**
+- Added `session.listSessions` and `session.switchSession` WS methods end-to-end:
+  - **Contracts**: `WsSessionSummary` type (sessionPath, sessionId, createdAt, name, cwd), `WsSessionListSessionsResult`, `WsSessionSwitchSessionResult`, `WsSessionSwitchSessionParams`. Added to method/result/params maps.
+  - **Server**: `sessionListing.ts` — reads `~/.pi/agent/sessions/{cwd-encoded}/`, parses first JSONL line of each file for session metadata, returns sorted list (newest first). `handleSessionListSessions` and `handleSessionSwitchSession` handlers in `session.ts`, registered in handler index.
+  - **Web**: `fetchSessionList()` and `switchSession()` in `sessionActions.ts`. SessionSlice extended with `sessionName`, `sessionFile`, `sessionList`, `sessionListLoading`.
+- Built `Sidebar.tsx` component:
+  - Header with PiBun branding + New Session button
+  - Current session info panel (name + model)
+  - Session list with memoized `SessionItem` components
+  - Click-to-switch with loading state per item
+  - Current session highlighted with blue indicator dot
+  - Relative time formatting (just now, 5m ago, 2h ago, 3d ago, or short date)
+  - Refresh button for session list
+  - Session count footer
+  - Hidden below `md` breakpoint (responsive)
+- Updated `AppShell.tsx`: replaced placeholder `<aside>` with `<Sidebar />`, removed `NewSessionButton` from toolbar (now in sidebar header)
+- Updated `wireTransport.ts`: session list fetched on `server.welcome`
+- Updated `useKeyboardShortcuts.ts`: Ctrl+N also refreshes session list after creating
+- Updated `refreshSessionState()` to populate `sessionName` and `sessionFile` from `get_state`
+
+**Items completed:**
+- [x] 1D.17 — Sidebar: session list with switch, current session info, new session button
+
+**Issues encountered:**
+- Pi has no `list_sessions` RPC command (confirmed MEMORY #108). Solved by server-side file system reading of `~/.pi/agent/sessions/` directory with JSONL header parsing.
+- Biome import ordering: `@pibun/contracts` type imports must come before `react` value imports (alphabetical: `@p` < `r`)
+
+**Handoff to next session:**
+- Next: 1D.18 — Error handling: retry indicators (auto_retry events), error banners
+- 3 items remaining in Phase 1D (1D.18, 1D.19, 1D.20)
+- Session name in sidebar currently shows "Unnamed" for sessions without a name. Pi's `set_session_name` is wired but no inline rename UI exists yet — could be added as enhancement
+- `NewSessionButton.tsx` still exists as a file but is no longer imported anywhere. Can be deleted or kept for potential reuse in mobile layout.
+
+---

@@ -12,6 +12,7 @@ import type {
 	PiModel,
 	PiSessionStats,
 	PiThinkingLevel,
+	WsSessionSummary,
 } from "@pibun/contracts";
 
 // ============================================================================
@@ -97,6 +98,14 @@ export interface SessionSlice {
 	isCompacting: boolean;
 	/** Session statistics (tokens, cost), null before first fetch. */
 	stats: PiSessionStats | null;
+	/** Current session display name, null if not set. */
+	sessionName: string | null;
+	/** Current session file path, null before state fetch. */
+	sessionFile: string | null;
+	/** List of available sessions from the file system. */
+	sessionList: WsSessionSummary[];
+	/** True while fetching session list. */
+	sessionListLoading: boolean;
 
 	/** Set the session ID. */
 	setSessionId: (id: string | null) => void;
@@ -110,6 +119,14 @@ export interface SessionSlice {
 	setIsCompacting: (compacting: boolean) => void;
 	/** Set session stats. */
 	setStats: (stats: PiSessionStats | null) => void;
+	/** Set session display name. */
+	setSessionName: (name: string | null) => void;
+	/** Set session file path. */
+	setSessionFile: (path: string | null) => void;
+	/** Set the session list. */
+	setSessionList: (sessions: WsSessionSummary[]) => void;
+	/** Set session list loading state. */
+	setSessionListLoading: (loading: boolean) => void;
 	/** Reset all session state to initial values. */
 	resetSession: () => void;
 }

@@ -16,6 +16,7 @@ import {
 	handleSessionGetModels,
 	handleSessionGetState,
 	handleSessionGetStats,
+	handleSessionListSessions,
 	handleSessionNew,
 	handleSessionPrompt,
 	handleSessionSetModel,
@@ -24,6 +25,7 @@ import {
 	handleSessionStart,
 	handleSessionSteer,
 	handleSessionStop,
+	handleSessionSwitchSession,
 } from "./session.js";
 import type { HandlerRegistry } from "./types.js";
 
@@ -64,4 +66,8 @@ export const handlers: HandlerRegistry = {
 
 	// Extension UI
 	"session.extensionUiResponse": handleExtensionUiResponse,
+
+	// Session listing (server-side)
+	"session.listSessions": handleSessionListSessions,
+	"session.switchSession": handleSessionSwitchSession,
 };

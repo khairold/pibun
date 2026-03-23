@@ -12,7 +12,7 @@
 
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
-import type { WsForkableMessage } from "@pibun/contracts";
+import type { WsForkableMessage, WsSessionSummary } from "@pibun/contracts";
 
 /** Extract a user-friendly error message from any thrown value. */
 function errorMessage(err: unknown): string {
@@ -40,7 +40,7 @@ async function ensureSession(): Promise<boolean> {
 
 /**
  * Refresh session state from Pi after a session change (new, fork, switch).
- * Fetches get_state to update model/thinking/streaming info.
+ * Fetches get_state to update model/thinking/streaming/name info.
  */
 async function refreshSessionState(): Promise<void> {
 	try {
@@ -51,6 +51,8 @@ async function refreshSessionState(): Promise<void> {
 		}
 		store.setThinkingLevel(result.state.thinkingLevel);
 		store.setIsStreaming(result.state.isStreaming);
+		store.setSessionName(result.state.sessionName ?? null);
+		store.setSessionFile(result.state.sessionFile ?? null);
 	} catch (err) {
 		console.warn("[sessionActions] Failed to refresh state:", err);
 	}
@@ -201,6 +203,78 @@ export async function forkFromMessage(entryId: string): Promise<boolean> {
 		return true;
 	} catch (err) {
 		store.setLastError(`Failed to fork session: ${errorMessage(err)}`);
+		return false;
+	}
+}
+
+/**
+ * Fetch the list of available sessions from the server.
+ *
+ * The server reads `~/.pi/agent/sessions/` for the current CWD.
+ * Updates the store's sessionList.
+ *
+ * Returns the session list on success, empty array on failure.
+ */
+export async function fetchSessionList(): Promise<WsSessionSummary[]> {
+	const store = useStore.getState();
+	store.setSessionListLoading(true);
+
+	try {
+		const result = await getTransport().request("session.listSessions");
+		store.setSessionList(result.sessions);
+		return result.sessions;
+	} catch (err) {
+		console.warn("[sessionActions] Failed to fetch session list:", err);
+		return [];
+	} finally {
+		store.setSessionListLoading(false);
+	}
+}
+
+/**
+ * Switch to a different session.
+ *
+ * Flow:
+ * 1. Abort streaming if active
+ * 2. Ensure a Pi process is running
+ * 3. Call session.switchSession with the session file path
+ * 4. Clear local messages
+ * 5. Refresh session state
+ *
+ * Returns true on success, false on failure or cancellation.
+ */
+export async function switchSession(sessionPath: string): Promise<boolean> {
+	const store = useStore.getState();
+
+	// If streaming, abort first
+	if (store.isStreaming) {
+		try {
+			await getTransport().request("session.abort");
+		} catch {
+			// Continue even if abort fails
+		}
+	}
+
+	const ready = await ensureSession();
+	if (!ready) return false;
+
+	try {
+		const result = await getTransport().request("session.switchSession", { sessionPath });
+		if (result.cancelled) {
+			store.addToast("Session switch was cancelled by an extension", "warning");
+			return false;
+		}
+
+		// Clear messages — switching loads a different conversation
+		store.clearMessages();
+		store.setIsStreaming(false);
+		// Refresh state to pick up new session info
+		await refreshSessionState();
+		// Refresh session list to update current indicators
+		await fetchSessionList();
+		return true;
+	} catch (err) {
+		store.setLastError(`Failed to switch session: ${errorMessage(err)}`);
 		return false;
 	}
 }

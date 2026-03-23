@@ -19,6 +19,10 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
 	isStreaming: false,
 	isCompacting: false,
 	stats: null,
+	sessionName: null,
+	sessionFile: null,
+	sessionList: [],
+	sessionListLoading: false,
 
 	setSessionId: (id) => set({ sessionId: id }),
 	setModel: (model) => set({ model }),
@@ -26,6 +30,10 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
 	setIsStreaming: (streaming) => set({ isStreaming: streaming }),
 	setIsCompacting: (compacting) => set({ isCompacting: compacting }),
 	setStats: (stats) => set({ stats }),
+	setSessionName: (name) => set({ sessionName: name }),
+	setSessionFile: (path) => set({ sessionFile: path }),
+	setSessionList: (sessions) => set({ sessionList: sessions }),
+	setSessionListLoading: (loading) => set({ sessionListLoading: loading }),
 
 	resetSession: () =>
 		set({
@@ -35,5 +43,8 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
 			isStreaming: false,
 			isCompacting: false,
 			stats: null,
+			sessionName: null,
+			sessionFile: null,
+			// Keep sessionList — it's independent of the current session
 		}),
 });

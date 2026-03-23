@@ -10,7 +10,7 @@
  * re-renders. Must be mounted once at the app level (AppShell).
  */
 
-import { startNewSession } from "@/lib/sessionActions";
+import { fetchSessionList, startNewSession } from "@/lib/sessionActions";
 import { emitShortcut } from "@/lib/shortcuts";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
@@ -67,9 +67,11 @@ export function useKeyboardShortcuts(): void {
 					// Ctrl/Cmd+N — new session
 					if (isConnected) {
 						e.preventDefault();
-						startNewSession().catch((err: unknown) => {
-							console.error("[Shortcut] Failed to create new session:", err);
-						});
+						startNewSession()
+							.then(() => fetchSessionList())
+							.catch((err: unknown) => {
+								console.error("[Shortcut] Failed to create new session:", err);
+							});
 					}
 					break;
 				}

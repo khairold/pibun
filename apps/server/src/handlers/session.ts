@@ -22,8 +22,10 @@ import type {
 	WsSessionSetThinkingParams,
 	WsSessionStartParams,
 	WsSessionSteerParams,
+	WsSessionSwitchSessionParams,
 } from "@pibun/contracts";
 import type { PiProcess } from "../piProcess.js";
+import { listSessions } from "../sessionListing.js";
 import type { HandlerContext, WsHandler } from "./types.js";
 
 // ============================================================================
@@ -404,6 +406,48 @@ export const handleExtensionUiResponse: WsHandler<"session.extensionUiResponse">
 	}
 
 	return { ok: true };
+};
+
+// ============================================================================
+// Session Listing & Switching (server-side, not Pi RPC)
+// ============================================================================
+
+/**
+ * session.listSessions — List available session files from the file system.
+ *
+ * Pi has no `list_sessions` RPC command, so this reads `~/.pi/agent/sessions/`
+ * directly. Lists sessions for the server's CWD by default.
+ */
+export const handleSessionListSessions: WsHandler<"session.listSessions"> = async (
+	_params: undefined,
+	_ctx: HandlerContext,
+): Promise<WsMethodResultMap["session.listSessions"]> => {
+	const sessions = await listSessions(process.cwd());
+	return { sessions };
+};
+
+/**
+ * session.switchSession — Switch to a different session file.
+ *
+ * Requires an active Pi process. Sends Pi's `switch_session` command.
+ * After switching, the client should clear messages and refresh state.
+ */
+export const handleSessionSwitchSession: WsHandler<"session.switchSession"> = async (
+	params: WsSessionSwitchSessionParams,
+	ctx: HandlerContext,
+): Promise<WsMethodResultMap["session.switchSession"]> => {
+	const piProcess = getProcess(ctx);
+	const response = await piProcess.sendCommand({
+		type: "switch_session",
+		sessionPath: params.sessionPath,
+	});
+	assertSuccess(response);
+
+	if (response.command === "switch_session" && response.success) {
+		return { cancelled: response.data.cancelled };
+	}
+
+	throw new Error("Unexpected response from switch_session");
 };
 
 // ============================================================================

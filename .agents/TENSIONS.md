@@ -16,3 +16,4 @@
 - 2026-03-23: [deps] react-markdown v10 changed export format (default vs named) — documentation/examples online still show v9 patterns. Version-specific API checks needed.
 - 2026-03-23: [tooling] Biome's static analysis for a11y can't track `alt` attribute through prop spreading — had to restructure img component to not spread `...props`.
 - 2026-03-23: [architecture] Pi RPC has no `list_sessions` command, which limits session switching UX. Need server-side session directory scanning or Pi protocol extension for proper session management.
+- 2026-03-23: [architecture] Server-side session listing reads Pi's internal file structure (`~/.pi/agent/sessions/`). This is a coupling to Pi's implementation details — if Pi changes its session storage format, our listing breaks. Acceptable for now but fragile long-term.
