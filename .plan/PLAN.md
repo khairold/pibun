@@ -1,9 +1,9 @@
 # PiBun v2 — Build Plan
 
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
-> **Status:** Phase 1 Complete
+> **Status:** Phase 2 in progress
 > **Current Phase:** Phase 2 — Project Management
-> **Last Session:** Session 61 — 2026-03-23
+> **Last Session:** Session 62 — 2026-03-23
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -53,8 +53,8 @@
 
 **Goal:** Sidebar with project directories. Each project remembers its sessions, CWD, and model preferences.
 
-- [ ] 2.1 — Define `Project` type: `{ id, name, cwd, lastOpened, favoriteModel?, defaultThinking?, sessionCount }`
-- [ ] 2.2 — Add `projectsSlice` to Zustand store: `projects: Project[]`, `activeProjectId`, CRUD actions
+- [x] 2.1 — Define `Project` type: `{ id, name, cwd, lastOpened, favoriteModel?, defaultThinking?, sessionCount }`
+- [x] 2.2 — Add `projectsSlice` to Zustand store: `projects: Project[]`, `activeProjectId`, CRUD actions
 - [ ] 2.3 — Server-side project persistence: `~/.pibun/projects.json` (read/write via new WS methods `project.list`, `project.add`, `project.remove`, `project.update`)
 - [ ] 2.4 — Build `ProjectSidebar` section: project list with icons, last-opened date, session count badge
 - [ ] 2.5 — "Add Project" flow: folder picker (native dialog in desktop, text input in browser) → creates project entry

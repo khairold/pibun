@@ -17,6 +17,7 @@ import type {
 	PiSessionStats,
 	PiThinkingLevel,
 } from "./index.js";
+import type { Project } from "./project.js";
 
 // ============================================================================
 // Method Names
@@ -55,6 +56,12 @@ export const WS_METHODS = {
 	// Session listing (server-side, not Pi RPC)
 	sessionListSessions: "session.listSessions",
 	sessionSwitchSession: "session.switchSession",
+
+	// Project management (server-side persistence)
+	projectList: "project.list",
+	projectAdd: "project.add",
+	projectRemove: "project.remove",
+	projectUpdate: "project.update",
 
 	// App-level (desktop integration)
 	appApplyUpdate: "app.applyUpdate",
@@ -169,6 +176,41 @@ export interface WsSessionSwitchSessionParams {
 }
 
 // ============================================================================
+// Project Management Parameters
+// ============================================================================
+
+/**
+ * Params for `project.add` — add a new project directory.
+ *
+ * Only `cwd` is required. Server generates `id`, defaults `name` to
+ * directory basename, and initializes timestamps/counters.
+ */
+export interface WsProjectAddParams {
+	cwd: string;
+	name?: string;
+}
+
+/** Params for `project.remove` — remove a project by ID. */
+export interface WsProjectRemoveParams {
+	projectId: string;
+}
+
+/**
+ * Params for `project.update` — update a project's metadata.
+ *
+ * Only the fields that are provided will be updated. The `id` field
+ * identifies the project to update (separate from the update payload).
+ */
+export interface WsProjectUpdateParams {
+	projectId: string;
+	name?: string;
+	favoriteModel?: { provider: string; modelId: string } | null;
+	defaultThinking?: PiThinkingLevel | null;
+	lastOpened?: number;
+	sessionCount?: number;
+}
+
+// ============================================================================
 // Method → Params Type Map
 // ============================================================================
 
@@ -205,6 +247,10 @@ export interface WsMethodParamsMap {
 	"session.extensionUiResponse": WsSessionExtensionUiResponseParams;
 	"session.listSessions": undefined;
 	"session.switchSession": WsSessionSwitchSessionParams;
+	"project.list": undefined;
+	"project.add": WsProjectAddParams;
+	"project.remove": WsProjectRemoveParams;
+	"project.update": WsProjectUpdateParams;
 	"app.applyUpdate": undefined;
 	"app.checkForUpdates": undefined;
 }
@@ -294,6 +340,20 @@ export interface WsSessionSwitchSessionResult {
 }
 
 // ============================================================================
+// Project Management Results
+// ============================================================================
+
+/** Result for `project.list`. */
+export interface WsProjectListResult {
+	projects: Project[];
+}
+
+/** Result for `project.add`. */
+export interface WsProjectAddResult {
+	project: Project;
+}
+
+// ============================================================================
 // Method → Result Type Map
 // ============================================================================
 
@@ -322,6 +382,10 @@ export interface WsMethodResultMap {
 	"session.extensionUiResponse": WsOkResult;
 	"session.listSessions": WsSessionListSessionsResult;
 	"session.switchSession": WsSessionSwitchSessionResult;
+	"project.list": WsProjectListResult;
+	"project.add": WsProjectAddResult;
+	"project.remove": WsOkResult;
+	"project.update": WsOkResult;
 	"app.applyUpdate": WsOkResult;
 	"app.checkForUpdates": WsOkResult;
 }

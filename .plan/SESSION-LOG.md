@@ -5,6 +5,31 @@
 
 ---
 
+## Session 62 — Project type + projectsSlice (2026-03-23)
+
+**What happened:**
+- Created `packages/contracts/src/project.ts` with `Project` and `ProjectModelPreference` types. `Project` has `id`, `name`, `cwd`, `lastOpened`, `favoriteModel`, `defaultThinking`, `sessionCount` — all non-optional (uses `null` for absent values per conventions).
+- Added 4 WS method types to `wsProtocol.ts`: `project.list`, `project.add`, `project.remove`, `project.update` with corresponding params/result interfaces and map entries. Server handlers deferred to item 2.3.
+- Updated `packages/contracts/src/index.ts` with new type re-exports.
+- Added `ProjectsSlice` interface to `apps/web/src/store/types.ts` with sorted-by-lastOpened invariant, CRUD actions, `activeProjectId`, and `projectsLoading` state.
+- Created `apps/web/src/store/projectsSlice.ts` with `createProjectsSlice` — follows existing `StateCreator` pattern. All mutations re-sort by `lastOpened` descending. `removeProject` auto-clears `activeProjectId` if the removed project was active.
+- Wired slice into combined store in `apps/web/src/store/index.ts`.
+- Typecheck + lint pass across all 5 packages.
+
+**Items completed:**
+- [x] 2.1 — Define `Project` type
+- [x] 2.2 — Add `projectsSlice` to Zustand store
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 2.3 — Server-side project persistence (`~/.pibun/projects.json`)
+- WS method types already defined in contracts — server needs: `projectStore.ts` (read/write JSON file), `handlers/project.ts` (4 handlers), register in handler index, wire in server.ts
+- Follow thin bridge pattern: `project.list` reads file, `project.add` generates UUID + defaults + writes, `project.remove` filters + writes, `project.update` merges + writes
+
+---
+
 ## Session 61 — Multi-session verification (Phase 1 complete) (2026-03-23)
 
 **What happened:**

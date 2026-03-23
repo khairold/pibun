@@ -13,6 +13,7 @@ import type {
 	PiModel,
 	PiSessionStats,
 	PiThinkingLevel,
+	Project,
 	SessionTab,
 	WsSessionSummary,
 } from "@pibun/contracts";
@@ -246,6 +247,29 @@ export interface UpdateSlice {
 	dismissUpdate: () => void;
 }
 
+/** Projects state — project directory management. */
+export interface ProjectsSlice {
+	/** List of saved projects, ordered by lastOpened (most recent first). */
+	projects: Project[];
+	/** ID of the currently active project, null when no project is selected. */
+	activeProjectId: string | null;
+	/** True while loading projects from the server. */
+	projectsLoading: boolean;
+
+	/** Set the full projects list (from server load). Sorts by lastOpened descending. */
+	setProjects: (projects: Project[]) => void;
+	/** Add a project to the list (from server response after project.add). */
+	addProject: (project: Project) => void;
+	/** Remove a project by ID. Clears activeProjectId if it was the removed one. */
+	removeProject: (projectId: string) => void;
+	/** Update a project's metadata. Merges with existing project fields. */
+	updateProject: (projectId: string, updates: Partial<Project>) => void;
+	/** Set the active project ID. */
+	setActiveProjectId: (projectId: string | null) => void;
+	/** Set the projects loading state. */
+	setProjectsLoading: (loading: boolean) => void;
+}
+
 /** UI state — layout toggles and transient UI state. */
 export interface UiSlice {
 	/** Whether the sidebar is visible. Defaults to true on desktop, false on mobile. */
@@ -302,4 +326,5 @@ export type AppStore = ConnectionSlice &
 	NotificationsSlice &
 	UpdateSlice &
 	UiSlice &
-	TabsSlice;
+	TabsSlice &
+	ProjectsSlice;

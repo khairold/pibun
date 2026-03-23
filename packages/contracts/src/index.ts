@@ -139,6 +139,9 @@ export type {
 // Session tab types (multi-session UI)
 export type { SessionTab } from "./sessionTab.js";
 
+// Project types (project management)
+export type { Project, ProjectModelPreference } from "./project.js";
+
 // WebSocket protocol types (browser ↔ server)
 export { WS_CHANNELS, WS_METHODS } from "./wsProtocol.js";
 export type {
@@ -184,6 +187,11 @@ export type {
 	WsSessionSummary,
 	WsSessionSwitchSessionParams,
 	WsSessionSwitchSessionResult,
+	WsProjectAddParams,
+	WsProjectAddResult,
+	WsProjectListResult,
+	WsProjectRemoveParams,
+	WsProjectUpdateParams,
 	WsTypedPush,
 	WsTypedRequest,
 	WsTypedResponse,
