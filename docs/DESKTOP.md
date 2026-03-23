@@ -140,7 +140,16 @@ For most data flow, we still use WebSocket (same as browser mode). IPC is reserv
 
 ### Windows
 
-- NSIS installer or `.msi`
+- Self-extracting installer exe — Electrobun's native format (not NSIS or MSI)
+  - `PiBun-Setup.exe` — extracts the app to `%LOCALAPPDATA%\dev.pibun.app\`
+  - Icon embedded via `rcedit` for user-friendly display in Explorer
+  - Metadata JSON for the auto-update mechanism (bsdiff patches on `.tar.zst` archives)
+  - Distributed as a `.zip` containing the exe + metadata + compressed archive
+- Runtime prerequisite: WebView2 (pre-installed on Windows 10 21H2+ and Windows 11)
+  - Older systems: download from https://developer.microsoft.com/en-us/microsoft-edge/webview2/
+- Build prerequisites: must be run on a Windows system (no cross-compilation)
+  - Architecture: x64 only (ARM Windows users run via automatic emulation layer)
+- Build command: `bun run build:desktop:windows` (must run on Windows)
 - Code signing (future)
 
 ## Development Mode

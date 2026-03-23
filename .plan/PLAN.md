@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 2C in progress. 2C.1–2C.3 complete.
+> **Status:** Phase 2C in progress. 2C.1–2C.4 complete.
 > **Current Phase:** 2C
-> **Last Session:** 47 (2026-03-23)
+> **Last Session:** 48 (2026-03-23)
 
 ---
 
@@ -187,7 +187,7 @@
 - [x] 2C.1 — macOS .dmg build
 - [x] 2C.2 — Code signing + notarization (macOS)
 - [x] 2C.3 — Linux AppImage build
-- [ ] 2C.4 — Windows NSIS installer
+- [x] 2C.4 — Windows NSIS installer
 - [ ] 2C.5 — Auto-update mechanism
 - [ ] 2C.6 — GitHub Releases CI pipeline
 - [ ] 2C.7 — Smoke tests for each platform

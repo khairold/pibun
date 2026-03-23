@@ -17,6 +17,8 @@
 		"build:desktop:signed:canary": "cd apps/desktop && bun scripts/build-signed.ts --env=canary",
 		"build:desktop:linux": "cd apps/desktop && bun scripts/build-linux.ts",
 		"build:desktop:linux:canary": "cd apps/desktop && bun scripts/build-linux.ts --env=canary",
+		"build:desktop:windows": "cd apps/desktop && bun scripts/build-windows.ts",
+		"build:desktop:windows:canary": "cd apps/desktop && bun scripts/build-windows.ts --env=canary",
 		"typecheck": "turbo run typecheck",
 		"lint": "biome check .",
 		"format": "biome format --write ."
