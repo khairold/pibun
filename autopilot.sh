@@ -16,7 +16,7 @@
 set -euo pipefail
 
 # ─── Configuration defaults ───────────────────────────────────────────────────
-MAX_ITERATIONS=30
+MAX_ITERATIONS=300
 STUCK_THRESHOLD=3
 SLEEP_BETWEEN=5
 PLAN_DIR=".plan"
