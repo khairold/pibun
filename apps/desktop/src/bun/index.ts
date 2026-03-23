@@ -211,6 +211,7 @@ function startServer(): { server: PiBunServer; url: string } {
 		hooks: {
 			onApplyUpdate: () => handleApplyUpdate(),
 			onCheckForUpdates: () => handleCheckForUpdates(),
+			onOpenFolderDialog: () => openFolderDialogAsync(),
 		},
 	});
 
@@ -269,7 +270,34 @@ async function shutdown(reason: string): Promise<void> {
 // ============================================================================
 
 /**
- * Open a native folder picker dialog.
+ * Open a native folder picker dialog and return the selected path.
+ *
+ * Used as a server hook (`onOpenFolderDialog`) for the `app.openFolderDialog`
+ * WS method, allowing the web app to trigger the native dialog via request/response.
+ *
+ * @returns The selected folder path, or null if the user cancelled.
+ */
+async function openFolderDialogAsync(): Promise<string | null> {
+	const result = await Utils.openFileDialog({
+		startingFolder: "~/",
+		canChooseFiles: false,
+		canChooseDirectory: true,
+		allowsMultipleSelection: false,
+	});
+
+	// result is string[] — empty or [""] means cancelled
+	const folderPath = result[0];
+	if (!folderPath || folderPath === "") {
+		console.log("[FileDialog] Folder selection cancelled");
+		return null;
+	}
+
+	console.log(`[FileDialog] Folder selected: ${folderPath}`);
+	return folderPath;
+}
+
+/**
+ * Open a native folder picker dialog via menu action.
  *
  * When the user selects a folder, the selected path is broadcast to all
  * connected WebSocket clients via the `menu.action` push channel with
@@ -283,21 +311,8 @@ async function shutdown(reason: string): Promise<void> {
  */
 async function openFolderDialog(): Promise<void> {
 	try {
-		const result = await Utils.openFileDialog({
-			startingFolder: "~/",
-			canChooseFiles: false,
-			canChooseDirectory: true,
-			allowsMultipleSelection: false,
-		});
-
-		// result is string[] — empty or [""] means cancelled
-		const folderPath = result[0];
-		if (!folderPath || folderPath === "") {
-			console.log("[FileDialog] Folder selection cancelled");
-			return;
-		}
-
-		console.log(`[FileDialog] Folder selected: ${folderPath}`);
+		const folderPath = await openFolderDialogAsync();
+		if (!folderPath) return;
 
 		// Forward to the React app via WebSocket push
 		if (pibunServer) {

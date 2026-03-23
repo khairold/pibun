@@ -187,6 +187,7 @@ export type {
 	WsSessionSummary,
 	WsSessionSwitchSessionParams,
 	WsSessionSwitchSessionResult,
+	WsAppOpenFolderDialogResult,
 	WsProjectAddParams,
 	WsProjectAddResult,
 	WsProjectListResult,

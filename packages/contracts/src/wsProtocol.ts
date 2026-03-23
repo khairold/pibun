@@ -66,6 +66,7 @@ export const WS_METHODS = {
 	// App-level (desktop integration)
 	appApplyUpdate: "app.applyUpdate",
 	appCheckForUpdates: "app.checkForUpdates",
+	appOpenFolderDialog: "app.openFolderDialog",
 } as const;
 
 /** Union of all WebSocket method strings. */
@@ -253,6 +254,7 @@ export interface WsMethodParamsMap {
 	"project.update": WsProjectUpdateParams;
 	"app.applyUpdate": undefined;
 	"app.checkForUpdates": undefined;
+	"app.openFolderDialog": undefined;
 }
 
 // ============================================================================
@@ -353,6 +355,12 @@ export interface WsProjectAddResult {
 	project: Project;
 }
 
+/** Result for `app.openFolderDialog` — native folder picker. */
+export interface WsAppOpenFolderDialogResult {
+	/** Selected folder path, or null if the user cancelled. */
+	folderPath: string | null;
+}
+
 // ============================================================================
 // Method → Result Type Map
 // ============================================================================
@@ -388,6 +396,7 @@ export interface WsMethodResultMap {
 	"project.update": WsOkResult;
 	"app.applyUpdate": WsOkResult;
 	"app.checkForUpdates": WsOkResult;
+	"app.openFolderDialog": WsAppOpenFolderDialogResult;
 }
 
 // ============================================================================

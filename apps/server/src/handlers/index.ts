@@ -5,7 +5,11 @@
  * The dispatch function in server.ts looks up methods from this registry.
  */
 
-import { handleAppApplyUpdate, handleAppCheckForUpdates } from "./app.js";
+import {
+	handleAppApplyUpdate,
+	handleAppCheckForUpdates,
+	handleAppOpenFolderDialog,
+} from "./app.js";
 import {
 	handleProjectAdd,
 	handleProjectList,
@@ -87,4 +91,5 @@ export const handlers: HandlerRegistry = {
 	// App-level (desktop integration)
 	"app.applyUpdate": handleAppApplyUpdate,
 	"app.checkForUpdates": handleAppCheckForUpdates,
+	"app.openFolderDialog": handleAppOpenFolderDialog,
 };

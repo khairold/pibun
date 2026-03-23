@@ -4,13 +4,14 @@
  * Handles desktop integration methods that are not Pi RPC commands:
  * - `app.applyUpdate` — triggers update installation + app restart
  * - `app.checkForUpdates` — triggers manual update check
+ * - `app.openFolderDialog` — opens native folder picker (desktop only)
  *
  * These methods call into optional hooks set by the desktop main process.
  * In standalone server mode (no desktop), the hooks are not set and
  * these methods return errors.
  */
 
-import type { WsOkResult } from "@pibun/contracts";
+import type { WsAppOpenFolderDialogResult, WsOkResult } from "@pibun/contracts";
 import type { HandlerContext, WsHandler } from "./types.js";
 
 // ============================================================================
@@ -49,4 +50,25 @@ export const handleAppCheckForUpdates: WsHandler<"app.checkForUpdates"> = (
 	}
 	ctx.hooks.onCheckForUpdates();
 	return { ok: true };
+};
+
+// ============================================================================
+// app.openFolderDialog
+// ============================================================================
+
+/**
+ * Open a native folder picker dialog.
+ * Only works in desktop mode where the `onOpenFolderDialog` hook is registered.
+ * Returns the selected path, or null if the user cancelled.
+ * In browser mode, throws an error so the client falls back to text input.
+ */
+export const handleAppOpenFolderDialog: WsHandler<"app.openFolderDialog"> = async (
+	_params: undefined,
+	ctx: HandlerContext,
+): Promise<WsAppOpenFolderDialogResult> => {
+	if (!ctx.hooks.onOpenFolderDialog) {
+		throw new Error("Native folder dialog is not available in browser mode");
+	}
+	const folderPath = await ctx.hooks.onOpenFolderDialog();
+	return { folderPath };
 };

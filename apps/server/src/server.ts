@@ -51,6 +51,8 @@ export interface ServerHooks {
 	onApplyUpdate?: () => void;
 	/** Called when the web app requests `app.checkForUpdates`. */
 	onCheckForUpdates?: () => void;
+	/** Called when the web app requests `app.openFolderDialog`. Returns selected path or null if cancelled. */
+	onOpenFolderDialog?: () => Promise<string | null>;
 }
 
 /** Options for creating the server. */

@@ -15,13 +15,14 @@
  */
 
 import { cn } from "@/lib/cn";
-import { fetchProjects, removeProject } from "@/lib/projectActions";
+import { addProject, fetchProjects, removeProject } from "@/lib/projectActions";
 import { fetchSessionList, switchSession } from "@/lib/sessionActions";
 import { onShortcut } from "@/lib/shortcuts";
 import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
 import { useStore } from "@/store";
+import { getTransport } from "@/wireTransport";
 import type { Project, SessionTab, WsSessionSummary } from "@pibun/contracts";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // ============================================================================
 // Constants
@@ -329,6 +330,83 @@ const ProjectItem = memo(function ProjectItem({
 });
 
 // ============================================================================
+// Add Project UI
+// ============================================================================
+
+/**
+ * Inline text input for adding a project by typing a folder path.
+ * Shown in browser mode (no native dialog) or as a fallback in desktop mode.
+ */
+interface AddProjectInputProps {
+	onAdd: (cwd: string) => void;
+	onCancel: () => void;
+}
+
+const AddProjectInput = memo(function AddProjectInput({ onAdd, onCancel }: AddProjectInputProps) {
+	const [value, setValue] = useState("");
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	useEffect(() => {
+		inputRef.current?.focus();
+	}, []);
+
+	const handleSubmit = useCallback(() => {
+		const trimmed = value.trim();
+		if (trimmed) {
+			onAdd(trimmed);
+		}
+	}, [value, onAdd]);
+
+	return (
+		<div className="flex flex-col gap-1 px-3 py-2">
+			<label htmlFor="add-project-path" className="text-[10px] text-neutral-500">
+				Enter folder path
+			</label>
+			<div className="flex items-center gap-1">
+				<input
+					ref={inputRef}
+					id="add-project-path"
+					type="text"
+					value={value}
+					onChange={(e) => setValue(e.target.value)}
+					onKeyDown={(e) => {
+						if (e.key === "Enter") {
+							e.preventDefault();
+							handleSubmit();
+						} else if (e.key === "Escape") {
+							e.preventDefault();
+							onCancel();
+						}
+					}}
+					placeholder="/path/to/project"
+					className="min-w-0 flex-1 rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-neutral-200 placeholder-neutral-600 outline-none focus:border-blue-500"
+				/>
+				<button
+					type="button"
+					onClick={handleSubmit}
+					disabled={!value.trim()}
+					className={cn(
+						"rounded px-2 py-1 text-xs font-medium transition-colors",
+						value.trim()
+							? "bg-blue-600 text-white hover:bg-blue-500"
+							: "cursor-not-allowed bg-neutral-700 text-neutral-500",
+					)}
+				>
+					Add
+				</button>
+				<button
+					type="button"
+					onClick={onCancel}
+					className="rounded px-1.5 py-1 text-xs text-neutral-500 hover:text-neutral-300"
+				>
+					Cancel
+				</button>
+			</div>
+		</div>
+	);
+});
+
+// ============================================================================
 // Helpers
 // ============================================================================
 
@@ -438,6 +516,8 @@ export function Sidebar() {
 	const [switchingPath, setSwitchingPath] = useState<string | null>(null);
 	const [pastSessionsExpanded, setPastSessionsExpanded] = useState(false);
 	const [projectsExpanded, setProjectsExpanded] = useState(true);
+	const [showAddProjectInput, setShowAddProjectInput] = useState(false);
+	const [isAddingProject, setIsAddingProject] = useState(false);
 
 	const isConnected = connectionStatus === "open";
 
@@ -492,6 +572,47 @@ export function Sidebar() {
 			fetchSessionList();
 		}
 	}, [isConnected]);
+
+	/**
+	 * Handle "Add Project" button click.
+	 * In desktop mode: try native folder picker via `app.openFolderDialog`.
+	 * Falls back to showing inline text input (browser mode or dialog error).
+	 */
+	const handleAddProject = useCallback(async () => {
+		if (!isConnected || isAddingProject) return;
+		setIsAddingProject(true);
+
+		try {
+			// Try native folder picker first (works in desktop mode)
+			const result = await getTransport().request("app.openFolderDialog");
+			if (result.folderPath) {
+				await addProject(result.folderPath);
+				// Ensure projects section is visible
+				setProjectsExpanded(true);
+			}
+			// null means user cancelled — do nothing
+		} catch {
+			// Native dialog not available (browser mode) — show text input
+			setShowAddProjectInput(true);
+			setProjectsExpanded(true);
+		} finally {
+			setIsAddingProject(false);
+		}
+	}, [isConnected, isAddingProject]);
+
+	const handleAddProjectFromInput = useCallback(
+		async (cwd: string) => {
+			setShowAddProjectInput(false);
+			if (!isConnected) return;
+			await addProject(cwd);
+			setProjectsExpanded(true);
+		},
+		[isConnected],
+	);
+
+	const handleCancelAddProject = useCallback(() => {
+		setShowAddProjectInput(false);
+	}, []);
 
 	const handleOpenProject = useCallback(
 		async (project: Project) => {
@@ -689,66 +810,105 @@ export function Sidebar() {
 				)}
 
 				{/* ── Projects Section ─────────────────────────────────── */}
-				{projects.length > 0 && (
-					<div className="mt-3 border-t border-neutral-800 pt-2">
-						<div className="flex w-full items-center justify-between px-2 py-1">
+				<div className="mt-3 border-t border-neutral-800 pt-2">
+					<div className="flex w-full items-center justify-between px-2 py-1">
+						<button
+							type="button"
+							onClick={() => setProjectsExpanded(!projectsExpanded)}
+							className="flex flex-1 items-center gap-1.5 text-left"
+						>
+							<span className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+								Projects
+							</span>
+							{projects.length > 0 && (
+								<span className="text-[10px] text-neutral-600">{String(projects.length)}</span>
+							)}
+							{/* Chevron */}
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 16 16"
+								fill="currentColor"
+								className={cn(
+									"h-3 w-3 text-neutral-600 transition-transform",
+									projectsExpanded && "rotate-180",
+								)}
+								aria-label="Toggle projects"
+								role="img"
+							>
+								<path
+									fillRule="evenodd"
+									d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z"
+									clipRule="evenodd"
+								/>
+							</svg>
+						</button>
+						<div className="flex items-center gap-1">
+							{/* Add Project button */}
 							<button
 								type="button"
-								onClick={() => setProjectsExpanded(!projectsExpanded)}
-								className="flex flex-1 items-center gap-1.5 text-left"
+								onClick={handleAddProject}
+								disabled={!isConnected || isAddingProject}
+								className={cn(
+									"rounded p-0.5 transition-colors",
+									!isConnected || isAddingProject
+										? "cursor-not-allowed text-neutral-700"
+										: "text-neutral-600 hover:text-neutral-400",
+								)}
+								title="Add Project"
+								aria-label="Add project"
 							>
-								<span className="text-xs font-medium uppercase tracking-wider text-neutral-500">
-									Projects
-								</span>
-								<span className="text-[10px] text-neutral-600">{String(projects.length)}</span>
-								{/* Chevron */}
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									viewBox="0 0 16 16"
 									fill="currentColor"
-									className={cn(
-										"h-3 w-3 text-neutral-600 transition-transform",
-										projectsExpanded && "rotate-180",
-									)}
-									aria-label="Toggle projects"
+									className="h-3.5 w-3.5"
+									aria-label="Add"
 									role="img"
 								>
-									<path
-										fillRule="evenodd"
-										d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z"
-										clipRule="evenodd"
-									/>
+									<path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2z" />
 								</svg>
 							</button>
 							{/* Refresh button */}
-							<button
-								type="button"
-								onClick={() => {
-									if (isConnected) fetchProjects();
-								}}
-								className="rounded p-0.5 text-neutral-600 transition-colors hover:text-neutral-400"
-								aria-label="Refresh projects"
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									viewBox="0 0 16 16"
-									fill="currentColor"
-									className="h-3 w-3"
-									aria-label="Refresh"
-									role="img"
+							{projects.length > 0 && (
+								<button
+									type="button"
+									onClick={() => {
+										if (isConnected) fetchProjects();
+									}}
+									className="rounded p-0.5 text-neutral-600 transition-colors hover:text-neutral-400"
+									aria-label="Refresh projects"
 								>
-									<path
-										fillRule="evenodd"
-										d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37A5.508 5.508 0 0 0 8 3.5a5.5 5.5 0 1 0 5.215 3.772.75.75 0 1 1 1.423-.474A7 7 0 1 1 12.12 3.16l1.716.005z"
-										clipRule="evenodd"
-									/>
-								</svg>
-							</button>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										viewBox="0 0 16 16"
+										fill="currentColor"
+										className="h-3 w-3"
+										aria-label="Refresh"
+										role="img"
+									>
+										<path
+											fillRule="evenodd"
+											d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37A5.508 5.508 0 0 0 8 3.5a5.5 5.5 0 1 0 5.215 3.772.75.75 0 1 1 1.423-.474A7 7 0 1 1 12.12 3.16l1.716.005z"
+											clipRule="evenodd"
+										/>
+									</svg>
+								</button>
+							)}
 						</div>
+					</div>
 
-						{projectsExpanded && (
-							<div className="mt-1 flex flex-col gap-0.5">
-								{projects.map((project) => (
+					{projectsExpanded && (
+						<div className="mt-1 flex flex-col gap-0.5">
+							{/* Inline text input for adding a project (browser fallback) */}
+							{showAddProjectInput && (
+								<AddProjectInput
+									onAdd={handleAddProjectFromInput}
+									onCancel={handleCancelAddProject}
+								/>
+							)}
+
+							{projects.length > 0 ? (
+								projects.map((project) => (
 									<ProjectItem
 										key={project.id}
 										project={project}
@@ -756,11 +916,28 @@ export function Sidebar() {
 										onOpen={handleOpenProject}
 										onRemove={handleRemoveProject}
 									/>
-								))}
-							</div>
-						)}
-					</div>
-				)}
+								))
+							) : !showAddProjectInput ? (
+								<div className="flex flex-col items-center gap-2 py-4 px-3">
+									<span className="text-xs text-neutral-600">No projects yet</span>
+									<button
+										type="button"
+										onClick={handleAddProject}
+										disabled={!isConnected || isAddingProject}
+										className={cn(
+											"rounded-md px-3 py-1 text-xs font-medium transition-colors",
+											isConnected && !isAddingProject
+												? "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+												: "cursor-not-allowed text-neutral-600",
+										)}
+									>
+										{isAddingProject ? "Opening…" : "Add a project"}
+									</button>
+								</div>
+							) : null}
+						</div>
+					)}
+				</div>
 
 				{/* ── Past Sessions Section ────────────────────────────── */}
 				{pastSessions.length > 0 && (

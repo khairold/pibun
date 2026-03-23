@@ -5,6 +5,35 @@
 
 ---
 
+## Session 65 — "Add Project" flow (2026-03-23)
+
+**What happened:**
+- Added `app.openFolderDialog` WS method to contracts (`WsAppOpenFolderDialogResult` type, method in `WS_METHODS`, params/result maps).
+- Added `onOpenFolderDialog` hook to `ServerHooks` in `apps/server/src/server.ts`.
+- Implemented `handleAppOpenFolderDialog` handler in `apps/server/src/handlers/app.ts` — calls hook or throws error for browser mode.
+- Registered handler in `apps/server/src/handlers/index.ts`.
+- Extracted `openFolderDialogAsync()` from existing `openFolderDialog()` in desktop `index.ts` — returns `Promise<string | null>`, reused by both the menu action handler and the new server hook.
+- Registered `onOpenFolderDialog: () => openFolderDialogAsync()` hook in desktop server creation.
+- Added `AddProjectInput` component in `Sidebar.tsx` — inline text input with Enter to submit, Escape to cancel, Add/Cancel buttons.
+- Added `handleAddProject` flow: tries `app.openFolderDialog` first (native dialog in desktop), catches error and shows `AddProjectInput` as fallback (browser mode).
+- Projects section now always visible in sidebar (even when empty) with "No projects yet" + "Add a project" button prompt.
+- "+" button added to Projects section header for quick access.
+- Exported `WsAppOpenFolderDialogResult` from contracts index.
+- Ran formatter for Biome auto-formatting.
+
+**Items completed:**
+- [x] 2.5 — "Add Project" flow: folder picker (native dialog in desktop, text input in browser) → creates project entry
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 2.6 — Project switching: click project → starts new tab with that CWD, or switches to existing tab for that CWD
+- The `handleOpenProject` callback in Sidebar already creates a new tab via `createNewTab({ cwd: project.cwd })`. Item 2.6 should add logic to check for existing tabs in that CWD and switch to them instead of always creating new ones.
+- Key files: `apps/web/src/components/Sidebar.tsx`, `apps/web/src/lib/tabActions.ts`, `apps/web/src/lib/projectActions.ts`
+
+---
+
 ## Session 64 — ProjectSidebar section (2026-03-23)
 
 **What happened:**
