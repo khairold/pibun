@@ -7,6 +7,12 @@
 
 import { handleAppApplyUpdate, handleAppCheckForUpdates } from "./app.js";
 import {
+	handleProjectAdd,
+	handleProjectList,
+	handleProjectRemove,
+	handleProjectUpdate,
+} from "./project.js";
+import {
 	handleExtensionUiResponse,
 	handleSessionAbort,
 	handleSessionCompact,
@@ -71,6 +77,12 @@ export const handlers: HandlerRegistry = {
 	// Session listing (server-side)
 	"session.listSessions": handleSessionListSessions,
 	"session.switchSession": handleSessionSwitchSession,
+
+	// Project management (server-side persistence)
+	"project.list": handleProjectList,
+	"project.add": handleProjectAdd,
+	"project.remove": handleProjectRemove,
+	"project.update": handleProjectUpdate,
 
 	// App-level (desktop integration)
 	"app.applyUpdate": handleAppApplyUpdate,

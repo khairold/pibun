@@ -5,6 +5,28 @@
 
 ---
 
+## Session 63 — Server-side project persistence (2026-03-23)
+
+**What happened:**
+- Created `apps/server/src/projectStore.ts` — file persistence module for `~/.pibun/projects.json`. Exports 5 functions: `loadProjects()`, `saveProjects()`, `addProject()`, `removeProject()`, `updateProject()`. Uses `Bun.file()` + `Bun.write()`, creates `~/.pibun/` directory on first write. `addProject` deduplicates by CWD (returns existing project with updated `lastOpened` if same path). Projects always sorted by `lastOpened` descending.
+- Created `apps/server/src/handlers/project.ts` — 4 WS method handlers: `handleProjectList`, `handleProjectAdd`, `handleProjectRemove`, `handleProjectUpdate`. All async (file I/O). `handleProjectUpdate` uses conditional spread pattern for `exactOptionalPropertyTypes` compat (MEMORY #52).
+- Updated `apps/server/src/handlers/index.ts` — imported and registered all 4 project handlers in the handler registry.
+- Fixed two type errors: (1) `??` and `||` mixed operators needed parentheses in `projectStore.ts`, (2) `exactOptionalPropertyTypes` required conditional spread in `handleProjectUpdate` to avoid passing `undefined` to optional properties.
+- Ran `bun run format` for Biome auto-formatting of import grouping.
+
+**Items completed:**
+- [x] 2.3 — Server-side project persistence: `~/.pibun/projects.json` (read/write via new WS methods `project.list`, `project.add`, `project.remove`, `project.update`)
+
+**Issues encountered:**
+- None (both type errors were expected patterns already documented in MEMORY)
+
+**Handoff to next session:**
+- Next: 2.4 — Build `ProjectSidebar` section: project list with icons, last-opened date, session count badge
+- Server-side persistence is complete. The 4 WS methods are registered and ready. The web app's `ProjectsSlice` (item 2.2) already has CRUD actions. Next step connects the UI to the server via the transport layer.
+- Key files: `apps/server/src/projectStore.ts`, `apps/server/src/handlers/project.ts`, `apps/web/src/store/projectsSlice.ts`, `apps/web/src/components/Sidebar.tsx`
+
+---
+
 ## Session 62 — Project type + projectsSlice (2026-03-23)
 
 **What happened:**
