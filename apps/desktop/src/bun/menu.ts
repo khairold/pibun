@@ -22,6 +22,7 @@ import type { ApplicationMenuItemConfig } from "electrobun/bun";
 export const MENU_ACTIONS = {
 	// File
 	newSession: "file.new-session",
+	openFolder: "file.open-folder",
 	closeWindow: "file.close-window",
 
 	// View
@@ -77,6 +78,11 @@ export function buildMenuConfig(): ApplicationMenuItemConfig[] {
 					label: "New Session",
 					action: MENU_ACTIONS.newSession,
 					accelerator: "CommandOrControl+N",
+				},
+				{
+					label: "Open Folder…",
+					action: MENU_ACTIONS.openFolder,
+					accelerator: "CommandOrControl+O",
 				},
 				{ type: "separator" },
 				{

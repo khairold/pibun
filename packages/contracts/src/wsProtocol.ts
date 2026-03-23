@@ -329,6 +329,8 @@ export interface WsServerErrorData {
  */
 export interface WsMenuActionData {
 	action: string;
+	/** Optional extra data for actions that carry a payload (e.g., selected folder path). */
+	data?: Record<string, unknown>;
 }
 
 // ============================================================================

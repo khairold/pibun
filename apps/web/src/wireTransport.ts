@@ -16,6 +16,7 @@ import {
 	fetchSessionList,
 	fetchSessionStats,
 	startNewSession,
+	startSessionInFolder,
 } from "@/lib/sessionActions";
 import { emitShortcut } from "@/lib/shortcuts";
 import { useStore } from "@/store";
@@ -406,6 +407,19 @@ function handleMenuAction(data: WsMenuActionData): void {
 					console.error("[Menu] Failed to create new session:", err);
 				});
 			break;
+
+		case "file.open-folder": {
+			// Extract the folder path from the data payload
+			const folderPath = data.data?.folderPath;
+			if (typeof folderPath === "string" && folderPath) {
+				startSessionInFolder(folderPath)
+					.then(() => fetchSessionList())
+					.catch((err: unknown) => {
+						console.error("[Menu] Failed to open folder:", err);
+					});
+			}
+			break;
+		}
 
 		// ── View ─────────────────────────────────────────────────
 		case "view.toggle-sidebar":

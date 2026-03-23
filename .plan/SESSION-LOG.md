@@ -1477,3 +1477,40 @@
 - ThinkingSelector and CompactButton now have keyboard shortcut support (Cmd+Shift+T, Cmd+Shift+K) even in browser mode
 
 ---
+
+## Session 43 — File Dialogs for Project/Folder Selection (2026-03-23)
+
+**What happened:**
+- Implemented 2B.4: Native file dialog for project/folder selection (Open Folder… menu item)
+- Extended `WsMenuActionData` in contracts with optional `data?: Record<string, unknown>` field for carrying extra payloads with menu actions
+- Added `file.open-folder` action to `MENU_ACTIONS` const and "Open Folder…" (Cmd+O) menu item to File menu in `apps/desktop/src/bun/menu.ts`
+- Created `openFolderDialog()` async function in desktop main process:
+  - Uses `Utils.openFileDialog({ canChooseDirectory: true, canChooseFiles: false })` for native folder picker
+  - Handles cancellation gracefully (empty result or empty string)
+  - Forwards selected path via `broadcastPush` on `menu.action` channel with `data.folderPath`
+- Added `file.open-folder` as a native-only action in desktop `handleMenuAction` (same pattern as close-window and zoom)
+- Created `startSessionInFolder(cwd)` in `apps/web/src/lib/sessionActions.ts`:
+  - Aborts streaming if active
+  - Stops current session (since CWD requires a new Pi process)
+  - Starts new session with `session.start({ cwd })`
+  - Clears messages, refreshes state
+  - Shows toast confirmation with the selected folder path
+- Wired `file.open-folder` handling in `handleMenuAction()` in `wireTransport.ts`:
+  - Extracts `folderPath` from `data.data` field
+  - Calls `startSessionInFolder()` then refreshes session list
+- Imported `Utils` from `electrobun/bun` in desktop main process
+
+**Items completed:**
+- [x] 2B.4 — File dialogs for project/folder selection
+
+**Issues encountered:**
+- None — clean implementation. `bun run typecheck && bun run lint` passes immediately.
+
+**Handoff to next session:**
+- Next: 2B.5 — System notifications for long-running operations
+- 3 items remaining in Phase 2B (2B.5–2B.7)
+- Electrobun provides `Utils.showNotification()` with title/body/subtitle/silent options
+- Need to decide what constitutes a "long-running operation" worthy of a native notification (e.g., agent completion when app is not focused?)
+- The `file.open-folder` menu action works as a native-only action — the dialog runs in the desktop main process and only the result is forwarded to the React app
+
+---

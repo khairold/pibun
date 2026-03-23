@@ -232,6 +232,61 @@ export async function fetchSessionList(): Promise<WsSessionSummary[]> {
 }
 
 /**
+ * Start a new session in a specific folder (CWD).
+ *
+ * Used when the user selects a folder via the native "Open Folder…" dialog.
+ * Stops the current session, then starts a fresh one with the given CWD.
+ *
+ * Flow:
+ * 1. Abort if streaming
+ * 2. Stop current session (if any)
+ * 3. Start new session with the specified CWD
+ * 4. Clear messages, refresh state
+ *
+ * Returns true on success, false on failure.
+ */
+export async function startSessionInFolder(cwd: string): Promise<boolean> {
+	const store = useStore.getState();
+
+	// If streaming, abort first
+	if (store.isStreaming) {
+		try {
+			await getTransport().request("session.abort");
+		} catch {
+			// Continue even if abort fails
+		}
+	}
+
+	// Stop current session — we're switching to a different CWD
+	// which requires a new Pi process
+	if (store.sessionId) {
+		try {
+			await getTransport().request("session.stop");
+		} catch {
+			// Continue even if stop fails
+		}
+		store.setSessionId(null);
+	}
+
+	try {
+		// Start a new session with the specified CWD
+		const result = await getTransport().request("session.start", { cwd });
+		store.setSessionId(result.sessionId);
+		store.clearMessages();
+		store.setIsStreaming(false);
+
+		// Refresh state to pick up new session info (model, thinking, etc.)
+		await refreshSessionState();
+
+		store.addToast(`Opened folder: ${cwd}`, "info");
+		return true;
+	} catch (err) {
+		store.setLastError(`Failed to start session in folder: ${errorMessage(err)}`);
+		return false;
+	}
+}
+
+/**
  * Switch to a different session.
  *
  * Flow:

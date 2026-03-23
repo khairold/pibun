@@ -15,7 +15,7 @@
 import { resolve } from "node:path";
 import { PiRpcManager } from "@pibun/server/piRpcManager";
 import { type PiBunServer, broadcastPush, createServer } from "@pibun/server/server";
-import Electrobun, { ApplicationMenu, BrowserWindow } from "electrobun/bun";
+import Electrobun, { ApplicationMenu, BrowserWindow, Utils } from "electrobun/bun";
 import { type MenuAction, buildMenuConfig, createMenuClickHandler } from "./menu";
 import {
 	type WindowFrame,
@@ -240,6 +240,55 @@ async function shutdown(reason: string): Promise<void> {
 }
 
 // ============================================================================
+// File Dialogs
+// ============================================================================
+
+/**
+ * Open a native folder picker dialog.
+ *
+ * When the user selects a folder, the selected path is broadcast to all
+ * connected WebSocket clients via the `menu.action` push channel with
+ * action `file.open-folder` and `data.folderPath` set to the chosen path.
+ *
+ * The React app handles this by stopping the current session and starting
+ * a new one in the selected directory.
+ *
+ * Uses `Utils.openFileDialog` from Electrobun which wraps NSOpenPanel (macOS),
+ * IFileOpenDialog (Windows), or GtkFileChooserDialog (Linux).
+ */
+async function openFolderDialog(): Promise<void> {
+	try {
+		const result = await Utils.openFileDialog({
+			startingFolder: "~/",
+			canChooseFiles: false,
+			canChooseDirectory: true,
+			allowsMultipleSelection: false,
+		});
+
+		// result is string[] — empty or [""] means cancelled
+		const folderPath = result[0];
+		if (!folderPath || folderPath === "") {
+			console.log("[FileDialog] Folder selection cancelled");
+			return;
+		}
+
+		console.log(`[FileDialog] Folder selected: ${folderPath}`);
+
+		// Forward to the React app via WebSocket push
+		if (pibunServer) {
+			broadcastPush(pibunServer.connections, "menu.action", {
+				action: "file.open-folder",
+				data: { folderPath },
+			});
+		} else {
+			console.warn("[FileDialog] No server to forward folder selection");
+		}
+	} catch (err) {
+		console.error("[FileDialog] Failed to open folder dialog:", err);
+	}
+}
+
+// ============================================================================
 // Window Lifecycle
 // ============================================================================
 
@@ -381,6 +430,12 @@ async function bootstrap(): Promise<void> {
 			case "file.close-window": {
 				// Trigger window close → which triggers shutdown via wireWindowLifecycle
 				mainWindow.close();
+				break;
+			}
+			case "file.open-folder": {
+				// Open native folder picker, then forward the selected path
+				// to the React app so it can start a new session with that CWD.
+				openFolderDialog();
 				break;
 			}
 			case "view.zoom-in": {
