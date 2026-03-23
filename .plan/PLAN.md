@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 0 in progress (root config done, package scaffolds pending)
-> **Current Phase:** 0
-> **Last Session:** 1 (2026-03-23)
+> **Status:** Phase 0 COMPLETE — all scaffolds exist, monorepo verified, Pi RPC verified
+> **Current Phase:** 1A
+> **Last Session:** 2 (2026-03-23)
 
 ---
 
@@ -42,13 +42,13 @@
 - [x] 0.9 — Set up Turbo for build orchestration (turbo.json with build/dev/typecheck/lint pipelines)
 - [x] 0.10 — Set up base TypeScript config (tsconfig.base.json — strict, Bun types, path aliases)
 - [x] 0.11 — Set up Biome for lint + format (biome.json)
-- [ ] 0.12 — Create `packages/contracts/` scaffold (package.json, tsconfig.json, empty src/index.ts)
-- [ ] 0.13 — Create `packages/shared/` scaffold (package.json, tsconfig.json, empty src/)
-- [ ] 0.14 — Create `apps/server/` scaffold (package.json, tsconfig.json, empty src/index.ts)
-- [ ] 0.15 — Create `apps/web/` scaffold (package.json, tsconfig.json, Vite config, empty src/)
-- [ ] 0.16 — Create `apps/desktop/` scaffold (package.json, tsconfig.json, empty src/)
-- [ ] 0.17 — Verify monorepo: `bun install` succeeds, `bun run typecheck` passes, `bun run lint` passes
-- [ ] 0.18 — Verify `pi --mode rpc` works locally (manual test, document any setup notes in MEMORY.md)
+- [x] 0.12 — Create `packages/contracts/` scaffold (package.json, tsconfig.json, empty src/index.ts)
+- [x] 0.13 — Create `packages/shared/` scaffold (package.json, tsconfig.json, empty src/)
+- [x] 0.14 — Create `apps/server/` scaffold (package.json, tsconfig.json, empty src/index.ts)
+- [x] 0.15 — Create `apps/web/` scaffold (package.json, tsconfig.json, Vite config, empty src/)
+- [x] 0.16 — Create `apps/desktop/` scaffold (package.json, tsconfig.json, empty src/)
+- [x] 0.17 — Verify monorepo: `bun install` succeeds, `bun run typecheck` passes, `bun run lint` passes
+- [x] 0.18 — Verify `pi --mode rpc` works locally (manual test, document any setup notes in MEMORY.md)
 
 **Exit criteria:** All packages exist. `bun install && bun run typecheck && bun run lint` passes. Pi RPC verified.
 

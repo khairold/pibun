@@ -27,6 +27,11 @@
 | 17 | Biome formatter uses tabs, double quotes, semicolons | Configured in biome.json. All JSON and TS files must be tab-indented. Run `bun run format` after creating files written with spaces. | 2026-03-23 |
 | 18 | `lint` runs Biome at root level, not per-package via Turbo | `bun run lint` = `biome check .` at monorepo root. Biome handles all file discovery. No `lint` task in turbo.json. `typecheck` still runs per-package via Turbo. | 2026-03-23 |
 | 19 | Biome needs `bun pm trust @biomejs/biome` after first install | Bun blocks postinstall scripts by default. Biome's postinstall downloads the platform-specific binary. Must trust it. | 2026-03-23 |
+| 20 | Pi RPC commands use `"type"` field, not `"command"` field | e.g., `{"type":"get_available_models","id":"test-1"}`. The `"command"` field appears only in responses. Verified with Pi 0.61.1. | 2026-03-23 |
+| 21 | Pi RPC auto-creates session files on startup | Even without explicit session commands, `pi --mode rpc` creates a session file at `~/.pi/agent/sessions/`. The `get_state` response includes `sessionFile` and `sessionId`. | 2026-03-23 |
+| 22 | esbuild also needs `bun pm trust` (pulled in by Vite) | Added `esbuild` to `trustedDependencies` in root package.json alongside `@biomejs/biome`. | 2026-03-23 |
+| 23 | Biome import organizer: `node:` builtins first, then `@scoped`, then bare specifiers | Biome's `organizeImports` enforces `node:path` before `@tailwindcss/vite` before `vite`. Follow this in all files. | 2026-03-23 |
+| 24 | Web app uses `@/` path alias for src-relative imports | Configured in both `tsconfig.json` (paths) and `vite.config.ts` (resolve.alias). Pattern: `import { Foo } from "@/components/Foo"`. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -55,6 +60,7 @@ Electrobun wrapper. Starts server on random port, opens native webview. Native m
 
 | Concept | Detail |
 |---------|--------|
+| Command format | `{"type": "command_name", "id": "optional-correlation-id", ...params}` — uses `type`, NOT `command` |
 | Spawn command | `pi --mode rpc --provider <name> --model <pattern> --thinking <level>` |
 | Session resume | `pi --mode rpc --session <path>` or `pi --mode rpc -c` (continue most recent) |
 | Agent lifecycle | `agent_start` → (turns) → `agent_end` |
@@ -119,8 +125,9 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 
 ## What's Not Built Yet
 
-- No code exists yet — Phase 0 scaffold is the first coding work
-- Pi's `--mode rpc` needs to be verified with current Pi version
+- Monorepo scaffold exists but all source files are stubs (empty exports / console.log placeholders)
+- Next: Phase 1A — define Pi RPC types in contracts, implement JSONL parser in shared, build PiProcess + PiRpcManager in server
+- Pi RPC verified with Pi 0.61.1 — `get_available_models` and `get_state` work, commands use `{"type":"..."}` format
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings
@@ -131,6 +138,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - **Pi process tree on Windows**: Need `taskkill /T` for process tree cleanup, not just `child.kill()`.
 - **View Transitions + scripts**: If using Astro-style patterns, inline scripts need `after-swap` hooks.
 - **Bun WebSocket**: Bun's WebSocket API differs from Node's `ws` — use Bun's native `Bun.serve()` with `websocket` handler.
+- **Pi RPC command field**: Commands sent TO Pi use `"type"` field. Responses FROM Pi have `"type": "response"` and `"command": "..."` field. Don't confuse the two.
+- **Pi auto-session**: Pi creates a session file on startup even without explicit session commands. Session path encodes the CWD.
 
 ## Technical Context
 
@@ -141,4 +150,6 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - **Lint:** `bun run lint` (Biome at root, checks all files)
 - **Format:** `bun run format` (Biome auto-fix, tabs)
 - **Dev server:** `bun run dev` (once implemented)
-- **Installed versions:** Bun 1.2.21, Turbo 2.8.20, Biome 1.9.4, TypeScript 5.9.3
+- **Installed versions:** Bun 1.2.21, Turbo 2.8.20, Biome 1.9.4, TypeScript 5.9.3, Pi 0.61.1
+- **Pi default model:** claude-opus-4-6 with xhigh thinking (from `get_state`)
+- **Workspace packages:** @pibun/contracts, @pibun/shared, @pibun/server, @pibun/web, @pibun/desktop

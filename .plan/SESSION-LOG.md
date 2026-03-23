@@ -58,3 +58,43 @@
 - All config files use tabs (Biome formatter). Run `bun run format` after writing new files
 - tsconfig.base.json does NOT include Bun types — server package must add `@types/bun` itself
 - tsconfig.base.json does NOT include JSX config — web package must add `jsx: "react-jsx"` itself
+
+---
+
+## Session 2 — Package Scaffolds + RPC Verification (2026-03-23)
+
+**What happened:**
+- Created all 5 package/app scaffolds (0.12–0.16):
+  - `packages/contracts/` — types-only package, empty `src/index.ts`
+  - `packages/shared/` — runtime utils with subpath export `./jsonl`, depends on contracts
+  - `apps/server/` — Bun server with `@types/bun`, depends on contracts + shared
+  - `apps/web/` — React 19 + Vite 6 + Tailwind v4, with `@/` path alias, `index.html`, stub App component
+  - `apps/desktop/` — Electrobun placeholder with `@types/bun`, depends on contracts
+- Ran `bun install` — 90 packages installed, trusted `esbuild` postinstall
+- Fixed Biome import ordering in `vite.config.ts` (`node:` builtins must come first)
+- Verified `bun run typecheck` passes (all 5 packages)
+- Verified `bun run lint` passes (22 files, no issues)
+- Verified Pi RPC mode with Pi 0.61.1:
+  - `get_available_models` returns 23 Anthropic models
+  - `get_state` returns model info, session details, streaming status
+  - Discovered: commands use `"type"` field (not `"command"`), Pi auto-creates sessions
+
+**Items completed:**
+- [x] 0.12 — Create `packages/contracts/` scaffold
+- [x] 0.13 — Create `packages/shared/` scaffold
+- [x] 0.14 — Create `apps/server/` scaffold
+- [x] 0.15 — Create `apps/web/` scaffold
+- [x] 0.16 — Create `apps/desktop/` scaffold
+- [x] 0.17 — Verify monorepo: `bun install` + `bun run typecheck` + `bun run lint` all pass
+- [x] 0.18 — Verify Pi RPC works locally
+
+**Issues encountered:**
+- Biome organizeImports requires `node:` builtins before `@scoped` packages — fixed immediately
+- esbuild (Vite dep) needs `bun pm trust` — already in trustedDependencies from Session 1
+
+**Handoff to next session:**
+- **Phase 0 is COMPLETE** — all exit criteria met
+- Next: Phase 1A.1 — Define Pi RPC event types in `packages/contracts/`
+- Read `reference/pi-mono/packages/coding-agent/docs/rpc.md` for authoritative event type definitions
+- Key: Pi RPC commands use `{"type": "command_name"}` format, responses use `{"type": "response", "command": "..."}`
+- All source files are stubs — real implementation starts in Phase 1A
