@@ -1,15 +1,19 @@
 {
 	"name": "@pibun/desktop",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "echo 'Desktop dev not yet implemented — see Phase 2A'",
-		"build": "echo 'Desktop build not yet implemented — see Phase 2C'",
+		"start": "electrobun dev",
+		"dev": "electrobun dev --watch",
+		"dev:desktop": "electrobun dev",
+		"build": "electrobun build",
+		"build:canary": "electrobun build --env=canary",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@pibun/contracts": "workspace:*"
+		"@pibun/contracts": "workspace:*",
+		"electrobun": "^1.16.0"
 	},
 	"devDependencies": {
 		"@types/bun": "^1.2.10",

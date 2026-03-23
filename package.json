@@ -9,6 +9,7 @@
 		"dev": "turbo run dev",
 		"dev:server": "turbo run dev --filter=@pibun/server",
 		"dev:web": "turbo run dev --filter=@pibun/web",
+		"dev:desktop": "turbo run dev --filter=@pibun/desktop",
 		"typecheck": "turbo run typecheck",
 		"lint": "biome check .",
 		"format": "biome format --write ."

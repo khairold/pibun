@@ -1,13 +1,11 @@
 {
 	"extends": "../../tsconfig.base.json",
 	"compilerOptions": {
-		"composite": true,
-		"declaration": true,
-		"declarationMap": true,
 		"outDir": "./dist",
 		"rootDir": "./src",
-		"types": ["bun-types"]
+		"lib": ["ESNext", "DOM"],
+		"types": ["bun-types"],
+		"exactOptionalPropertyTypes": false
 	},
-	"include": ["src"],
-	"references": [{ "path": "../../packages/contracts" }]
+	"include": ["src"]
 }

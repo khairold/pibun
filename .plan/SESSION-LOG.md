@@ -1246,3 +1246,34 @@
 - Read `reference/electrobun/` templates and `docs/DESKTOP.md` before building
 
 ---
+
+## Session 36 — Electrobun Project Setup (2026-03-23)
+
+**What happened:**
+- Installed Electrobun 1.16.0 in `apps/desktop/`
+- Created `electrobun.config.ts` with PiBun app identity (name, identifier, version), `bundleCEF: false` for all platforms
+- Restructured source: moved from `src/index.ts` to `src/bun/index.ts` following Electrobun template conventions
+- Main process entry creates a BrowserWindow pointing at `http://localhost:24242` (default server URL)
+- Updated `package.json` with Electrobun scripts (`electrobun dev`, `electrobun build`, etc.)
+- Updated `tsconfig.json`: removed `composite`/`declaration`/`declarationMap`/`references`, added `lib: ["ESNext", "DOM"]`
+- Disabled `exactOptionalPropertyTypes` in desktop tsconfig — Electrobun distributes raw `.ts` files that conflict with this strict setting
+- Added `src/types.d.ts` with `declare module "three"` for Electrobun's WGPU dependency
+- Added `dev:desktop` script to root `package.json`
+
+**Items completed:**
+- [x] 2A.1 — Electrobun project setup (`electrobun.config.ts`, source structure)
+
+**Issues encountered:**
+- Electrobun distributes `.ts` source files (not `.d.ts`), so `skipLibCheck` doesn't help suppress type errors. Had to disable `exactOptionalPropertyTypes` for the desktop package only.
+- Electrobun imports `three` in its WGPUView module — needed ambient module declaration to avoid `@types/three` dependency.
+- `electrobun.config.ts` cannot be in tsconfig `include` when `rootDir` is `./src` — Electrobun's own toolchain handles the config file.
+
+**Handoff to next session:**
+- Next: 2A.2 — Main process: find available port, start PiBun server
+- The server's `createServer()` factory function is already importable — desktop main process needs to import PiRpcManager + createServer from `@pibun/server`
+- Server currently imports from `./piRpcManager.js` and `./server.js` — may need package.json `exports` to expose these for cross-workspace import
+- Consider: embed server in same Bun process vs. spawn as child process. Same process is simpler and follows Electrobun's single-process model.
+- Port finding: use `Bun.listen({ port: 0 })` or similar to get available port
+- After 2A.2, 2A.3 adds health check before opening the window
+
+---

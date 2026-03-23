@@ -153,6 +153,10 @@
 | 141 | `UiSlice` added to Zustand store for sidebar visibility and layout state | `sidebarOpen` boolean + `toggleSidebar()`/`setSidebarOpen()` actions. Defaults to open on desktop-width (≥768px), closed on mobile. `uiSlice.ts` follows same `StateCreator` pattern. | 2026-03-23 |
 | 142 | Responsive sidebar: overlay on mobile, inline on desktop, Ctrl/Cmd+B toggle | Mobile (< md): fixed overlay with backdrop blur, slides in from left, auto-closes on session switch. Desktop (≥ md): inline panel, hidden with `md:hidden` when closed. Resize listener syncs state across breakpoint boundary. | 2026-03-23 |
 | 143 | `toggleSidebar` added to shortcut actions, Ctrl/Cmd+B binding | New ShortcutAction type member. Sidebar subscribes via `onShortcut()` in useEffect. AppShell shows hamburger/panel-left toggle button in toolbar. | 2026-03-23 |
+| 144 | Electrobun 1.16.0 installed, desktop follows Electrobun template conventions | `electrobun.config.ts` at app root, `src/bun/index.ts` as main process entry. No views config — PiBun loads web app from localhost URL (not bundled HTML). `bundleCEF: false` for all platforms (uses native webview). | 2026-03-23 |
+| 145 | Desktop tsconfig disables `exactOptionalPropertyTypes` for Electrobun compat | Electrobun distributes raw `.ts` source files (not `.d.ts`), so `skipLibCheck` doesn't help. Electrobun's internal code has type conflicts with `exactOptionalPropertyTypes: true`. Disabled only in desktop package — other packages remain strict. | 2026-03-23 |
+| 146 | `src/types.d.ts` declares `three` module for Electrobun's WGPU dependency | Electrobun imports `three` in its WGPUView module. We don't use WGPU but TS processes the import. Ambient `declare module "three"` avoids needing `@types/three` as a dependency. | 2026-03-23 |
+| 147 | Desktop scripts: `electrobun dev` (start), `electrobun dev --watch` (dev), `electrobun build` (build) | Standard Electrobun CLI commands. `dev:desktop` added to root package.json for `turbo run dev --filter=@pibun/desktop`. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -297,8 +301,9 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Message virtualization (1D.19) complete — react-virtuoso replaces manual div list, only visible items rendered
 - **Phase 1D COMPLETE** — all 20 items done, exit criteria verified
 - Responsive sidebar (1D.20) complete — UiSlice, overlay on mobile, inline on desktop, Ctrl/Cmd+B toggle, hamburger button in toolbar, backdrop click/Escape close, auto-close on session switch (mobile), resize listener syncs state across breakpoint
-- Next: Phase 2A — Desktop: Electrobun Scaffold
-- Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
+- Phase 2A started — Electrobun 1.16.0 installed, project structure set up
+- 2A.1 complete — `electrobun.config.ts`, `src/bun/index.ts`, updated package.json/tsconfig.json
+- Next: 2A.2 — Main process: find available port, start PiBun server
 
 ## Gotchas & Warnings
 
@@ -310,6 +315,7 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - **Bun WebSocket**: Bun's WebSocket API differs from Node's `ws` — use Bun's native `Bun.serve()` with `websocket` handler.
 - **Pi RPC command field**: Commands sent TO Pi use `"type"` field. Responses FROM Pi have `"type": "response"` and `"command": "..."` field. Don't confuse the two.
 - **Pi auto-session**: Pi creates a session file on startup even without explicit session commands. Session path encodes the CWD.
+- **Electrobun distributes raw .ts files**: Can't use `skipLibCheck` to suppress errors in Electrobun's source. Must disable `exactOptionalPropertyTypes` in desktop tsconfig. Also needs `declare module "three"` for its WGPU dependency.
 
 ## Technical Context
 
@@ -320,6 +326,6 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - **Lint:** `bun run lint` (Biome at root, checks all files)
 - **Format:** `bun run format` (Biome auto-fix, tabs)
 - **Dev server:** `bun run dev` (once implemented)
-- **Installed versions:** Bun 1.2.21, Turbo 2.8.20, Biome 1.9.4, TypeScript 5.9.3, Pi 0.61.1
+- **Installed versions:** Bun 1.2.21, Turbo 2.8.20, Biome 1.9.4, TypeScript 5.9.3, Pi 0.61.1, Electrobun 1.16.0
 - **Pi default model:** claude-opus-4-6 with xhigh thinking (from `get_state`)
 - **Workspace packages:** @pibun/contracts, @pibun/shared, @pibun/server, @pibun/web, @pibun/desktop
