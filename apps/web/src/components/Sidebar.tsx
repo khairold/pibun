@@ -1,19 +1,26 @@
 /**
- * Sidebar — session list with switch, current session info, new session button.
+ * Sidebar — active tabs grouped by CWD + past sessions for resuming.
+ *
+ * Primary section: Open tabs — each clickable to switch. Grouped by CWD
+ * when tabs span multiple directories. Shows streaming indicator and model badge.
+ *
+ * Secondary section: Past sessions — collapsible list from Pi's session filesystem.
+ * Useful for resuming old conversations. Sessions that are already open as tabs are
+ * excluded to avoid confusion.
  *
  * Responsive behavior:
  * - On narrow viewports (< md): overlay panel with backdrop, slides in from left
  * - On desktop viewports (≥ md): inline panel, toggleable via Ctrl/Cmd+B
- * - Controlled by `sidebarOpen` state in the UI slice
- * - Clicking a session or the backdrop on mobile auto-closes the sidebar
+ * - Clicking a tab or session on mobile auto-closes the sidebar
  */
 
 import { cn } from "@/lib/cn";
-import { fetchSessionList, startNewSession, switchSession } from "@/lib/sessionActions";
+import { fetchSessionList, switchSession } from "@/lib/sessionActions";
 import { onShortcut } from "@/lib/shortcuts";
+import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
 import { useStore } from "@/store";
-import type { WsSessionSummary } from "@pibun/contracts";
-import { memo, useCallback, useEffect, useState } from "react";
+import type { SessionTab, WsSessionSummary } from "@pibun/contracts";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 
 // ============================================================================
 // Constants
@@ -23,22 +30,180 @@ import { memo, useCallback, useEffect, useState } from "react";
 const MD_BREAKPOINT = 768;
 
 // ============================================================================
-// Session Item
+// Tab Item (sidebar variant — more detailed than TabBar)
 // ============================================================================
 
-interface SessionItemProps {
+interface SidebarTabItemProps {
+	tab: SessionTab;
+	isActive: boolean;
+	onSwitch: (tabId: string) => void;
+	onClose: (tabId: string) => void;
+	canClose: boolean;
+}
+
+const SidebarTabItem = memo(function SidebarTabItem({
+	tab,
+	isActive,
+	onSwitch,
+	onClose,
+	canClose,
+}: SidebarTabItemProps) {
+	const displayName = tab.name || "New Session";
+	const modelName = tab.model ? shortModelName(tab.model.name) : null;
+
+	return (
+		<div
+			role="tab"
+			tabIndex={0}
+			onClick={() => onSwitch(tab.id)}
+			onKeyDown={(e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					onSwitch(tab.id);
+				}
+			}}
+			className={cn(
+				"group flex w-full cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-left transition-colors",
+				isActive
+					? "bg-neutral-800 text-neutral-100"
+					: "text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200",
+			)}
+			aria-selected={isActive}
+			aria-label={displayName}
+		>
+			{/* Streaming indicator or active dot */}
+			<span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center">
+				{tab.isStreaming ? (
+					<span className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
+				) : isActive ? (
+					<span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+				) : (
+					<span className="h-1.5 w-1.5 rounded-full bg-neutral-700" />
+				)}
+			</span>
+
+			{/* Tab info */}
+			<div className="min-w-0 flex-1">
+				<div className="flex items-center gap-1.5">
+					<span className="truncate text-sm font-medium">{displayName}</span>
+					{modelName && (
+						<span className="shrink-0 rounded bg-neutral-700/50 px-1 py-0.5 text-[10px] leading-none text-neutral-500">
+							{modelName}
+						</span>
+					)}
+				</div>
+				{tab.messageCount > 0 && (
+					<span className="text-xs text-neutral-500">
+						{String(tab.messageCount)} message{tab.messageCount !== 1 ? "s" : ""}
+					</span>
+				)}
+			</div>
+
+			{/* Close button — visible on hover */}
+			{canClose && (
+				<button
+					type="button"
+					tabIndex={-1}
+					onClick={(e) => {
+						e.stopPropagation();
+						onClose(tab.id);
+					}}
+					className={cn(
+						"mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm transition-colors",
+						isActive
+							? "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-300"
+							: "text-transparent group-hover:text-neutral-500 group-hover:hover:bg-neutral-700 group-hover:hover:text-neutral-300",
+					)}
+					aria-label={`Close ${displayName}`}
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 16 16"
+						fill="currentColor"
+						className="h-3 w-3"
+						aria-label="Close tab"
+						role="img"
+					>
+						<path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22z" />
+					</svg>
+				</button>
+			)}
+		</div>
+	);
+});
+
+// ============================================================================
+// CWD Group Header
+// ============================================================================
+
+interface CwdGroupProps {
+	cwd: string;
+	tabs: SessionTab[];
+	activeTabId: string | null;
+	onSwitchTab: (tabId: string) => void;
+	onCloseTab: (tabId: string) => void;
+	canClose: boolean;
+}
+
+const CwdGroup = memo(function CwdGroup({
+	cwd,
+	tabs,
+	activeTabId,
+	onSwitchTab,
+	onCloseTab,
+	canClose,
+}: CwdGroupProps) {
+	return (
+		<div className="mb-1">
+			{/* CWD label */}
+			<div className="flex items-center gap-1.5 px-3 pb-1">
+				{/* Folder icon */}
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+					className="h-3 w-3 text-neutral-600"
+					aria-label="Folder"
+					role="img"
+				>
+					<path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h2.879a1.5 1.5 0 0 1 1.06.44l1.122 1.12A1.5 1.5 0 0 0 9.62 4H12.5A1.5 1.5 0 0 1 14 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12.5v-9z" />
+				</svg>
+				<span className="truncate text-[10px] font-medium uppercase tracking-wider text-neutral-600">
+					{shortPath(cwd)}
+				</span>
+			</div>
+			{/* Tabs in this CWD */}
+			<div className="flex flex-col gap-0.5">
+				{tabs.map((tab) => (
+					<SidebarTabItem
+						key={tab.id}
+						tab={tab}
+						isActive={tab.id === activeTabId}
+						onSwitch={onSwitchTab}
+						onClose={onCloseTab}
+						canClose={canClose}
+					/>
+				))}
+			</div>
+		</div>
+	);
+});
+
+// ============================================================================
+// Past Session Item
+// ============================================================================
+
+interface PastSessionItemProps {
 	session: WsSessionSummary;
-	isCurrent: boolean;
 	onSwitch: (sessionPath: string) => void;
 	isSwitching: boolean;
 }
 
-const SessionItem = memo(function SessionItem({
+const PastSessionItem = memo(function PastSessionItem({
 	session,
-	isCurrent,
 	onSwitch,
 	isSwitching,
-}: SessionItemProps) {
+}: PastSessionItemProps) {
 	const displayName = session.name ?? session.firstMessage ?? formatSessionId(session.sessionId);
 	const dateStr = formatDate(session.createdAt);
 
@@ -46,27 +211,19 @@ const SessionItem = memo(function SessionItem({
 		<button
 			type="button"
 			onClick={() => {
-				if (!isCurrent && !isSwitching) {
-					onSwitch(session.sessionPath);
-				}
+				if (!isSwitching) onSwitch(session.sessionPath);
 			}}
 			disabled={isSwitching}
 			className={cn(
-				"group flex w-full flex-col gap-0.5 rounded-lg px-3 py-2 text-left transition-colors",
-				isCurrent
-					? "bg-neutral-800 text-neutral-100"
-					: "text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200",
+				"flex w-full flex-col gap-0.5 rounded-lg px-3 py-1.5 text-left transition-colors",
+				"text-neutral-500 hover:bg-neutral-800/50 hover:text-neutral-300",
 				isSwitching && "cursor-wait opacity-60",
 			)}
 		>
-			<div className="flex items-center gap-2">
-				{/* Current indicator dot */}
-				{isCurrent && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />}
-				<span className="truncate text-sm font-medium">{displayName}</span>
-			</div>
-			<span className="truncate text-xs text-neutral-500">
+			<span className="truncate text-xs">{displayName}</span>
+			<span className="text-[10px] text-neutral-600">
 				{dateStr}
-				{session.messageCount > 0 ? ` · ${session.messageCount} msgs` : ""}
+				{session.messageCount > 0 ? ` · ${String(session.messageCount)} msgs` : ""}
 			</span>
 		</button>
 	);
@@ -101,9 +258,45 @@ function formatDate(isoString: string): string {
 	});
 }
 
+/** Shorten a CWD path for display (last 2 segments). */
+function shortPath(fullPath: string): string {
+	const parts = fullPath.replace(/\/$/, "").split("/");
+	if (parts.length <= 2) return fullPath;
+	return `…/${parts.slice(-2).join("/")}`;
+}
+
+/** Shorten a model name for display in a badge. */
+function shortModelName(name: string): string {
+	const stripped = name
+		.replace(/^claude-/, "")
+		.replace(/^gpt-/, "")
+		.replace(/^gemini-/, "");
+	if (stripped.length > 12) return `${stripped.slice(0, 10)}…`;
+	return stripped;
+}
+
 /** Check if the current viewport is below the md breakpoint. */
 function isMobileWidth(): boolean {
 	return typeof window !== "undefined" && window.innerWidth < MD_BREAKPOINT;
+}
+
+/**
+ * Group tabs by their CWD.
+ * Returns an array of [cwd, tabs[]] pairs, sorted by CWD.
+ * Tabs with null CWD are grouped under a "(no project)" key.
+ */
+function groupTabsByCwd(tabs: SessionTab[]): Array<[string, SessionTab[]]> {
+	const groups = new Map<string, SessionTab[]>();
+	for (const tab of tabs) {
+		const key = tab.cwd ?? "(no project)";
+		const existing = groups.get(key);
+		if (existing) {
+			existing.push(tab);
+		} else {
+			groups.set(key, [tab]);
+		}
+	}
+	return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
 }
 
 // ============================================================================
@@ -112,19 +305,37 @@ function isMobileWidth(): boolean {
 
 export function Sidebar() {
 	const connectionStatus = useStore((s) => s.connectionStatus);
-	const sessionFile = useStore((s) => s.sessionFile);
+	const tabs = useStore((s) => s.tabs);
+	const activeTabId = useStore((s) => s.activeTabId);
 	const sessionList = useStore((s) => s.sessionList);
 	const sessionListLoading = useStore((s) => s.sessionListLoading);
-	const sessionName = useStore((s) => s.sessionName);
-	const model = useStore((s) => s.model);
 	const sidebarOpen = useStore((s) => s.sidebarOpen);
 	const toggleSidebar = useStore((s) => s.toggleSidebar);
 	const setSidebarOpen = useStore((s) => s.setSidebarOpen);
 
 	const [isCreating, setIsCreating] = useState(false);
 	const [switchingPath, setSwitchingPath] = useState<string | null>(null);
+	const [pastSessionsExpanded, setPastSessionsExpanded] = useState(false);
 
 	const isConnected = connectionStatus === "open";
+
+	// Group tabs by CWD — only show groups when there are multiple CWDs
+	const tabGroups = useMemo(() => groupTabsByCwd(tabs), [tabs]);
+	const hasMultipleCwds = tabGroups.length > 1;
+
+	// Filter past sessions to exclude those already open as tabs
+	const openSessionIds = useMemo(() => {
+		const ids = new Set<string>();
+		for (const tab of tabs) {
+			if (tab.sessionId) ids.add(tab.sessionId);
+		}
+		return ids;
+	}, [tabs]);
+
+	const pastSessions = useMemo(
+		() => sessionList.filter((s) => !openSessionIds.has(s.sessionId)),
+		[sessionList, openSessionIds],
+	);
 
 	// Subscribe to toggle sidebar shortcut (Ctrl/Cmd+B)
 	useEffect(() => {
@@ -136,17 +347,14 @@ export function Sidebar() {
 	}, [toggleSidebar]);
 
 	// Auto-close sidebar on resize from mobile to desktop (and vice versa)
-	// to keep sidebar state in sync with viewport width
 	useEffect(() => {
 		let lastWasMobile = isMobileWidth();
 
 		function handleResize() {
 			const nowMobile = isMobileWidth();
 			if (lastWasMobile && !nowMobile) {
-				// Crossed from mobile → desktop: open sidebar
 				setSidebarOpen(true);
 			} else if (!lastWasMobile && nowMobile) {
-				// Crossed from desktop → mobile: close sidebar
 				setSidebarOpen(false);
 			}
 			lastWasMobile = nowMobile;
@@ -163,16 +371,38 @@ export function Sidebar() {
 		}
 	}, [isConnected]);
 
-	const handleNewSession = useCallback(async () => {
+	const handleNewTab = useCallback(async () => {
 		if (!isConnected || isCreating) return;
 		setIsCreating(true);
 		try {
-			await startNewSession();
-			await fetchSessionList();
+			await createNewTab();
+			// Auto-close sidebar on mobile after creating
+			if (isMobileWidth()) {
+				setSidebarOpen(false);
+			}
 		} finally {
 			setIsCreating(false);
 		}
-	}, [isConnected, isCreating]);
+	}, [isConnected, isCreating, setSidebarOpen]);
+
+	const handleSwitchTab = useCallback(
+		(tabId: string) => {
+			switchTabAction(tabId).catch((err: unknown) => {
+				console.error("[Sidebar] Failed to switch tab:", err);
+			});
+			// Auto-close sidebar on mobile after switching
+			if (isMobileWidth()) {
+				setSidebarOpen(false);
+			}
+		},
+		[setSidebarOpen],
+	);
+
+	const handleCloseTab = useCallback((tabId: string) => {
+		closeTab(tabId).catch((err: unknown) => {
+			console.error("[Sidebar] Failed to close tab:", err);
+		});
+	}, []);
 
 	const handleSwitchSession = useCallback(
 		async (sessionPath: string) => {
@@ -191,15 +421,15 @@ export function Sidebar() {
 		[isConnected, switchingPath, setSidebarOpen],
 	);
 
+	const handleBackdropClick = useCallback(() => {
+		setSidebarOpen(false);
+	}, [setSidebarOpen]);
+
 	const handleRefresh = useCallback(() => {
 		if (isConnected) {
 			fetchSessionList();
 		}
 	}, [isConnected]);
-
-	const handleBackdropClick = useCallback(() => {
-		setSidebarOpen(false);
-	}, [setSidebarOpen]);
 
 	// The sidebar panel content (shared between mobile overlay and desktop inline)
 	const sidebarContent = (
@@ -210,9 +440,9 @@ export function Sidebar() {
 				<div className="flex items-center gap-1">
 					<button
 						type="button"
-						onClick={handleNewSession}
+						onClick={handleNewTab}
 						disabled={!isConnected || isCreating}
-						title="New Session (Ctrl+N)"
+						title="New Tab (Ctrl+T)"
 						className={cn(
 							"flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors",
 							!isConnected || isCreating
@@ -226,12 +456,12 @@ export function Sidebar() {
 							viewBox="0 0 16 16"
 							fill="currentColor"
 							className="h-3.5 w-3.5"
-							aria-label="New session"
+							aria-label="New tab"
 							role="img"
 						>
 							<path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2z" />
 						</svg>
-						{isCreating ? "Creating…" : "New"}
+						{isCreating ? "Creating…" : "New Tab"}
 					</button>
 					{/* Close sidebar button — visible on mobile, hidden on desktop */}
 					<button
@@ -254,80 +484,139 @@ export function Sidebar() {
 				</div>
 			</div>
 
-			{/* Current session info */}
-			{model && (
-				<div className="border-b border-neutral-800 px-4 py-2">
-					<div className="text-xs text-neutral-500">Current session</div>
-					<div className="mt-0.5 truncate text-sm text-neutral-300">{sessionName ?? "Unnamed"}</div>
-					<div className="mt-0.5 truncate text-xs text-neutral-500">{model.name}</div>
-				</div>
-			)}
-
-			{/* Session list header */}
+			{/* ── Active Tabs Section ──────────────────────────────────── */}
 			<div className="flex items-center justify-between px-4 pt-3 pb-1">
 				<span className="text-xs font-medium uppercase tracking-wider text-neutral-500">
-					Sessions
+					Open Tabs
 				</span>
-				<button
-					type="button"
-					onClick={handleRefresh}
-					disabled={!isConnected || sessionListLoading}
-					title="Refresh session list"
-					className={cn(
-						"rounded p-0.5 transition-colors",
-						sessionListLoading
-							? "animate-spin text-neutral-500"
-							: "text-neutral-600 hover:text-neutral-400",
-					)}
-				>
-					{/* Refresh icon */}
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 16 16"
-						fill="currentColor"
-						className="h-3 w-3"
-						aria-label="Refresh sessions"
-						role="img"
-					>
-						<path
-							fillRule="evenodd"
-							d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37A5.508 5.508 0 0 0 8 3.5a5.5 5.5 0 1 0 5.215 3.772.75.75 0 1 1 1.423-.474A7 7 0 1 1 12.12 3.16l1.716.005z"
-							clipRule="evenodd"
-						/>
-					</svg>
-				</button>
+				<span className="text-[10px] text-neutral-600">
+					{String(tabs.length)} tab{tabs.length !== 1 ? "s" : ""}
+				</span>
 			</div>
 
-			{/* Session list */}
 			<div className="flex-1 overflow-y-auto px-2 py-1">
-				{sessionListLoading && sessionList.length === 0 ? (
-					<div className="flex items-center justify-center py-8">
-						<span className="text-xs text-neutral-600">Loading sessions…</span>
+				{tabs.length === 0 ? (
+					<div className="flex flex-col items-center justify-center gap-2 py-8">
+						<span className="text-xs text-neutral-600">No open tabs</span>
+						<button
+							type="button"
+							onClick={handleNewTab}
+							disabled={!isConnected}
+							className={cn(
+								"rounded-md px-3 py-1 text-xs font-medium transition-colors",
+								isConnected
+									? "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+									: "cursor-not-allowed text-neutral-600",
+							)}
+						>
+							Open a new tab
+						</button>
 					</div>
-				) : sessionList.length === 0 ? (
-					<div className="flex items-center justify-center py-8">
-						<span className="text-xs text-neutral-600">No sessions yet</span>
-					</div>
+				) : hasMultipleCwds ? (
+					/* Grouped by CWD */
+					tabGroups.map(([cwd, groupTabs]) => (
+						<CwdGroup
+							key={cwd}
+							cwd={cwd}
+							tabs={groupTabs}
+							activeTabId={activeTabId}
+							onSwitchTab={handleSwitchTab}
+							onCloseTab={handleCloseTab}
+							canClose={tabs.length > 1}
+						/>
+					))
 				) : (
+					/* Flat list — all tabs share same CWD */
 					<div className="flex flex-col gap-0.5">
-						{sessionList.map((session) => (
-							<SessionItem
-								key={session.sessionPath}
-								session={session}
-								isCurrent={sessionFile === session.sessionPath}
-								onSwitch={handleSwitchSession}
-								isSwitching={switchingPath === session.sessionPath}
+						{tabs.map((tab) => (
+							<SidebarTabItem
+								key={tab.id}
+								tab={tab}
+								isActive={tab.id === activeTabId}
+								onSwitch={handleSwitchTab}
+								onClose={handleCloseTab}
+								canClose={tabs.length > 1}
 							/>
 						))}
 					</div>
 				)}
-			</div>
 
-			{/* Footer — session count */}
-			<div className="border-t border-neutral-800 px-4 py-2">
-				<span className="text-xs text-neutral-600">
-					{sessionList.length} session{sessionList.length !== 1 ? "s" : ""}
-				</span>
+				{/* ── Past Sessions Section ────────────────────────────── */}
+				{pastSessions.length > 0 && (
+					<div className="mt-3 border-t border-neutral-800 pt-2">
+						<div className="flex w-full items-center justify-between px-2 py-1">
+							<button
+								type="button"
+								onClick={() => setPastSessionsExpanded(!pastSessionsExpanded)}
+								className="flex flex-1 items-center gap-1.5 text-left"
+							>
+								<span className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+									Past Sessions
+								</span>
+								<span className="text-[10px] text-neutral-600">{String(pastSessions.length)}</span>
+								{/* Chevron */}
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 16 16"
+									fill="currentColor"
+									className={cn(
+										"h-3 w-3 text-neutral-600 transition-transform",
+										pastSessionsExpanded && "rotate-180",
+									)}
+									aria-label="Toggle past sessions"
+									role="img"
+								>
+									<path
+										fillRule="evenodd"
+										d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z"
+										clipRule="evenodd"
+									/>
+								</svg>
+							</button>
+							{/* Refresh button — separate from toggle */}
+							<button
+								type="button"
+								onClick={handleRefresh}
+								disabled={sessionListLoading}
+								className={cn(
+									"rounded p-0.5 transition-colors",
+									sessionListLoading
+										? "animate-spin text-neutral-500"
+										: "text-neutral-600 hover:text-neutral-400",
+								)}
+								aria-label="Refresh past sessions"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 16 16"
+									fill="currentColor"
+									className="h-3 w-3"
+									aria-label="Refresh"
+									role="img"
+								>
+									<path
+										fillRule="evenodd"
+										d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37A5.508 5.508 0 0 0 8 3.5a5.5 5.5 0 1 0 5.215 3.772.75.75 0 1 1 1.423-.474A7 7 0 1 1 12.12 3.16l1.716.005z"
+										clipRule="evenodd"
+									/>
+								</svg>
+							</button>
+						</div>
+
+						{pastSessionsExpanded && (
+							<div className="mt-1 flex flex-col gap-0.5">
+								{pastSessions.map((session) => (
+									<PastSessionItem
+										key={session.sessionPath}
+										session={session}
+										onSwitch={handleSwitchSession}
+										isSwitching={switchingPath === session.sessionPath}
+									/>
+								))}
+							</div>
+						)}
+					</div>
+				)}
 			</div>
 		</>
 	);

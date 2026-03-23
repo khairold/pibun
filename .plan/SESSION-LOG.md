@@ -179,3 +179,29 @@
 - Key files touched: `packages/contracts/src/wsProtocol.ts`, `apps/server/src/server.ts`, `apps/server/src/handlers/session.ts`, `apps/server/src/handlers/types.ts`, `apps/web/src/transport.ts`, `apps/web/src/wireTransport.ts`, `apps/web/src/lib/sessionActions.ts`
 
 ---
+
+## Session 59 — Sidebar tabs + CWD grouping (2026-03-23)
+
+**What happened:**
+- Rewrote `Sidebar.tsx` to show active tabs as primary content instead of session list
+- Active tabs grouped by CWD when multiple directories are in use (flat list when all same CWD)
+- Each `SidebarTabItem` shows: streaming indicator (pulsing blue dot), tab name, model badge, message count, close button
+- `CwdGroup` component renders folder icon + shortened path header above grouped tabs
+- Past sessions (from Pi's `~/.pi/agent/sessions/`) shown as collapsible secondary section
+- Past sessions filtered to exclude sessions already open as tabs (matched by sessionId)
+- "New" button now creates a new tab via `createNewTab()` instead of `startNewSession()`
+- Removed redundant "Current session info" section — tab display covers this
+- Fixed Biome a11y errors: `SidebarTabItem` uses `<div role="tab">` (not `<button>`) to allow nested close `<button>`, past sessions refresh button restructured to avoid nesting
+
+**Items completed:**
+- [x] 1.10 — Update Sidebar to show tabs grouped by CWD, or remove session list in favor of tabs
+
+**Issues encountered:**
+- Biome flagged `<span role="button">` in two places — restructured to use proper semantic elements (div+role for tab container, separate buttons for refresh)
+
+**Handoff to next session:**
+- Next: 1.11 — Desktop: update native menus with tab actions (New Tab, Close Tab, Next/Previous Tab)
+- The sidebar now shows tabs as primary content. TabBar (horizontal strip) still provides the compact tab view at the top when ≥2 tabs.
+- Key file: `apps/web/src/components/Sidebar.tsx`
+
+---

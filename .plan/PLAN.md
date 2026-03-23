@@ -3,7 +3,7 @@
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
 > **Status:** In Progress
 > **Current Phase:** Phase 1 — Multi-Session & Tabs
-> **Last Session:** Session 58 — 2026-03-23
+> **Last Session:** Session 59 — 2026-03-23
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -41,7 +41,7 @@
 - [x] 1.7 — Wire close tab: stops Pi process via `session.stop`, removes tab, switches to adjacent tab (or empty state if last tab)
 - [x] 1.8 — Tab drag-to-reorder (optional polish)
 - [x] 1.9 — Keyboard shortcuts: Ctrl+T new tab, Ctrl+W close tab, Ctrl+Tab / Ctrl+Shift+Tab cycle tabs, Ctrl+1-9 jump to tab
-- [ ] 1.10 — Update Sidebar to show tabs grouped by CWD, or remove session list in favor of tabs
+- [x] 1.10 — Update Sidebar to show tabs grouped by CWD, or remove session list in favor of tabs
 - [ ] 1.11 — Desktop: update native menus with tab actions (New Tab, Close Tab, Next/Previous Tab)
 - [ ] 1.12 — Verify: 3 simultaneous sessions streaming, switch between them, close one, verify no orphaned processes
 
