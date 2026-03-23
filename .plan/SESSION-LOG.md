@@ -1607,3 +1607,28 @@
 - Linux build will likely need changes to `electrobun.config.ts` and possibly a new build script
 
 ---
+
+## Session 47 — Linux Build Support (2026-03-23)
+
+**What happened:**
+- Updated `electrobun.config.ts` with Linux `icon` config pointing to `assets/icon-1024.png`
+- Created `scripts/build-linux.ts` — validates Linux platform, checks for WebKitGTK 4.1 dev headers via `pkg-config`, runs `electrobun build` with env flag
+- Added root package.json scripts: `build:desktop:linux`, `build:desktop:linux:canary`
+- Updated `docs/DESKTOP.md` Linux section — replaced "AppImage" with accurate description of Electrobun's self-extracting installer format, added WebKitGTK prerequisites
+- Logged drift: Electrobun uses self-extracting installer, not AppImage (deliberate removal of AppImage to avoid libfuse2 dependency)
+
+**Items completed:**
+- [x] 2C.3 — Linux AppImage build (actually: self-extracting installer archive)
+
+**Issues encountered:**
+- Electrobun does NOT produce AppImages — uses its own self-extracting installer format. This is by design (avoids libfuse2 dependency). Same auto-update mechanism works.
+- No cross-compilation support — builds must run on Linux. The build script validates `process.platform === "linux"` and provides clear error messages.
+- Cannot test the actual build on macOS — requires Linux runner (CI or local VM). Build script structure verified via typecheck + lint.
+
+**Handoff to next session:**
+- Next: 2C.4 — Windows NSIS installer
+- Same cross-compilation limitation applies to Windows — must build on Windows
+- Electrobun's Windows build produces a self-extracting `.exe` wrapped in an NSIS-like setup — check if it's truly NSIS or Electrobun's own format
+- The `build-linux.ts` and eventual `build-windows.ts` scripts follow the same pattern as `build-signed.ts` (validate prerequisites → run electrobun build)
+
+---

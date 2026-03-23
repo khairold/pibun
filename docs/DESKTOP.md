@@ -126,7 +126,16 @@ For most data flow, we still use WebSocket (same as browser mode). IPC is reserv
 
 ### Linux
 
-- AppImage
+- Self-extracting installer archive (`.tar.gz`) — Electrobun's native format
+  - Contains a self-extracting binary that installs to `~/.local/share/`
+  - Creates a `.desktop` entry with the app's icon for launcher integration
+  - No `libfuse2` dependency (unlike AppImage)
+  - Supports the Electrobun auto-update mechanism (bsdiff patches)
+- Build prerequisites: WebKitGTK 4.1 dev headers (for native webview)
+  - Ubuntu/Debian: `apt install libwebkit2gtk-4.1-dev`
+  - Fedora: `dnf install webkit2gtk4.1-devel`
+  - Arch: `pacman -S webkit2gtk-4.1`
+- Build command: `bun run build:desktop:linux` (must run on Linux)
 - `.deb` package (future)
 
 ### Windows

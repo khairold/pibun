@@ -42,6 +42,9 @@ export default {
 		},
 		linux: {
 			bundleCEF: false,
+			// PNG icon for desktop entries, window icons, and taskbar.
+			// Electrobun recommends at least 256x256; we use 1024x1024.
+			icon: "assets/icon-1024.png",
 		},
 		win: {
 			bundleCEF: false,

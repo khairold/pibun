@@ -15,6 +15,8 @@
 		"build:desktop:canary": "cd apps/desktop && npx electrobun build --env=canary",
 		"build:desktop:signed": "cd apps/desktop && bun scripts/build-signed.ts",
 		"build:desktop:signed:canary": "cd apps/desktop && bun scripts/build-signed.ts --env=canary",
+		"build:desktop:linux": "cd apps/desktop && bun scripts/build-linux.ts",
+		"build:desktop:linux:canary": "cd apps/desktop && bun scripts/build-linux.ts --env=canary",
 		"typecheck": "turbo run typecheck",
 		"lint": "biome check .",
 		"format": "biome format --write ."
