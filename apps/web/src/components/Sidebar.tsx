@@ -39,7 +39,7 @@ const SessionItem = memo(function SessionItem({
 	onSwitch,
 	isSwitching,
 }: SessionItemProps) {
-	const displayName = session.name ?? formatSessionId(session.sessionId);
+	const displayName = session.name ?? session.firstMessage ?? formatSessionId(session.sessionId);
 	const dateStr = formatDate(session.createdAt);
 
 	return (
@@ -64,7 +64,9 @@ const SessionItem = memo(function SessionItem({
 				{isCurrent && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />}
 				<span className="truncate text-sm font-medium">{displayName}</span>
 			</div>
-			<span className="truncate text-xs text-neutral-500">{dateStr}</span>
+			<span className="truncate text-xs text-neutral-500">
+				{dateStr}{session.messageCount > 0 ? ` · ${session.messageCount} msgs` : ""}
+			</span>
 		</button>
 	);
 });

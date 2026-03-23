@@ -11,13 +11,173 @@
  */
 
 import { useStore } from "@/store";
+import type { ChatMessage } from "@/store/types";
 import { getTransport } from "@/wireTransport";
-import type { WsForkableMessage, WsSessionSummary } from "@pibun/contracts";
+import type {
+	PiAgentMessage,
+	PiAssistantMessage,
+	PiBashExecutionMessage,
+	PiTextContent,
+	PiThinkingContent,
+	PiToolCall,
+	PiToolResultMessage,
+	PiImageContent,
+	WsForkableMessage,
+	WsSessionSummary,
+} from "@pibun/contracts";
 
 /** Extract a user-friendly error message from any thrown value. */
 function errorMessage(err: unknown): string {
 	if (err instanceof Error) return err.message;
 	return String(err);
+}
+
+// ============================================================================
+// Pi Message → ChatMessage Conversion
+// ============================================================================
+
+/** Auto-incrementing counter for history message IDs. */
+let historyIdCounter = 0;
+
+function nextHistoryId(prefix: string): string {
+	return `hist-${prefix}-${String(++historyIdCounter)}`;
+}
+
+/** Extract text from content blocks. */
+function extractTextBlocks(content: readonly (PiTextContent | PiImageContent)[]): string {
+	return content
+		.filter((b): b is PiTextContent => b.type === "text")
+		.map((b) => b.text)
+		.join("\n");
+}
+
+/** Extract text from user message content (string or content blocks). */
+function extractUserText(content: string | readonly (PiTextContent | PiImageContent)[]): string {
+	if (typeof content === "string") return content;
+	return extractTextBlocks(content);
+}
+
+/**
+ * Convert Pi's `PiAgentMessage[]` (from `get_messages`) into `ChatMessage[]`
+ * suitable for the Zustand store.
+ *
+ * Assistant messages may contain interleaved text, thinking, and tool_call blocks.
+ * We extract text + thinking into the assistant ChatMessage, and emit separate
+ * tool_call / tool_result entries for each tool call (matched with the following
+ * toolResult message in the history).
+ */
+function convertPiMessages(piMessages: PiAgentMessage[]): ChatMessage[] {
+	const result: ChatMessage[] = [];
+
+	for (const msg of piMessages) {
+		if (msg.role === "user") {
+			result.push({
+				id: nextHistoryId("user"),
+				timestamp: msg.timestamp,
+				type: "user",
+				content: extractUserText(msg.content),
+				thinking: "",
+				toolCall: null,
+				toolResult: null,
+				streaming: false,
+			});
+		} else if (msg.role === "assistant") {
+			const aMsg = msg as PiAssistantMessage;
+				// Extract text and thinking from content blocks
+				const textParts: string[] = [];
+				const thinkingParts: string[] = [];
+				const toolCalls: PiToolCall[] = [];
+
+				for (const block of aMsg.content) {
+					if (block.type === "text") {
+						textParts.push((block as PiTextContent).text);
+					} else if (block.type === "thinking") {
+						thinkingParts.push((block as PiThinkingContent).thinking);
+					} else if (block.type === "toolCall") {
+						toolCalls.push(block as PiToolCall);
+					}
+				}
+
+				// Assistant text/thinking message
+				result.push({
+					id: nextHistoryId("assistant"),
+					timestamp: aMsg.timestamp,
+					type: "assistant",
+					content: textParts.join("\n"),
+					thinking: thinkingParts.join("\n"),
+					toolCall: null,
+					toolResult: null,
+					streaming: false,
+				});
+
+				// Tool call cards
+				for (const tc of toolCalls) {
+					result.push({
+						id: tc.id,
+						timestamp: aMsg.timestamp,
+						type: "tool_call",
+						content: "",
+						thinking: "",
+						toolCall: {
+							id: tc.id,
+							name: tc.name,
+							args: tc.arguments,
+						},
+						toolResult: null,
+						streaming: false,
+					});
+				}
+		} else if (msg.role === "toolResult") {
+			const trMsg = msg as PiToolResultMessage;
+			result.push({
+				id: `result-${trMsg.toolCallId}`,
+				timestamp: trMsg.timestamp,
+				type: "tool_result",
+				content: extractTextBlocks(trMsg.content),
+				thinking: "",
+				toolCall: null,
+				toolResult: {
+					content: extractTextBlocks(trMsg.content),
+					isError: trMsg.isError,
+				},
+				streaming: false,
+			});
+		} else if (msg.role === "bashExecution") {
+			const beMsg = msg as PiBashExecutionMessage;
+			result.push({
+				id: nextHistoryId("bash"),
+				timestamp: beMsg.timestamp,
+				type: "system",
+				content: `$ ${beMsg.command}\n${beMsg.output}`,
+				thinking: "",
+				toolCall: null,
+				toolResult: null,
+				streaming: false,
+			});
+		}
+	}
+
+	return result;
+}
+
+/**
+ * Fetch the conversation history from Pi and populate the store.
+ *
+ * Called after session switch, fork, or folder open to load the
+ * existing messages for display.
+ */
+async function loadSessionMessages(): Promise<void> {
+	try {
+		const result = await getTransport().request("session.getMessages");
+		const chatMessages = convertPiMessages(result.messages);
+		const store = useStore.getState();
+		store.clearMessages();
+		for (const msg of chatMessages) {
+			store.appendMessage(msg);
+		}
+	} catch (err) {
+		console.warn("[sessionActions] Failed to load session messages:", err);
+	}
 }
 
 /**
@@ -195,11 +355,11 @@ export async function forkFromMessage(entryId: string): Promise<boolean> {
 
 	try {
 		await getTransport().request("session.fork", { entryId });
-		// Clear messages — the fork creates a new session with truncated history
-		store.clearMessages();
 		store.setIsStreaming(false);
 		// Refresh state
 		await refreshSessionState();
+		// Load the forked session's message history
+		await loadSessionMessages();
 		return true;
 	} catch (err) {
 		store.setLastError(`Failed to fork session: ${errorMessage(err)}`);
@@ -272,11 +432,12 @@ export async function startSessionInFolder(cwd: string): Promise<boolean> {
 		// Start a new session with the specified CWD
 		const result = await getTransport().request("session.start", { cwd });
 		store.setSessionId(result.sessionId);
-		store.clearMessages();
 		store.setIsStreaming(false);
 
 		// Refresh state to pick up new session info (model, thinking, etc.)
 		await refreshSessionState();
+		// Load any existing messages (e.g., if resuming a session)
+		await loadSessionMessages();
 
 		store.addToast(`Opened folder: ${cwd}`, "info");
 		return true;
@@ -320,11 +481,11 @@ export async function switchSession(sessionPath: string): Promise<boolean> {
 			return false;
 		}
 
-		// Clear messages — switching loads a different conversation
-		store.clearMessages();
 		store.setIsStreaming(false);
 		// Refresh state to pick up new session info
 		await refreshSessionState();
+		// Load the switched-to session's message history
+		await loadSessionMessages();
 		// Refresh session list to update current indicators
 		await fetchSessionList();
 		return true;

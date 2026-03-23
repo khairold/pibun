@@ -270,6 +270,10 @@ export interface WsSessionSummary {
 	name: string | null;
 	/** Working directory the session was started in. */
 	cwd: string;
+	/** Text of the first user message, or null if no messages. */
+	firstMessage: string | null;
+	/** Number of messages in the session. */
+	messageCount: number;
 }
 
 /** Result for `session.listSessions`. */
