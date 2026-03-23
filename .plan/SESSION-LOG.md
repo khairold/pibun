@@ -203,6 +203,39 @@
 
 ---
 
+## Session 7 — PiRpcManager Unit Tests (2026-03-23)
+
+**What happened:**
+- Created fake Pi binary at `apps/server/test-fixtures/fake-pi.ts`:
+  - Executable Bun script with shebang, accepts same CLI args as `pi --mode rpc`
+  - Reads JSONL from stdin, responds with success JSONL on stdout
+  - Configurable via env vars: `FAKE_PI_CRASH_AFTER_MS`, `FAKE_PI_EXIT_CODE`, `FAKE_PI_STDERR`
+- Wrote 37 unit tests in `apps/server/src/piRpcManager.test.ts` across 6 categories:
+  - **Session creation** (6 tests): auto-generated IDs, custom IDs, duplicate rejection, process state, created event
+  - **Session lookup** (7 tests): getSession, hasSession, size, getActiveSessions, getAllSessions
+  - **Session stopping** (8 tests): stopSession removes/emits, no-op for unknown, safe double-stop, stopAll parallel, stopAll events
+  - **Crash handling** (5 tests): crash detection with event, session removal on crash, stderr capture, crash isolation (other sessions unaffected), process state after crash
+  - **Event listeners** (4 tests): event ordering (created→crashed), multiple listeners, unsubscribe, session ID delivery
+  - **Command forwarding** (3 tests): send command through session, ID correlation, parallel commands to different sessions
+  - **Edge cases** (4 tests): default options, size lifecycle, getSession after stop, hasSession after crash
+- Fixed Biome lint issues: `process.env["KEY"]` → `process.env.KEY` (useLiteralKeys), `type` imports sorted before value imports, formatting
+
+**Items completed:**
+- [x] 1A.9 — Write unit tests for PiRpcManager (mock subprocess, verify event routing)
+
+**Issues encountered:**
+- Biome `useLiteralKeys` rule prefers `process.env.KEY` over bracket notation
+- Biome sorts `type` imports before value imports within the same import statement
+
+**Handoff to next session:**
+- Next: 1A.10 — Manual integration test: spawn Pi, send prompt, log streaming events
+- This is the LAST item in Phase 1A — completing it means verifying exit criteria and marking phase complete
+- The test should create a script that uses PiRpcManager to spawn a real Pi process, send "hello", and log all streaming events
+- Requires `pi` installed locally with API keys (verified in Session 2 with Pi 0.61.1)
+- After 1A.10, Phase 1A is complete → move to Phase 1B (WebSocket Bridge)
+
+---
+
 ## Session 6 — PiRpcManager + Crash Handling (2026-03-23)
 
 **What happened:**

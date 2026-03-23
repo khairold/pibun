@@ -44,6 +44,8 @@
 | 34 | `PiProcess.sendExtensionResponse()` is fire-and-forget, not correlated | Extension UI responses use the original request ID. Pi sends back an acknowledgment but PiProcess doesn't wait for it. Separate from `sendCommand()` which correlates request/response via generated IDs. | 2026-03-23 |
 | 35 | PiRpcManager removes session from map BEFORE calling `process.stop()` | Prevents re-entrant cleanup: `stop()` triggers process exit → `onExit` fires → `handleProcessExit` checks `sessions.has()` → already removed, so no double-cleanup. The "remove first, stop second" pattern avoids race conditions. | 2026-03-23 |
 | 36 | PiRpcManager crash handling: non-fatal errors don't remove sessions | JSONL parse errors and stream errors from `onError` are non-fatal — the process may still be running. Only actual process exit (via `onExit`) with state === "crashed" triggers session cleanup and crash event emission. | 2026-03-23 |
+| 37 | Tests use a fake Pi binary (test-fixtures/fake-pi.ts) for subprocess tests | Executable Bun script with `#!/usr/bin/env bun` shebang. Accepts same CLI args as `pi --mode rpc`, responds to JSONL commands with success responses. Configurable via env vars: `FAKE_PI_CRASH_AFTER_MS`, `FAKE_PI_EXIT_CODE`, `FAKE_PI_STDERR`. Use `piCommand` option in PiProcessOptions to point at it. | 2026-03-23 |
+| 38 | Biome sorts `type` imports before value imports in named import groups | `import { type Foo, Bar }` not `import { Bar, type Foo }`. Also `process.env.KEY` not `process.env["KEY"]` (useLiteralKeys). | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -141,7 +143,9 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - JSONL parser in `packages/shared/` ✅
 - PiProcess class in `apps/server/src/piProcess.ts` ✅ — wraps Bun.spawn of `pi --mode rpc`, uses JsonlParser, typed listeners, command correlation
 - PiRpcManager at `apps/server/src/piRpcManager.ts` ✅ — session ID → PiProcess mapping, crash handling with stderr capture, parallel stopAll for shutdown
-- Next: 1A.9 — Unit tests for PiRpcManager (mock subprocess), then 1A.10 — manual integration test
+- PiRpcManager tests at `apps/server/src/piRpcManager.test.ts` — 37 tests covering CRUD, stop, crash, events, command forwarding
+- Fake Pi binary at `apps/server/test-fixtures/fake-pi.ts` — reusable for any tests needing a Pi subprocess
+- Next: 1A.10 — Manual integration test (spawn real Pi, send prompt, log streaming events)
 - Pi RPC verified with Pi 0.61.1 — `get_available_models` and `get_state` work, commands use `{"type":"..."}` format
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
