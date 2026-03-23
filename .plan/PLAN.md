@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 1B in progress — server infrastructure built
+> **Status:** Phase 1B in progress — all handlers implemented, tests passing
 > **Current Phase:** 1B
-> **Last Session:** 10 (2026-03-23)
+> **Last Session:** 11 (2026-03-23)
 
 ---
 
@@ -81,15 +81,15 @@
 - [x] 1B.2 — Set up Bun HTTP server with health endpoint (`/health`)
 - [x] 1B.3 — Static file serving (serve `apps/web/dist/` in production)
 - [x] 1B.4 — WebSocket upgrade handling with connection tracking
-- [ ] 1B.5 — Implement request/response dispatch (method string → handler function)
-- [ ] 1B.6 — Implement `session.start` → spawn Pi RPC via PiRpcManager
-- [ ] 1B.7 — Implement `session.prompt` → forward to Pi process stdin
-- [ ] 1B.8 — Implement `session.abort` → forward abort to Pi
-- [ ] 1B.9 — Implement `session.stop` → stop Pi process
-- [ ] 1B.10 — Pi event forwarding: subscribe to PiProcess events → push to all connected WebSocket clients on `pi.event` channel
-- [ ] 1B.11 — Pi response forwarding: push on `pi.response` channel
-- [ ] 1B.12 — `server.welcome` push on WebSocket connect (cwd, version)
-- [ ] 1B.13 — Write unit tests for WebSocket message routing
+- [x] 1B.5 — Implement request/response dispatch (method string → handler function)
+- [x] 1B.6 — Implement `session.start` → spawn Pi RPC via PiRpcManager
+- [x] 1B.7 — Implement `session.prompt` → forward to Pi process stdin
+- [x] 1B.8 — Implement `session.abort` → forward abort to Pi
+- [x] 1B.9 — Implement `session.stop` → stop Pi process
+- [x] 1B.10 — Pi event forwarding: subscribe to PiProcess events → push to all connected WebSocket clients on `pi.event` channel
+- [x] 1B.11 — Pi response forwarding: push on `pi.response` channel
+- [x] 1B.12 — `server.welcome` push on WebSocket connect (cwd, version)
+- [x] 1B.13 — Write unit tests for WebSocket message routing
 - [ ] 1B.14 — Test with wscat: connect → start session → send prompt → receive streaming events → abort → stop
 
 **Exit criteria:** Full round-trip works via wscat. Events stream in real-time. Session start/stop/abort all function.

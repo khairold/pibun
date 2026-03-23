@@ -57,6 +57,11 @@
 | 47 | Static file serving uses `Bun.file()` with SPA fallback | For paths with no extension (client routes), falls back to `index.html`. For paths with extension that don't exist, returns 404. Directory traversal prevented by stripping `..` from paths. | 2026-03-23 |
 | 48 | Server config via env vars: `PIBUN_PORT`, `PIBUN_HOST`, `PIBUN_STATIC_DIR` | Defaults: port 24242, hostname "localhost", static dir = `apps/web/dist` relative to server source. Use `process.env.KEY` dot notation (Biome enforces `useLiteralKeys`). | 2026-03-23 |
 | 49 | `WsConnectionData` carries per-connection state on Bun WebSocket `data` field | Fields: `id` (unique conn ID), `sessionId` (bound Pi session, null until session.start), `connectedAt` (timestamp). Set during `server.upgrade()`. | 2026-03-23 |
+| 50 | Handler registry uses `AnyWsHandler` with `any` params for type erasure | Function params are contravariant — `(params: SpecificType) => R` is NOT assignable to `(params: unknown) => R`. The registry uses `any` at the type level; runtime dispatches `unknown`. Biome lint suppressed with inline comment. | 2026-03-23 |
+| 51 | `sendPush` injected via HandlerContext to avoid circular dependency | `server.ts` imports `handlers/index.ts` which imports `handlers/session.ts`. If session.ts imported `sendPush` from server.ts, it would create a cycle. Instead, `sendPush` is passed as a function on the `HandlerContext` object. | 2026-03-23 |
+| 52 | `exactOptionalPropertyTypes` requires conditional spread for optional Pi options | Can't pass `undefined` to optional PiProcessOptions fields. Use `...(value && { key: value })` pattern to only include defined values. | 2026-03-23 |
+| 53 | All 17 WS methods have handlers registered in `handlers/session.ts` | Session lifecycle (start/stop/getState/getMessages/getStats), prompting (prompt/steer/followUp/abort), model (setModel/setThinking/getModels), management (new/compact/fork/setName), extension UI (extensionUiResponse). All follow thin bridge pattern. | 2026-03-23 |
+| 54 | `session.start` stops existing session before creating new one | If a WS connection already has a bound session, handleSessionStart stops it first. Prevents orphaned Pi processes. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -161,7 +166,14 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - WebSocket protocol types defined in `packages/contracts/src/wsProtocol.ts` ✅ — 17 methods, 4 push channels, type maps, wire types, typed generics
 - HTTP server + WebSocket server in `apps/server/src/server.ts` ✅ — health endpoint, static file serving, WebSocket upgrade with connection tracking
 - Entry point updated in `apps/server/src/index.ts` ✅ — creates PiRpcManager, starts server, graceful shutdown on SIGINT/SIGTERM
-- Next: Phase 1B.5 — Implement request/response dispatch
+- WebSocket dispatch system in `apps/server/src/server.ts` ✅ — parse WsRequest, route via handler registry, send WsResponse/WsResponseError, type guard validation
+- All 17 WS method handlers in `apps/server/src/handlers/session.ts` ✅ — thin bridge to Pi RPC commands
+- Handler registry in `apps/server/src/handlers/index.ts` ✅ — method string → handler function map
+- Handler types in `apps/server/src/handlers/types.ts` ✅ — HandlerContext with sendPush, WsHandler<M>, AnyWsHandler
+- Pi event/response forwarding wired in session.start handler ✅ — onEvent → pi.event push, onResponse → pi.response push
+- server.welcome push on WebSocket connect ✅ — sends cwd and version
+- Dispatch unit tests at `apps/server/src/handlers/dispatch.test.ts` ✅ — 10 tests (welcome push, validation, error handling, handler routing, ID correlation, session.start)
+- Next: Phase 1B.14 — wscat integration test
 - Pi RPC verified with Pi 0.61.1 — `get_available_models` and `get_state` work, commands use `{"type":"..."}` format
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 

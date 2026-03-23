@@ -359,3 +359,36 @@
 - Consider creating `apps/server/src/handlers/` directory for per-domain handler files
 
 ---
+
+## Session 11 — WebSocket Dispatch + All Session Handlers (2026-03-23)
+
+**What happened:**
+- Implemented the WebSocket request/response dispatch system in server.ts
+- Created the handlers/ directory structure (types.ts, session.ts, index.ts)
+- Implemented all 17 WS method handlers in session.ts following thin bridge pattern
+- Wired Pi event and response forwarding from PiProcess to WebSocket clients
+- Added server.welcome push on WebSocket connect
+- Wrote 10 unit tests for dispatch covering validation, error handling, routing, and session.start
+- All 47 tests pass (10 new dispatch + 37 existing PiRpcManager)
+
+**Items completed:**
+- [x] 1B.5 — Implement request/response dispatch (method string → handler function)
+- [x] 1B.6 — Implement `session.start` → spawn Pi RPC via PiRpcManager
+- [x] 1B.7 — Implement `session.prompt` → forward to Pi process stdin
+- [x] 1B.8 — Implement `session.abort` → forward abort to Pi
+- [x] 1B.9 — Implement `session.stop` → stop Pi process
+- [x] 1B.10 — Pi event forwarding on `pi.event` channel
+- [x] 1B.11 — Pi response forwarding on `pi.response` channel
+- [x] 1B.12 — `server.welcome` push on WebSocket connect
+- [x] 1B.13 — Write unit tests for WebSocket message routing
+
+**Issues encountered:**
+- Function contravariance: `WsHandler<M>` (with specific params type) not assignable to `AnyWsHandler` (with `unknown` params). Solved with `any` at registry level + biome-ignore.
+- Circular dependency: session.ts needed `sendPush` from server.ts which imports handlers. Solved by injecting `sendPush` via HandlerContext.
+- `exactOptionalPropertyTypes` in createSession: can't pass undefined for optional PiProcessOptions. Solved with conditional spread pattern.
+
+**Handoff to next session:**
+- Next: 1B.14 — Test with wscat (manual integration test of full round-trip)
+- This is the last item in Phase 1B. After verifying exit criteria, mark phase complete and EXIT.
+
+---
