@@ -78,6 +78,10 @@
 | 68 | `makeMessage()` helper provides ChatMessage defaults for `exactOptionalPropertyTypes` compat | Takes required fields (id, type, content) + optional overrides. Defaults: `timestamp: Date.now()`, `thinking: ""`, `toolCall: null`, `toolResult: null`, `streaming: false`. Spread-based — caller overrides only what's needed. | 2026-03-23 |
 | 69 | `done`/`error` assistant message events set streaming=false as safety net | `message_end` is the definitive "done" event, but `done`/`error` in `assistantMessageEvent` also mark streaming=false. Redundant but safe — prevents stale streaming state if `message_end` is missed. | 2026-03-23 |
 | 70 | `initTransport()` called from `main.tsx` before `createRoot().render()` | Ensures transport is connected and subscriptions are active before any React component mounts. Returns cleanup function (unused in production but available for testing). | 2026-03-23 |
+| 71 | Composer auto-starts session on first prompt | `ensureSession()` checks `sessionId` from store. If null, calls `session.start` before `session.prompt`. Avoids separate "start session" step for the user. | 2026-03-23 |
+| 72 | SVG icons use `aria-label` + `role="img"` for Biome a11y compliance | Biome's `noSvgWithoutTitle` rule requires accessible labeling on all `<svg>` elements. Using `aria-label` + `role="img"` instead of nested `<title>` for simpler markup. | 2026-03-23 |
+| 73 | Biome sorts `type` imports before value imports in named groups | `import { type KeyboardEvent, useCallback }` — type-prefixed members sort first alphabetically within the import group. Enforced by Biome's `organizeImports`. | 2026-03-23 |
+| 74 | Sidebar hidden on mobile (`hidden md:flex`), 256px on md+ | Responsive layout: sidebar collapses below `md` breakpoint. Main chat area always fills available width. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -195,11 +199,16 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Zustand 5.0.12 added as dependency ✅
 - Vite dev proxy configured for WebSocket ✅
 - Zustand store at `apps/web/src/store/` ✅ — 3 slices (connection, session, messages), ChatMessage type, combined AppStore, reverse-scan find for streaming perf
-- Next: 1C.7 — Build AppShell layout (sidebar placeholder left, main chat area right, composer bottom)
 - Event wiring at `apps/web/src/wireTransport.ts` ✅ — singleton WsTransport, pi.event dispatch to store, transport state sync to connection slice
 - `initTransport()` called from `main.tsx` before React renders
 - `getTransport()` provides singleton access for sending requests (e.g., from Composer)
 - Pi RPC verified with Pi 0.61.1 — `get_available_models` and `get_state` work, commands use `{"type":"..."}` format
+- AppShell layout at `apps/web/src/components/AppShell.tsx` ✅ — sidebar placeholder (hidden on mobile, 256px on md+), main chat column (ChatView + Composer)
+- Composer at `apps/web/src/components/Composer.tsx` ✅ — multi-line textarea with auto-resize, Enter to send, Shift+Enter for newline, abort button during streaming, auto-starts session on first prompt
+- ConnectionBanner at `apps/web/src/components/ConnectionBanner.tsx` ✅ — shows connecting/reconnecting/disconnected state
+- ChatView at `apps/web/src/components/ChatView.tsx` ✅ (placeholder) — basic message rendering, empty state prompt, will be fully built in 1C.9
+- `cn()` utility at `apps/web/src/lib/cn.ts` ✅ — simple className joiner, filters falsy values
+- Next: 1C.9 — Build ChatView (render user messages and assistant text blocks)
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings

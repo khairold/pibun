@@ -511,3 +511,31 @@
 - The Vite proxy is configured at `/ws` path — transport connects to `ws://host:port/ws`
 
 ---
+
+## Session 15 — AppShell + Composer (2026-03-23)
+
+**What happened:**
+- Built the AppShell layout component with sidebar placeholder (hidden on mobile) and main chat area (ChatView + Composer)
+- Built the Composer with multi-line textarea, auto-resize, Enter to send, Shift+Enter for newline, abort button during streaming, send button with enabled/disabled states
+- Composer auto-starts a Pi session on first prompt via `ensureSession()` — checks store for sessionId, calls `session.start` if none exists
+- Built ConnectionBanner showing connecting/reconnecting/disconnected state
+- Built ChatView placeholder — basic rendering of all message types (user/assistant/tool_call/tool_result/system) with empty state prompt
+- Created `cn()` className utility at `src/lib/cn.ts`
+- Updated App.tsx to render AppShell instead of the placeholder
+- Fixed Biome lint: SVG accessibility (added `aria-label` + `role="img"`), import ordering (`type` imports sort before value imports)
+
+**Items completed:**
+- [x] 1C.7 — Build AppShell layout (sidebar placeholder left, main chat area right, composer bottom)
+- [x] 1C.8 — Build Composer (multi-line input, Enter to send, Shift+Enter for newline, abort button during streaming)
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1C.9 — Build ChatView (render user messages and assistant text blocks)
+- ChatView placeholder exists at `src/components/ChatView.tsx` — needs proper message rendering, auto-scroll, and streaming cursor
+- The Composer's `handleSend` calls `ensureSession()` → `session.start` → `session.prompt` — this is the session auto-start flow
+- ConnectionBanner is wired to the connection slice and renders above ChatView in AppShell
+- All new components follow conventions: Tailwind classes, `cn()` helper, Zustand selectors, no data fetching in components
+
+---
