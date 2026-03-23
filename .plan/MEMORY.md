@@ -61,7 +61,13 @@
 | 51 | `sendPush` injected via HandlerContext to avoid circular dependency | `server.ts` imports `handlers/index.ts` which imports `handlers/session.ts`. If session.ts imported `sendPush` from server.ts, it would create a cycle. Instead, `sendPush` is passed as a function on the `HandlerContext` object. | 2026-03-23 |
 | 52 | `exactOptionalPropertyTypes` requires conditional spread for optional Pi options | Can't pass `undefined` to optional PiProcessOptions fields. Use `...(value && { key: value })` pattern to only include defined values. | 2026-03-23 |
 | 53 | All 17 WS methods have handlers registered in `handlers/session.ts` | Session lifecycle (start/stop/getState/getMessages/getStats), prompting (prompt/steer/followUp/abort), model (setModel/setThinking/getModels), management (new/compact/fork/setName), extension UI (extensionUiResponse). All follow thin bridge pattern. | 2026-03-23 |
-| 54 | `session.start` stops existing session before creating new one | If a WS connection already has a bound session, handleSessionStart stops it first. Prevents orphaned Pi processes. | 2026-03-23 |
+| 54 | `session.start` stops existing session before creating new one | If a WS connection already has a bound session, handleSessionStart stops it first. Prevents orphaned Pi processes. |
+| 55 | Web tsconfig cleaned up — no composite/declaration/references | Same fix as server (MEMORY #31). Workspace packages export `.ts` source directly, so project references are unnecessary. Removed `composite`, `declaration`, `declarationMap`, `references`. | 2026-03-23 |
+| 56 | Zustand 5.0.12 installed in `apps/web` | Needed for store slices (connection, session, messages, models, pendingExtensionUi). | 2026-03-23 |
+| 57 | WsTransport uses variadic args for optional params typing | `request<M>(...args: WsMethodParamsMap[M] extends undefined ? [method: M] : [method: M, params: WsMethodParamsMap[M]])` allows `request("session.stop")` with no params and `request("session.prompt", { message: "hello" })` with required params. | 2026-03-23 |
+| 58 | WsTransport stores push data (not full WsPush envelope) in latestPushByChannel | Listeners receive `WsChannelDataMap[C]` (the data payload), not the full push envelope. Simpler API — subscribers don't need to unwrap. | 2026-03-23 |
+| 59 | WsTransport.onStateChange() for Zustand integration | Separate from push subscriptions. Returns unsubscribe function. Used by the Zustand connection slice to sync transport state. | 2026-03-23 |
+| 60 | Vite dev proxy: `/ws` → `ws://localhost:24242` | Added to vite.config.ts for development. WebSocket connections from the Vite dev server at :5173 are proxied to the PiBun server at :24242. | 2026-03-23 | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -175,7 +181,10 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Dispatch unit tests at `apps/server/src/handlers/dispatch.test.ts` ✅ — 10 tests (welcome push, validation, error handling, handler routing, ID correlation, session.start)
 - WebSocket integration test at `apps/server/src/ws-integration-test.ts` ✅ — full round-trip verified with real Pi process (12 events, text_delta streaming, session start/stop)
 - **Phase 1B COMPLETE** — all items done, exit criteria met
-- Next: Phase 1C — Web UI: Minimal Chat
+- WsTransport class at `apps/web/src/transport.ts` ✅ — typed request/response, push subscriptions, reconnect with backoff, outbound queue, latest-push replay, state change events
+- Zustand 5.0.12 added as dependency ✅
+- Vite dev proxy configured for WebSocket ✅
+- Next: 1C.3-1C.5 — Zustand store slices (connection, session, messages)
 - Pi RPC verified with Pi 0.61.1 — `get_available_models` and `get_state` work, commands use `{"type":"..."}` format
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 

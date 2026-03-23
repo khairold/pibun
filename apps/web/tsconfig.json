@@ -1,9 +1,6 @@
 {
 	"extends": "../../tsconfig.base.json",
 	"compilerOptions": {
-		"composite": true,
-		"declaration": true,
-		"declarationMap": true,
 		"outDir": "./dist",
 		"rootDir": "./src",
 		"jsx": "react-jsx",
@@ -12,6 +9,5 @@
 			"@/*": ["./src/*"]
 		}
 	},
-	"include": ["src"],
-	"references": [{ "path": "../../packages/contracts" }]
+	"include": ["src"]
 }

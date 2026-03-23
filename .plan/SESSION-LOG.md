@@ -413,3 +413,36 @@
 - The server is fully functional and tested. The web UI connects to `ws://localhost:24242`.
 
 ---
+
+## Session 12 — WsTransport + Web Setup Verification (2026-03-23)
+
+**What happened:**
+- Verified existing Vite + React 19 + Tailwind v4 setup builds and typechecks (was scaffolded in Phase 0)
+- Added Zustand 5.0.12 as dependency for state management
+- Cleaned up web tsconfig — removed `composite`, `declaration`, `declarationMap`, `references` (same fix as server, MEMORY #31)
+- Added Vite dev proxy: `/ws` → `ws://localhost:24242` for WebSocket proxying during development
+- Implemented `WsTransport` class in `apps/web/src/transport.ts`:
+  - **Connection lifecycle**: connect, reconnect with exponential backoff (500ms → 8s cap), dispose
+  - **Request/response**: type-safe `request<M extends WsMethod>()` with variadic args for optional params, auto-ID correlation, 60s timeout, pending request map
+  - **Push subscriptions**: `subscribe<C extends WsChannel>()` with typed data payloads, latest-push replay option
+  - **Outbound queue**: messages queued during disconnect, flushed on reconnect
+  - **State tracking**: connecting → open → closed → reconnecting cycle, `onStateChange()` listener for Zustand integration
+  - **Latest push cache**: stores most recent push per channel for `getLatestPush()` and replay
+  - **URL inference**: auto-detects ws/wss from page protocol, configurable via constructor
+
+**Items completed:**
+- [x] 1C.1 — Vite + React 19 + Tailwind v4 setup in `apps/web/`
+- [x] 1C.2 — Implement `WsTransport` class
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1C.3 — Create Zustand store: `connection` slice
+- Then: 1C.4 (session slice), 1C.5 (messages slice), 1C.6 (wire WsTransport → Zustand)
+- Items 1C.3-1C.5 are small store slices — could combine into one session
+- 1C.6 is the critical wiring: pi.event push → state updates (see event→state mapping in WEB_UI.md)
+- The WsTransport is at `apps/web/src/transport.ts` — Zustand store needs to instantiate it and subscribe to state changes + push channels
+- Key: `WsTransport.onStateChange()` feeds the connection slice, `subscribe("pi.event", ...)` feeds the messages slice
+
+---
