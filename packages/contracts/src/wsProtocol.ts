@@ -70,6 +70,12 @@ export const WS_METHODS = {
 	gitDiff: "git.diff",
 	gitLog: "git.log",
 
+	// Terminal integration
+	terminalCreate: "terminal.create",
+	terminalWrite: "terminal.write",
+	terminalResize: "terminal.resize",
+	terminalClose: "terminal.close",
+
 	// App-level (desktop integration)
 	appApplyUpdate: "app.applyUpdate",
 	appCheckForUpdates: "app.checkForUpdates",
@@ -98,6 +104,10 @@ export const WS_CHANNELS = {
 	menuAction: "menu.action",
 	/** App update status from desktop auto-updater. */
 	appUpdate: "app.update",
+	/** Terminal stdout data from a PTY shell session. */
+	terminalData: "terminal.data",
+	/** Terminal exited (process finished). */
+	terminalExit: "terminal.exit",
 } as const;
 
 /** Union of all push channel strings. */
@@ -263,6 +273,48 @@ export interface WsGitLogParams {
 	count?: number;
 }
 
+// ============================================================================
+// Terminal Integration Parameters
+// ============================================================================
+
+/**
+ * Params for `terminal.create` — spawn a new PTY shell session.
+ *
+ * If `cwd` is not provided, inherits from the active Pi session's CWD.
+ */
+export interface WsTerminalCreateParams {
+	/** Working directory for the shell. Falls back to active session CWD. */
+	cwd?: string;
+	/** Initial column count (default: 80). */
+	cols?: number;
+	/** Initial row count (default: 24). */
+	rows?: number;
+}
+
+/** Params for `terminal.write` — write data to terminal stdin. */
+export interface WsTerminalWriteParams {
+	/** Terminal ID returned from `terminal.create`. */
+	terminalId: string;
+	/** Data to write (e.g., keystrokes, pasted text). */
+	data: string;
+}
+
+/** Params for `terminal.resize` — resize terminal PTY dimensions. */
+export interface WsTerminalResizeParams {
+	/** Terminal ID returned from `terminal.create`. */
+	terminalId: string;
+	/** New column count. */
+	cols: number;
+	/** New row count. */
+	rows: number;
+}
+
+/** Params for `terminal.close` — close a terminal and kill the shell process. */
+export interface WsTerminalCloseParams {
+	/** Terminal ID returned from `terminal.create`. */
+	terminalId: string;
+}
+
 /** Params for `app.setWindowTitle` — set the native window title. */
 export interface WsAppSetWindowTitleParams {
 	title: string;
@@ -313,6 +365,10 @@ export interface WsMethodParamsMap {
 	"git.branch": WsGitBranchParams;
 	"git.diff": WsGitDiffParams;
 	"git.log": WsGitLogParams;
+	"terminal.create": WsTerminalCreateParams;
+	"terminal.write": WsTerminalWriteParams;
+	"terminal.resize": WsTerminalResizeParams;
+	"terminal.close": WsTerminalCloseParams;
 	"app.applyUpdate": undefined;
 	"app.checkForUpdates": undefined;
 	"app.openFolderDialog": undefined;
@@ -441,6 +497,17 @@ export interface WsGitLogResult {
 	log: GitLogResult;
 }
 
+// ============================================================================
+// Terminal Integration Results
+// ============================================================================
+
+/** Result for `terminal.create` — the created terminal's ID. */
+export interface WsTerminalCreateResult {
+	terminalId: string;
+	/** PID of the shell process. */
+	pid: number;
+}
+
 /** Result for `app.openFolderDialog` — native folder picker. */
 export interface WsAppOpenFolderDialogResult {
 	/** Selected folder path, or null if the user cancelled. */
@@ -484,6 +551,10 @@ export interface WsMethodResultMap {
 	"git.branch": WsGitBranchResult;
 	"git.diff": WsGitDiffResult;
 	"git.log": WsGitLogResult;
+	"terminal.create": WsTerminalCreateResult;
+	"terminal.write": WsOkResult;
+	"terminal.resize": WsOkResult;
+	"terminal.close": WsOkResult;
 	"app.applyUpdate": WsOkResult;
 	"app.checkForUpdates": WsOkResult;
 	"app.openFolderDialog": WsAppOpenFolderDialogResult;
@@ -566,6 +637,28 @@ export interface WsAppUpdateData {
 	error?: string;
 }
 
+/**
+ * Data for `terminal.data` push — stdout data from a PTY shell.
+ */
+export interface WsTerminalDataPush {
+	/** Which terminal emitted this data. */
+	terminalId: string;
+	/** Raw terminal output (may contain ANSI escape codes). */
+	data: string;
+}
+
+/**
+ * Data for `terminal.exit` push — terminal process exited.
+ */
+export interface WsTerminalExitPush {
+	/** Which terminal exited. */
+	terminalId: string;
+	/** Exit code of the shell process. */
+	exitCode: number;
+	/** Signal that caused exit, if any. */
+	signal?: number | string;
+}
+
 // ============================================================================
 // Channel → Data Type Map
 // ============================================================================
@@ -581,6 +674,8 @@ export interface WsChannelDataMap {
 	"server.error": WsServerErrorData;
 	"menu.action": WsMenuActionData;
 	"app.update": WsAppUpdateData;
+	"terminal.data": WsTerminalDataPush;
+	"terminal.exit": WsTerminalExitPush;
 }
 
 // ============================================================================

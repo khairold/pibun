@@ -40,6 +40,12 @@ import {
 	handleSessionStop,
 	handleSessionSwitchSession,
 } from "./session.js";
+import {
+	handleTerminalClose,
+	handleTerminalCreate,
+	handleTerminalResize,
+	handleTerminalWrite,
+} from "./terminal.js";
 import type { HandlerRegistry } from "./types.js";
 
 export type { AnyWsHandler, HandlerContext, HandlerRegistry, WsHandler } from "./types.js";
@@ -89,6 +95,12 @@ export const handlers: HandlerRegistry = {
 	"project.add": handleProjectAdd,
 	"project.remove": handleProjectRemove,
 	"project.update": handleProjectUpdate,
+
+	// Terminal integration
+	"terminal.create": handleTerminalCreate,
+	"terminal.write": handleTerminalWrite,
+	"terminal.resize": handleTerminalResize,
+	"terminal.close": handleTerminalClose,
 
 	// Git integration (server-side)
 	"git.status": handleGitStatus,

@@ -1,9 +1,9 @@
 # PiBun v2 — Build Plan
 
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
-> **Status:** Phase 3 complete — starting Phase 4
+> **Status:** Phase 4 in progress
 > **Current Phase:** Phase 4 — Terminal Integration
-> **Last Session:** Session 75 — 2026-03-23
+> **Last Session:** Session 76 — 2026-03-23
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -91,10 +91,10 @@
 
 **Goal:** Embedded terminal pane for running commands alongside Pi conversations.
 
-- [ ] 4.1 — Research PTY options for Bun (node-pty, Bun's native PTY if available, or xterm.js with WebSocket bridge)
-- [ ] 4.2 — Server-side terminal manager: spawn shell, pipe stdin/stdout via WebSocket
-- [ ] 4.3 — New WS methods: `terminal.create`, `terminal.write`, `terminal.resize`, `terminal.close`
-- [ ] 4.4 — New WS push channel: `terminal.data` (stdout chunks from shell)
+- [x] 4.1 — Research PTY options for Bun (node-pty, Bun's native PTY if available, or xterm.js with WebSocket bridge)
+- [x] 4.2 — Server-side terminal manager: spawn shell, pipe stdin/stdout via WebSocket
+- [x] 4.3 — New WS methods: `terminal.create`, `terminal.write`, `terminal.resize`, `terminal.close`
+- [x] 4.4 — New WS push channel: `terminal.data` (stdout chunks from shell)
 - [ ] 4.5 — Install `@xterm/xterm` + `@xterm/addon-fit` in apps/web
 - [ ] 4.6 — Build `TerminalPane` component: xterm.js instance, resizable, theme-matched
 - [ ] 4.7 — Layout: terminal as bottom panel (resizable splitter between chat and terminal)

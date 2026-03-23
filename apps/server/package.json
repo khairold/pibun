@@ -6,7 +6,8 @@
 	"exports": {
 		"./server": "./src/server.ts",
 		"./piRpcManager": "./src/piRpcManager.ts",
-		"./projectStore": "./src/projectStore.ts"
+		"./projectStore": "./src/projectStore.ts",
+		"./terminalManager": "./src/terminalManager.ts"
 	},
 	"scripts": {
 		"dev": "bun run --watch src/index.ts",
@@ -15,7 +16,8 @@
 	},
 	"dependencies": {
 		"@pibun/contracts": "workspace:*",
-		"@pibun/shared": "workspace:*"
+		"@pibun/shared": "workspace:*",
+		"bun-pty": "^0.4.8"
 	},
 	"devDependencies": {
 		"@types/bun": "^1.2.10",

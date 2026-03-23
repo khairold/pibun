@@ -9,6 +9,7 @@ import type { WsChannel, WsMethod, WsMethodParamsMap, WsMethodResultMap } from "
 import type { ServerWebSocket } from "bun";
 import type { PiRpcManager } from "../piRpcManager.js";
 import type { ServerHooks, WsConnectionData } from "../server.js";
+import type { TerminalManager } from "../terminalManager.js";
 
 // ============================================================================
 // Handler Context
@@ -35,6 +36,8 @@ export interface HandlerContext {
 	) => void;
 	/** Optional hooks for desktop integration (auto-update, etc.). */
 	hooks: ServerHooks;
+	/** Terminal manager for PTY sessions. May be null if PTY is unavailable. */
+	terminalManager: TerminalManager | null;
 	/**
 	 * Target session ID for the current request.
 	 * Resolved from: request-level `sessionId` → connection's primary `sessionId`.

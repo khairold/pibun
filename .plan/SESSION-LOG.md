@@ -5,6 +5,57 @@
 
 ---
 
+## Session 76 — Phase 4 Terminal PTY research + server-side plumbing (2026-03-23)
+
+**What happened:**
+- Researched PTY options for Bun runtime:
+  - `node-pty@1.1.0`: Native `.node` prebuild loads fine in Bun, but `posix_spawnp` fails with ENXIO (FD handling incompatibility between Bun and Node N-API)
+  - `bun-pty@0.4.8`: Rust shared library via `bun:ffi`, works perfectly. Ships prebuilt binaries for macOS (arm64+x64), Linux (arm64+x64), Windows (x64). API matches node-pty.
+  - Bun FFI direct `openpty`/`forkpty` access: possible but too much low-level work
+  - **Decision: use `bun-pty`** — purpose-built for Bun, cross-platform, correct API
+- Added `bun-pty` dependency to `apps/server`
+- Created `TerminalManager` class at `apps/server/src/terminalManager.ts`:
+  - Maps terminal ID → PTY instance + owner connection ID
+  - Callback-based data/exit event routing
+  - `create()`, `write()`, `resize()`, `close()`, `closeByConnection()`, `closeAll()`
+  - Default shell detection ($SHELL on Unix, %COMSPEC% on Windows)
+- Added 4 terminal WS methods to contracts (`terminal.create/write/resize/close`):
+  - `WsTerminalCreateParams/Result`, `WsTerminalWriteParams`, `WsTerminalResizeParams`, `WsTerminalCloseParams`
+  - All registered in `WsMethodParamsMap` and `WsMethodResultMap`
+- Added 2 terminal push channels to contracts (`terminal.data`, `terminal.exit`):
+  - `WsTerminalDataPush` (terminalId + data string)
+  - `WsTerminalExitPush` (terminalId + exitCode + optional signal)
+- Created handlers in `apps/server/src/handlers/terminal.ts`:
+  - `handleTerminalCreate`, `handleTerminalWrite`, `handleTerminalResize`, `handleTerminalClose`
+  - CWD resolution: explicit param → Pi session CWD → process.cwd()
+- Updated `server.ts`:
+  - `TerminalManager` created in `resolveConfig()`, stored on `ServerConfig`
+  - Data/exit callbacks wired to `sendPush` targeting owning connection
+  - Terminal cleanup on WS disconnect (`closeByConnection`) and server stop (`closeAll`)
+  - `terminalManager` passed through `handleWsMessage` → `HandlerContext`
+- Updated `HandlerContext` with `terminalManager: TerminalManager | null`
+- Added `@pibun/server/terminalManager` subpath export
+- Verified TerminalManager works with manual test: create, write, resize, close — all OK
+
+**Items completed:**
+- [x] 4.1 — Research PTY options for Bun
+- [x] 4.2 — Server-side terminal manager: spawn shell, pipe stdin/stdout via WebSocket
+- [x] 4.3 — New WS methods: `terminal.create`, `terminal.write`, `terminal.resize`, `terminal.close`
+- [x] 4.4 — New WS push channel: `terminal.data` (stdout chunks from shell)
+
+**Issues encountered:**
+- `exactOptionalPropertyTypes` required conditional spread for optional `cols`/`rows` in `handleTerminalCreate` (MEMORY #52 pattern)
+- Biome import ordering: `./terminal.js` must come after `./session.js` alphabetically
+
+**Handoff to next session:**
+- Next: 4.5 — Install `@xterm/xterm` + `@xterm/addon-fit` in apps/web
+- Server-side terminal plumbing is complete — all 4 WS methods + 2 push channels ready
+- Web side needs: xterm.js install, TerminalPane component, layout integration, multiple terminal tabs, CWD inheritance, keyboard shortcuts, native menu
+- Items 4.5–4.11 are all web/desktop side
+- `bun-pty` confirmed working: spawns shell, receives data, resize works, clean exit
+
+---
+
 ## Session 75 — Phase 3 Git Integration Verification (2026-03-23)
 
 **What happened:**

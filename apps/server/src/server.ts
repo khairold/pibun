@@ -18,6 +18,7 @@ import type { WsMethod, WsRequest, WsResponseError, WsResponseOk } from "@pibun/
 import type { Server, ServerWebSocket } from "bun";
 import { type HandlerContext, handlers } from "./handlers/index.js";
 import type { PiRpcManager } from "./piRpcManager.js";
+import { TerminalManager } from "./terminalManager.js";
 
 // ============================================================================
 // Types
@@ -80,6 +81,7 @@ export interface ServerConfig {
 	staticDir: string | null;
 	rpcManager: PiRpcManager;
 	hooks: ServerHooks;
+	terminalManager: TerminalManager;
 }
 
 /** The running PiBun server instance. */
@@ -90,6 +92,8 @@ export interface PiBunServer {
 	connections: Set<ServerWebSocket<WsConnectionData>>;
 	/** Resolved configuration. */
 	config: ServerConfig;
+	/** Terminal manager for PTY sessions. */
+	terminalManager: TerminalManager;
 	/** Gracefully shut down the server. */
 	stop(): Promise<void>;
 }
@@ -137,6 +141,29 @@ export function createServer(options: ServerOptions): PiBunServer {
 	const config = resolveConfig(options);
 	const connections = new Set<ServerWebSocket<WsConnectionData>>();
 	let connectionCounter = 0;
+
+	// Wire terminal data/exit → WS push to owning connection
+	config.terminalManager.setOnData((terminalId, connectionId, data) => {
+		for (const ws of connections) {
+			if (ws.data.id === connectionId) {
+				sendPush(ws, "terminal.data", { terminalId, data });
+				break;
+			}
+		}
+	});
+
+	config.terminalManager.setOnExit((terminalId, connectionId, exitCode, signal) => {
+		for (const ws of connections) {
+			if (ws.data.id === connectionId) {
+				sendPush(ws, "terminal.exit", {
+					terminalId,
+					exitCode,
+					...(signal !== undefined && { signal }),
+				});
+				break;
+			}
+		}
+	});
 
 	const server = Bun.serve<WsConnectionData>({
 		port: config.port,
@@ -207,11 +234,21 @@ export function createServer(options: ServerOptions): PiBunServer {
 			message(ws, message) {
 				// Parse and dispatch the incoming WebSocket message.
 				// Errors are caught and returned as WsResponseError.
-				handleWsMessage(ws, message, config.rpcManager, connections, config.hooks);
+				handleWsMessage(
+					ws,
+					message,
+					config.rpcManager,
+					connections,
+					config.hooks,
+					config.terminalManager,
+				);
 			},
 
 			close(ws, _code, _reason) {
 				connections.delete(ws);
+
+				// Clean up all terminals owned by this connection
+				config.terminalManager.closeByConnection(ws.data.id);
 
 				// Clean up all sessions owned by this connection
 				const ownedSessions = [...ws.data.sessionIds];
@@ -230,7 +267,11 @@ export function createServer(options: ServerOptions): PiBunServer {
 		server,
 		connections,
 		config,
+		terminalManager: config.terminalManager,
 		async stop() {
+			// Close all terminals
+			config.terminalManager.closeAll();
+
 			// Close all WebSocket connections
 			for (const ws of connections) {
 				ws.close(1001, "Server shutting down");
@@ -262,6 +303,7 @@ function handleWsMessage(
 	rpcManager: PiRpcManager,
 	connections: Set<ServerWebSocket<WsConnectionData>>,
 	hooks: ServerHooks,
+	terminalManager: TerminalManager,
 ): void {
 	let requestId = "unknown";
 
@@ -296,6 +338,7 @@ function handleWsMessage(
 			connections,
 			sendPush,
 			hooks,
+			terminalManager,
 			// Prefer request-level sessionId, fall back to connection's primary
 			targetSessionId: requestSessionId ?? ws.data.sessionId,
 		};
@@ -451,5 +494,6 @@ function resolveConfig(options: ServerOptions): ServerConfig {
 		staticDir,
 		rpcManager: options.rpcManager,
 		hooks: options.hooks ?? {},
+		terminalManager: new TerminalManager(),
 	};
 }
