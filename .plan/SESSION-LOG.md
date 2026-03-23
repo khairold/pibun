@@ -327,3 +327,35 @@
 - The WS protocol types are ready for both server (dispatch) and client (transport) consumption
 - `WsTypedRequest<M>` uses conditional params (never for parameterless methods) — useful for the WsTransport `send()` method
 - Server will import `WS_METHODS` const for method routing and type maps for handler signatures
+
+---
+
+## Session 10 — Server Infrastructure: HTTP + WebSocket (2026-03-23)
+
+**What happened:**
+- Created `apps/server/src/server.ts` — Bun HTTP + WebSocket server with `createServer()` factory
+- Implemented `/health` endpoint returning JSON with status, connection count, uptime
+- Implemented static file serving from `apps/web/dist/` with SPA fallback (no-extension paths serve `index.html`), MIME type map, directory traversal protection
+- Implemented WebSocket upgrade handling with per-connection `WsConnectionData` (id, sessionId, connectedAt)
+- Connection tracking via `Set<ServerWebSocket<WsConnectionData>>` with add on open, remove on close
+- Updated `apps/server/src/index.ts` entry point — bootstraps PiRpcManager + server, graceful shutdown on SIGINT/SIGTERM
+- Verified server starts, health endpoint responds, unknown paths return 404, WebSocket connections establish and close cleanly
+
+**Items completed:**
+- [x] 1B.2 — Set up Bun HTTP server with health endpoint (`/health`)
+- [x] 1B.3 — Static file serving (serve `apps/web/dist/` in production)
+- [x] 1B.4 — WebSocket upgrade handling with connection tracking
+
+**Issues encountered:**
+- Bun's `Server` generic requires explicit type parameter — `Server<WsConnectionData>` not just `Server`
+- `server.upgrade()` does NOT accept type arguments — inferred from `Bun.serve<T>()`. Calling `server.upgrade<T>()` causes TS2558.
+- Biome enforces `process.env.KEY` dot notation, not `process.env["KEY"]` (MEMORY #38)
+
+**Handoff to next session:**
+- Next: 1B.5 — Implement request/response dispatch (method string → handler function)
+- `server.ts` has a stub `message()` handler ready for dispatch wiring
+- `WsConnectionData.sessionId` is null until a `session.start` handler binds it
+- The `connections` Set is available for broadcasting (needed for 1B.10 Pi event forwarding)
+- Consider creating `apps/server/src/handlers/` directory for per-domain handler files
+
+---

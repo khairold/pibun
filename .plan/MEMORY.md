@@ -52,6 +52,11 @@
 | 42 | WebSocket protocol types in `packages/contracts/src/wsProtocol.ts` | File contains: `WS_METHODS` + `WS_CHANNELS` const objects, per-method params/result interfaces, `WsMethodParamsMap`/`WsMethodResultMap`/`WsChannelDataMap` type maps, wire types (`WsRequest`, `WsResponse`, `WsPush`), and generic typed variants (`WsTypedRequest<M>`, `WsTypedPush<C>`). Constants use `as const` for literal type inference. | 2026-03-23 |
 | 43 | `WsResponse` discriminated via property presence, not literal discriminant | `WsResponseOk` has `result`, `WsResponseError` has `error`. Narrow with `"error" in resp`. `WsPush` discriminated from responses by `type === "push"`. | 2026-03-23 |
 | 44 | `WsTypedRequest<M>` uses conditional type for optional params | Methods with `undefined` in `WsMethodParamsMap` get `params?: never`, methods with defined params get `params: T`. This makes `send("session.stop")` work without params while requiring params for `send("session.prompt", { message: "..." })`. | 2026-03-23 |
+| 45 | `Server<WsConnectionData>` generic required for Bun's serve() | Bun's `Server` interface requires one generic type argument for WebSocket data. `server.upgrade()` does NOT take a type argument — it's inferred from `Bun.serve<T>()`. | 2026-03-23 |
+| 46 | `createServer()` returns a `PiBunServer` facade with `stop()` method | Factory function pattern — not a class. Returns `{ server, connections, config, stop() }`. The `stop()` method closes all WS connections, then stops the HTTP server. Separates creation from entry-point bootstrap. | 2026-03-23 |
+| 47 | Static file serving uses `Bun.file()` with SPA fallback | For paths with no extension (client routes), falls back to `index.html`. For paths with extension that don't exist, returns 404. Directory traversal prevented by stripping `..` from paths. | 2026-03-23 |
+| 48 | Server config via env vars: `PIBUN_PORT`, `PIBUN_HOST`, `PIBUN_STATIC_DIR` | Defaults: port 24242, hostname "localhost", static dir = `apps/web/dist` relative to server source. Use `process.env.KEY` dot notation (Biome enforces `useLiteralKeys`). | 2026-03-23 |
+| 49 | `WsConnectionData` carries per-connection state on Bun WebSocket `data` field | Fields: `id` (unique conn ID), `sessionId` (bound Pi session, null until session.start), `connectedAt` (timestamp). Set during `server.upgrade()`. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -154,7 +159,9 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Integration test at `apps/server/src/integration-test.ts` ✅ — verified full Pi RPC round-trip with real Pi process
 - **Phase 1A COMPLETE** — all items done, exit criteria met
 - WebSocket protocol types defined in `packages/contracts/src/wsProtocol.ts` ✅ — 17 methods, 4 push channels, type maps, wire types, typed generics
-- Next: Phase 1B.2 — Set up Bun HTTP server with health endpoint
+- HTTP server + WebSocket server in `apps/server/src/server.ts` ✅ — health endpoint, static file serving, WebSocket upgrade with connection tracking
+- Entry point updated in `apps/server/src/index.ts` ✅ — creates PiRpcManager, starts server, graceful shutdown on SIGINT/SIGTERM
+- Next: Phase 1B.5 — Implement request/response dispatch
 - Pi RPC verified with Pi 0.61.1 — `get_available_models` and `get_state` work, commands use `{"type":"..."}` format
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 

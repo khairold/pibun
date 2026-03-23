@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 1A COMPLETE — moving to Phase 1B
+> **Status:** Phase 1B in progress — server infrastructure built
 > **Current Phase:** 1B
-> **Last Session:** 9 (2026-03-23)
+> **Last Session:** 10 (2026-03-23)
 
 ---
 
@@ -78,9 +78,9 @@
 **Goal:** Browser can connect via WebSocket and interact with Pi through the server.
 
 - [x] 1B.1 — Define WebSocket protocol types in `packages/contracts/` (WsRequest, WsResponse, WsPush, method strings, push channels)
-- [ ] 1B.2 — Set up Bun HTTP server with health endpoint (`/health`)
-- [ ] 1B.3 — Static file serving (serve `apps/web/dist/` in production)
-- [ ] 1B.4 — WebSocket upgrade handling with connection tracking
+- [x] 1B.2 — Set up Bun HTTP server with health endpoint (`/health`)
+- [x] 1B.3 — Static file serving (serve `apps/web/dist/` in production)
+- [x] 1B.4 — WebSocket upgrade handling with connection tracking
 - [ ] 1B.5 — Implement request/response dispatch (method string → handler function)
 - [ ] 1B.6 — Implement `session.start` → spawn Pi RPC via PiRpcManager
 - [ ] 1B.7 — Implement `session.prompt` → forward to Pi process stdin
