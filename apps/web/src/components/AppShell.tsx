@@ -16,6 +16,7 @@ import { Composer } from "@/components/Composer";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { ForkDialog } from "@/components/ForkDialog";
+import { GitPanel } from "@/components/GitPanel";
 import { GitStatusBar } from "@/components/GitStatusBar";
 import { ModelSelector } from "@/components/ModelSelector";
 import { SessionStats } from "@/components/SessionStats";
@@ -125,6 +126,9 @@ export function AppShell() {
 						<ForkDialog />
 					</div>
 				</div>
+
+				{/* Git changed files panel — collapsible between toolbar and chat */}
+				<GitPanel />
 
 				<ChatView />
 

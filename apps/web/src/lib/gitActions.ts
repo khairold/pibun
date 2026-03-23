@@ -44,3 +44,32 @@ export async function fetchGitStatus(): Promise<void> {
 		store.resetGit();
 	}
 }
+
+/**
+ * Fetch the diff for a specific file and update the store.
+ *
+ * Called when the user clicks a file in the GitChangedFiles panel.
+ * If the file is already selected, clicking again deselects it.
+ *
+ * @param filePath - The file path to diff (relative to repo root).
+ */
+export async function fetchGitDiff(filePath: string): Promise<void> {
+	const store = useStore.getState();
+
+	// Toggle off if clicking the already-selected file
+	if (store.selectedDiffPath === filePath) {
+		store.setSelectedDiff(null, null);
+		return;
+	}
+
+	store.setDiffLoading(true);
+	store.setSelectedDiff(filePath, null);
+
+	try {
+		const result = await getTransport().request("git.diff", { path: filePath });
+		store.setSelectedDiff(filePath, result.diff.diff);
+	} catch (err) {
+		console.warn("[gitActions] Failed to fetch diff for", filePath, err);
+		store.setSelectedDiff(null, null);
+	}
+}

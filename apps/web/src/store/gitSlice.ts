@@ -17,6 +17,10 @@ export const createGitSlice: StateCreator<AppStore, [], [], GitSlice> = (set) =>
 	gitIsRepo: false,
 	gitLastFetched: null,
 	gitLoading: false,
+	gitPanelOpen: false,
+	selectedDiffPath: null,
+	selectedDiffContent: null,
+	diffLoading: false,
 
 	// Actions
 	setGitStatus: (
@@ -44,5 +48,23 @@ export const createGitSlice: StateCreator<AppStore, [], [], GitSlice> = (set) =>
 			gitIsRepo: false,
 			gitLastFetched: null,
 			gitLoading: false,
+			gitPanelOpen: false,
+			selectedDiffPath: null,
+			selectedDiffContent: null,
+			diffLoading: false,
 		}),
+
+	toggleGitPanel: () => set((state) => ({ gitPanelOpen: !state.gitPanelOpen })),
+
+	setGitPanelOpen: (open: boolean) =>
+		set({
+			gitPanelOpen: open,
+			// Clear selected diff when closing panel
+			...(open ? {} : { selectedDiffPath: null, selectedDiffContent: null }),
+		}),
+
+	setSelectedDiff: (path: string | null, content: string | null) =>
+		set({ selectedDiffPath: path, selectedDiffContent: content, diffLoading: false }),
+
+	setDiffLoading: (loading: boolean) => set({ diffLoading: loading }),
 });

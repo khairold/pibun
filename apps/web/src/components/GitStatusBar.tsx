@@ -5,14 +5,13 @@
  * changed files (if any). Only renders when the session's CWD is inside
  * a git repository.
  *
- * Clicking the changed files badge could open the git panel (wired in 3.9).
- * For now it's a static indicator.
+ * Clicking the changed files badge toggles the git panel (GitPanel).
+ * Ctrl+G also toggles the panel (wired in 3.9).
  */
 
 import { cn } from "@/lib/cn";
-import { fetchGitStatus } from "@/lib/gitActions";
 import { useStore } from "@/store";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 
 export function GitStatusBar() {
 	const gitIsRepo = useStore((s) => s.gitIsRepo);
@@ -20,23 +19,17 @@ export function GitStatusBar() {
 	const gitChangedFiles = useStore((s) => s.gitChangedFiles);
 	const gitIsDirty = useStore((s) => s.gitIsDirty);
 	const gitLoading = useStore((s) => s.gitLoading);
+	const gitPanelOpen = useStore((s) => s.gitPanelOpen);
 	const connectionStatus = useStore((s) => s.connectionStatus);
 	const sessionId = useStore((s) => s.sessionId);
-
-	const [isRefreshing, setIsRefreshing] = useState(false);
+	const toggleGitPanel = useStore((s) => s.toggleGitPanel);
 
 	const isConnected = connectionStatus === "open";
 	const hasSession = sessionId !== null;
 
-	const handleRefresh = useCallback(async () => {
-		if (isRefreshing) return;
-		setIsRefreshing(true);
-		try {
-			await fetchGitStatus();
-		} finally {
-			setIsRefreshing(false);
-		}
-	}, [isRefreshing]);
+	const handleTogglePanel = useCallback(() => {
+		toggleGitPanel();
+	}, [toggleGitPanel]);
 
 	// Don't render if not connected, no session, or not a git repo
 	if (!isConnected || !hasSession || !gitIsRepo) return null;
@@ -46,13 +39,20 @@ export function GitStatusBar() {
 	return (
 		<div className="flex items-center gap-1.5">
 			{/* Branch indicator */}
-			<div
+			<button
+				type="button"
+				onClick={handleTogglePanel}
 				className={cn(
 					"flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition-colors",
 					"text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300",
+					gitPanelOpen && "bg-neutral-800 text-neutral-300",
 					gitLoading && "animate-pulse",
 				)}
-				title={gitBranch ? `Branch: ${gitBranch}` : "Detached HEAD"}
+				title={
+					gitBranch
+						? `Branch: ${gitBranch} — click to toggle git panel`
+						: "Detached HEAD — click to toggle git panel"
+				}
 			>
 				{/* Git branch icon */}
 				<svg
@@ -70,20 +70,19 @@ export function GitStatusBar() {
 					/>
 				</svg>
 				<span className="max-w-[120px] truncate">{gitBranch ?? "HEAD"}</span>
-			</div>
+			</button>
 
-			{/* Changed files count badge */}
+			{/* Changed files count badge — click toggles git panel */}
 			{gitIsDirty && changedCount > 0 && (
 				<button
 					type="button"
-					onClick={handleRefresh}
-					disabled={isRefreshing}
+					onClick={handleTogglePanel}
 					className={cn(
 						"flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] tabular-nums transition-colors",
 						"text-amber-500/80 hover:bg-neutral-800 hover:text-amber-400",
-						isRefreshing && "animate-pulse",
+						gitPanelOpen && "bg-neutral-800 text-amber-400",
 					)}
-					title={`${String(changedCount)} changed file${changedCount === 1 ? "" : "s"} — click to refresh`}
+					title={`${String(changedCount)} changed file${changedCount === 1 ? "" : "s"} — click to toggle git panel`}
 				>
 					{/* Modified file icon */}
 					<svg

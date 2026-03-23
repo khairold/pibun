@@ -5,6 +5,37 @@
 
 ---
 
+## Session 72 — GitChangedFiles panel + diff preview (2026-03-23)
+
+**What happened:**
+- Extended `GitSlice` in Zustand store with panel + diff state: `gitPanelOpen`, `selectedDiffPath`, `selectedDiffContent`, `diffLoading`, plus actions `toggleGitPanel()`, `setGitPanelOpen()`, `setSelectedDiff()`, `setDiffLoading()`. `resetGit()` also clears panel/diff state.
+- Added `fetchGitDiff(filePath)` to `gitActions.ts` — fetches diff for a specific file via `git.diff` WS method. Supports toggle behavior (clicking same file deselects it). Silent on failure.
+- Created `GitPanel.tsx` — collapsible panel between toolbar and ChatView in AppShell:
+  - Header: git icon, "Changed Files" label with count badge, refresh button, close button
+  - Left: 256px file list with status badges (M/A/D/R/C/?/!) — color-coded, memoized `FileItem` components using `<button>` elements for a11y
+  - Right: inline diff preview with color-coded lines (+green, -red, @@blue), loading spinner, empty states
+  - Capped at `max-h-[40vh]` to not overwhelm the chat area
+- Updated `GitStatusBar` — branch indicator and changed files badge now toggle the git panel instead of just refreshing. Active state highlighted.
+- Wired `GitPanel` into `AppShell` between toolbar `<div>` and `<ChatView>`.
+
+**Items completed:**
+- [x] 3.6 — `GitChangedFiles` panel: list of changed files with status badges (M/A/D/?), click to view diff
+
+**Issues encountered:**
+- `WsGitDiffResult` wraps `GitDiffResult`, so result is `result.diff.diff` not `result.diff` — fixed after first typecheck
+- Biome a11y: `div role="listbox/option"` flagged — switched to `<nav>` + `<button aria-pressed>` pattern
+- Biome style: string concatenation flagged — switched to template literal
+
+**Handoff to next session:**
+- Next: 3.7 — `DiffViewer` component: side-by-side or unified diff view with syntax highlighting (reuse Shiki)
+- The current `DiffPreview` in `GitPanel.tsx` renders raw colored text — 3.7 should replace it with Shiki-based syntax highlighting. The `DiffPreview` function is self-contained and easy to swap out.
+- The `selectedDiffContent` in the store contains raw unified diff text from `git diff`
+- Shiki is already available via `lib/highlighter.ts` (MEMORY #89-90) — reuse the singleton
+- Consider: unified view (simpler, one column) vs side-by-side (more complex but more useful). Unified is likely sufficient for v1.
+- The `DiffViewer` component can either be a direct replacement for `DiffPreview` inside `GitPanel`, or extracted as a standalone component for reuse in the parking lot "Diff review mode" feature
+
+---
+
 ## Session 71 — GitStatusBar + auto-refresh (2026-03-23)
 
 **What happened:**

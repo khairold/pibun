@@ -296,6 +296,14 @@ export interface GitSlice {
 	gitLastFetched: number | null;
 	/** True while fetching git status. */
 	gitLoading: boolean;
+	/** Whether the git changed files panel is open. */
+	gitPanelOpen: boolean;
+	/** Path of the file currently selected for diff viewing, null if none. */
+	selectedDiffPath: string | null;
+	/** Raw unified diff text for the selected file, null if not loaded. */
+	selectedDiffContent: string | null;
+	/** True while fetching a file diff. */
+	diffLoading: boolean;
 
 	/** Set full git status from a git.status response. */
 	setGitStatus: (
@@ -308,6 +316,14 @@ export interface GitSlice {
 	setGitLoading: (loading: boolean) => void;
 	/** Reset all git state to initial values (e.g., on session change). */
 	resetGit: () => void;
+	/** Toggle the git panel open/closed. */
+	toggleGitPanel: () => void;
+	/** Set git panel open state explicitly. */
+	setGitPanelOpen: (open: boolean) => void;
+	/** Set the selected file diff (path + content). */
+	setSelectedDiff: (path: string | null, content: string | null) => void;
+	/** Set the diff loading state. */
+	setDiffLoading: (loading: boolean) => void;
 }
 
 /** Tabs state — multi-session tab management. */
