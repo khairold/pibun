@@ -13,6 +13,7 @@
 	},
 	"dependencies": {
 		"@pibun/contracts": "workspace:*",
+		"@pibun/server": "workspace:*",
 		"electrobun": "^1.16.0"
 	},
 	"devDependencies": {

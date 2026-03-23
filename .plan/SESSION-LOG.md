@@ -1277,3 +1277,31 @@
 - After 2A.2, 2A.3 adds health check before opening the window
 
 ---
+
+## Session 37 — Desktop Server Embedding (2026-03-23)
+
+**What happened:**
+- Implemented 2A.2: Desktop main process finds available port and starts embedded PiBun server
+- Added subpath exports to `apps/server/package.json` (`./server` → `src/server.ts`, `./piRpcManager` → `src/piRpcManager.ts`)
+- Added `@pibun/server` as workspace dependency in `apps/desktop/package.json`
+- Rewrote `apps/desktop/src/bun/index.ts`:
+  - `startServer()` function creates PiRpcManager + calls createServer with `port: 0`
+  - OS assigns available port; actual port read from `pibunServer.server.port`
+  - Server runs in-process (same Bun event loop as Electrobun main process)
+  - Static dir resolved relative to source file (`apps/web/dist`)
+  - BrowserWindow URL set to `http://localhost:{port}`
+- Fixed type error: `sessionListing.ts` used `for await...of stream` which breaks under desktop's `lib: ["ESNext", "DOM"]` (DOM `ReadableStream` lacks `[Symbol.asyncIterator]`). Replaced with `Bun.file().slice(0, 4096).text()` — more efficient for reading just the first line anyway
+
+**Items completed:**
+- [x] 2A.2 — Main process: find available port, start PiBun server
+
+**Issues encountered:**
+- TS2504 on `ReadableStream` async iteration when desktop processes server source — DOM lib overrides Bun's augmented `ReadableStream` type. Fixed by switching to `Blob.slice().text()` approach.
+
+**Handoff to next session:**
+- Next: 2A.3 — Wait for server health check, then open native webview at localhost URL
+- Currently the BrowserWindow opens immediately — should wait until `/health` returns 200
+- Consider polling with backoff, or a simple loop with `fetch()` + `setTimeout`
+- 4 items remaining in Phase 2A (2A.3–2A.6)
+
+---

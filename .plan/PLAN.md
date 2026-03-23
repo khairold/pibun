@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 2A in progress — 2A.1 complete, next 2A.2.
+> **Status:** Phase 2A in progress — 2A.1–2A.2 complete, next 2A.3.
 > **Current Phase:** 2A
-> **Last Session:** 36 (2026-03-23)
+> **Last Session:** 37 (2026-03-23)
 
 ---
 
@@ -154,7 +154,7 @@
 **Goal:** Desktop app opens and loads the web app in a native webview.
 
 - [x] 2A.1 — Electrobun project setup (`electrobun.config.ts`, source structure)
-- [ ] 2A.2 — Main process: find available port, start PiBun server
+- [x] 2A.2 — Main process: find available port, start PiBun server
 - [ ] 2A.3 — Wait for server health check, then open native webview at localhost URL
 - [ ] 2A.4 — Window lifecycle (open, close, remember size/position via localStorage or config)
 - [ ] 2A.5 — Shutdown: close webview → stop server → stop all Pi processes → exit

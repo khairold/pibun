@@ -31,44 +31,35 @@ interface SessionHeader {
 
 /**
  * Read the first line of a file and parse it as JSON.
+ *
+ * Uses `Bun.file().slice()` to read only the first 4KB — efficient for
+ * large session files (no full read). The session header line is always
+ * well under 4KB. Avoids `ReadableStream` async iteration which has type
+ * compatibility issues across different tsconfig `lib` settings.
+ *
  * Returns null if the file can't be read or parsed.
  */
 async function readFirstLine(filePath: string): Promise<SessionHeader | null> {
 	try {
 		const file = Bun.file(filePath);
-		const stream = file.stream();
-		const decoder = new TextDecoder();
-		let buffer = "";
+		// Read first 4KB — more than enough for the session header line
+		const slice = file.slice(0, 4096);
+		const text = await slice.text();
 
-		for await (const chunk of stream) {
-			buffer += decoder.decode(chunk, { stream: true });
-			const newlineIdx = buffer.indexOf("\n");
-			if (newlineIdx !== -1) {
-				const line = buffer.slice(0, newlineIdx).replace(/\r$/, "");
-				const parsed: unknown = JSON.parse(line);
-				if (
-					parsed !== null &&
-					typeof parsed === "object" &&
-					"type" in parsed &&
-					(parsed as { type: string }).type === "session"
-				) {
-					return parsed as SessionHeader;
-				}
-				return null;
-			}
-		}
+		const newlineIdx = text.indexOf("\n");
+		const firstLine =
+			newlineIdx !== -1 ? text.slice(0, newlineIdx).replace(/\r$/, "") : text.trim();
 
-		// File has no newline — try parsing the whole buffer
-		if (buffer.trim()) {
-			const parsed: unknown = JSON.parse(buffer.trim());
-			if (
-				parsed !== null &&
-				typeof parsed === "object" &&
-				"type" in parsed &&
-				(parsed as { type: string }).type === "session"
-			) {
-				return parsed as SessionHeader;
-			}
+		if (!firstLine) return null;
+
+		const parsed: unknown = JSON.parse(firstLine);
+		if (
+			parsed !== null &&
+			typeof parsed === "object" &&
+			"type" in parsed &&
+			(parsed as { type: string }).type === "session"
+		) {
+			return parsed as SessionHeader;
 		}
 		return null;
 	} catch {

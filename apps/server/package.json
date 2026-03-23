@@ -3,6 +3,10 @@
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
+	"exports": {
+		"./server": "./src/server.ts",
+		"./piRpcManager": "./src/piRpcManager.ts"
+	},
 	"scripts": {
 		"dev": "bun run --watch src/index.ts",
 		"build": "bun build src/index.ts --outdir dist --target bun",

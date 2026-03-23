@@ -12,6 +12,9 @@
  * @see docs/DESKTOP.md — Desktop integration plan
  */
 
+import { resolve } from "node:path";
+import { PiRpcManager } from "@pibun/server/piRpcManager";
+import { type PiBunServer, createServer } from "@pibun/server/server";
 import { BrowserWindow } from "electrobun/bun";
 
 // ============================================================================
@@ -22,21 +25,70 @@ const APP_TITLE = "PiBun";
 const DEFAULT_WIDTH = 1200;
 const DEFAULT_HEIGHT = 800;
 
+// ============================================================================
+// Static Files
+// ============================================================================
+
 /**
- * Default server URL. In production, the main process will start the server
- * on a random port and update this. For now (2A.1 scaffold), use the
- * default dev server port.
+ * Path to the web app's built output directory.
+ *
+ * In the monorepo dev layout:
+ *   apps/desktop/src/bun/index.ts → ../../../../apps/web/dist
+ *
+ * Note: For Electrobun production builds (Phase 2C), the static dir
+ * will need to be resolved differently (bundled alongside the app).
  */
-const SERVER_URL = "http://localhost:24242";
+const WEB_DIST_DIR = resolve(import.meta.dir, "../../../../apps/web/dist");
+
+// ============================================================================
+// Start Embedded Server
+// ============================================================================
+
+/**
+ * Start the PiBun server in-process on an OS-assigned available port.
+ *
+ * The server is embedded in the same Bun process as the Electrobun main
+ * process — no child process spawning needed. PiRpcManager and the
+ * HTTP/WebSocket server share the same event loop.
+ *
+ * @returns The running server instance and the localhost URL.
+ */
+function startServer(): { server: PiBunServer; url: string } {
+	const rpcManager = new PiRpcManager();
+
+	const server = createServer({
+		port: 0, // Let the OS assign an available port
+		hostname: "localhost",
+		staticDir: WEB_DIST_DIR,
+		rpcManager,
+	});
+
+	// Bun.serve() with port 0 assigns a random available port.
+	// Read the actual port from the underlying Bun server instance.
+	const port = server.server.port;
+	const url = `http://localhost:${port}`;
+
+	return { server, url };
+}
+
+const { server: pibunServer, url: serverUrl } = startServer();
+
+console.log(`${APP_TITLE} server started on ${serverUrl}`);
+
+if (pibunServer.config.staticDir) {
+	console.log(`Serving static files from ${pibunServer.config.staticDir}`);
+} else {
+	console.log("No static directory found — web app may not be built yet");
+}
 
 // ============================================================================
 // Main Window
 // ============================================================================
 
-// biome-ignore lint/correctness/noUnusedVariables: retained for window lifecycle (2A.4)
+// biome-ignore lint/correctness/noUnusedVariables: retained for window lifecycle (2A.4) and shutdown (2A.5)
 const mainWindow = new BrowserWindow({
 	title: APP_TITLE,
-	url: SERVER_URL,
+	url: serverUrl,
 	frame: {
 		width: DEFAULT_WIDTH,
 		height: DEFAULT_HEIGHT,
@@ -45,5 +97,4 @@ const mainWindow = new BrowserWindow({
 	},
 });
 
-console.log(`${APP_TITLE} desktop app started`);
-console.log(`Loading ${SERVER_URL}`);
+console.log(`Loading ${serverUrl}`);

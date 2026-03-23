@@ -157,6 +157,10 @@
 | 145 | Desktop tsconfig disables `exactOptionalPropertyTypes` for Electrobun compat | Electrobun distributes raw `.ts` source files (not `.d.ts`), so `skipLibCheck` doesn't help. Electrobun's internal code has type conflicts with `exactOptionalPropertyTypes: true`. Disabled only in desktop package — other packages remain strict. | 2026-03-23 |
 | 146 | `src/types.d.ts` declares `three` module for Electrobun's WGPU dependency | Electrobun imports `three` in its WGPUView module. We don't use WGPU but TS processes the import. Ambient `declare module "three"` avoids needing `@types/three` as a dependency. | 2026-03-23 |
 | 147 | Desktop scripts: `electrobun dev` (start), `electrobun dev --watch` (dev), `electrobun build` (build) | Standard Electrobun CLI commands. `dev:desktop` added to root package.json for `turbo run dev --filter=@pibun/desktop`. | 2026-03-23 |
+| 148 | Desktop embeds server in-process — no child process spawning | Desktop imports `createServer` and `PiRpcManager` from `@pibun/server` subpath exports. Server runs in the same Bun event loop as the Electrobun main process. Simpler than child process, no IPC needed for server control. | 2026-03-23 |
+| 149 | Server package has subpath exports: `./server` and `./piRpcManager` | Added to `apps/server/package.json` `exports` field. No default export (`.`) because `src/index.ts` is a side-effectful entry point. Desktop imports individual modules. Same pattern as `@pibun/shared/jsonl`. | 2026-03-23 |
+| 150 | Desktop uses `port: 0` for OS-assigned available port | `Bun.serve({ port: 0 })` assigns a random available port. Actual port read from `pibunServer.server.port`. Avoids port conflicts with standalone server or other apps. | 2026-03-23 |
+| 151 | `sessionListing.ts` uses `Bun.file().slice()` instead of `ReadableStream` async iteration | Original `for await...of stream` pattern caused TS2504 when desktop (with `lib: ["ESNext", "DOM"]`) processed server source. DOM `ReadableStream` lacks `[Symbol.asyncIterator]()`. Fix: `file.slice(0, 4096).text()` reads first 4KB efficiently without streaming. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -303,7 +307,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Responsive sidebar (1D.20) complete — UiSlice, overlay on mobile, inline on desktop, Ctrl/Cmd+B toggle, hamburger button in toolbar, backdrop click/Escape close, auto-close on session switch (mobile), resize listener syncs state across breakpoint
 - Phase 2A started — Electrobun 1.16.0 installed, project structure set up
 - 2A.1 complete — `electrobun.config.ts`, `src/bun/index.ts`, updated package.json/tsconfig.json
-- Next: 2A.2 — Main process: find available port, start PiBun server
+- 2A.2 complete — Desktop embeds server in-process, `port: 0` for available port, `@pibun/server` subpath exports added
+- Next: 2A.3 — Wait for server health check, then open native webview at localhost URL
 
 ## Gotchas & Warnings
 
@@ -316,6 +321,7 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - **Pi RPC command field**: Commands sent TO Pi use `"type"` field. Responses FROM Pi have `"type": "response"` and `"command": "..."` field. Don't confuse the two.
 - **Pi auto-session**: Pi creates a session file on startup even without explicit session commands. Session path encodes the CWD.
 - **Electrobun distributes raw .ts files**: Can't use `skipLibCheck` to suppress errors in Electrobun's source. Must disable `exactOptionalPropertyTypes` in desktop tsconfig. Also needs `declare module "three"` for its WGPU dependency.
+- **DOM lib + ReadableStream async iteration**: Desktop tsconfig has `lib: ["ESNext", "DOM"]`. The DOM `ReadableStream` type lacks `[Symbol.asyncIterator]()` (Bun's `bun-types` augments it, but DOM lib overrides). Avoid `for await...of` on `ReadableStream` in code shared with desktop. Use `getReader()` or `Blob.slice().text()` instead.
 
 ## Technical Context
 
