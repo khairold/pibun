@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 0 in progress (docs complete, scaffold pending)
+> **Status:** Phase 0 in progress (root config done, package scaffolds pending)
 > **Current Phase:** 0
-> **Last Session:** —
+> **Last Session:** 1 (2026-03-23)
 
 ---
 
@@ -38,10 +38,10 @@
 - [x] 0.5 — Document desktop plan (DESKTOP.md)
 - [x] 0.6 — Document roadmap (ROADMAP.md)
 - [x] 0.7 — Set up agent system (.plan/, .pi/, .agents/, CLAUDE.md)
-- [ ] 0.8 — Initialize Bun workspace root (package.json with workspaces, bun install)
-- [ ] 0.9 — Set up Turbo for build orchestration (turbo.json with build/dev/typecheck/lint pipelines)
-- [ ] 0.10 — Set up base TypeScript config (tsconfig.base.json — strict, Bun types, path aliases)
-- [ ] 0.11 — Set up Biome for lint + format (biome.json)
+- [x] 0.8 — Initialize Bun workspace root (package.json with workspaces, bun install)
+- [x] 0.9 — Set up Turbo for build orchestration (turbo.json with build/dev/typecheck/lint pipelines)
+- [x] 0.10 — Set up base TypeScript config (tsconfig.base.json — strict, Bun types, path aliases)
+- [x] 0.11 — Set up Biome for lint + format (biome.json)
 - [ ] 0.12 — Create `packages/contracts/` scaffold (package.json, tsconfig.json, empty src/index.ts)
 - [ ] 0.13 — Create `packages/shared/` scaffold (package.json, tsconfig.json, empty src/)
 - [ ] 0.14 — Create `apps/server/` scaffold (package.json, tsconfig.json, empty src/index.ts)

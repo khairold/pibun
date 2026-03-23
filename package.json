@@ -1,0 +1,22 @@
+{
+	"name": "@pibun/monorepo",
+	"private": true,
+	"packageManager": "bun@1.2.21",
+	"workspaces": ["apps/*", "packages/*"],
+	"type": "module",
+	"scripts": {
+		"build": "turbo run build",
+		"dev": "turbo run dev",
+		"dev:server": "turbo run dev --filter=@pibun/server",
+		"dev:web": "turbo run dev --filter=@pibun/web",
+		"typecheck": "turbo run typecheck",
+		"lint": "biome check .",
+		"format": "biome format --write ."
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"turbo": "^2.4.4",
+		"typescript": "^5.8.2"
+	},
+	"trustedDependencies": ["@biomejs/biome"]
+}

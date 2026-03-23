@@ -23,6 +23,10 @@
 | 13 | steer vs follow_up: two different queue modes during streaming | `steer` — delivered after current turn's tool calls finish (agent processes immediately). `follow_up` — delivered only after agent fully stops (queued for next turn). Both set `streamingBehavior` on the prompt command. | 2026-03-23 |
 | 14 | Extension UI requests BLOCK until response | `select`, `confirm`, `input`, `editor` dialogs block Pi until we send `extension_ui_response`. Fire-and-forget types (`notify`, `setStatus`, `setWidget`) don't need response. Must render dialogs promptly. | 2026-03-23 |
 | 15 | Desktop is Phase 2 — web must work fully first | Server + web app must be stable and feature-complete before Electrobun wrapping begins. Browser-first development. | 2026-03-23 |
+| 16 | Turbo 2.8+ requires `packageManager` field in root package.json | Without it, `turbo run` fails with "Could not resolve workspaces". Added `"packageManager": "bun@1.2.21"`. | 2026-03-23 |
+| 17 | Biome formatter uses tabs, double quotes, semicolons | Configured in biome.json. All JSON and TS files must be tab-indented. Run `bun run format` after creating files written with spaces. | 2026-03-23 |
+| 18 | `lint` runs Biome at root level, not per-package via Turbo | `bun run lint` = `biome check .` at monorepo root. Biome handles all file discovery. No `lint` task in turbo.json. `typecheck` still runs per-package via Turbo. | 2026-03-23 |
+| 19 | Biome needs `bun pm trust @biomejs/biome` after first install | Bun blocks postinstall scripts by default. Biome's postinstall downloads the platform-specific binary. Must trust it. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -132,7 +136,9 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 
 - **Project dir:** `/Users/khairold/Pi/pibun/`
 - **GitHub repo:** TBD
-- **Build command:** `bun run build` (once monorepo is set up)
-- **Typecheck:** `bun run typecheck`
-- **Lint:** `bun run lint`
+- **Build command:** `bun run build` (once workspace packages exist)
+- **Typecheck:** `bun run typecheck` (via Turbo, per-package `tsc --noEmit`)
+- **Lint:** `bun run lint` (Biome at root, checks all files)
+- **Format:** `bun run format` (Biome auto-fix, tabs)
 - **Dev server:** `bun run dev` (once implemented)
+- **Installed versions:** Bun 1.2.21, Turbo 2.8.20, Biome 1.9.4, TypeScript 5.9.3
