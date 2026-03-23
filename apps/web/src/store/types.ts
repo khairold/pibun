@@ -65,11 +65,17 @@ export interface ConnectionSlice {
 	connectionStatus: TransportState;
 	/** Current reconnection attempt number (0 when connected). */
 	reconnectAttempt: number;
+	/** Last error message to display to the user, null when no error. */
+	lastError: string | null;
 
 	/** Update the connection status. */
 	setConnectionStatus: (status: TransportState) => void;
 	/** Update the reconnection attempt counter. */
 	setReconnectAttempt: (attempt: number) => void;
+	/** Set an error message to display. */
+	setLastError: (error: string) => void;
+	/** Clear the displayed error. */
+	clearLastError: () => void;
 }
 
 /** Session state — Pi agent session info. */

@@ -14,6 +14,12 @@ import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import { type KeyboardEvent, useCallback, useRef, useState } from "react";
 
+/** Extract a user-friendly error message. */
+function errorMessage(err: unknown): string {
+	if (err instanceof Error) return err.message;
+	return String(err);
+}
+
 /** Maximum textarea height in pixels before scrolling. */
 const MAX_TEXTAREA_HEIGHT = 200;
 
@@ -26,6 +32,8 @@ export function Composer() {
 	const [value, setValue] = useState("");
 	const [isSending, setIsSending] = useState(false);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+	const setLastError = useStore((s) => s.setLastError);
 
 	const isConnected = connectionStatus === "open";
 	const canSend = isConnected && value.trim().length > 0 && !isSending;
@@ -48,9 +56,10 @@ export function Composer() {
 			return true;
 		} catch (err) {
 			console.error("[Composer] Failed to start session:", err);
+			setLastError(`Failed to start session: ${errorMessage(err)}`);
 			return false;
 		}
-	}, [sessionId, setSessionId]);
+	}, [sessionId, setSessionId, setLastError]);
 
 	/** Send the current message as a prompt. */
 	const handleSend = useCallback(async () => {
@@ -74,10 +83,11 @@ export function Composer() {
 			});
 		} catch (err) {
 			console.error("[Composer] Failed to send prompt:", err);
+			setLastError(`Failed to send message: ${errorMessage(err)}`);
 		} finally {
 			setIsSending(false);
 		}
-	}, [value, isSending, ensureSession]);
+	}, [value, isSending, ensureSession, setLastError]);
 
 	/** Abort the currently streaming response. */
 	const handleAbort = useCallback(async () => {
@@ -85,8 +95,9 @@ export function Composer() {
 			await getTransport().request("session.abort");
 		} catch (err) {
 			console.error("[Composer] Failed to abort:", err);
+			setLastError(`Failed to abort: ${errorMessage(err)}`);
 		}
-	}, []);
+	}, [setLastError]);
 
 	/** Handle keyboard events: Enter to send, Shift+Enter for newline. */
 	const handleKeyDown = useCallback(

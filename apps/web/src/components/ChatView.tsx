@@ -8,8 +8,8 @@
  * - ToolResultMessage — tool output (collapsible for long content)
  * - SystemMessage — compaction/retry notices (centered dividers)
  *
- * Empty state shows a prompt to start a conversation.
- * Auto-scroll behavior will be added in 1C.11.
+ * Auto-scrolls to bottom on new content when user is at/near bottom.
+ * Shows a floating "↓ New messages" button when user has scrolled up.
  */
 
 import { AssistantMessage } from "@/components/chat/AssistantMessage";
@@ -17,6 +17,8 @@ import { SystemMessage } from "@/components/chat/SystemMessage";
 import { ToolCallMessage } from "@/components/chat/ToolCallMessage";
 import { ToolResultMessage } from "@/components/chat/ToolResultMessage";
 import { UserMessage } from "@/components/chat/UserMessage";
+import { useAutoScroll } from "@/hooks/useAutoScroll";
+import { cn } from "@/lib/cn";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { memo, useRef } from "react";
@@ -44,6 +46,8 @@ export function ChatView() {
 	const isStreaming = useStore((s) => s.isStreaming);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+	const { showScrollButton, scrollToBottom } = useAutoScroll(scrollContainerRef, messages);
+
 	// Empty state
 	if (messages.length === 0) {
 		return (
@@ -58,7 +62,7 @@ export function ChatView() {
 	}
 
 	return (
-		<div ref={scrollContainerRef} className="flex flex-1 flex-col overflow-y-auto">
+		<div ref={scrollContainerRef} className="relative flex flex-1 flex-col overflow-y-auto">
 			{/* Messages list — centered with max-width */}
 			<div className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
 				<div className="flex flex-col gap-4">
@@ -78,6 +82,34 @@ export function ChatView() {
 
 			{/* Bottom padding for visual breathing room */}
 			<div className="h-4 shrink-0" />
+
+			{/* Floating "New messages" button when scrolled up */}
+			{showScrollButton && (
+				<button
+					type="button"
+					onClick={scrollToBottom}
+					className={cn(
+						"absolute bottom-4 left-1/2 z-10 -translate-x-1/2",
+						"flex items-center gap-1.5 rounded-full",
+						"border border-neutral-700 bg-neutral-800 px-3 py-1.5",
+						"text-xs text-neutral-300 shadow-lg",
+						"transition-colors hover:bg-neutral-700 hover:text-neutral-100",
+					)}
+				>
+					{/* Down arrow icon */}
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 16 16"
+						fill="currentColor"
+						className="h-3 w-3"
+						aria-label="Scroll down"
+						role="img"
+					>
+						<path d="M8 13.5a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L7.5 11.793V3a.5.5 0 0 1 1 0v8.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 8 13.5z" />
+					</svg>
+					<span>New messages</span>
+				</button>
+			)}
 		</div>
 	);
 }

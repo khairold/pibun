@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 1C in progress — ChatView built with message sub-components.
+> **Status:** Phase 1C nearly complete — auto-scroll, error indicators done. E2E test remaining.
 > **Current Phase:** 1C
-> **Last Session:** 16 (2026-03-23)
+> **Last Session:** 17 (2026-03-23)
 
 ---
 
@@ -109,11 +109,11 @@
 - [x] 1C.7 — Build AppShell layout (sidebar placeholder left, main chat area right, composer bottom)
 - [x] 1C.8 — Build Composer (multi-line input, Enter to send, Shift+Enter for newline, abort button during streaming)
 - [x] 1C.9 — Build ChatView — render user messages and assistant text blocks
-- [ ] 1C.10 — Wire text_delta streaming (append to current message content in real-time)
-- [ ] 1C.11 — Auto-scroll to bottom on new content, "↓ New messages" button when scrolled up
-- [ ] 1C.12 — Basic tool output rendering (show tool name + raw text output, collapsible)
-- [ ] 1C.13 — Loading/connecting/error state indicators
-- [ ] 1C.14 — Wire Vite dev proxy to server (or configure CORS)
+- [x] 1C.10 — Wire text_delta streaming (append to current message content in real-time)
+- [x] 1C.11 — Auto-scroll to bottom on new content, "↓ New messages" button when scrolled up
+- [x] 1C.12 — Basic tool output rendering (show tool name + raw text output, collapsible)
+- [x] 1C.13 — Loading/connecting/error state indicators
+- [x] 1C.14 — Wire Vite dev proxy to server (or configure CORS)
 - [ ] 1C.15 — End-to-end test: open browser → type prompt → see streaming response with tool calls
 
 **Exit criteria:** Working chat with Pi in the browser. Streaming text renders smoothly. Tool calls visible. Session starts automatically on page load.

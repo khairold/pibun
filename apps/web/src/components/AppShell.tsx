@@ -8,6 +8,7 @@
 import { ChatView } from "@/components/ChatView";
 import { Composer } from "@/components/Composer";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
+import { ErrorBanner } from "@/components/ErrorBanner";
 
 export function AppShell() {
 	return (
@@ -25,6 +26,7 @@ export function AppShell() {
 			{/* Main chat area */}
 			<main className="flex min-w-0 flex-1 flex-col">
 				<ConnectionBanner />
+				<ErrorBanner />
 				<ChatView />
 				<Composer />
 			</main>

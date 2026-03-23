@@ -334,10 +334,11 @@ export function initTransport(): () => void {
 		}),
 	);
 
-	// server.error → log
+	// server.error → store + log
 	cleanups.push(
 		transport.subscribe("server.error", (data) => {
 			console.error(`[PiBun] Server error: ${data.message}`);
+			useStore.getState().setLastError(data.message);
 		}),
 	);
 

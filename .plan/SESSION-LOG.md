@@ -569,3 +569,33 @@
 - The ChatView's `scrollContainerRef` is ready for auto-scroll implementation in 1C.11
 
 ---
+
+## Session 17 — Auto-scroll, Error Indicators, Verify Previously Built Items (2026-03-23)
+
+**What happened:**
+- Verified 1C.10 (text_delta streaming), 1C.12 (tool output rendering), 1C.14 (Vite dev proxy) — all previously implemented in sessions 13–16
+- Implemented `useAutoScroll` hook in `apps/web/src/hooks/useAutoScroll.ts` — passive scroll tracking via `isAtBottomRef`, `useLayoutEffect` for flicker-free auto-scroll, floating "↓ New messages" button when scrolled up
+- Integrated auto-scroll into ChatView with relative positioning for the floating button
+- Added `lastError`/`setLastError`/`clearLastError` to ConnectionSlice for error state management
+- Created `ErrorBanner` component — dismissible red banner with error icon, auto-clears after 10 seconds
+- Wired `server.error` push channel to `setLastError` in wireTransport.ts
+- Updated Composer to surface session/prompt/abort errors via `setLastError` instead of silent console.error
+- Added ErrorBanner to AppShell layout (between ConnectionBanner and ChatView)
+
+**Items completed:**
+- [x] 1C.10 — Wire text_delta streaming (verified — already wired in wireTransport.ts)
+- [x] 1C.11 — Auto-scroll to bottom on new content, "↓ New messages" button when scrolled up
+- [x] 1C.12 — Basic tool output rendering (verified — ToolCallMessage + ToolResultMessage)
+- [x] 1C.13 — Loading/connecting/error state indicators
+- [x] 1C.14 — Wire Vite dev proxy to server (verified — already in vite.config.ts)
+
+**Issues encountered:**
+- Biome `useExhaustiveDependencies` caught missing `setLastError` in Composer's `handleSend` useCallback deps — fixed immediately
+
+**Handoff to next session:**
+- Next: 1C.15 — End-to-end test: open browser → type prompt → see streaming response with tool calls
+- This is the LAST item in Phase 1C. Must verify exit criteria: "Working chat with Pi in the browser. Streaming text renders smoothly. Tool calls visible. Session starts automatically on page load."
+- Requires running both server (`bun run dev:server`) and web (`bun run dev:web`), then testing in browser
+- May need to verify Pi is installed and API keys are configured
+
+---

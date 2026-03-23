@@ -86,6 +86,9 @@
 | 76 | AssistantMessage has collapsible thinking section with toggle | Thinking content shown as expandable section above main content. Shows streaming cursor in thinking section while thinking (before content arrives), then in main content section during text streaming. | 2026-03-23 |
 | 77 | ToolResultMessage collapses output longer than 8 lines | `COLLAPSE_THRESHOLD = 8` lines. Shows "Show all N lines" button with fade gradient. Long tool outputs don't dominate the chat. | 2026-03-23 |
 | 78 | `hasStreamingMessage()` reverse-scans for streaming indicator | When agent is working but no individual message has `streaming: true` (gap between agent_start and first message_start), ChatView shows a "Pi is thinking…" indicator with pulsing dot. | 2026-03-23 |
+| 79 | `useAutoScroll` hook uses `useLayoutEffect` for flicker-free scroll | Passive scroll listener tracks position (isAtBottomRef). `useLayoutEffect` with content dep scrolls before paint. Shows floating "↓ New messages" button when scrolled up. SCROLL_THRESHOLD = 50px. | 2026-03-23 |
+| 80 | ErrorBanner auto-dismisses after 10 seconds | `lastError` field on ConnectionSlice. Set by `server.error` push and Composer error catches. `clearLastError()` action. ErrorBanner renders dismissible red banner with auto-clear timer. | 2026-03-23 |
+| 81 | Items 1C.10, 1C.12, 1C.14 were already implemented in prior sessions | text_delta wiring (wireTransport.ts), tool rendering (ToolCallMessage/ToolResultMessage), Vite proxy (vite.config.ts) — all built during 1C.6–1C.9 sessions. Formally verified and checked off in session 17. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -214,7 +217,10 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - `cn()` utility at `apps/web/src/lib/cn.ts` ✅ — simple className joiner, filters falsy values
 - ChatView at `apps/web/src/components/ChatView.tsx` ✅ — scrollable message list with empty state, streaming indicator, message sub-components in `components/chat/`
 - Message sub-components in `apps/web/src/components/chat/` ✅ — UserMessage (right-aligned bubble), AssistantMessage (streaming cursor + collapsible thinking), ToolCallMessage (collapsible args), ToolResultMessage (collapsible long output), SystemMessage (centered divider)
-- Next: 1C.10 — Wire text_delta streaming (already wired in wireTransport.ts, may just need verification)
+- Auto-scroll hook at `apps/web/src/hooks/useAutoScroll.ts` ✅ — passive scroll tracking, useLayoutEffect auto-scroll, floating "New messages" button
+- ErrorBanner at `apps/web/src/components/ErrorBanner.tsx` ✅ — dismissible error display, auto-clear after 10s, wired to server.error and Composer errors
+- `lastError`/`setLastError`/`clearLastError` added to ConnectionSlice ✅
+- Next: 1C.15 — End-to-end test (open browser → type prompt → see streaming response)
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings
