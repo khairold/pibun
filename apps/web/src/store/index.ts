@@ -25,6 +25,7 @@ import { createNotificationsSlice } from "./notificationsSlice";
 import { createProjectsSlice } from "./projectsSlice";
 import { createSessionSlice } from "./sessionSlice";
 import { createTabsSlice } from "./tabsSlice";
+import { createTerminalSlice } from "./terminalSlice";
 import type { AppStore } from "./types";
 import { createUiSlice } from "./uiSlice";
 import { createUpdateSlice } from "./updateSlice";
@@ -42,6 +43,7 @@ export const useStore = create<AppStore>()((...a) => ({
 	...createTabsSlice(...a),
 	...createProjectsSlice(...a),
 	...createGitSlice(...a),
+	...createTerminalSlice(...a),
 }));
 
 // Re-export types for convenience
@@ -56,6 +58,8 @@ export type {
 	ProjectsSlice,
 	SessionSlice,
 	TabsSlice,
+	TerminalSlice,
+	TerminalTab,
 	UiSlice,
 	UpdateSlice,
 } from "./types";

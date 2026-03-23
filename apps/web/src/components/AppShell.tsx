@@ -23,6 +23,7 @@ import { SessionStats } from "@/components/SessionStats";
 import { Sidebar } from "@/components/Sidebar";
 import { StatusBar } from "@/components/StatusBar";
 import { TabBar } from "@/components/TabBar";
+import { TerminalPane } from "@/components/TerminalPane";
 import { ThinkingSelector } from "@/components/ThinkingSelector";
 import { ToastContainer } from "@/components/ToastContainer";
 import { UpdateBanner } from "@/components/UpdateBanner";
@@ -131,6 +132,9 @@ export function AppShell() {
 				<GitPanel />
 
 				<ChatView />
+
+				{/* Terminal panel — resizable bottom pane */}
+				<TerminalPane />
 
 				{/* Extension status indicators — shown above composer when active */}
 				<StatusBar />

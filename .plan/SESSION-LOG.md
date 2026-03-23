@@ -5,6 +5,55 @@
 
 ---
 
+## Session 77 — Phase 4 xterm.js install + TerminalPane component (2026-03-23)
+
+**What happened:**
+- Installed `@xterm/xterm@6.0.0` + `@xterm/addon-fit@0.11.0` in `apps/web`
+- Created `TerminalSlice` in Zustand store (`store/terminalSlice.ts`, `store/types.ts`):
+  - `TerminalTab` type with client tab ID, server terminal ID, name, CWD, isRunning
+  - `terminalPanelOpen`, `terminalTabs`, `activeTerminalTabId` state
+  - CRUD actions: `addTerminalTab`, `removeTerminalTab`, `updateTerminalTab`
+  - Lookup: `getActiveTerminalTab`, `getTerminalTabByTerminalId`
+  - Panel auto-closes when last terminal removed
+- Created `terminalActions.ts` for coordinated terminal operations:
+  - `createTerminal(cwd?)` — spawns PTY, adds tab, opens panel
+  - `closeTerminal(tabId)` — removes tab first (MEMORY #35 pattern), stops PTY
+  - `writeTerminal(id, data)` and `resizeTerminal(id, cols, rows)` — fire-and-forget
+  - CWD resolution: explicit → active tab CWD → default
+- Created `TerminalInstance.tsx` — core xterm.js wrapper:
+  - Creates `Terminal` + `FitAddon`, mounts to container div
+  - Theme-matched dark palette (neutral-950 background, Tailwind color scale)
+  - Font: JetBrains Mono → Fira Code → Cascadia Code → Menlo fallback
+  - Subscribes to `terminal.data`/`terminal.exit` push channels per terminalId
+  - `onData` → `writeTerminal` (stdin), push → `xterm.write` (stdout)
+  - `ResizeObserver` auto-fits and sends resize to server
+  - Auto-focuses when tab becomes active
+  - Full cleanup on unmount (dispose terminal, observer, subscriptions)
+- Created `TerminalPane.tsx` — bottom panel with terminal tabs:
+  - Resizable via drag handle (min 120px, max 70% viewport, default 280px)
+  - Multiple terminal tabs with running/exited indicators
+  - New terminal (+) and close (×) buttons per tab
+  - Empty state with "Create a terminal" button
+  - Hidden when `terminalPanelOpen` is false
+- Wired `terminal.exit` push in `wireTransport.ts` → marks tab `isRunning: false`
+- Updated `AppShell.tsx` to include `<TerminalPane />` between ChatView and StatusBar
+- Registered `createTerminalSlice` in store index
+
+**Items completed:**
+- [x] 4.5 — Install `@xterm/xterm` + `@xterm/addon-fit` in apps/web
+- [x] 4.6 — Build `TerminalPane` component: xterm.js instance, resizable, theme-matched
+
+**Issues encountered:**
+- Biome formatter required line break in long fontFamily string — auto-fixed with `bun run format`
+
+**Handoff to next session:**
+- Next: 4.7 — Layout: terminal as bottom panel (resizable splitter between chat and terminal)
+- TerminalPane is already positioned as a bottom panel with a drag-to-resize handle — 4.7 may be partially done. Verify the splitter interaction between ChatView and TerminalPane works correctly, and ensure ChatView flexes properly.
+- Items 4.8 (multiple terminal tabs) is also partially done — `TerminalPane` already has tab bar with +/close. Need to verify multiple terminals work end-to-end.
+- Remaining: 4.9 (CWD inheritance), 4.10 (Ctrl+` shortcut), 4.11 (native menu), 4.12 (verification)
+
+---
+
 ## Session 76 — Phase 4 Terminal PTY research + server-side plumbing (2026-03-23)
 
 **What happened:**

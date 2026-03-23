@@ -358,6 +358,47 @@ export interface TabsSlice {
 	reorderTabs: (fromIndex: number, toIndex: number) => void;
 }
 
+/** A terminal tab — represents one PTY session. */
+export interface TerminalTab {
+	/** Client-side tab ID (ttab-1, ttab-2, ...). */
+	id: string;
+	/** Server-side terminal ID (term-1, term-2, ...) from terminal.create. */
+	terminalId: string;
+	/** Display name for the tab. */
+	name: string;
+	/** Working directory of this terminal. */
+	cwd: string;
+	/** True while the shell process is running. */
+	isRunning: boolean;
+}
+
+/** Terminal state — embedded terminal panel and tabs. */
+export interface TerminalSlice {
+	/** Whether the terminal panel is visible. */
+	terminalPanelOpen: boolean;
+	/** Ordered list of terminal tabs. */
+	terminalTabs: TerminalTab[];
+	/** ID of the active terminal tab, null when no terminals exist. */
+	activeTerminalTabId: string | null;
+
+	/** Toggle the terminal panel open/closed. */
+	toggleTerminalPanel: () => void;
+	/** Set the terminal panel open state explicitly. */
+	setTerminalPanelOpen: (open: boolean) => void;
+	/** Add a new terminal tab. Returns the tab ID. */
+	addTerminalTab: (terminalId: string, cwd: string) => string;
+	/** Remove a terminal tab. Switches to adjacent tab if active. */
+	removeTerminalTab: (tabId: string) => void;
+	/** Set the active terminal tab. */
+	setActiveTerminalTabId: (tabId: string | null) => void;
+	/** Update a terminal tab's metadata. */
+	updateTerminalTab: (tabId: string, updates: Partial<TerminalTab>) => void;
+	/** Get the active terminal tab, or null. */
+	getActiveTerminalTab: () => TerminalTab | null;
+	/** Find a terminal tab by its server-side terminalId. */
+	getTerminalTabByTerminalId: (terminalId: string) => TerminalTab | null;
+}
+
 // ============================================================================
 // Combined AppStore
 // ============================================================================
@@ -373,4 +414,5 @@ export type AppStore = ConnectionSlice &
 	UiSlice &
 	TabsSlice &
 	ProjectsSlice &
-	GitSlice;
+	GitSlice &
+	TerminalSlice;

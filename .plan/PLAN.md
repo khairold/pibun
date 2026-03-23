@@ -3,7 +3,7 @@
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
 > **Status:** Phase 4 in progress
 > **Current Phase:** Phase 4 — Terminal Integration
-> **Last Session:** Session 76 — 2026-03-23
+> **Last Session:** Session 77 — 2026-03-23
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -95,8 +95,8 @@
 - [x] 4.2 — Server-side terminal manager: spawn shell, pipe stdin/stdout via WebSocket
 - [x] 4.3 — New WS methods: `terminal.create`, `terminal.write`, `terminal.resize`, `terminal.close`
 - [x] 4.4 — New WS push channel: `terminal.data` (stdout chunks from shell)
-- [ ] 4.5 — Install `@xterm/xterm` + `@xterm/addon-fit` in apps/web
-- [ ] 4.6 — Build `TerminalPane` component: xterm.js instance, resizable, theme-matched
+- [x] 4.5 — Install `@xterm/xterm` + `@xterm/addon-fit` in apps/web
+- [x] 4.6 — Build `TerminalPane` component: xterm.js instance, resizable, theme-matched
 - [ ] 4.7 — Layout: terminal as bottom panel (resizable splitter between chat and terminal)
 - [ ] 4.8 — Multiple terminal tabs (like VS Code)
 - [ ] 4.9 — Terminal inherits CWD from active session/project

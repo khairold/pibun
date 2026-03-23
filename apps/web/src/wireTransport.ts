@@ -673,6 +673,17 @@ export function initTransport(): () => void {
 		}),
 	);
 
+	// terminal.exit → mark terminal tab as not running
+	cleanups.push(
+		transport.subscribe("terminal.exit", (data) => {
+			const store = useStore.getState();
+			const tab = store.getTerminalTabByTerminalId(data.terminalId);
+			if (tab) {
+				store.updateTerminalTab(tab.id, { isRunning: false });
+			}
+		}),
+	);
+
 	return () => {
 		for (const cleanup of cleanups) {
 			cleanup();
