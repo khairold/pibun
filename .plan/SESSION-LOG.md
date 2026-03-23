@@ -599,3 +599,38 @@
 - May need to verify Pi is installed and API keys are configured
 
 ---
+
+## Session 18 — E2E Test + Phase 1C Complete (2026-03-23)
+
+**What happened:**
+- Built the web app (`vite build` — 50 modules, 217KB JS bundle)
+- Wrote comprehensive E2E test at `apps/server/src/e2e-test.ts` (44 checks)
+- Test validates the full browser-to-Pi chain programmatically:
+  - Web build verification (dist exists, index.html, JS bundle)
+  - Static file serving (GET /, /health, SPA fallback, 404 for missing files)
+  - WebSocket connection (connect, server.welcome push with cwd+version)
+  - Session lifecycle (session.start returns sessionId, session.stop succeeds)
+  - Prompt + streaming (session.prompt acknowledged, all Pi events streamed)
+  - Agent lifecycle validation (agent_start/end, turn_start/end ordering)
+  - Message events (message_start with roles, message_update with text_delta, message_end)
+  - Text accumulation (text_delta appended correctly, non-empty result)
+  - Tool execution (tool_execution_start with toolCallId/toolName, tool_execution_end with result/isError)
+  - wireTransport.ts compatibility (all events have correct structure for Zustand dispatch)
+- Discovered: fast tools (like `read` for small files) skip `tool_execution_update` events entirely
+- All 44 checks pass, Phase 1C exit criteria fully verified
+
+**Items completed:**
+- [x] 1C.15 — End-to-end test: open browser → type prompt → see streaming response with tool calls
+
+**Issues encountered:**
+- `tool_execution_update` events are not emitted for fast tools — Pi goes directly from start to end. Made this an informational note rather than a hard failure in the test.
+
+**Handoff to next session:**
+- **PHASE 1C IS COMPLETE** — all 15 items done, exit criteria verified
+- Next: Phase 1D — Web UI: Full Features
+- First item: 1D.1 — Thinking blocks (collapsible section, streaming via thinking_delta)
+- The wireTransport.ts already handles `thinking_delta` events (appends to `thinking` field on ChatMessage)
+- AssistantMessage already has a collapsible thinking section — 1D.1 may just need testing/refinement
+- Consider: markdown rendering (1D.4) and syntax highlighting (1D.3) are high-impact items that will significantly improve the chat experience
+
+---

@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 1C nearly complete — auto-scroll, error indicators done. E2E test remaining.
-> **Current Phase:** 1C
-> **Last Session:** 17 (2026-03-23)
+> **Status:** Phase 1C COMPLETE. Phase 1D ready to begin.
+> **Current Phase:** 1D
+> **Last Session:** 18 (2026-03-23)
 
 ---
 
@@ -114,7 +114,7 @@
 - [x] 1C.12 — Basic tool output rendering (show tool name + raw text output, collapsible)
 - [x] 1C.13 — Loading/connecting/error state indicators
 - [x] 1C.14 — Wire Vite dev proxy to server (or configure CORS)
-- [ ] 1C.15 — End-to-end test: open browser → type prompt → see streaming response with tool calls
+- [x] 1C.15 — End-to-end test: open browser → type prompt → see streaming response with tool calls
 
 **Exit criteria:** Working chat with Pi in the browser. Streaming text renders smoothly. Tool calls visible. Session starts automatically on page load.
 

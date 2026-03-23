@@ -89,6 +89,9 @@
 | 79 | `useAutoScroll` hook uses `useLayoutEffect` for flicker-free scroll | Passive scroll listener tracks position (isAtBottomRef). `useLayoutEffect` with content dep scrolls before paint. Shows floating "↓ New messages" button when scrolled up. SCROLL_THRESHOLD = 50px. | 2026-03-23 |
 | 80 | ErrorBanner auto-dismisses after 10 seconds | `lastError` field on ConnectionSlice. Set by `server.error` push and Composer error catches. `clearLastError()` action. ErrorBanner renders dismissible red banner with auto-clear timer. | 2026-03-23 |
 | 81 | Items 1C.10, 1C.12, 1C.14 were already implemented in prior sessions | text_delta wiring (wireTransport.ts), tool rendering (ToolCallMessage/ToolResultMessage), Vite proxy (vite.config.ts) — all built during 1C.6–1C.9 sessions. Formally verified and checked off in session 17. | 2026-03-23 |
+| 82 | E2E test at `apps/server/src/e2e-test.ts` validates entire browser-to-Pi chain | 44 checks: web build (dist exists, index.html, JS bundle), static serving (GET /, /health, SPA fallback, 404 for missing), WebSocket (connect, welcome, session start/stop), streaming (agent lifecycle, message events, text_delta, tool execution), wireTransport.ts compatibility (all events have correct structure). | 2026-03-23 |
+| 83 | `tool_execution_update` events are optional — fast tools skip them | Pi's `read` tool completes instantly, so it goes `tool_execution_start` → `tool_execution_end` with no `tool_execution_update` events in between. Only longer-running tools (like `bash`) emit intermediate updates. UI code must handle both paths. | 2026-03-23 |
+| 84 | Phase 1C COMPLETE — all 15 items done, exit criteria verified | Working chat (server + WS + streaming), text_delta accumulation correct, tool calls visible (start/end events), session auto-starts, web app builds and serves via HTTP with SPA routing. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -220,7 +223,9 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Auto-scroll hook at `apps/web/src/hooks/useAutoScroll.ts` ✅ — passive scroll tracking, useLayoutEffect auto-scroll, floating "New messages" button
 - ErrorBanner at `apps/web/src/components/ErrorBanner.tsx` ✅ — dismissible error display, auto-clear after 10s, wired to server.error and Composer errors
 - `lastError`/`setLastError`/`clearLastError` added to ConnectionSlice ✅
-- Next: 1C.15 — End-to-end test (open browser → type prompt → see streaming response)
+- E2E test at `apps/server/src/e2e-test.ts` — 44 checks verifying full browser-to-Pi chain
+- **Phase 1C COMPLETE** — all items done, exit criteria met
+- Next: Phase 1D — Web UI: Full Features (thinking blocks, markdown, syntax highlighting, model selector, etc.)
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings
