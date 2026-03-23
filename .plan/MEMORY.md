@@ -128,6 +128,10 @@
 | 117 | Extension dialog components in `components/extension/` directory | 4 dialog components: `SelectDialog` (list with arrow-key nav), `ConfirmDialog` (Yes/No buttons), `InputDialog` (single-line text with Enter submit), `EditorDialog` (textarea with Ctrl+Enter submit, prefill support). `ExtensionDialog` is the modal overlay container that dispatches by method. `useExtensionResponse` hook handles sending responses via `session.extensionUiResponse` WS method. | 2026-03-23 |
 | 118 | Extension UI modal uses fixed overlay with backdrop blur at z-50 | `ExtensionDialog` renders `fixed inset-0 z-50` overlay with `bg-black/60 backdrop-blur-sm`. Centers dialog card. Shows "Extension Dialog" label with puzzle piece icon. All dialogs support Escape to cancel. | 2026-03-23 |
 | 119 | `extension_error` events surfaced as error banner | `handlePiEvent` now logs extension errors to console and sets `lastError` on the store for the ErrorBanner to display. Previously was a no-op. | 2026-03-23 |
+| 120 | `NotificationsSlice` added for toasts and persistent statuses | Toasts: auto-dismiss after 5s, support info/warning/error levels. Statuses: keyed by `statusKey`, removed when text is empty/undefined. Separate from `ExtensionUiSlice` (dialogs) — these are fire-and-forget. | 2026-03-23 |
+| 121 | `ToastContainer` renders stacked toasts at fixed bottom-right (z-50) | Uses `flex-col-reverse` for newest-on-top stacking. Each toast has severity icon, message text, and dismiss button. Color-coded: blue (info), amber (warning), red (error). `pointer-events-none` on container, `pointer-events-auto` on individual toasts. | 2026-03-23 |
+| 122 | `StatusBar` renders above Composer, hidden when no statuses active | Thin bar with puzzle-piece extension icon, pulsing blue dots per status entry, dot-separated. Uses `Map<string, string>` in store — extensions can set/remove by key. | 2026-03-23 |
+| 123 | Extension `notify` → `addToast()`, `setStatus` → `setExtensionStatus()` in wireTransport | Fire-and-forget events now dispatch to store actions instead of just logging. `setWidget`, `setTitle`, `set_editor_text` still log-only (no UI for these). | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -264,7 +268,7 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Phase 1D in progress — thinking blocks (1D.1), tool call cards (1D.2), syntax highlighting (1D.3), markdown rendering (1D.4), tool-specific output rendering (1D.5), model selector (1D.6), thinking selector (1D.7), model/thinking wiring (1D.8), session management (1D.9) complete
 - Session management: `NewSessionButton` in toolbar, `ForkDialog` with message picker, `sessionActions.ts` module for coordinated operations. `session.getForkMessages` WS method added end-to-end.
 - Extension UI dialogs (1D.12) complete — SelectDialog, ConfirmDialog, InputDialog, EditorDialog, ExtensionDialog modal, useExtensionResponse hook, wireTransport wiring, ExtensionUiSlice in store
-- Next: 1D.13 — Extension notifications (toast) and status (persistent indicator)
+- Next: 1D.14 — Message steering (Enter during streaming → steer) and follow-up support
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings

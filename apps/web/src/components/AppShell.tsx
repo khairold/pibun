@@ -15,7 +15,9 @@ import { ForkDialog } from "@/components/ForkDialog";
 import { ModelSelector } from "@/components/ModelSelector";
 import { NewSessionButton } from "@/components/NewSessionButton";
 import { SessionStats } from "@/components/SessionStats";
+import { StatusBar } from "@/components/StatusBar";
 import { ThinkingSelector } from "@/components/ThinkingSelector";
+import { ToastContainer } from "@/components/ToastContainer";
 import { ExtensionDialog } from "@/components/extension";
 
 export function AppShell() {
@@ -23,6 +25,9 @@ export function AppShell() {
 		<div className="flex h-screen bg-neutral-950 text-neutral-100">
 			{/* Extension UI dialog overlay (modal — blocks interaction until response) */}
 			<ExtensionDialog />
+
+			{/* Toast notifications — fixed bottom-right overlay */}
+			<ToastContainer />
 
 			{/* Sidebar placeholder */}
 			<aside className="hidden w-64 shrink-0 border-r border-neutral-800 bg-neutral-900 md:flex md:flex-col">
@@ -59,6 +64,10 @@ export function AppShell() {
 				</div>
 
 				<ChatView />
+
+				{/* Extension status indicators — shown above composer when active */}
+				<StatusBar />
+
 				<Composer />
 			</main>
 		</div>

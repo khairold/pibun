@@ -162,6 +162,39 @@ export interface ExtensionUiSlice {
 }
 
 // ============================================================================
+// Toast & Status Types
+// ============================================================================
+
+/** A toast notification (auto-dismissing). */
+export interface Toast {
+	/** Unique ID for this toast. */
+	id: string;
+	/** Display message. */
+	message: string;
+	/** Visual severity — determines icon and color. */
+	level: "info" | "warning" | "error";
+	/** Unix timestamp when this toast was created. */
+	createdAt: number;
+}
+
+/** Notifications state — toasts + persistent status indicators. */
+export interface NotificationsSlice {
+	/** Active toast notifications (auto-dismissed after timeout). */
+	toasts: Toast[];
+	/** Persistent status indicators keyed by statusKey. */
+	statuses: Map<string, string>;
+
+	/** Add a toast notification. Returns the toast ID. */
+	addToast: (message: string, level: Toast["level"]) => string;
+	/** Remove a toast by ID. */
+	removeToast: (id: string) => void;
+	/** Set or remove a persistent status indicator. Empty/undefined text removes it. */
+	setExtensionStatus: (key: string, text: string | undefined) => void;
+	/** Clear all statuses (e.g., on session reset). */
+	clearStatuses: () => void;
+}
+
+// ============================================================================
 // Combined AppStore
 // ============================================================================
 
@@ -170,4 +203,5 @@ export type AppStore = ConnectionSlice &
 	SessionSlice &
 	MessagesSlice &
 	ModelsSlice &
-	ExtensionUiSlice;
+	ExtensionUiSlice &
+	NotificationsSlice;

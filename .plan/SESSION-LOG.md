@@ -958,3 +958,47 @@
 - 8 items remaining in Phase 1D
 
 ---
+
+## Session 28 — Extension Notifications & Status (2026-03-23)
+
+**What happened:**
+- Added `NotificationsSlice` to Zustand store (types.ts + notificationsSlice.ts):
+  - `toasts: Toast[]` — auto-dismissing notifications (5 second timeout)
+  - `statuses: Map<string, string>` — persistent status indicators keyed by `statusKey`
+  - `addToast(message, level)` — creates toast with unique ID, schedules auto-removal
+  - `removeToast(id)` — manual dismiss
+  - `setExtensionStatus(key, text)` — set or remove status (empty text removes)
+  - `clearStatuses()` — clear all (for session reset)
+  - Wired into combined AppStore in `store/index.ts`
+- Created `components/ToastContainer.tsx`:
+  - Fixed bottom-right (z-50) with `flex-col-reverse` for newest-on-top stacking
+  - Per-toast: severity icon + message + dismiss button
+  - Three severity levels: info (blue), warning (amber), error (red)
+  - Memoized `ToastItem` sub-component
+  - `pointer-events-none` container / `pointer-events-auto` per toast for click-through
+- Created `components/StatusBar.tsx`:
+  - Thin bar above Composer, hidden when no statuses active
+  - Puzzle-piece extension icon + dot-separated status entries with pulsing blue dots
+  - Uses `Map<string, string>` entries from store
+- Updated `wireTransport.ts`:
+  - `notify` events → `store.addToast(message, notifyType)` (was console.log)
+  - `setStatus` events → `store.setExtensionStatus(key, text)` (was console.log)
+  - `setWidget`, `setTitle`, `set_editor_text` remain console.log (editor-specific, no UI needed)
+- Updated `AppShell.tsx`:
+  - Added `<ToastContainer />` at top level (fixed overlay)
+  - Added `<StatusBar />` between ChatView and Composer
+
+**Items completed:**
+- [x] 1D.13 — Extension notifications (toast) and status (persistent indicator)
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1D.14 — Message steering (Enter during streaming → steer) and follow-up support
+- Pi has `steer` and `follow_up` as separate commands (see MEMORY #13)
+- `session.steer` and `session.followUp` WS methods already exist in contracts and server handlers
+- Need: Composer to detect "streaming + Enter" and call steer instead of prompt, queue follow-up messages
+- 7 items remaining in Phase 1D
+
+---

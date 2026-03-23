@@ -20,6 +20,7 @@ import { createConnectionSlice } from "./connectionSlice";
 import { createExtensionUiSlice } from "./extensionUiSlice";
 import { createMessagesSlice } from "./messagesSlice";
 import { createModelsSlice } from "./modelsSlice";
+import { createNotificationsSlice } from "./notificationsSlice";
 import { createSessionSlice } from "./sessionSlice";
 import type { AppStore } from "./types";
 
@@ -30,14 +31,16 @@ export const useStore = create<AppStore>()((...a) => ({
 	...createMessagesSlice(...a),
 	...createModelsSlice(...a),
 	...createExtensionUiSlice(...a),
+	...createNotificationsSlice(...a),
 }));
 
 // Re-export types for convenience
-export type { AppStore, ChatMessage, ChatToolCall, ChatToolResult } from "./types";
+export type { AppStore, ChatMessage, ChatToolCall, ChatToolResult, Toast } from "./types";
 export type {
 	ConnectionSlice,
 	ExtensionUiSlice,
 	MessagesSlice,
 	ModelsSlice,
+	NotificationsSlice,
 	SessionSlice,
 } from "./types";

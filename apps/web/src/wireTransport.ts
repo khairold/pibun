@@ -334,10 +334,17 @@ function handleExtensionUiRequest(event: PiExtensionUIRequest): void {
 			store.setPendingExtensionUi(event);
 			break;
 
-		// Fire-and-forget types — no response needed
-		// Note: notify and setStatus are handled in 1D.13
+		// Fire-and-forget: notify → toast notification
 		case "notify":
+			store.addToast(event.message, event.notifyType ?? "info");
+			break;
+
+		// Fire-and-forget: setStatus → persistent status indicator
 		case "setStatus":
+			store.setExtensionStatus(event.statusKey, event.statusText);
+			break;
+
+		// Fire-and-forget: other types — log only (no UI for these yet)
 		case "setWidget":
 		case "setTitle":
 		case "set_editor_text":
