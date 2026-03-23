@@ -25,6 +25,12 @@ const APP_TITLE = "PiBun";
 const DEFAULT_WIDTH = 1200;
 const DEFAULT_HEIGHT = 800;
 
+/** Maximum number of health check attempts before giving up. */
+const HEALTH_CHECK_MAX_RETRIES = 30;
+
+/** Delay between health check attempts in milliseconds. */
+const HEALTH_CHECK_DELAY_MS = 200;
+
 // ============================================================================
 // Static Files
 // ============================================================================
@@ -39,6 +45,55 @@ const DEFAULT_HEIGHT = 800;
  * will need to be resolved differently (bundled alongside the app).
  */
 const WEB_DIST_DIR = resolve(import.meta.dir, "../../../../apps/web/dist");
+
+// ============================================================================
+// Health Check
+// ============================================================================
+
+/**
+ * Poll the server's `/health` endpoint until it responds with HTTP 200.
+ *
+ * Bun.serve() is synchronous so the server is typically ready immediately,
+ * but polling confirms the HTTP layer is fully operational before the
+ * webview loads. This also becomes essential in dev mode (2A.6) where the
+ * URL may point at a Vite dev server that takes time to start.
+ *
+ * @param url - Base server URL (e.g., `http://localhost:12345`)
+ * @param maxRetries - Maximum number of attempts (default: 30)
+ * @param delayMs - Delay between attempts in milliseconds (default: 200)
+ * @throws If the server doesn't respond within the retry limit.
+ */
+async function waitForHealth(
+	url: string,
+	maxRetries: number = HEALTH_CHECK_MAX_RETRIES,
+	delayMs: number = HEALTH_CHECK_DELAY_MS,
+): Promise<void> {
+	const healthUrl = `${url}/health`;
+
+	for (let attempt = 1; attempt <= maxRetries; attempt++) {
+		try {
+			const response = await fetch(healthUrl);
+			if (response.ok) {
+				console.log(`Health check passed (attempt ${attempt}/${maxRetries})`);
+				return;
+			}
+			console.warn(`Health check returned ${response.status} (attempt ${attempt}/${maxRetries})`);
+		} catch {
+			// Server not ready yet — connection refused or network error.
+			if (attempt < maxRetries) {
+				console.log(`Waiting for server... (attempt ${attempt}/${maxRetries})`);
+			}
+		}
+
+		if (attempt < maxRetries) {
+			await Bun.sleep(delayMs);
+		}
+	}
+
+	throw new Error(
+		`Server at ${healthUrl} did not become healthy after ${maxRetries} attempts (${(maxRetries * delayMs) / 1000}s)`,
+	);
+}
 
 // ============================================================================
 // Start Embedded Server
@@ -71,30 +126,53 @@ function startServer(): { server: PiBunServer; url: string } {
 	return { server, url };
 }
 
-const { server: pibunServer, url: serverUrl } = startServer();
+// ============================================================================
+// Bootstrap
+// ============================================================================
 
-console.log(`${APP_TITLE} server started on ${serverUrl}`);
+/**
+ * Main bootstrap sequence:
+ * 1. Start embedded server on available port
+ * 2. Wait for health check to pass
+ * 3. Open native webview at the server URL
+ */
+async function bootstrap(): Promise<void> {
+	// Step 1: Start the embedded server
+	const { server: pibunServer, url: serverUrl } = startServer();
 
-if (pibunServer.config.staticDir) {
-	console.log(`Serving static files from ${pibunServer.config.staticDir}`);
-} else {
-	console.log("No static directory found — web app may not be built yet");
+	console.log(`${APP_TITLE} server started on ${serverUrl}`);
+
+	if (pibunServer.config.staticDir) {
+		console.log(`Serving static files from ${pibunServer.config.staticDir}`);
+	} else {
+		console.log("No static directory found — web app may not be built yet");
+	}
+
+	// Step 2: Wait for server to be healthy
+	try {
+		await waitForHealth(serverUrl);
+	} catch (error) {
+		console.error("Failed to start server:", error);
+		process.exit(1);
+	}
+
+	// Step 3: Open native webview
+	// biome-ignore lint/correctness/noUnusedVariables: retained for window lifecycle (2A.4) and shutdown (2A.5)
+	const mainWindow = new BrowserWindow({
+		title: APP_TITLE,
+		url: serverUrl,
+		frame: {
+			width: DEFAULT_WIDTH,
+			height: DEFAULT_HEIGHT,
+			x: 100,
+			y: 100,
+		},
+	});
+
+	console.log(`${APP_TITLE} window opened at ${serverUrl}`);
 }
 
-// ============================================================================
-// Main Window
-// ============================================================================
-
-// biome-ignore lint/correctness/noUnusedVariables: retained for window lifecycle (2A.4) and shutdown (2A.5)
-const mainWindow = new BrowserWindow({
-	title: APP_TITLE,
-	url: serverUrl,
-	frame: {
-		width: DEFAULT_WIDTH,
-		height: DEFAULT_HEIGHT,
-		x: 100,
-		y: 100,
-	},
+bootstrap().catch((error) => {
+	console.error("Fatal error during bootstrap:", error);
+	process.exit(1);
 });
-
-console.log(`Loading ${serverUrl}`);

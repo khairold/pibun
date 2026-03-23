@@ -161,6 +161,7 @@
 | 149 | Server package has subpath exports: `./server` and `./piRpcManager` | Added to `apps/server/package.json` `exports` field. No default export (`.`) because `src/index.ts` is a side-effectful entry point. Desktop imports individual modules. Same pattern as `@pibun/shared/jsonl`. | 2026-03-23 |
 | 150 | Desktop uses `port: 0` for OS-assigned available port | `Bun.serve({ port: 0 })` assigns a random available port. Actual port read from `pibunServer.server.port`. Avoids port conflicts with standalone server or other apps. | 2026-03-23 |
 | 151 | `sessionListing.ts` uses `Bun.file().slice()` instead of `ReadableStream` async iteration | Original `for await...of stream` pattern caused TS2504 when desktop (with `lib: ["ESNext", "DOM"]`) processed server source. DOM `ReadableStream` lacks `[Symbol.asyncIterator]()`. Fix: `file.slice(0, 4096).text()` reads first 4KB efficiently without streaming. | 2026-03-23 |
+| 152 | Desktop `bootstrap()` is async — polls `/health` before opening BrowserWindow | `waitForHealth(url, 30, 200)` polls server health endpoint up to 30 times with 200ms delay (6s total timeout). Passes on first `response.ok`. Bun.serve is synchronous so health typically passes on attempt 1, but the pattern is needed for dev mode (2A.6) where URL may point at Vite. On failure, logs error and calls `process.exit(1)`. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -308,7 +309,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Phase 2A started — Electrobun 1.16.0 installed, project structure set up
 - 2A.1 complete — `electrobun.config.ts`, `src/bun/index.ts`, updated package.json/tsconfig.json
 - 2A.2 complete — Desktop embeds server in-process, `port: 0` for available port, `@pibun/server` subpath exports added
-- Next: 2A.3 — Wait for server health check, then open native webview at localhost URL
+- 2A.3 complete — `waitForHealth()` polls `/health` before opening BrowserWindow
+- Next: 2A.4 — Window lifecycle (open, close, remember size/position via localStorage or config)
 
 ## Gotchas & Warnings
 

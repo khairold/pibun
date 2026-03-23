@@ -1305,3 +1305,28 @@
 - 4 items remaining in Phase 2A (2A.3–2A.6)
 
 ---
+## Session 38 — Desktop Health Check + Webview (2026-03-23)
+
+**What happened:**
+- Implemented 2A.3: Server health check before opening native webview
+- Added `waitForHealth(url, maxRetries, delayMs)` async function that polls `/health` endpoint
+- Restructured `index.ts` from synchronous top-level code into async `bootstrap()` function
+- Bootstrap sequence: startServer() → waitForHealth() → new BrowserWindow()
+- Health check: 30 retries × 200ms = 6s max timeout, logs attempt progress
+- On health failure: logs error, exits with code 1
+- On bootstrap error: caught by `.catch()`, exits with code 1
+- Constants extracted: `HEALTH_CHECK_MAX_RETRIES`, `HEALTH_CHECK_DELAY_MS`
+
+**Items completed:**
+- [x] 2A.3 — Wait for server health check, then open native webview at localhost URL
+
+**Issues encountered:**
+- None. Biome format pass needed (multiline template literals collapsed to single lines).
+
+**Handoff to next session:**
+- Next: 2A.4 — Window lifecycle (open, close, remember size/position via localStorage or config)
+- BrowserWindow API has `setFrame()`, `getFrame()`, `setPosition()`, `setSize()`, `on()` for events
+- Need to investigate Electrobun's window close/resize events and how to persist geometry
+- 3 items remaining in Phase 2A (2A.4–2A.6)
+
+---
