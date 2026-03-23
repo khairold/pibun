@@ -15,11 +15,12 @@
  */
 
 import { cn } from "@/lib/cn";
+import { fetchProjects, removeProject } from "@/lib/projectActions";
 import { fetchSessionList, switchSession } from "@/lib/sessionActions";
 import { onShortcut } from "@/lib/shortcuts";
 import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
 import { useStore } from "@/store";
-import type { SessionTab, WsSessionSummary } from "@pibun/contracts";
+import type { Project, SessionTab, WsSessionSummary } from "@pibun/contracts";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 
 // ============================================================================
@@ -230,8 +231,125 @@ const PastSessionItem = memo(function PastSessionItem({
 });
 
 // ============================================================================
+// Project Item
+// ============================================================================
+
+interface ProjectItemProps {
+	project: Project;
+	isActive: boolean;
+	onOpen: (project: Project) => void;
+	onRemove: (projectId: string) => void;
+}
+
+const ProjectItem = memo(function ProjectItem({
+	project,
+	isActive,
+	onOpen,
+	onRemove,
+}: ProjectItemProps) {
+	const lastOpenedStr = formatRelativeTime(project.lastOpened);
+
+	return (
+		<div
+			role="tab"
+			tabIndex={0}
+			onClick={() => onOpen(project)}
+			onKeyDown={(e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					onOpen(project);
+				}
+			}}
+			className={cn(
+				"group flex w-full cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-left transition-colors",
+				isActive
+					? "bg-neutral-800 text-neutral-100"
+					: "text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200",
+			)}
+			aria-selected={isActive}
+			aria-label={project.name}
+		>
+			{/* Folder icon */}
+			<span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+					className={cn("h-4 w-4", isActive ? "text-blue-400" : "text-neutral-600")}
+					aria-label="Project folder"
+					role="img"
+				>
+					<path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h2.879a1.5 1.5 0 0 1 1.06.44l1.122 1.12A1.5 1.5 0 0 0 9.62 4H12.5A1.5 1.5 0 0 1 14 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12.5v-9z" />
+				</svg>
+			</span>
+
+			{/* Project info */}
+			<div className="min-w-0 flex-1">
+				<div className="flex items-center gap-1.5">
+					<span className="truncate text-sm font-medium">{project.name}</span>
+					{/* Session count badge */}
+					{project.sessionCount > 0 && (
+						<span className="shrink-0 rounded-full bg-neutral-700/50 px-1.5 py-0.5 text-[10px] leading-none text-neutral-500">
+							{String(project.sessionCount)}
+						</span>
+					)}
+				</div>
+				<span className="text-[10px] text-neutral-500">{lastOpenedStr}</span>
+			</div>
+
+			{/* Remove button — visible on hover */}
+			<button
+				type="button"
+				tabIndex={-1}
+				onClick={(e) => {
+					e.stopPropagation();
+					onRemove(project.id);
+				}}
+				className={cn(
+					"mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm transition-colors",
+					isActive
+						? "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-300"
+						: "text-transparent group-hover:text-neutral-500 group-hover:hover:bg-neutral-700 group-hover:hover:text-neutral-300",
+				)}
+				aria-label={`Remove ${project.name}`}
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+					className="h-3 w-3"
+					aria-label="Remove project"
+					role="img"
+				>
+					<path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22z" />
+				</svg>
+			</button>
+		</div>
+	);
+});
+
+// ============================================================================
 // Helpers
 // ============================================================================
+
+/** Format a unix timestamp (ms) to a human-readable relative time. */
+function formatRelativeTime(timestampMs: number): string {
+	const now = Date.now();
+	const diffMs = now - timestampMs;
+	const diffMin = Math.floor(diffMs / 60000);
+	const diffHr = Math.floor(diffMs / 3600000);
+	const diffDays = Math.floor(diffMs / 86400000);
+
+	if (diffMin < 1) return "just now";
+	if (diffMin < 60) return `${String(diffMin)}m ago`;
+	if (diffHr < 24) return `${String(diffHr)}h ago`;
+	if (diffDays < 7) return `${String(diffDays)}d ago`;
+
+	return new Date(timestampMs).toLocaleDateString(undefined, {
+		month: "short",
+		day: "numeric",
+	});
+}
 
 /** Format a session ID to a short display string. */
 function formatSessionId(id: string): string {
@@ -309,6 +427,9 @@ export function Sidebar() {
 	const activeTabId = useStore((s) => s.activeTabId);
 	const sessionList = useStore((s) => s.sessionList);
 	const sessionListLoading = useStore((s) => s.sessionListLoading);
+	const projects = useStore((s) => s.projects);
+	const activeProjectId = useStore((s) => s.activeProjectId);
+	const setActiveProjectId = useStore((s) => s.setActiveProjectId);
 	const sidebarOpen = useStore((s) => s.sidebarOpen);
 	const toggleSidebar = useStore((s) => s.toggleSidebar);
 	const setSidebarOpen = useStore((s) => s.setSidebarOpen);
@@ -316,6 +437,7 @@ export function Sidebar() {
 	const [isCreating, setIsCreating] = useState(false);
 	const [switchingPath, setSwitchingPath] = useState<string | null>(null);
 	const [pastSessionsExpanded, setPastSessionsExpanded] = useState(false);
+	const [projectsExpanded, setProjectsExpanded] = useState(true);
 
 	const isConnected = connectionStatus === "open";
 
@@ -370,6 +492,31 @@ export function Sidebar() {
 			fetchSessionList();
 		}
 	}, [isConnected]);
+
+	const handleOpenProject = useCallback(
+		async (project: Project) => {
+			if (!isConnected) return;
+			// Set as active project
+			setActiveProjectId(project.id);
+			// Start a session in the project's CWD via a new tab
+			try {
+				await createNewTab({ cwd: project.cwd });
+				// Auto-close sidebar on mobile after opening
+				if (isMobileWidth()) {
+					setSidebarOpen(false);
+				}
+			} catch (err) {
+				console.error("[Sidebar] Failed to open project:", err);
+			}
+		},
+		[isConnected, setActiveProjectId, setSidebarOpen],
+	);
+
+	const handleRemoveProject = useCallback((projectId: string) => {
+		removeProject(projectId).catch((err: unknown) => {
+			console.error("[Sidebar] Failed to remove project:", err);
+		});
+	}, []);
 
 	const handleNewTab = useCallback(async () => {
 		if (!isConnected || isCreating) return;
@@ -538,6 +685,80 @@ export function Sidebar() {
 								canClose={tabs.length > 1}
 							/>
 						))}
+					</div>
+				)}
+
+				{/* ── Projects Section ─────────────────────────────────── */}
+				{projects.length > 0 && (
+					<div className="mt-3 border-t border-neutral-800 pt-2">
+						<div className="flex w-full items-center justify-between px-2 py-1">
+							<button
+								type="button"
+								onClick={() => setProjectsExpanded(!projectsExpanded)}
+								className="flex flex-1 items-center gap-1.5 text-left"
+							>
+								<span className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+									Projects
+								</span>
+								<span className="text-[10px] text-neutral-600">{String(projects.length)}</span>
+								{/* Chevron */}
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 16 16"
+									fill="currentColor"
+									className={cn(
+										"h-3 w-3 text-neutral-600 transition-transform",
+										projectsExpanded && "rotate-180",
+									)}
+									aria-label="Toggle projects"
+									role="img"
+								>
+									<path
+										fillRule="evenodd"
+										d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z"
+										clipRule="evenodd"
+									/>
+								</svg>
+							</button>
+							{/* Refresh button */}
+							<button
+								type="button"
+								onClick={() => {
+									if (isConnected) fetchProjects();
+								}}
+								className="rounded p-0.5 text-neutral-600 transition-colors hover:text-neutral-400"
+								aria-label="Refresh projects"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 16 16"
+									fill="currentColor"
+									className="h-3 w-3"
+									aria-label="Refresh"
+									role="img"
+								>
+									<path
+										fillRule="evenodd"
+										d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37A5.508 5.508 0 0 0 8 3.5a5.5 5.5 0 1 0 5.215 3.772.75.75 0 1 1 1.423-.474A7 7 0 1 1 12.12 3.16l1.716.005z"
+										clipRule="evenodd"
+									/>
+								</svg>
+							</button>
+						</div>
+
+						{projectsExpanded && (
+							<div className="mt-1 flex flex-col gap-0.5">
+								{projects.map((project) => (
+									<ProjectItem
+										key={project.id}
+										project={project}
+										isActive={project.id === activeProjectId}
+										onOpen={handleOpenProject}
+										onRemove={handleRemoveProject}
+									/>
+								))}
+							</div>
+						)}
 					</div>
 				)}
 

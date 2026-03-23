@@ -5,6 +5,30 @@
 
 ---
 
+## Session 64 — ProjectSidebar section (2026-03-23)
+
+**What happened:**
+- Created `apps/web/src/lib/projectActions.ts` — 4 async functions for project CRUD: `fetchProjects()`, `addProject()`, `removeProject()`, `updateProject()`. All coordinate transport WS calls with Zustand store updates. Same pattern as `sessionActions.ts`.
+- Built `ProjectItem` component in `Sidebar.tsx` — memoized, shows folder icon (blue when active project), project name, session count badge (rounded pill), relative last-opened time, hover-reveal remove button. Uses `<div role="tab">` pattern to allow nested `<button>` (same as `SidebarTabItem`).
+- Added `formatRelativeTime()` helper for unix timestamp display (separate from `formatDate()` which takes ISO strings).
+- Added Projects section to Sidebar between Active Tabs and Past Sessions — collapsible with chevron, expanded by default, shows project count, has refresh button.
+- Wired `fetchProjects()` into `wireTransport.ts` `server.welcome` handler — projects loaded automatically on connect alongside session list.
+- Clicking a project calls `createNewTab({ cwd: project.cwd })` to open a new tab in the project's directory, and sets it as the active project.
+- Fixed Biome lint issues: removed unused `startSessionInFolder` import, used `role="tab"` instead of `role="button"` for a11y compliance, ran formatter.
+
+**Items completed:**
+- [x] 2.4 — Build `ProjectSidebar` section: project list with icons, last-opened date, session count badge
+
+**Issues encountered:**
+- `exactOptionalPropertyTypes` required using `PiThinkingLevel` type instead of `string` for `defaultThinking` param in `updateProject()` — quick fix, documented pattern (MEMORY #52).
+
+**Handoff to next session:**
+- Next: 2.5 — "Add Project" flow: folder picker (native dialog in desktop, text input in browser) → creates project entry
+- The `addProject()` function is ready in `projectActions.ts`. Next step is the UI: a button/input in the sidebar projects section that triggers adding a project. Desktop should use native folder picker via menu action, browser needs a text input fallback.
+- Key files: `apps/web/src/components/Sidebar.tsx`, `apps/web/src/lib/projectActions.ts`, `apps/desktop/src/bun/menu.ts`
+
+---
+
 ## Session 63 — Server-side project persistence (2026-03-23)
 
 **What happened:**

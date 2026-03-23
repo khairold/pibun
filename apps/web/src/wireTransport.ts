@@ -11,6 +11,7 @@
  * Use `getTransport()` to access the singleton for sending requests.
  */
 
+import { fetchProjects } from "@/lib/projectActions";
 import {
 	compactSession,
 	fetchSessionList,
@@ -563,12 +564,14 @@ export function initTransport(): () => void {
 		}),
 	);
 
-	// server.welcome → log + fetch session list
+	// server.welcome → log + fetch session list + fetch projects
 	cleanups.push(
 		transport.subscribe("server.welcome", (data) => {
 			console.log(`[PiBun] Connected to server — cwd: ${data.cwd}, version: ${data.version}`);
 			// Fetch available sessions for the sidebar
 			fetchSessionList();
+			// Fetch saved projects for the sidebar
+			fetchProjects();
 		}),
 	);
 

@@ -3,7 +3,7 @@
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
 > **Status:** Phase 2 in progress
 > **Current Phase:** Phase 2 — Project Management
-> **Last Session:** Session 63 — 2026-03-23
+> **Last Session:** Session 64 — 2026-03-23
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -56,7 +56,7 @@
 - [x] 2.1 — Define `Project` type: `{ id, name, cwd, lastOpened, favoriteModel?, defaultThinking?, sessionCount }`
 - [x] 2.2 — Add `projectsSlice` to Zustand store: `projects: Project[]`, `activeProjectId`, CRUD actions
 - [x] 2.3 — Server-side project persistence: `~/.pibun/projects.json` (read/write via new WS methods `project.list`, `project.add`, `project.remove`, `project.update`)
-- [ ] 2.4 — Build `ProjectSidebar` section: project list with icons, last-opened date, session count badge
+- [x] 2.4 — Build `ProjectSidebar` section: project list with icons, last-opened date, session count badge
 - [ ] 2.5 — "Add Project" flow: folder picker (native dialog in desktop, text input in browser) → creates project entry
 - [ ] 2.6 — Project switching: click project → starts new tab with that CWD, or switches to existing tab for that CWD
 - [ ] 2.7 — "Open Recent" list: last 10 opened project directories, persisted across app restarts
