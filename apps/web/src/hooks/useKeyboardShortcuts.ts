@@ -63,6 +63,12 @@ export function useKeyboardShortcuts(): void {
 					}
 					break;
 				}
+				case "b": {
+					// Ctrl/Cmd+B — toggle sidebar
+					e.preventDefault();
+					emitShortcut("toggleSidebar");
+					break;
+				}
 				case "n": {
 					// Ctrl/Cmd+N — new session
 					if (isConnected) {

@@ -1,22 +1,26 @@
 /**
  * Sidebar — session list with switch, current session info, new session button.
  *
- * Shows available sessions for the current CWD. Sessions are fetched from the
- * server which reads Pi's session directory on the file system.
- *
- * Features:
- * - New session button at the top
- * - Current session highlighted in the list
- * - Click to switch sessions
- * - Session name, creation date, and CWD shown per item
- * - Collapsible on narrow viewports (hidden below md breakpoint)
+ * Responsive behavior:
+ * - On narrow viewports (< md): overlay panel with backdrop, slides in from left
+ * - On desktop viewports (≥ md): inline panel, toggleable via Ctrl/Cmd+B
+ * - Controlled by `sidebarOpen` state in the UI slice
+ * - Clicking a session or the backdrop on mobile auto-closes the sidebar
  */
 
 import { cn } from "@/lib/cn";
 import { fetchSessionList, startNewSession, switchSession } from "@/lib/sessionActions";
+import { onShortcut } from "@/lib/shortcuts";
 import { useStore } from "@/store";
 import type { WsSessionSummary } from "@pibun/contracts";
 import { memo, useCallback, useEffect, useState } from "react";
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** Tailwind `md` breakpoint in pixels. */
+const MD_BREAKPOINT = 768;
 
 // ============================================================================
 // Session Item
@@ -94,6 +98,11 @@ function formatDate(isoString: string): string {
 	});
 }
 
+/** Check if the current viewport is below the md breakpoint. */
+function isMobileWidth(): boolean {
+	return typeof window !== "undefined" && window.innerWidth < MD_BREAKPOINT;
+}
+
 // ============================================================================
 // Sidebar Component
 // ============================================================================
@@ -105,11 +114,44 @@ export function Sidebar() {
 	const sessionListLoading = useStore((s) => s.sessionListLoading);
 	const sessionName = useStore((s) => s.sessionName);
 	const model = useStore((s) => s.model);
+	const sidebarOpen = useStore((s) => s.sidebarOpen);
+	const toggleSidebar = useStore((s) => s.toggleSidebar);
+	const setSidebarOpen = useStore((s) => s.setSidebarOpen);
 
 	const [isCreating, setIsCreating] = useState(false);
 	const [switchingPath, setSwitchingPath] = useState<string | null>(null);
 
 	const isConnected = connectionStatus === "open";
+
+	// Subscribe to toggle sidebar shortcut (Ctrl/Cmd+B)
+	useEffect(() => {
+		return onShortcut((action) => {
+			if (action === "toggleSidebar") {
+				toggleSidebar();
+			}
+		});
+	}, [toggleSidebar]);
+
+	// Auto-close sidebar on resize from mobile to desktop (and vice versa)
+	// to keep sidebar state in sync with viewport width
+	useEffect(() => {
+		let lastWasMobile = isMobileWidth();
+
+		function handleResize() {
+			const nowMobile = isMobileWidth();
+			if (lastWasMobile && !nowMobile) {
+				// Crossed from mobile → desktop: open sidebar
+				setSidebarOpen(true);
+			} else if (!lastWasMobile && nowMobile) {
+				// Crossed from desktop → mobile: close sidebar
+				setSidebarOpen(false);
+			}
+			lastWasMobile = nowMobile;
+		}
+
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, [setSidebarOpen]);
 
 	// Fetch session list on mount and when connection opens
 	useEffect(() => {
@@ -123,7 +165,6 @@ export function Sidebar() {
 		setIsCreating(true);
 		try {
 			await startNewSession();
-			// Refresh session list to show the new session
 			await fetchSessionList();
 		} finally {
 			setIsCreating(false);
@@ -136,11 +177,15 @@ export function Sidebar() {
 			setSwitchingPath(sessionPath);
 			try {
 				await switchSession(sessionPath);
+				// Auto-close sidebar on mobile after switching
+				if (isMobileWidth()) {
+					setSidebarOpen(false);
+				}
 			} finally {
 				setSwitchingPath(null);
 			}
 		},
-		[isConnected, switchingPath],
+		[isConnected, switchingPath, setSidebarOpen],
 	);
 
 	const handleRefresh = useCallback(() => {
@@ -149,36 +194,61 @@ export function Sidebar() {
 		}
 	}, [isConnected]);
 
-	return (
-		<aside className="hidden w-64 shrink-0 flex-col border-r border-neutral-800 bg-neutral-900 md:flex">
+	const handleBackdropClick = useCallback(() => {
+		setSidebarOpen(false);
+	}, [setSidebarOpen]);
+
+	// The sidebar panel content (shared between mobile overlay and desktop inline)
+	const sidebarContent = (
+		<>
 			{/* Header */}
 			<div className="flex items-center justify-between border-b border-neutral-800 px-4 py-3">
 				<h1 className="text-sm font-bold tracking-tight text-neutral-200">PiBun</h1>
-				<button
-					type="button"
-					onClick={handleNewSession}
-					disabled={!isConnected || isCreating}
-					title="New Session (Ctrl+N)"
-					className={cn(
-						"flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors",
-						!isConnected || isCreating
-							? "cursor-not-allowed text-neutral-600"
-							: "text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200",
-					)}
-				>
-					{/* Plus icon */}
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 16 16"
-						fill="currentColor"
-						className="h-3.5 w-3.5"
-						aria-label="New session"
-						role="img"
+				<div className="flex items-center gap-1">
+					<button
+						type="button"
+						onClick={handleNewSession}
+						disabled={!isConnected || isCreating}
+						title="New Session (Ctrl+N)"
+						className={cn(
+							"flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors",
+							!isConnected || isCreating
+								? "cursor-not-allowed text-neutral-600"
+								: "text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200",
+						)}
 					>
-						<path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2z" />
-					</svg>
-					{isCreating ? "Creating…" : "New"}
-				</button>
+						{/* Plus icon */}
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="h-3.5 w-3.5"
+							aria-label="New session"
+							role="img"
+						>
+							<path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2z" />
+						</svg>
+						{isCreating ? "Creating…" : "New"}
+					</button>
+					{/* Close sidebar button — visible on mobile, hidden on desktop */}
+					<button
+						type="button"
+						onClick={() => setSidebarOpen(false)}
+						className="rounded-md p-1 text-neutral-500 hover:bg-neutral-700 hover:text-neutral-300 md:hidden"
+						title="Close sidebar"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="h-4 w-4"
+							aria-label="Close sidebar"
+							role="img"
+						>
+							<path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22z" />
+						</svg>
+					</button>
+				</div>
 			</div>
 
 			{/* Current session info */}
@@ -256,6 +326,38 @@ export function Sidebar() {
 					{sessionList.length} session{sessionList.length !== 1 ? "s" : ""}
 				</span>
 			</div>
-		</aside>
+		</>
+	);
+
+	return (
+		<>
+			{/* Mobile backdrop — shown when sidebar is open below md breakpoint */}
+			{sidebarOpen && (
+				<div
+					className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+					onClick={handleBackdropClick}
+					onKeyDown={(e) => {
+						if (e.key === "Escape") handleBackdropClick();
+					}}
+					role="button"
+					tabIndex={-1}
+					aria-label="Close sidebar"
+				/>
+			)}
+
+			{/* Sidebar panel */}
+			<aside
+				className={cn(
+					// Base styles: flex column, sidebar colors, border
+					"z-50 flex w-64 shrink-0 flex-col border-r border-neutral-800 bg-neutral-900",
+					// Mobile: fixed overlay positioned from left, slide transition
+					"fixed inset-y-0 left-0 transition-transform duration-200 ease-in-out md:relative md:z-auto md:transition-none",
+					// Open/closed state
+					sidebarOpen ? "translate-x-0" : "-translate-x-full md:hidden",
+				)}
+			>
+				{sidebarContent}
+			</aside>
+		</>
 	);
 }

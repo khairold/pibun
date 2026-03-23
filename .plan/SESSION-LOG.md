@@ -1206,3 +1206,43 @@
 - After Phase 1D: verify exit criteria (all Pi features accessible, extension dialogs work, keyboard shortcuts function, performance acceptable for 100+ messages)
 
 ---
+
+## Session 35 — Responsive Layout (2026-03-23)
+
+**What happened:**
+- Implemented responsive collapsible sidebar (1D.20) — the last item in Phase 1D
+- Added `UiSlice` to Zustand store with `sidebarOpen`, `toggleSidebar`, `setSidebarOpen`
+- Created `uiSlice.ts` following established `StateCreator` pattern
+- Added `toggleSidebar` shortcut action and Ctrl/Cmd+B keyboard binding
+- Rewrote `Sidebar.tsx`:
+  - Mobile (< md): fixed overlay panel with backdrop blur, slides in from left via `translate-x` transition
+  - Desktop (≥ md): inline panel, toggled between visible and `md:hidden`
+  - Close button (X) visible only on mobile
+  - Backdrop click + Escape closes on mobile
+  - Auto-closes after session switch on mobile
+  - Resize listener syncs sidebar state when crossing the md breakpoint
+- Updated `AppShell.tsx`:
+  - Added sidebar toggle button in toolbar (hamburger when closed, panel-left icon when open)
+  - Visual divider between toggle button and model/thinking selectors
+- Build verified: `bun run typecheck && bun run lint` passes, `bun run build` succeeds
+
+**Items completed:**
+- [x] 1D.20 — Responsive layout (collapsible sidebar on narrow viewports)
+
+**Phase 1D EXIT CRITERIA verified:**
+- ✅ All Pi features accessible through the UI (model, thinking, sessions, fork, compact, steer, follow-up, extensions, images)
+- ✅ Extension dialogs work (select, confirm, input, editor + notifications + status)
+- ✅ Keyboard shortcuts function (Ctrl+C abort, Ctrl+L model, Ctrl+N new session, Ctrl+B sidebar)
+- ✅ Performance acceptable for 100+ messages (react-virtuoso windowed rendering)
+
+**Issues encountered:**
+- None — straightforward implementation
+
+**Handoff to next session:**
+- **Phase 1D is COMPLETE.** All 20 items done.
+- Next: Phase 2A — Desktop: Electrobun Scaffold
+- Phase 2A.1 is Electrobun project setup (`electrobun.config.ts`, source structure)
+- Electrobun cross-platform status (Linux/Windows) should be verified before starting Phase 2
+- Read `reference/electrobun/` templates and `docs/DESKTOP.md` before building
+
+---

@@ -219,6 +219,17 @@ export interface NotificationsSlice {
 	clearStatuses: () => void;
 }
 
+/** UI state — layout toggles and transient UI state. */
+export interface UiSlice {
+	/** Whether the sidebar is visible. Defaults to true on desktop, false on mobile. */
+	sidebarOpen: boolean;
+
+	/** Toggle the sidebar open/closed. */
+	toggleSidebar: () => void;
+	/** Set the sidebar open state explicitly. */
+	setSidebarOpen: (open: boolean) => void;
+}
+
 // ============================================================================
 // Combined AppStore
 // ============================================================================
@@ -229,4 +240,5 @@ export type AppStore = ConnectionSlice &
 	MessagesSlice &
 	ModelsSlice &
 	ExtensionUiSlice &
-	NotificationsSlice;
+	NotificationsSlice &
+	UiSlice;

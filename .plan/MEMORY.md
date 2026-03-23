@@ -149,7 +149,10 @@
 | 137 | `isRetrying`, `retryAttempt`, `retryMaxAttempts` added to SessionSlice for retry tracking | `auto_retry_start` sets `isRetrying=true` with attempt info, `auto_retry_end` clears it. ChatView shows inline retry indicator (orange pulsing dot + attempt/max). SystemMessage uses emoji prefixes: `🔄` for progress, `✅` for success, `❌` for failure. Failed retries surface as ErrorBanner via `setLastError`. | 2026-03-23 |
 | 138 | `message_update.error` events surface as ErrorBanner for `reason === "error"` | Abort (`reason === "aborted"`) is user-initiated so no error banner. Only `reason === "error"` sets `lastError`. Done/error are now separate `case` branches in `handleMessageUpdate`. |
 | 139 | ChatView uses `react-virtuoso` for windowed message rendering | `Virtuoso` component replaces manual `div` list — only visible items + overscan buffer rendered. `followOutput` for auto-scroll during streaming, `atBottomStateChange` for scroll button, `Footer` slot for status indicators, `VirtuosoList`/`VirtuosoItem` for layout. Overscan: 400px top/bottom. Default item height: 80px. `useAutoScroll` hook is now unused (kept but not imported). | 2026-03-23 |
-| 140 | `react-virtuoso@4.18.3` installed in `apps/web` | Chosen for variable-height chat items, built-in `followOutput` (critical for streaming), and `atBottomStateChange` API. Lightweight (~15KB gzipped). No DOM measurement hacks needed — Virtuoso measures items automatically via ResizeObserver. | 2026-03-23 | 2026-03-23 |
+| 140 | `react-virtuoso@4.18.3` installed in `apps/web` | Chosen for variable-height chat items, built-in `followOutput` (critical for streaming), and `atBottomStateChange` API. Lightweight (~15KB gzipped). No DOM measurement hacks needed — Virtuoso measures items automatically via ResizeObserver. | 2026-03-23 |
+| 141 | `UiSlice` added to Zustand store for sidebar visibility and layout state | `sidebarOpen` boolean + `toggleSidebar()`/`setSidebarOpen()` actions. Defaults to open on desktop-width (≥768px), closed on mobile. `uiSlice.ts` follows same `StateCreator` pattern. | 2026-03-23 |
+| 142 | Responsive sidebar: overlay on mobile, inline on desktop, Ctrl/Cmd+B toggle | Mobile (< md): fixed overlay with backdrop blur, slides in from left, auto-closes on session switch. Desktop (≥ md): inline panel, hidden with `md:hidden` when closed. Resize listener syncs state across breakpoint boundary. | 2026-03-23 |
+| 143 | `toggleSidebar` added to shortcut actions, Ctrl/Cmd+B binding | New ShortcutAction type member. Sidebar subscribes via `onShortcut()` in useEffect. AppShell shows hamburger/panel-left toggle button in toolbar. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -292,7 +295,9 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Sidebar: `Sidebar.tsx` with session list, current session info, new session button. Server-side `sessionListing.ts` reads `~/.pi/agent/sessions/`. WS methods `session.listSessions` and `session.switchSession` added end-to-end (contracts, handlers, registry).
 - Error handling (1D.18) complete — retry indicators with `isRetrying` state, emoji-prefixed system messages, inline ChatView retry indicator, failed retries → ErrorBanner, message-level errors surfaced
 - Message virtualization (1D.19) complete — react-virtuoso replaces manual div list, only visible items rendered
-- Next: 1D.20 — Responsive layout (collapsible sidebar)
+- **Phase 1D COMPLETE** — all 20 items done, exit criteria verified
+- Responsive sidebar (1D.20) complete — UiSlice, overlay on mobile, inline on desktop, Ctrl/Cmd+B toggle, hamburger button in toolbar, backdrop click/Escape close, auto-close on session switch (mobile), resize listener syncs state across breakpoint
+- Next: Phase 2A — Desktop: Electrobun Scaffold
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings
