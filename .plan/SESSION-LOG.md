@@ -1365,3 +1365,40 @@
 - 2 items remaining in Phase 2A (2A.5–2A.6)
 
 ---
+## Session 40 — Desktop Shutdown + Dev Mode (2026-03-23)
+
+**What happened:**
+- Implemented 2A.5: Graceful shutdown lifecycle
+  - Added `exitOnLastWindowClosed: false` to `electrobun.config.ts` runtime section — prevents Electrobun from force-exiting before async cleanup completes
+  - Created `shutdown(reason)` function: stops server → stops all Pi processes → process.exit(0)
+  - Shutdown is idempotent via `isShuttingDown` flag — safe for concurrent close/SIGINT/SIGTERM
+  - Window close handler: flushes window state synchronously, then triggers async shutdown
+  - SIGINT/SIGTERM handlers wired in bootstrap for external termination
+  - In dev mode (no embedded server), shutdown just exits cleanly
+  
+- Implemented 2A.6: Dev mode for Vite hot reload
+  - `PIBUN_DEV_URL` env var sets explicit dev URL
+  - `PIBUN_DEV=1` uses default `http://localhost:5173`
+  - Dev mode skips embedded server startup entirely
+  - `waitForReady()` replaces `waitForHealth()` — configurable path (`/health` for production, `/` for dev)
+  - Console output guides developer to start server + Vite separately
+  - Vite proxy at `/ws` handles WebSocket routing transparently
+
+- Phase 2A exit criteria verified: all 6 items complete, typecheck + lint pass
+
+**Items completed:**
+- [x] 2A.5 — Shutdown: close webview → stop server → stop all Pi processes → exit
+- [x] 2A.6 — Dev mode: point webview at Vite dev server URL for hot reload
+
+**Issues encountered:**
+- Electrobun overrides `process.exit` to call its own `quit()` which does native cleanup (stopEventLoop + waitForShutdownComplete + forceExit). The default `exitOnLastWindowClosed: true` would call `quit()` → `forceExit(0)` before our async shutdown finishes. Solution: set `exitOnLastWindowClosed: false` and manage exit ourselves.
+
+**Handoff to next session:**
+- **Phase 2A COMPLETE** — all 6 items done
+- Next: Phase 2B — Desktop: Native Integration
+- First item: 2B.1 — Native menu bar (PiBun, File, Edit, View, Session menus per DESKTOP.md spec)
+- Reference: `reference/electrobun/package/src/bun/core/ApplicationMenu.ts` for menu API
+- Reference: `docs/DESKTOP.md` for menu structure specification
+- 7 items in Phase 2B
+
+---

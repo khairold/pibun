@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 2A in progress — 2A.1–2A.4 complete, next 2A.5.
-> **Current Phase:** 2A
-> **Last Session:** 39 (2026-03-23)
+> **Status:** Phase 2A complete — all 6 items done. Phase 2B next.
+> **Current Phase:** 2B
+> **Last Session:** 40 (2026-03-23)
 
 ---
 
@@ -157,8 +157,8 @@
 - [x] 2A.2 — Main process: find available port, start PiBun server
 - [x] 2A.3 — Wait for server health check, then open native webview at localhost URL
 - [x] 2A.4 — Window lifecycle (open, close, remember size/position via localStorage or config)
-- [ ] 2A.5 — Shutdown: close webview → stop server → stop all Pi processes → exit
-- [ ] 2A.6 — Dev mode: point webview at Vite dev server URL for hot reload
+- [x] 2A.5 — Shutdown: close webview → stop server → stop all Pi processes → exit
+- [x] 2A.6 — Dev mode: point webview at Vite dev server URL for hot reload
 
 **Exit criteria:** `bun run dev:desktop` opens a native window with the working web app inside.
 

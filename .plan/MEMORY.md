@@ -164,7 +164,11 @@
 | 152 | Desktop `bootstrap()` is async — polls `/health` before opening BrowserWindow | `waitForHealth(url, 30, 200)` polls server health endpoint up to 30 times with 200ms delay (6s total timeout). Passes on first `response.ok`. Bun.serve is synchronous so health typically passes on attempt 1, but the pattern is needed for dev mode (2A.6) where URL may point at Vite. On failure, logs error and calls `process.exit(1)`. | 2026-03-23 |
 | 153 | Window state persisted to `~/.pibun/window-state.json` | `windowState.ts` module: `loadWindowState()` reads saved frame (or defaults), `debouncedSaveWindowState()` writes on resize/move (500ms debounce), `flushWindowState()` writes immediately on close. JSON file with `{ x, y, width, height }`. `validateFrame()` sanitizes loaded values (min 600×400, `Number.isFinite` checks). | 2026-03-23 |
 | 154 | Electrobun `BrowserWindow.on()` handler type is `(event: unknown) => void` | Must cast event data inside the callback: `const { data } = event as ElectrobunEvent<ResizeEventData>`. Can't type the handler parameter directly. Electrobun events have `{ data: T }` structure (from `ElectrobunEvent<T, R>` class). | 2026-03-23 |
-| 155 | Window lifecycle: resize → debounced save, move → debounced save, close → flush save | `wireWindowLifecycle(mainWindow)` attaches three event listeners. Resize includes full frame (x,y,width,height). Move includes only position (x,y) — merges with current size. Close attempts `getFrame()` for definitive state, falls back to tracked `currentFrame`. | 2026-03-23 |
+| 155 | Window lifecycle: resize → debounced save, move → debounced save, close → flush save + shutdown | `wireWindowLifecycle(mainWindow)` attaches three event listeners. Resize includes full frame (x,y,width,height). Move includes only position (x,y) — merges with current size. Close flushes state then triggers async `shutdown()`. |
+| 156 | `exitOnLastWindowClosed: false` in electrobun.config.ts runtime section | Electrobun defaults to auto-quitting via `forceExit(0)` when last window closes — our async shutdown (stop server + kill Pi processes) would be abandoned. Disabling auto-quit lets us control the shutdown sequence and call `process.exit(0)` after cleanup. Electrobun's `process.exit` override triggers proper native cleanup. | 2026-03-23 |
+| 157 | `shutdown()` is idempotent — guarded by `isShuttingDown` flag | Safe to call from window close, SIGINT, SIGTERM simultaneously. First call wins, subsequent calls are no-ops. Stops server → stops all Pi processes → process.exit(0). In dev mode (no embedded server), just exits. | 2026-03-23 |
+| 158 | Dev mode via `PIBUN_DEV_URL` or `PIBUN_DEV=1` env vars | `PIBUN_DEV_URL` sets an explicit URL (any). `PIBUN_DEV=1` uses default `http://localhost:5173` (Vite). Dev mode skips embedded server startup — user runs server + Vite separately. Vite proxy at `/ws` handles WebSocket. Desktop is just a native window shell. | 2026-03-23 |
+| 159 | `waitForReady()` replaces `waitForHealth()` — configurable path parameter | In production, checks `/health` (our server endpoint). In dev mode, checks `/` (Vite serves index.html). Same retry logic (30 attempts, 200ms delay). | 2026-03-23 | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -314,7 +318,9 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - 2A.2 complete — Desktop embeds server in-process, `port: 0` for available port, `@pibun/server` subpath exports added
 - 2A.3 complete — `waitForHealth()` polls `/health` before opening BrowserWindow
 - 2A.4 complete — Window state persistence via `windowState.ts`, resize/move/close event wiring, saved to `~/.pibun/window-state.json`
-- Next: 2A.5 — Shutdown: close webview → stop server → stop all Pi processes → exit
+- 2A.5 complete — Graceful shutdown: close → flush state → stop server → stop Pi processes → exit. `exitOnLastWindowClosed: false`. SIGINT/SIGTERM handlers.
+- 2A.6 complete — Dev mode via `PIBUN_DEV_URL` or `PIBUN_DEV=1`. Skips embedded server, points webview at Vite URL. `waitForReady()` checks `/` instead of `/health`.
+- **Phase 2A COMPLETE** — all 6 items done. Desktop app scaffold with embedded server, window persistence, graceful shutdown, and dev mode.
 
 ## Gotchas & Warnings
 

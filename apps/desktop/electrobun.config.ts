@@ -22,4 +22,10 @@ export default {
 			bundleCEF: false,
 		},
 	},
+	runtime: {
+		// We manage shutdown ourselves — window close triggers graceful
+		// server + Pi process cleanup before exit. Electrobun's default
+		// auto-quit would force-exit before async cleanup completes.
+		exitOnLastWindowClosed: false,
+	},
 } satisfies ElectrobunConfig;

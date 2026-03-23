@@ -51,11 +51,45 @@ interface ElectrobunEvent<T> {
 
 const APP_TITLE = "PiBun";
 
-/** Maximum number of health check attempts before giving up. */
+/** Maximum number of health/ready check attempts before giving up. */
 const HEALTH_CHECK_MAX_RETRIES = 30;
 
-/** Delay between health check attempts in milliseconds. */
+/** Delay between health/ready check attempts in milliseconds. */
 const HEALTH_CHECK_DELAY_MS = 200;
+
+/** Default Vite dev server URL when PIBUN_DEV is set without a custom URL. */
+const DEFAULT_VITE_URL = "http://localhost:5173";
+
+// ============================================================================
+// Dev Mode
+// ============================================================================
+
+/**
+ * Dev mode URL. When set via `PIBUN_DEV_URL` env var, the desktop skips
+ * starting the embedded server and points the webview at this URL instead
+ * (typically the Vite dev server at http://localhost:5173).
+ *
+ * Alternatively, set `PIBUN_DEV=1` to use the default Vite URL.
+ *
+ * In dev mode, the PiBun server and Vite dev server must be started
+ * separately:
+ *   bun run dev:server   → starts PiBun server on :24242
+ *   bun run dev:web      → starts Vite dev server on :5173
+ *
+ * The Vite dev server proxies /ws to ws://localhost:24242 (configured in
+ * apps/web/vite.config.ts), so WebSocket connections work transparently.
+ */
+function getDevUrl(): string | null {
+	if (process.env.PIBUN_DEV_URL) {
+		return process.env.PIBUN_DEV_URL;
+	}
+	if (process.env.PIBUN_DEV === "1" || process.env.PIBUN_DEV === "true") {
+		return DEFAULT_VITE_URL;
+	}
+	return null;
+}
+
+const DEV_URL = getDevUrl();
 
 // ============================================================================
 // Static Files
@@ -73,41 +107,54 @@ const HEALTH_CHECK_DELAY_MS = 200;
 const WEB_DIST_DIR = resolve(import.meta.dir, "../../../../apps/web/dist");
 
 // ============================================================================
-// Health Check
+// Module State
+// ============================================================================
+
+/** The running PiBun server (null in dev mode). */
+let pibunServer: PiBunServer | null = null;
+
+/** Current tracked window frame. Updated by resize/move events. */
+let currentFrame: WindowFrame;
+
+/** Whether the shutdown sequence is in progress. */
+let isShuttingDown = false;
+
+// ============================================================================
+// Health / Ready Check
 // ============================================================================
 
 /**
- * Poll the server's `/health` endpoint until it responds with HTTP 200.
+ * Poll a URL until it responds with an HTTP 200.
  *
- * Bun.serve() is synchronous so the server is typically ready immediately,
- * but polling confirms the HTTP layer is fully operational before the
- * webview loads. This also becomes essential in dev mode (2A.6) where the
- * URL may point at a Vite dev server that takes time to start.
+ * In production mode, checks the server's `/health` endpoint.
+ * In dev mode, checks the Vite dev server's root URL (`/`).
  *
- * @param url - Base server URL (e.g., `http://localhost:12345`)
+ * @param baseUrl - Base URL to check (e.g., `http://localhost:12345`)
+ * @param path - Path to check (default: "/health")
  * @param maxRetries - Maximum number of attempts (default: 30)
  * @param delayMs - Delay between attempts in milliseconds (default: 200)
- * @throws If the server doesn't respond within the retry limit.
+ * @throws If the URL doesn't respond within the retry limit.
  */
-async function waitForHealth(
-	url: string,
+async function waitForReady(
+	baseUrl: string,
+	path = "/health",
 	maxRetries: number = HEALTH_CHECK_MAX_RETRIES,
 	delayMs: number = HEALTH_CHECK_DELAY_MS,
 ): Promise<void> {
-	const healthUrl = `${url}/health`;
+	const checkUrl = `${baseUrl}${path}`;
 
 	for (let attempt = 1; attempt <= maxRetries; attempt++) {
 		try {
-			const response = await fetch(healthUrl);
+			const response = await fetch(checkUrl);
 			if (response.ok) {
-				console.log(`Health check passed (attempt ${attempt}/${maxRetries})`);
+				console.log(`Ready check passed at ${checkUrl} (attempt ${attempt}/${maxRetries})`);
 				return;
 			}
-			console.warn(`Health check returned ${response.status} (attempt ${attempt}/${maxRetries})`);
+			console.warn(`Ready check returned ${response.status} (attempt ${attempt}/${maxRetries})`);
 		} catch {
 			// Server not ready yet — connection refused or network error.
 			if (attempt < maxRetries) {
-				console.log(`Waiting for server... (attempt ${attempt}/${maxRetries})`);
+				console.log(`Waiting for ${checkUrl}... (attempt ${attempt}/${maxRetries})`);
 			}
 		}
 
@@ -117,7 +164,7 @@ async function waitForHealth(
 	}
 
 	throw new Error(
-		`Server at ${healthUrl} did not become healthy after ${maxRetries} attempts (${(maxRetries * delayMs) / 1000}s)`,
+		`${checkUrl} did not become ready after ${maxRetries} attempts (${(maxRetries * delayMs) / 1000}s)`,
 	);
 }
 
@@ -153,20 +200,57 @@ function startServer(): { server: PiBunServer; url: string } {
 }
 
 // ============================================================================
-// Window Lifecycle
+// Shutdown
 // ============================================================================
 
 /**
- * Track the current window frame in memory. Updated by resize/move events.
- * Used to flush the final state on close.
+ * Graceful shutdown sequence:
+ * 1. Stop the HTTP/WS server (closes all WebSocket connections)
+ * 2. Stop all Pi RPC processes (SIGTERM → timeout → SIGKILL)
+ * 3. Exit the process
+ *
+ * Safe to call multiple times — subsequent calls are no-ops.
+ * Electrobun overrides `process.exit()` to trigger proper native
+ * cleanup (stopEventLoop → waitForShutdownComplete → forceExit).
  */
-let currentFrame: WindowFrame;
+async function shutdown(reason: string): Promise<void> {
+	if (isShuttingDown) return;
+	isShuttingDown = true;
+
+	console.log(`Shutting down (${reason})...`);
+
+	// In dev mode, there's no embedded server to stop
+	if (pibunServer) {
+		try {
+			// Stop the HTTP/WS server first (no new connections)
+			await pibunServer.stop();
+			console.log("Server stopped");
+
+			// Stop all Pi processes
+			await pibunServer.config.rpcManager.stopAll();
+			console.log("All Pi processes stopped");
+		} catch (error) {
+			console.error("Error during shutdown:", error);
+		}
+	}
+
+	console.log("Shutdown complete.");
+	process.exit(0);
+}
+
+// ============================================================================
+// Window Lifecycle
+// ============================================================================
 
 /**
  * Wire up window lifecycle events:
  * - resize → debounced save of full frame
  * - move → debounced save with updated position
- * - close → flush final state to disk
+ * - close → flush final state to disk, then shutdown
+ *
+ * Note: `exitOnLastWindowClosed` is set to `false` in electrobun.config.ts
+ * so Electrobun doesn't force-exit before our async shutdown completes.
+ * We explicitly call `process.exit(0)` after cleanup.
  */
 function wireWindowLifecycle(mainWindow: BrowserWindow): void {
 	// Resize events include full frame (x, y, width, height).
@@ -194,7 +278,9 @@ function wireWindowLifecycle(mainWindow: BrowserWindow): void {
 		debouncedSaveWindowState(currentFrame);
 	});
 
-	// Close event — flush any pending save with final state
+	// Close event — flush window state synchronously, then graceful shutdown.
+	// The shutdown() call is async but fires on the event loop — it stops
+	// the server, kills Pi processes, and calls process.exit(0).
 	mainWindow.on("close", () => {
 		// Get the definitive frame from the native window before it's destroyed.
 		// Fall back to our tracked frame if getFrame() fails.
@@ -204,6 +290,9 @@ function wireWindowLifecycle(mainWindow: BrowserWindow): void {
 		} catch {
 			flushWindowState(currentFrame);
 		}
+
+		// Trigger graceful shutdown (async — will process.exit when done)
+		shutdown("window closed");
 	});
 }
 
@@ -214,10 +303,11 @@ function wireWindowLifecycle(mainWindow: BrowserWindow): void {
 /**
  * Main bootstrap sequence:
  * 1. Load saved window state (or defaults)
- * 2. Start embedded server on available port
- * 3. Wait for health check to pass
+ * 2. Start embedded server or use dev URL
+ * 3. Wait for health/ready check to pass
  * 4. Open native webview with restored window frame
- * 5. Wire window lifecycle events for state persistence
+ * 5. Wire window lifecycle events for state persistence + shutdown
+ * 6. Wire signal handlers for external termination
  */
 async function bootstrap(): Promise<void> {
 	// Step 1: Load saved window state
@@ -228,36 +318,60 @@ async function bootstrap(): Promise<void> {
 		`Restoring window frame: ${savedFrame.width}×${savedFrame.height} at (${savedFrame.x}, ${savedFrame.y})`,
 	);
 
-	// Step 2: Start the embedded server
-	const { server: pibunServer, url: serverUrl } = startServer();
+	// Step 2: Determine webview URL (dev mode vs production)
+	let webviewUrl: string;
 
-	console.log(`${APP_TITLE} server started on ${serverUrl}`);
-
-	if (pibunServer.config.staticDir) {
-		console.log(`Serving static files from ${pibunServer.config.staticDir}`);
+	if (DEV_URL) {
+		// Dev mode — skip server, use external URL (Vite dev server)
+		console.log(`Dev mode: loading webview from ${DEV_URL}`);
+		console.log("Ensure server and Vite dev server are running separately:");
+		console.log("  bun run dev:server   → PiBun server on :24242");
+		console.log("  bun run dev:web      → Vite dev server on :5173");
+		webviewUrl = DEV_URL;
 	} else {
-		console.log("No static directory found — web app may not be built yet");
+		// Production mode — start embedded server
+		const { server, url } = startServer();
+		pibunServer = server;
+		webviewUrl = url;
+
+		console.log(`${APP_TITLE} server started on ${webviewUrl}`);
+		if (pibunServer.config.staticDir) {
+			console.log(`Serving static files from ${pibunServer.config.staticDir}`);
+		} else {
+			console.log("No static directory found — web app may not be built yet");
+		}
 	}
 
-	// Step 3: Wait for server to be healthy
+	// Step 3: Wait for URL to be ready
+	// In production, check /health (our server endpoint).
+	// In dev mode, check / (Vite serves index.html at root).
+	const checkPath = DEV_URL ? "/" : "/health";
+
 	try {
-		await waitForHealth(serverUrl);
+		await waitForReady(webviewUrl, checkPath);
 	} catch (error) {
-		console.error("Failed to start server:", error);
+		console.error("Failed to reach web app:", error);
 		process.exit(1);
 	}
 
 	// Step 4: Open native webview with restored frame
 	const mainWindow = new BrowserWindow({
 		title: APP_TITLE,
-		url: serverUrl,
+		url: webviewUrl,
 		frame: savedFrame,
 	});
 
-	// Step 5: Wire window lifecycle events
+	// Step 5: Wire window lifecycle events (state persistence + shutdown)
 	wireWindowLifecycle(mainWindow);
 
-	console.log(`${APP_TITLE} window opened at ${serverUrl}`);
+	// Step 6: Wire signal handlers for graceful shutdown
+	process.on("SIGINT", () => shutdown("SIGINT"));
+	process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+	console.log(`${APP_TITLE} window opened at ${webviewUrl}`);
+	if (DEV_URL) {
+		console.log("Hot reload active — changes to the web app will reflect immediately");
+	}
 }
 
 bootstrap().catch((error) => {
