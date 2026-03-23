@@ -233,6 +233,7 @@
 | 221 | Tab keyboard shortcuts: Ctrl+T (new), Ctrl+W (close), Ctrl+Tab/Shift+Tab (cycle), Ctrl+1-9 (jump) | Added to `useKeyboardShortcuts`. Tab cycling wraps around (last→first, first→last). Ctrl+W only active when >1 tab exists. Ctrl+1-9 only fires when >1 tab exists and target index exists. New `ShortcutAction` types: `newTab`, `closeTab`, `nextTab`, `prevTab`. Ctrl+Tab/Ctrl+Shift+Tab may not work in browser mode (browser intercepts) — works in desktop native webview. | 2026-03-23 |
 | 222 | Sidebar restructured: active tabs (primary) + past sessions (collapsible secondary) | Sidebar now shows open tabs as primary content, grouped by CWD when multiple directories are in use. Past sessions from Pi's filesystem shown as a collapsible section below, filtered to exclude sessions already open as tabs. "New" button creates a new tab via `createNewTab()` instead of `startNewSession()`. Removed redundant "Current session info" section — tab display covers this. | 2026-03-23 |
 | 223 | `SidebarTabItem` uses `<div role="tab">` not `<button>` to allow nested close `<button>` | Same pattern as `TabItem` in `TabBar.tsx` — HTML forbids `<button>` inside `<button>`. `SidebarTabItem` is a `<div>` with `role="tab"`, `tabIndex={0}`, and keyboard handling. Close button is a proper `<button>` nested inside. Past sessions refresh button also restructured to avoid nesting. | 2026-03-23 |
+| 224 | Native menus updated with tab actions: New Tab, Close Tab, Next/Previous Tab | File menu: New Tab (Cmd+T), Close Tab (Cmd+W), Close Window moved to Cmd+Shift+W. View menu: Next Tab (Ctrl+Tab), Previous Tab (Ctrl+Shift+Tab). New `MENU_ACTIONS`: `newTab`, `closeTab`, `nextTab`, `prevTab`. All forwarded via `menu.action` WS push (not handled natively). `wireTransport.ts` `handleMenuAction` dispatches to `createNewTab()`, `closeTab()`, `switchTabAction()`. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -336,7 +337,7 @@ All core features are shipped. See `.plan/archive/PLAN-v1.md` for the 97-item bu
 ## What's Not Built Yet (v2 Plan)
 
 - Multi-session WS plumbing complete ✅ — `WsRequest.sessionId` for targeting, `WsConnectionData.sessionIds` for tracking, push events wrapped with sessionId, `WsTransport.setActiveSession()` for client, `keepExisting` flag on session.start
-- **Phase 1 in progress** — items 1.1–1.9 done (multi-session WS plumbing, SessionTab type, tabsSlice, TabBar component, tab switch wiring, new tab creation, close tab, drag-to-reorder, keyboard shortcuts), items 1.10–1.12 remain (sidebar, desktop menus, verification)
+- **Phase 1 in progress** — items 1.1–1.11 done (multi-session WS plumbing, SessionTab type, tabsSlice, TabBar component, tab switch wiring, new tab creation, close tab, drag-to-reorder, keyboard shortcuts, sidebar, desktop menus), item 1.12 remains (verification)
 - Pi RPC types fully defined in `packages/contracts/` ✅
 - JSONL parser in `packages/shared/` ✅
 - PiProcess class in `apps/server/src/piProcess.ts` ✅ — wraps Bun.spawn of `pi --mode rpc`, uses JsonlParser, typed listeners, command correlation

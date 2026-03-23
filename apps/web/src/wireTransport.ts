@@ -19,7 +19,12 @@ import {
 	startSessionInFolder,
 } from "@/lib/sessionActions";
 import { emitShortcut } from "@/lib/shortcuts";
-import { updateTabStreamingBySessionId } from "@/lib/tabActions";
+import {
+	closeTab,
+	createNewTab,
+	switchTabAction,
+	updateTabStreamingBySessionId,
+} from "@/lib/tabActions";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { WsTransport } from "@/transport";
@@ -410,6 +415,21 @@ function handleMenuAction(data: WsMenuActionData): void {
 				});
 			break;
 
+		case "file.new-tab":
+			createNewTab().catch((err: unknown) => {
+				console.error("[Menu] Failed to create new tab:", err);
+			});
+			break;
+
+		case "file.close-tab": {
+			if (store.tabs.length > 1 && store.activeTabId) {
+				closeTab(store.activeTabId).catch((err: unknown) => {
+					console.error("[Menu] Failed to close tab:", err);
+				});
+			}
+			break;
+		}
+
 		case "file.open-folder": {
 			// Extract the folder path from the data payload
 			const folderPath = data.data?.folderPath;
@@ -427,6 +447,34 @@ function handleMenuAction(data: WsMenuActionData): void {
 		case "view.toggle-sidebar":
 			emitShortcut("toggleSidebar");
 			break;
+
+		case "view.next-tab": {
+			if (store.tabs.length > 1 && store.activeTabId) {
+				const idx = store.tabs.findIndex((t) => t.id === store.activeTabId);
+				const nextIdx = idx >= store.tabs.length - 1 ? 0 : idx + 1;
+				const nextTab = store.tabs[nextIdx];
+				if (nextTab) {
+					switchTabAction(nextTab.id).catch((err: unknown) => {
+						console.error("[Menu] Failed to switch to next tab:", err);
+					});
+				}
+			}
+			break;
+		}
+
+		case "view.prev-tab": {
+			if (store.tabs.length > 1 && store.activeTabId) {
+				const idx = store.tabs.findIndex((t) => t.id === store.activeTabId);
+				const prevIdx = idx <= 0 ? store.tabs.length - 1 : idx - 1;
+				const prevTab = store.tabs[prevIdx];
+				if (prevTab) {
+					switchTabAction(prevTab.id).catch((err: unknown) => {
+						console.error("[Menu] Failed to switch to previous tab:", err);
+					});
+				}
+			}
+			break;
+		}
 
 		// ── Session ──────────────────────────────────────────────
 		case "session.abort":

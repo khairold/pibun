@@ -25,11 +25,15 @@ export const MENU_ACTIONS = {
 
 	// File
 	newSession: "file.new-session",
+	newTab: "file.new-tab",
+	closeTab: "file.close-tab",
 	openFolder: "file.open-folder",
 	closeWindow: "file.close-window",
 
 	// View
 	toggleSidebar: "view.toggle-sidebar",
+	nextTab: "view.next-tab",
+	prevTab: "view.prev-tab",
 	zoomIn: "view.zoom-in",
 	zoomOut: "view.zoom-out",
 	zoomActualSize: "view.zoom-actual-size",
@@ -52,7 +56,7 @@ export type MenuAction = (typeof MENU_ACTIONS)[keyof typeof MENU_ACTIONS];
  *
  * Structure follows DESKTOP.md spec:
  * - PiBun (app menu — first entry with no label on macOS)
- * - File (New Session, Close Window)
+ * - File (New Session, New Tab, Open Folder, Close Tab, Close Window)
  * - Edit (standard roles: Undo, Redo, Cut, Copy, Paste, Select All)
  * - View (Toggle Sidebar, Zoom controls)
  * - Session (Abort, Compact, Switch Model, Set Thinking)
@@ -87,15 +91,26 @@ export function buildMenuConfig(): ApplicationMenuItemConfig[] {
 					accelerator: "CommandOrControl+N",
 				},
 				{
+					label: "New Tab",
+					action: MENU_ACTIONS.newTab,
+					accelerator: "CommandOrControl+T",
+				},
+				{ type: "separator" },
+				{
 					label: "Open Folder…",
 					action: MENU_ACTIONS.openFolder,
 					accelerator: "CommandOrControl+O",
 				},
 				{ type: "separator" },
 				{
+					label: "Close Tab",
+					action: MENU_ACTIONS.closeTab,
+					accelerator: "CommandOrControl+W",
+				},
+				{
 					label: "Close Window",
 					action: MENU_ACTIONS.closeWindow,
-					accelerator: "CommandOrControl+W",
+					accelerator: "CommandOrControl+Shift+W",
 				},
 			],
 		},
@@ -123,6 +138,17 @@ export function buildMenuConfig(): ApplicationMenuItemConfig[] {
 					label: "Toggle Sidebar",
 					action: MENU_ACTIONS.toggleSidebar,
 					accelerator: "CommandOrControl+B",
+				},
+				{ type: "separator" },
+				{
+					label: "Next Tab",
+					action: MENU_ACTIONS.nextTab,
+					accelerator: "Control+Tab",
+				},
+				{
+					label: "Previous Tab",
+					action: MENU_ACTIONS.prevTab,
+					accelerator: "Control+Shift+Tab",
 				},
 				{ type: "separator" },
 				{

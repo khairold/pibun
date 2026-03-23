@@ -5,6 +5,28 @@
 
 ---
 
+## Session 60 — Desktop native menus with tab actions (2026-03-23)
+
+**What happened:**
+- Added 4 new `MENU_ACTIONS` constants: `newTab` (`file.new-tab`), `closeTab` (`file.close-tab`), `nextTab` (`view.next-tab`), `prevTab` (`view.prev-tab`)
+- File menu updated: added "New Tab" (Cmd+T) and "Close Tab" (Cmd+W). "Close Window" accelerator changed from Cmd+W → Cmd+Shift+W to match tabbed app conventions (Cmd+W closes the active tab, Cmd+Shift+W closes the window)
+- View menu updated: added "Next Tab" (Ctrl+Tab) and "Previous Tab" (Ctrl+Shift+Tab) between Toggle Sidebar and Zoom controls
+- `wireTransport.ts` `handleMenuAction()` extended with 4 new action cases: `file.new-tab` → `createNewTab()`, `file.close-tab` → `closeTab(activeTabId)` (only when >1 tab), `view.next-tab` → `switchTabAction()` with next index (wraps), `view.prev-tab` → `switchTabAction()` with previous index (wraps)
+- All 4 new actions forwarded via WS push (fall through to `default` case in desktop `handleMenuAction` in `index.ts`) — no native-only handling needed
+
+**Items completed:**
+- [x] 1.11 — Desktop: update native menus with tab actions (New Tab, Close Tab, Next/Previous Tab)
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1.12 — Verify: 3 simultaneous sessions streaming, switch between them, close one, verify no orphaned processes
+- This is a verification item — run 3 tabs simultaneously, confirm streaming events route correctly, close tabs, verify Pi processes are properly terminated
+- Phase 1 exit criteria: "Multiple Pi sessions run in parallel. Tabs show streaming state. Switch is instant (messages cached). No process leaks on close."
+
+---
+
 ## Session 58 — Tab drag-to-reorder + keyboard shortcuts (2026-03-23)
 
 **What happened:**
