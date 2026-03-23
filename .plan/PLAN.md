@@ -3,7 +3,7 @@
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
 > **Status:** Phase 1A COMPLETE — moving to Phase 1B
 > **Current Phase:** 1B
-> **Last Session:** 8 (2026-03-23)
+> **Last Session:** 9 (2026-03-23)
 
 ---
 
@@ -77,7 +77,7 @@
 
 **Goal:** Browser can connect via WebSocket and interact with Pi through the server.
 
-- [ ] 1B.1 — Define WebSocket protocol types in `packages/contracts/` (WsRequest, WsResponse, WsPush, method strings, push channels)
+- [x] 1B.1 — Define WebSocket protocol types in `packages/contracts/` (WsRequest, WsResponse, WsPush, method strings, push channels)
 - [ ] 1B.2 — Set up Bun HTTP server with health endpoint (`/health`)
 - [ ] 1B.3 — Static file serving (serve `apps/web/dist/` in production)
 - [ ] 1B.4 — WebSocket upgrade handling with connection tracking

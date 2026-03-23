@@ -1,8 +1,9 @@
 /**
  * @pibun/contracts — Shared TypeScript types (no runtime logic)
  *
- * Re-exports all type definitions for Pi RPC protocol.
- * This package has ZERO runtime code — only interfaces, types, and type aliases.
+ * Re-exports all type definitions for Pi RPC protocol and WebSocket protocol.
+ * This package has ZERO runtime code — only interfaces, types, type aliases,
+ * and const value objects (method/channel name maps).
  */
 
 // Base Pi types (content blocks, messages, model, etc.)
@@ -134,3 +135,43 @@ export type {
 	PiSteerResponse,
 	PiSwitchSessionResponse,
 } from "./piResponses.js";
+
+// WebSocket protocol types (browser ↔ server)
+export { WS_CHANNELS, WS_METHODS } from "./wsProtocol.js";
+export type {
+	WsChannel,
+	WsChannelDataMap,
+	WsMethod,
+	WsMethodParamsMap,
+	WsMethodResultMap,
+	WsOkResult,
+	WsPush,
+	WsRequest,
+	WsResponse,
+	WsResponseError,
+	WsResponseOk,
+	WsServerErrorData,
+	WsServerMessage,
+	WsServerWelcomeData,
+	WsSessionCompactParams,
+	WsSessionExtensionUiResponseParams,
+	WsSessionFollowUpParams,
+	WsSessionForkParams,
+	WsSessionForkResult,
+	WsSessionGetMessagesResult,
+	WsSessionGetModelsResult,
+	WsSessionGetStateResult,
+	WsSessionGetStatsResult,
+	WsSessionNewResult,
+	WsSessionPromptParams,
+	WsSessionSetModelParams,
+	WsSessionSetNameParams,
+	WsSessionSetThinkingParams,
+	WsSessionStartParams,
+	WsSessionStartResult,
+	WsSessionSteerParams,
+	WsTypedPush,
+	WsTypedRequest,
+	WsTypedResponse,
+	WsTypedResponseOk,
+} from "./wsProtocol.js";

@@ -300,3 +300,30 @@
 - PiRpcManager is at `apps/server/src/piRpcManager.ts`. It depends on `PiProcess` from `./piProcess.js`
 - Key test scenarios: create/get/stop session, duplicate ID rejection, crash detection with stderr capture, stopAll parallel, listener cleanup on session removal
 - For mocking: PiProcess spawns `Bun.spawn()` — tests will need to either mock the subprocess or use a fake Pi binary (a script that echoes JSONL)
+
+---
+
+## Session 9 — WebSocket Protocol Types (2026-03-23)
+
+**What happened:**
+- Created `packages/contracts/src/wsProtocol.ts` with complete WebSocket protocol type definitions
+- Defined `WS_METHODS` (17 methods across 5 domains: lifecycle, prompting, model/settings, session management, extension UI) and `WS_CHANNELS` (4 push channels: pi.event, pi.response, server.welcome, server.error)
+- Created per-method params interfaces (9 methods have params, 8 are parameterless)
+- Created per-method result interfaces (WsOkResult for simple acks, typed results for queries)
+- Created `WsMethodParamsMap`, `WsMethodResultMap`, `WsChannelDataMap` type maps for compile-time safety
+- Created wire envelope types: `WsRequest`, `WsResponseOk`, `WsResponseError`, `WsResponse`, `WsPush`, `WsServerMessage`
+- Created generic typed variants: `WsTypedRequest<M>`, `WsTypedResponseOk<M>`, `WsTypedResponse<M>`, `WsTypedPush<C>`
+- Updated `index.ts` to re-export all new types and the two const objects
+- Fixed Biome formatting (multi-line union → single-line)
+
+**Items completed:**
+- [x] 1B.1 — Define WebSocket protocol types in `packages/contracts/` (WsRequest, WsResponse, WsPush, method strings, push channels)
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1B.2 — Set up Bun HTTP server with health endpoint (`/health`)
+- The WS protocol types are ready for both server (dispatch) and client (transport) consumption
+- `WsTypedRequest<M>` uses conditional params (never for parameterless methods) — useful for the WsTransport `send()` method
+- Server will import `WS_METHODS` const for method routing and type maps for handler signatures

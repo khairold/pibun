@@ -48,7 +48,10 @@
 | 38 | Biome sorts `type` imports before value imports in named import groups | `import { type Foo, Bar }` not `import { Bar, type Foo }`. Also `process.env.KEY` not `process.env["KEY"]` (useLiteralKeys). |
 | 39 | Integration test confirmed full Pi RPC event lifecycle | Observed sequence: `agent_start` → `turn_start` → `message_start` (user) → `message_end` (user) → `message_start` (assistant) → `message_update` (text_start) → `message_update` (text_delta) → `message_update` (text_end) → `message_end` (assistant) → `turn_end` → `agent_end`. Text deltas are inside `message_update.assistantMessageEvent.delta`. | 2026-03-23 |
 | 40 | `PiResponse` union requires narrowing via `command` + `success` to access `data` | Can't access `.data` on the raw `PiResponse` type — must narrow with `stateResp.command === "get_state"` first. TS discriminated union pattern. | 2026-03-23 |
-| 41 | `PiPromptCommand.message` is `string`, not content block array | The prompt command takes a plain string message. Images go in a separate `images` field. Don't send `[{ type: "text", text: "..." }]`. | 2026-03-23 | 2026-03-23 |
+| 41 | `PiPromptCommand.message` is `string`, not content block array | The prompt command takes a plain string message. Images go in a separate `images` field. Don't send `[{ type: "text", text: "..." }]`. | 2026-03-23 |
+| 42 | WebSocket protocol types in `packages/contracts/src/wsProtocol.ts` | File contains: `WS_METHODS` + `WS_CHANNELS` const objects, per-method params/result interfaces, `WsMethodParamsMap`/`WsMethodResultMap`/`WsChannelDataMap` type maps, wire types (`WsRequest`, `WsResponse`, `WsPush`), and generic typed variants (`WsTypedRequest<M>`, `WsTypedPush<C>`). Constants use `as const` for literal type inference. | 2026-03-23 |
+| 43 | `WsResponse` discriminated via property presence, not literal discriminant | `WsResponseOk` has `result`, `WsResponseError` has `error`. Narrow with `"error" in resp`. `WsPush` discriminated from responses by `type === "push"`. | 2026-03-23 |
+| 44 | `WsTypedRequest<M>` uses conditional type for optional params | Methods with `undefined` in `WsMethodParamsMap` get `params?: never`, methods with defined params get `params: T`. This makes `send("session.stop")` work without params while requiring params for `send("session.prompt", { message: "..." })`. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -150,7 +153,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Fake Pi binary at `apps/server/test-fixtures/fake-pi.ts` — reusable for any tests needing a Pi subprocess
 - Integration test at `apps/server/src/integration-test.ts` ✅ — verified full Pi RPC round-trip with real Pi process
 - **Phase 1A COMPLETE** — all items done, exit criteria met
-- Next: Phase 1B — Server: WebSocket Bridge (1B.1 — Define WS protocol types)
+- WebSocket protocol types defined in `packages/contracts/src/wsProtocol.ts` ✅ — 17 methods, 4 push channels, type maps, wire types, typed generics
+- Next: Phase 1B.2 — Set up Bun HTTP server with health endpoint
 - Pi RPC verified with Pi 0.61.1 — `get_available_models` and `get_state` work, commands use `{"type":"..."}` format
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
