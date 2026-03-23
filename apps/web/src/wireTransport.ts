@@ -178,21 +178,25 @@ function handlePiEvent(event: PiEvent): void {
 
 		// ── Auto-recovery ──────────────────────────────────────────────
 		case "auto_compaction_start":
+			store.setIsCompacting(true);
 			store.appendMessage(
 				makeMessage({
 					id: nextId("system"),
 					type: "system",
-					content: `Context compaction started (reason: ${event.reason})`,
+					content: `⚙️ Context compaction started (reason: ${event.reason})`,
 				}),
 			);
 			break;
 
 		case "auto_compaction_end":
+			store.setIsCompacting(false);
 			store.appendMessage(
 				makeMessage({
 					id: nextId("system"),
 					type: "system",
-					content: event.aborted ? "Context compaction aborted" : "Context compaction complete",
+					content: event.aborted
+						? "⚠️ Context compaction aborted"
+						: "✅ Context compaction complete",
 				}),
 			);
 			break;

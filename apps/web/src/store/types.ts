@@ -88,6 +88,8 @@ export interface SessionSlice {
 	thinkingLevel: PiThinkingLevel;
 	/** True while Pi agent is processing (between agent_start and agent_end). */
 	isStreaming: boolean;
+	/** True while context compaction is in progress (manual or auto). */
+	isCompacting: boolean;
 	/** Session statistics (tokens, cost), null before first fetch. */
 	stats: PiSessionStats | null;
 
@@ -99,6 +101,8 @@ export interface SessionSlice {
 	setThinkingLevel: (level: PiThinkingLevel) => void;
 	/** Set streaming state. */
 	setIsStreaming: (streaming: boolean) => void;
+	/** Set compacting state. */
+	setIsCompacting: (compacting: boolean) => void;
 	/** Set session stats. */
 	setStats: (stats: PiSessionStats | null) => void;
 	/** Reset all session state to initial values. */

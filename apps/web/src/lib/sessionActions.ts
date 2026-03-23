@@ -138,6 +138,37 @@ export async function fetchSessionStats(): Promise<boolean> {
 }
 
 /**
+ * Manually compact the context window.
+ *
+ * Sets isCompacting state, calls session.compact, waits for response.
+ * The auto_compaction_start/end events in wireTransport also update
+ * isCompacting, so the state stays in sync for both manual and auto compaction.
+ *
+ * Returns true on success, false on failure.
+ */
+export async function compactSession(customInstructions?: string): Promise<boolean> {
+	const store = useStore.getState();
+	if (!store.sessionId) return false;
+
+	store.setIsCompacting(true);
+	try {
+		const params: Record<string, string> = {};
+		if (customInstructions) {
+			params.customInstructions = customInstructions;
+		}
+		await getTransport().request("session.compact", params);
+		return true;
+	} catch (err) {
+		store.setLastError(`Failed to compact context: ${errorMessage(err)}`);
+		return false;
+	} finally {
+		// auto_compaction_end event will set isCompacting=false,
+		// but if the command itself fails (before events fire), clear it here
+		store.setIsCompacting(false);
+	}
+}
+
+/**
  * Fork the conversation from a specific message.
  *
  * Flow:

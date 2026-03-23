@@ -120,6 +120,10 @@
 | 109 | New session aborts streaming before creating new session | `startNewSession()` calls `session.abort` if `isStreaming` is true before calling `session.new`. Same pattern for `forkFromMessage()`. Prevents orphaned streaming state. | 2026-03-23 |
 | 110 | Session stats fetched after every `agent_end` event | `wireTransport.ts` calls `fetchSessionStats()` (from `sessionActions.ts`) when `agent_end` fires. Stats update in Zustand store `stats` field. `SessionStats` component in toolbar displays tokens + cost with expandable detail panel. | 2026-03-23 |
 | 111 | `SessionStats` shows compact tokens + cost, expandable to full breakdown | Trigger button shows `formatTokens(total)` + `formatCost(cost)`. Panel shows input/output/cache read/cache write token breakdown, user/assistant/tool message counts, and total cost. Has refresh button. Same dropdown pattern (click-outside, Escape) as ModelSelector. | 2026-03-23 |
+| 112 | `isCompacting` state in SessionSlice tracks compaction progress | Set true by `auto_compaction_start` event and `compactSession()` action. Set false by `auto_compaction_end` event (and finally-block fallback in `compactSession()`). Used by CompactButton and ChatView compaction indicator. | 2026-03-23 |
+| 113 | `CompactButton` component in toolbar with `compactSession()` action | Disabled when not connected, no session, already compacting, or streaming. Shows "Compacting…" with spin animation when active. Only renders when session is active. Placed in toolbar between stats and session management controls. | 2026-03-23 |
+| 114 | System messages use emoji prefixes and color-coded styling for compaction/retry | `⚙️` for compaction start, `✅` for compaction complete, `⚠️` for compaction aborted. `SystemMessage` component detects category from content and applies amber (compaction) or orange (retry) tint to dividers and text. | 2026-03-23 |
+| 115 | ChatView has inline compaction indicator similar to streaming indicator | Amber pulsing dot + "Compacting context…" text shown when `isCompacting` is true. Appears below messages list, same position pattern as "Pi is thinking…" indicator. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -255,7 +259,7 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - **Phase 1C COMPLETE** — all items done, exit criteria met
 - Phase 1D in progress — thinking blocks (1D.1), tool call cards (1D.2), syntax highlighting (1D.3), markdown rendering (1D.4), tool-specific output rendering (1D.5), model selector (1D.6), thinking selector (1D.7), model/thinking wiring (1D.8), session management (1D.9) complete
 - Session management: `NewSessionButton` in toolbar, `ForkDialog` with message picker, `sessionActions.ts` module for coordinated operations. `session.getForkMessages` WS method added end-to-end.
-- Next: 1D.11 — Compaction controls (manual compact button, auto-compaction start/end indicators)
+- Next: 1D.12 — Extension UI dialogs (select list, confirm yes/no, text input, multi-line editor)
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings

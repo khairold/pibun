@@ -124,6 +124,7 @@ function chatItemKey(item: ChatItem): string {
 export function ChatView() {
 	const messages = useStore((s) => s.messages);
 	const isStreaming = useStore((s) => s.isStreaming);
+	const isCompacting = useStore((s) => s.isCompacting);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 
 	const { showScrollButton, scrollToBottom } = useAutoScroll(scrollContainerRef, messages);
@@ -159,6 +160,14 @@ export function ChatView() {
 					<div className="mt-4 flex items-center gap-2 text-xs text-neutral-500">
 						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
 						<span>Pi is thinking\u2026</span>
+					</div>
+				)}
+
+				{/* Compaction indicator when context is being compressed */}
+				{isCompacting && (
+					<div className="mt-4 flex items-center gap-2 text-xs text-amber-500/70">
+						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+						<span>Compacting context\u2026</span>
 					</div>
 				)}
 			</div>

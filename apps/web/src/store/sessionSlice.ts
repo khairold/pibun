@@ -17,12 +17,14 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
 	model: null,
 	thinkingLevel: DEFAULT_THINKING_LEVEL,
 	isStreaming: false,
+	isCompacting: false,
 	stats: null,
 
 	setSessionId: (id) => set({ sessionId: id }),
 	setModel: (model) => set({ model }),
 	setThinkingLevel: (level) => set({ thinkingLevel: level }),
 	setIsStreaming: (streaming) => set({ isStreaming: streaming }),
+	setIsCompacting: (compacting) => set({ isCompacting: compacting }),
 	setStats: (stats) => set({ stats }),
 
 	resetSession: () =>
@@ -31,6 +33,7 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
 			model: null,
 			thinkingLevel: DEFAULT_THINKING_LEVEL,
 			isStreaming: false,
+			isCompacting: false,
 			stats: null,
 		}),
 });

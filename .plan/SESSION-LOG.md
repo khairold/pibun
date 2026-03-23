@@ -883,3 +883,40 @@
 - 10 items remaining in Phase 1D
 
 ---
+
+## Session 26 — Compaction Controls (2026-03-23)
+
+**What happened:**
+- Added `isCompacting` boolean to SessionSlice (types.ts + sessionSlice.ts) — tracks whether context compaction is in progress from either manual trigger or auto-compaction events
+- Added `setIsCompacting` action to SessionSlice
+- Updated `wireTransport.ts` — `auto_compaction_start` now sets `isCompacting=true`, `auto_compaction_end` sets `isCompacting=false`. Also added emoji prefixes to system messages (`⚙️`/`✅`/`⚠️`) for visual distinction
+- Created `compactSession()` action in `sessionActions.ts` — calls `session.compact` via transport with optimistic `isCompacting=true`, resets in finally-block as fallback (auto_compaction_end event is the primary reset)
+- Created `CompactButton` component — toolbar button with compress icon:
+  - Disabled when not connected, no session, already compacting, or streaming
+  - Shows "Compacting…" with spinning icon during compaction
+  - Amber tint while compacting
+  - Only renders when session is active
+  - Contextual tooltip explains why disabled
+- Enhanced `SystemMessage` with category-based styling:
+  - Detects compaction/retry messages from content
+  - Compaction messages: amber tint on text + dividers
+  - Retry messages: orange tint on text + dividers
+  - Default: neutral (unchanged)
+- Added inline compaction indicator in `ChatView` — amber pulsing dot + "Compacting context…" text, same pattern as "Pi is thinking…" streaming indicator
+- Added `CompactButton` to AppShell toolbar — positioned before NewSessionButton in the session management controls group
+
+**Items completed:**
+- [x] 1D.11 — Compaction controls (manual compact button, auto-compaction start/end indicators)
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1D.12 — Extension UI dialogs (select list, confirm yes/no, text input, multi-line editor)
+- Extension UI request events are already typed in contracts (`PiExtensionDialogRequest` union)
+- `wireTransport.ts` has placeholder `extension_ui_request` case (currently no-op)
+- Server handler `handleSessionExtensionUiResponse` exists in session.ts
+- Need: Zustand slice for pending dialog state, dialog components (SelectDialog, ConfirmDialog, InputDialog, EditorDialog), wiring in wireTransport, response dispatch
+- 9 items remaining in Phase 1D
+
+---

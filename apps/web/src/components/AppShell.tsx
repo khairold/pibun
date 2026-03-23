@@ -7,6 +7,7 @@
  */
 
 import { ChatView } from "@/components/ChatView";
+import { CompactButton } from "@/components/CompactButton";
 import { Composer } from "@/components/Composer";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { ErrorBanner } from "@/components/ErrorBanner";
@@ -47,6 +48,7 @@ export function AppShell() {
 
 					{/* Session management controls */}
 					<div className="flex items-center gap-1 border-l border-neutral-800 pl-2">
+						<CompactButton />
 						<NewSessionButton />
 						<ForkDialog />
 					</div>
