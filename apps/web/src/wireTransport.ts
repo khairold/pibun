@@ -18,6 +18,7 @@ import { WsTransport } from "@/transport";
 import type {
 	PiAgentMessage,
 	PiEvent,
+	PiExtensionUIRequest,
 	PiImageContent,
 	PiMessageUpdateEvent,
 	PiTextContent,
@@ -228,9 +229,16 @@ function handlePiEvent(event: PiEvent): void {
 		case "turn_end":
 			break;
 
-		// ── Extension events — handled in Phase 1D ─────────────────────
+		// ── Extension events ───────────────────────────────────────────
 		case "extension_ui_request":
+			handleExtensionUiRequest(event);
+			break;
+
 		case "extension_error":
+			console.error(
+				`[PiBun] Extension error: ${event.extensionPath} — ${event.event}: ${event.error}`,
+			);
+			store.setLastError(`Extension error: ${event.error}`);
 			break;
 	}
 }
@@ -296,6 +304,44 @@ function handleMessageUpdate(event: PiMessageUpdateEvent): void {
 		case "thinking_end":
 		case "toolcall_start":
 		case "toolcall_delta":
+			break;
+	}
+}
+
+// ============================================================================
+// Extension UI Handling
+// ============================================================================
+
+/**
+ * Handle extension_ui_request events.
+ *
+ * Dialog requests (select, confirm, input, editor) are set on the store's
+ * `pendingExtensionUi` field, which triggers the ExtensionDialog modal.
+ * Pi BLOCKS until we respond — the dialog must be rendered promptly (MEMORY #14).
+ *
+ * Fire-and-forget requests (notify, setStatus, setWidget, setTitle, set_editor_text)
+ * are handled inline — no response needed.
+ */
+function handleExtensionUiRequest(event: PiExtensionUIRequest): void {
+	const store = useStore.getState();
+
+	switch (event.method) {
+		// Dialog types — block Pi, require response
+		case "select":
+		case "confirm":
+		case "input":
+		case "editor":
+			store.setPendingExtensionUi(event);
+			break;
+
+		// Fire-and-forget types — no response needed
+		// Note: notify and setStatus are handled in 1D.13
+		case "notify":
+		case "setStatus":
+		case "setWidget":
+		case "setTitle":
+		case "set_editor_text":
+			console.log(`[PiBun] Extension ${event.method}:`, event);
 			break;
 	}
 }

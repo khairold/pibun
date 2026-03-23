@@ -16,10 +16,14 @@ import { ModelSelector } from "@/components/ModelSelector";
 import { NewSessionButton } from "@/components/NewSessionButton";
 import { SessionStats } from "@/components/SessionStats";
 import { ThinkingSelector } from "@/components/ThinkingSelector";
+import { ExtensionDialog } from "@/components/extension";
 
 export function AppShell() {
 	return (
 		<div className="flex h-screen bg-neutral-950 text-neutral-100">
+			{/* Extension UI dialog overlay (modal — blocks interaction until response) */}
+			<ExtensionDialog />
+
 			{/* Sidebar placeholder */}
 			<aside className="hidden w-64 shrink-0 border-r border-neutral-800 bg-neutral-900 md:flex md:flex-col">
 				<div className="border-b border-neutral-800 px-4 py-3">

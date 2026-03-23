@@ -920,3 +920,41 @@
 - 9 items remaining in Phase 1D
 
 ---
+
+## Session 27 — Extension UI Dialogs (2026-03-23)
+
+**What happened:**
+- Added `ExtensionUiSlice` to Zustand store (types.ts + extensionUiSlice.ts):
+  - `pendingExtensionUi: PiExtensionDialogRequest | null` — holds the current blocking dialog request
+  - `setPendingExtensionUi` / `clearPendingExtensionUi` actions
+  - Wired into combined AppStore in `store/index.ts`
+- Created `components/extension/` directory with 6 files:
+  - `useExtensionResponse.ts` — hook providing `submitValue`, `submitConfirm`, `cancel` functions that call `session.extensionUiResponse` via transport and clear the pending dialog
+  - `SelectDialog.tsx` — list of options with arrow-key navigation, click or Enter to select, Escape to cancel
+  - `ConfirmDialog.tsx` — Yes/No buttons with auto-focus on Yes, Escape to cancel
+  - `InputDialog.tsx` — single-line text input with Enter to submit, auto-focus
+  - `EditorDialog.tsx` — multi-line textarea with prefill support, Ctrl/Cmd+Enter to submit, auto-focus with cursor at end
+  - `ExtensionDialog.tsx` — modal overlay container at z-50 with backdrop blur, dispatches to correct dialog by `method` field, shows "Extension Dialog" label with puzzle piece icon
+  - `index.ts` — barrel export of ExtensionDialog
+- Updated `wireTransport.ts`:
+  - `extension_ui_request` case now calls `handleExtensionUiRequest()` instead of no-op
+  - Dialog types (select/confirm/input/editor) → set `pendingExtensionUi` on store
+  - Fire-and-forget types (notify/setStatus/setWidget/setTitle/set_editor_text) → console.log (full handling in 1D.13)
+  - `extension_error` events now surfaced as error banner via `setLastError`
+- Added `ExtensionDialog` to `AppShell.tsx` as a fixed overlay above all content
+
+**Items completed:**
+- [x] 1D.12 — Extension UI dialogs (select list, confirm yes/no, text input, multi-line editor)
+
+**Issues encountered:**
+- Biome format required line wrapping for long function signature and template literals — fixed with `bun run format`
+
+**Handoff to next session:**
+- Next: 1D.13 — Extension notifications (toast) and status (persistent indicator)
+- Fire-and-forget extension requests (`notify`, `setStatus`, `setWidget`) are currently just console.logged in wireTransport.ts
+- Need toast component for `notify` (auto-dismiss, severity-based styling)
+- Need persistent status indicator for `setStatus` (probably in toolbar or sidebar)
+- `setWidget` and `setTitle` may be deferred or minimal since they're editor-specific concepts
+- 8 items remaining in Phase 1D
+
+---

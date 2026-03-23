@@ -124,6 +124,10 @@
 | 113 | `CompactButton` component in toolbar with `compactSession()` action | Disabled when not connected, no session, already compacting, or streaming. Shows "Compacting…" with spin animation when active. Only renders when session is active. Placed in toolbar between stats and session management controls. | 2026-03-23 |
 | 114 | System messages use emoji prefixes and color-coded styling for compaction/retry | `⚙️` for compaction start, `✅` for compaction complete, `⚠️` for compaction aborted. `SystemMessage` component detects category from content and applies amber (compaction) or orange (retry) tint to dividers and text. | 2026-03-23 |
 | 115 | ChatView has inline compaction indicator similar to streaming indicator | Amber pulsing dot + "Compacting context…" text shown when `isCompacting` is true. Appears below messages list, same position pattern as "Pi is thinking…" indicator. | 2026-03-23 |
+| 116 | `ExtensionUiSlice` added to Zustand store for pending extension dialog state | `pendingExtensionUi: PiExtensionDialogRequest \| null`. Set by `extension_ui_request` events (dialog types only), cleared after response sent. Fire-and-forget types (notify, setStatus, etc.) logged to console, not stored. | 2026-03-23 |
+| 117 | Extension dialog components in `components/extension/` directory | 4 dialog components: `SelectDialog` (list with arrow-key nav), `ConfirmDialog` (Yes/No buttons), `InputDialog` (single-line text with Enter submit), `EditorDialog` (textarea with Ctrl+Enter submit, prefill support). `ExtensionDialog` is the modal overlay container that dispatches by method. `useExtensionResponse` hook handles sending responses via `session.extensionUiResponse` WS method. | 2026-03-23 |
+| 118 | Extension UI modal uses fixed overlay with backdrop blur at z-50 | `ExtensionDialog` renders `fixed inset-0 z-50` overlay with `bg-black/60 backdrop-blur-sm`. Centers dialog card. Shows "Extension Dialog" label with puzzle piece icon. All dialogs support Escape to cancel. | 2026-03-23 |
+| 119 | `extension_error` events surfaced as error banner | `handlePiEvent` now logs extension errors to console and sets `lastError` on the store for the ErrorBanner to display. Previously was a no-op. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -259,7 +263,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - **Phase 1C COMPLETE** — all items done, exit criteria met
 - Phase 1D in progress — thinking blocks (1D.1), tool call cards (1D.2), syntax highlighting (1D.3), markdown rendering (1D.4), tool-specific output rendering (1D.5), model selector (1D.6), thinking selector (1D.7), model/thinking wiring (1D.8), session management (1D.9) complete
 - Session management: `NewSessionButton` in toolbar, `ForkDialog` with message picker, `sessionActions.ts` module for coordinated operations. `session.getForkMessages` WS method added end-to-end.
-- Next: 1D.12 — Extension UI dialogs (select list, confirm yes/no, text input, multi-line editor)
+- Extension UI dialogs (1D.12) complete — SelectDialog, ConfirmDialog, InputDialog, EditorDialog, ExtensionDialog modal, useExtensionResponse hook, wireTransport wiring, ExtensionUiSlice in store
+- Next: 1D.13 — Extension notifications (toast) and status (persistent indicator)
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings

@@ -17,6 +17,7 @@
 
 import { create } from "zustand";
 import { createConnectionSlice } from "./connectionSlice";
+import { createExtensionUiSlice } from "./extensionUiSlice";
 import { createMessagesSlice } from "./messagesSlice";
 import { createModelsSlice } from "./modelsSlice";
 import { createSessionSlice } from "./sessionSlice";
@@ -28,8 +29,15 @@ export const useStore = create<AppStore>()((...a) => ({
 	...createSessionSlice(...a),
 	...createMessagesSlice(...a),
 	...createModelsSlice(...a),
+	...createExtensionUiSlice(...a),
 }));
 
 // Re-export types for convenience
 export type { AppStore, ChatMessage, ChatToolCall, ChatToolResult } from "./types";
-export type { ConnectionSlice, MessagesSlice, ModelsSlice, SessionSlice } from "./types";
+export type {
+	ConnectionSlice,
+	ExtensionUiSlice,
+	MessagesSlice,
+	ModelsSlice,
+	SessionSlice,
+} from "./types";

@@ -7,7 +7,12 @@
  */
 
 import type { TransportState } from "@/transport";
-import type { PiModel, PiSessionStats, PiThinkingLevel } from "@pibun/contracts";
+import type {
+	PiExtensionDialogRequest,
+	PiModel,
+	PiSessionStats,
+	PiThinkingLevel,
+} from "@pibun/contracts";
 
 // ============================================================================
 // ChatMessage — unified message type for rendering
@@ -145,9 +150,24 @@ export interface ModelsSlice {
 	setModelsLoading: (loading: boolean) => void;
 }
 
+/** Extension UI state — pending dialog request from Pi. */
+export interface ExtensionUiSlice {
+	/** The current pending extension dialog request, null when no dialog is active. */
+	pendingExtensionUi: PiExtensionDialogRequest | null;
+
+	/** Set the pending extension dialog request. */
+	setPendingExtensionUi: (request: PiExtensionDialogRequest | null) => void;
+	/** Clear the pending dialog (after response sent or timeout). */
+	clearPendingExtensionUi: () => void;
+}
+
 // ============================================================================
 // Combined AppStore
 // ============================================================================
 
 /** Full Zustand store type — union of all slices. */
-export type AppStore = ConnectionSlice & SessionSlice & MessagesSlice & ModelsSlice;
+export type AppStore = ConnectionSlice &
+	SessionSlice &
+	MessagesSlice &
+	ModelsSlice &
+	ExtensionUiSlice;
