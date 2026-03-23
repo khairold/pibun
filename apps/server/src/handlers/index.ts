@@ -22,6 +22,7 @@ import {
 	handleExtensionUiResponse,
 	handleSessionAbort,
 	handleSessionCompact,
+	handleSessionExportHtml,
 	handleSessionFollowUp,
 	handleSessionFork,
 	handleSessionGetForkMessages,
@@ -85,6 +86,9 @@ export const handlers: HandlerRegistry = {
 
 	// Extension UI
 	"session.extensionUiResponse": handleExtensionUiResponse,
+
+	// Session export
+	"session.exportHtml": handleSessionExportHtml,
 
 	// Session listing (server-side)
 	"session.listSessions": handleSessionListSessions,

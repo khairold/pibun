@@ -15,6 +15,7 @@ import { CompactButton } from "@/components/CompactButton";
 import { Composer } from "@/components/Composer";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { ExportDialog } from "@/components/ExportDialog";
 import { ForkDialog } from "@/components/ForkDialog";
 import { GitPanel } from "@/components/GitPanel";
 import { GitStatusBar } from "@/components/GitStatusBar";
@@ -125,6 +126,7 @@ export function AppShell() {
 					<div className="flex items-center gap-1 border-l border-neutral-800 pl-2">
 						<CompactButton />
 						<ForkDialog />
+						<ExportDialog />
 					</div>
 				</div>
 

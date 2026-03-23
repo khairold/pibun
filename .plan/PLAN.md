@@ -1,9 +1,9 @@
 # PiBun v2 — Build Plan
 
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
-> **Status:** Phase 4 complete, Phase 5 next
+> **Status:** Phase 5 in progress
 > **Current Phase:** Phase 5 — Session Export & Sharing
-> **Last Session:** Session 79 — 2026-03-23
+> **Last Session:** Session 80 — 2026-03-23
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -112,8 +112,8 @@
 
 **Goal:** Export conversations as HTML, Markdown, or JSON for sharing and archival.
 
-- [ ] 5.1 — Pi's `export_html` RPC command already exists — wire it through: `session.exportHtml` WS method
-- [ ] 5.2 — Build `ExportDialog` component: format picker (HTML, Markdown, JSON), filename, download button
+- [x] 5.1 — Pi's `export_html` RPC command already exists — wire it through: `session.exportHtml` WS method
+- [x] 5.2 — Build `ExportDialog` component: format picker (HTML, Markdown, JSON), filename, download button
 - [ ] 5.3 — Markdown export: render messages to markdown (user blocks, assistant blocks, tool calls as code blocks)
 - [ ] 5.4 — JSON export: raw message array dump with metadata (model, tokens, timestamps)
 - [ ] 5.5 — Desktop: native "Save As…" dialog for export destination

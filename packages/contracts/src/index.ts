@@ -192,6 +192,8 @@ export type {
 	WsSessionStartParams,
 	WsSessionStartResult,
 	WsSessionSteerParams,
+	WsSessionExportHtmlParams,
+	WsSessionExportHtmlResult,
 	WsSessionListSessionsResult,
 	WsSessionSummary,
 	WsSessionSwitchSessionParams,

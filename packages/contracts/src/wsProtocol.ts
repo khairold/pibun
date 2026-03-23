@@ -76,6 +76,9 @@ export const WS_METHODS = {
 	terminalResize: "terminal.resize",
 	terminalClose: "terminal.close",
 
+	// Session export
+	sessionExportHtml: "session.exportHtml",
+
 	// App-level (desktop integration)
 	appApplyUpdate: "app.applyUpdate",
 	appCheckForUpdates: "app.checkForUpdates",
@@ -315,6 +318,12 @@ export interface WsTerminalCloseParams {
 	terminalId: string;
 }
 
+/** Params for `session.exportHtml` — export session as HTML. */
+export interface WsSessionExportHtmlParams {
+	/** Optional output file path. If omitted, Pi generates a temp path. */
+	outputPath?: string;
+}
+
 /** Params for `app.setWindowTitle` — set the native window title. */
 export interface WsAppSetWindowTitleParams {
 	title: string;
@@ -365,6 +374,7 @@ export interface WsMethodParamsMap {
 	"git.branch": WsGitBranchParams;
 	"git.diff": WsGitDiffParams;
 	"git.log": WsGitLogParams;
+	"session.exportHtml": WsSessionExportHtmlParams;
 	"terminal.create": WsTerminalCreateParams;
 	"terminal.write": WsTerminalWriteParams;
 	"terminal.resize": WsTerminalResizeParams;
@@ -508,6 +518,14 @@ export interface WsTerminalCreateResult {
 	pid: number;
 }
 
+/** Result for `session.exportHtml` — exported HTML file path and content. */
+export interface WsSessionExportHtmlResult {
+	/** Path where the HTML file was written. */
+	path: string;
+	/** The HTML content (for browser download without file system access). */
+	html: string;
+}
+
 /** Result for `app.openFolderDialog` — native folder picker. */
 export interface WsAppOpenFolderDialogResult {
 	/** Selected folder path, or null if the user cancelled. */
@@ -541,6 +559,7 @@ export interface WsMethodResultMap {
 	"session.setName": WsOkResult;
 	"session.getForkMessages": WsSessionGetForkMessagesResult;
 	"session.extensionUiResponse": WsOkResult;
+	"session.exportHtml": WsSessionExportHtmlResult;
 	"session.listSessions": WsSessionListSessionsResult;
 	"session.switchSession": WsSessionSwitchSessionResult;
 	"project.list": WsProjectListResult;

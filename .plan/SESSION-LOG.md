@@ -5,6 +5,42 @@
 
 ---
 
+## Session 80 — Phase 5 session.exportHtml WS method + ExportDialog component (2026-03-23)
+
+**What happened:**
+- Wired Pi's `export_html` RPC command through the full stack:
+  - Added `session.exportHtml` to `WS_METHODS` const in contracts
+  - Added `WsSessionExportHtmlParams` (optional `outputPath`) and `WsSessionExportHtmlResult` (path + html content) types to `wsProtocol.ts`
+  - Added params map and result map entries
+  - Exported new types from `packages/contracts/src/index.ts`
+  - Implemented `handleSessionExportHtml` in `apps/server/src/handlers/session.ts` — calls Pi's `export_html` RPC, reads the exported file via `Bun.file()`, returns both path and HTML content
+  - Registered handler in `handlers/index.ts`
+- Built `ExportDialog` component (`apps/web/src/components/ExportDialog.tsx`):
+  - Dropdown with 3 format options: HTML (.html), Markdown (.md), JSON (.json)
+  - HTML export: calls `session.exportHtml` → receives content → `downloadBlob()`
+  - Markdown export: converts local `ChatMessage[]` to clean markdown (headings, code blocks, details for thinking)
+  - JSON export: fetches raw Pi messages via `session.getMessages` → serializes with metadata (model, session name, timestamp)
+  - `downloadBlob()` helper: creates Blob → temporary blob URL → click hidden `<a>` → revokeObjectURL
+  - Same dropdown pattern as ForkDialog (click-outside, Escape, disabled states)
+  - Toast on success, ErrorBanner on failure
+- Added ExportDialog to AppShell toolbar, next to CompactButton and ForkDialog
+- Fixed two type errors: `ChatToolResult.content` (not `.output`) and `PiModel` (not `string`) for model metadata
+
+**Items completed:**
+- [x] 5.1 — Pi's `export_html` RPC command already exists — wire it through: `session.exportHtml` WS method
+- [x] 5.2 — Build `ExportDialog` component: format picker (HTML, Markdown, JSON), filename, download button
+
+**Issues encountered:**
+- None significant — two minor type mismatches caught by typecheck and fixed immediately.
+
+**Handoff to next session:**
+- Next: 5.3 — Markdown export: render messages to markdown (user blocks, assistant blocks, tool calls as code blocks)
+- Note: Markdown export is already implemented in `ExportDialog.tsx` (`messagesToMarkdown()` function). 5.3 may just need verification that the output is clean and readable. Could potentially combine with 5.4 (JSON export) which is also already implemented.
+- Both browser download (5.6) and keyboard shortcut (5.7) are remaining items.
+- Desktop native "Save As…" dialog (5.5) will need a server hook similar to `openFolderDialog`.
+
+---
+
 ## Session 78 — Terminal layout, shortcuts, native menu (2026-03-23)
 
 **What happened:**

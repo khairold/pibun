@@ -13,6 +13,7 @@ import type {
 	WsMethodResultMap,
 	WsOkResult,
 	WsSessionCompactParams,
+	WsSessionExportHtmlParams,
 	WsSessionExtensionUiResponseParams,
 	WsSessionFollowUpParams,
 	WsSessionForkParams,
@@ -468,6 +469,40 @@ export const handleSessionSwitchSession: WsHandler<"session.switchSession"> = as
 	}
 
 	throw new Error("Unexpected response from switch_session");
+};
+
+// ============================================================================
+// Session Export
+// ============================================================================
+
+/**
+ * session.exportHtml — Export the current session as a self-contained HTML file.
+ *
+ * Uses Pi's `export_html` RPC command. Returns both the file path and the
+ * HTML content (so the browser can trigger a download without file system access).
+ */
+export const handleSessionExportHtml: WsHandler<"session.exportHtml"> = async (
+	params: WsSessionExportHtmlParams,
+	ctx: HandlerContext,
+): Promise<WsMethodResultMap["session.exportHtml"]> => {
+	const process = getProcess(ctx);
+	const response = await process.sendCommand({
+		type: "export_html",
+		...(params?.outputPath && { outputPath: params.outputPath }),
+	});
+	assertSuccess(response);
+
+	if (response.command === "export_html" && response.success) {
+		const filePath = response.data.path;
+
+		// Read the exported HTML file so we can send the content to the browser
+		const file = Bun.file(filePath);
+		const html = await file.text();
+
+		return { path: filePath, html };
+	}
+
+	throw new Error("Unexpected response from export_html");
 };
 
 // ============================================================================
