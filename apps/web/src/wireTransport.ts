@@ -513,6 +513,11 @@ function handleMenuAction(data: WsMenuActionData): void {
 			emitShortcut("toggleSidebar");
 			break;
 
+		case "view.toggle-git-panel":
+			emitShortcut("toggleGitPanel");
+			useStore.getState().toggleGitPanel();
+			break;
+
 		case "view.next-tab": {
 			if (store.tabs.length > 1 && store.activeTabId) {
 				const idx = store.tabs.findIndex((t) => t.id === store.activeTabId);

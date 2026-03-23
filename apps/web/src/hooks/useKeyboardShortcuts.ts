@@ -6,6 +6,7 @@
  * - Ctrl/Cmd+L — toggle model selector
  * - Ctrl/Cmd+N — create new session
  * - Ctrl/Cmd+B — toggle sidebar
+ * - Ctrl/Cmd+G — toggle git panel
  * - Ctrl/Cmd+T — new tab
  * - Ctrl/Cmd+W — close active tab
  * - Ctrl/Cmd+Tab — next tab
@@ -120,6 +121,13 @@ export function useKeyboardShortcuts(): void {
 					// Ctrl/Cmd+B — toggle sidebar
 					e.preventDefault();
 					emitShortcut("toggleSidebar");
+					break;
+				}
+				case "g": {
+					// Ctrl/Cmd+G — toggle git panel
+					e.preventDefault();
+					emitShortcut("toggleGitPanel");
+					useStore.getState().toggleGitPanel();
 					break;
 				}
 				case "n": {

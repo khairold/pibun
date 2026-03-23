@@ -5,6 +5,36 @@
 
 ---
 
+## Session 74 — Git dirty dot in tab bar + Ctrl+G shortcut (2026-03-23)
+
+**What happened:**
+- Added amber dot indicator in `TabBar.tsx` `TabItem` component. Shows `bg-amber-500` 2×2 dot before session name when `tab.gitDirty` is true. Hidden during streaming (blue pulsing dot takes visual priority). Uses title="Uncommitted changes" for tooltip.
+- Added `"toggleGitPanel"` to `ShortcutAction` union in `shortcuts.ts`.
+- Added `Ctrl/Cmd+G` handler in `useKeyboardShortcuts.ts` — calls `emitShortcut("toggleGitPanel")` + `toggleGitPanel()` on the store.
+- Added `toggleGitPanel: "view.toggle-git-panel"` to desktop `MENU_ACTIONS` in `menu.ts`.
+- Added "Toggle Git Panel" menu item with `CommandOrControl+G` accelerator in the View menu, positioned after Toggle Sidebar.
+- Added `view.toggle-git-panel` case in `wireTransport.ts` `handleMenuAction` to dispatch the toggle from native menu.
+
+**Items completed:**
+- [x] 3.8 — Git status in tab bar: dirty indicator dot on tabs with uncommitted changes
+- [x] 3.9 — Keyboard shortcut: Ctrl+G toggle git panel
+
+**Issues encountered:**
+- Biome formatting: `<span>` with className + title on separate lines was reformatted to single line — fixed via `bun run format`
+
+**Handoff to next session:**
+- Next: 3.10 — Verify: make changes via Pi, see git status update, view diffs, switch branches reflected
+- This is the last item in Phase 3. It's a verification/testing item. Need to confirm all Phase 3 exit criteria:
+  - Branch + dirty status visible at all times ✅ (GitStatusBar in toolbar)
+  - Changed files list accessible ✅ (GitPanel with file list)
+  - Diffs viewable with syntax highlighting ✅ (DiffViewer with Shiki)
+  - Updates after agent actions ✅ (auto-refresh on agent_end + git dirty dot on tabs)
+  - Ctrl+G toggle ✅ (just added)
+  - Tab dirty indicator ✅ (just added)
+- The verification should test: (1) make a code change via Pi prompt, (2) see git status update in toolbar and tab bar, (3) view diff in git panel, (4) switch tabs and see dirty state preserved, (5) switch branches and see branch name update
+
+---
+
 ## Session 73 — DiffViewer with Shiki syntax highlighting (2026-03-23)
 
 **What happened:**

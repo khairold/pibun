@@ -110,6 +110,11 @@ const TabItem = memo(function TabItem({
 				<span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-blue-500" />
 			)}
 
+			{/* Git dirty indicator — amber dot when uncommitted changes exist */}
+			{tab.gitDirty && !tab.isStreaming && (
+				<span className="h-2 w-2 shrink-0 rounded-full bg-amber-500" title="Uncommitted changes" />
+			)}
+
 			{/* Session name */}
 			<span className="min-w-0 truncate text-xs font-medium">{displayName}</span>
 

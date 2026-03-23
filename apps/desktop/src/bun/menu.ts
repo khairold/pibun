@@ -32,6 +32,7 @@ export const MENU_ACTIONS = {
 
 	// View
 	toggleSidebar: "view.toggle-sidebar",
+	toggleGitPanel: "view.toggle-git-panel",
 	nextTab: "view.next-tab",
 	prevTab: "view.prev-tab",
 	zoomIn: "view.zoom-in",
@@ -159,6 +160,11 @@ export function buildMenuConfig(recentProjects?: RecentProject[]): ApplicationMe
 					label: "Toggle Sidebar",
 					action: MENU_ACTIONS.toggleSidebar,
 					accelerator: "CommandOrControl+B",
+				},
+				{
+					label: "Toggle Git Panel",
+					action: MENU_ACTIONS.toggleGitPanel,
+					accelerator: "CommandOrControl+G",
 				},
 				{ type: "separator" },
 				{

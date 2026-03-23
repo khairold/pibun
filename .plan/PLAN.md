@@ -3,7 +3,7 @@
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
 > **Status:** Phase 3 in progress
 > **Current Phase:** Phase 3 — Git Integration
-> **Last Session:** Session 73 — 2026-03-23
+> **Last Session:** Session 74 — 2026-03-23
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -79,8 +79,8 @@
 - [x] 3.5 — Auto-refresh git status after `agent_end` events (agent likely modified files)
 - [x] 3.6 — `GitChangedFiles` panel: list of changed files with status badges (M/A/D/?), click to view diff
 - [x] 3.7 — `DiffViewer` component: side-by-side or unified diff view with syntax highlighting (reuse Shiki)
-- [ ] 3.8 — Git status in tab bar: dirty indicator dot on tabs with uncommitted changes
-- [ ] 3.9 — Keyboard shortcut: Ctrl+G toggle git panel
+- [x] 3.8 — Git status in tab bar: dirty indicator dot on tabs with uncommitted changes
+- [x] 3.9 — Keyboard shortcut: Ctrl+G toggle git panel
 - [ ] 3.10 — Verify: make changes via Pi, see git status update, view diffs, switch branches reflected
 
 **Exit criteria:** Branch + dirty status visible at all times. Changed files list accessible. Diffs viewable with syntax highlighting. Updates after agent actions.
