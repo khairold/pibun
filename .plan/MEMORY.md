@@ -162,6 +162,9 @@
 | 150 | Desktop uses `port: 0` for OS-assigned available port | `Bun.serve({ port: 0 })` assigns a random available port. Actual port read from `pibunServer.server.port`. Avoids port conflicts with standalone server or other apps. | 2026-03-23 |
 | 151 | `sessionListing.ts` uses `Bun.file().slice()` instead of `ReadableStream` async iteration | Original `for await...of stream` pattern caused TS2504 when desktop (with `lib: ["ESNext", "DOM"]`) processed server source. DOM `ReadableStream` lacks `[Symbol.asyncIterator]()`. Fix: `file.slice(0, 4096).text()` reads first 4KB efficiently without streaming. | 2026-03-23 |
 | 152 | Desktop `bootstrap()` is async — polls `/health` before opening BrowserWindow | `waitForHealth(url, 30, 200)` polls server health endpoint up to 30 times with 200ms delay (6s total timeout). Passes on first `response.ok`. Bun.serve is synchronous so health typically passes on attempt 1, but the pattern is needed for dev mode (2A.6) where URL may point at Vite. On failure, logs error and calls `process.exit(1)`. | 2026-03-23 |
+| 153 | Window state persisted to `~/.pibun/window-state.json` | `windowState.ts` module: `loadWindowState()` reads saved frame (or defaults), `debouncedSaveWindowState()` writes on resize/move (500ms debounce), `flushWindowState()` writes immediately on close. JSON file with `{ x, y, width, height }`. `validateFrame()` sanitizes loaded values (min 600×400, `Number.isFinite` checks). | 2026-03-23 |
+| 154 | Electrobun `BrowserWindow.on()` handler type is `(event: unknown) => void` | Must cast event data inside the callback: `const { data } = event as ElectrobunEvent<ResizeEventData>`. Can't type the handler parameter directly. Electrobun events have `{ data: T }` structure (from `ElectrobunEvent<T, R>` class). | 2026-03-23 |
+| 155 | Window lifecycle: resize → debounced save, move → debounced save, close → flush save | `wireWindowLifecycle(mainWindow)` attaches three event listeners. Resize includes full frame (x,y,width,height). Move includes only position (x,y) — merges with current size. Close attempts `getFrame()` for definitive state, falls back to tracked `currentFrame`. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -310,7 +313,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - 2A.1 complete — `electrobun.config.ts`, `src/bun/index.ts`, updated package.json/tsconfig.json
 - 2A.2 complete — Desktop embeds server in-process, `port: 0` for available port, `@pibun/server` subpath exports added
 - 2A.3 complete — `waitForHealth()` polls `/health` before opening BrowserWindow
-- Next: 2A.4 — Window lifecycle (open, close, remember size/position via localStorage or config)
+- 2A.4 complete — Window state persistence via `windowState.ts`, resize/move/close event wiring, saved to `~/.pibun/window-state.json`
+- Next: 2A.5 — Shutdown: close webview → stop server → stop all Pi processes → exit
 
 ## Gotchas & Warnings
 

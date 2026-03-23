@@ -16,14 +16,40 @@ import { resolve } from "node:path";
 import { PiRpcManager } from "@pibun/server/piRpcManager";
 import { type PiBunServer, createServer } from "@pibun/server/server";
 import { BrowserWindow } from "electrobun/bun";
+import {
+	type WindowFrame,
+	debouncedSaveWindowState,
+	flushWindowState,
+	loadWindowState,
+} from "./windowState";
+
+// ============================================================================
+// Types — Electrobun event data shapes (from windowEvents.ts in Electrobun)
+// ============================================================================
+
+interface ResizeEventData {
+	id: number;
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
+interface MoveEventData {
+	id: number;
+	x: number;
+	y: number;
+}
+
+interface ElectrobunEvent<T> {
+	data: T;
+}
 
 // ============================================================================
 // Constants
 // ============================================================================
 
 const APP_TITLE = "PiBun";
-const DEFAULT_WIDTH = 1200;
-const DEFAULT_HEIGHT = 800;
 
 /** Maximum number of health check attempts before giving up. */
 const HEALTH_CHECK_MAX_RETRIES = 30;
@@ -127,17 +153,82 @@ function startServer(): { server: PiBunServer; url: string } {
 }
 
 // ============================================================================
+// Window Lifecycle
+// ============================================================================
+
+/**
+ * Track the current window frame in memory. Updated by resize/move events.
+ * Used to flush the final state on close.
+ */
+let currentFrame: WindowFrame;
+
+/**
+ * Wire up window lifecycle events:
+ * - resize → debounced save of full frame
+ * - move → debounced save with updated position
+ * - close → flush final state to disk
+ */
+function wireWindowLifecycle(mainWindow: BrowserWindow): void {
+	// Resize events include full frame (x, y, width, height).
+	// Electrobun's on() types the handler as (event: unknown) => void,
+	// so we cast the event data inside the callback.
+	mainWindow.on("resize", (event: unknown) => {
+		const { data } = event as ElectrobunEvent<ResizeEventData>;
+		currentFrame = {
+			x: data.x,
+			y: data.y,
+			width: data.width,
+			height: data.height,
+		};
+		debouncedSaveWindowState(currentFrame);
+	});
+
+	// Move events include only position (x, y) — keep current size
+	mainWindow.on("move", (event: unknown) => {
+		const { data } = event as ElectrobunEvent<MoveEventData>;
+		currentFrame = {
+			...currentFrame,
+			x: data.x,
+			y: data.y,
+		};
+		debouncedSaveWindowState(currentFrame);
+	});
+
+	// Close event — flush any pending save with final state
+	mainWindow.on("close", () => {
+		// Get the definitive frame from the native window before it's destroyed.
+		// Fall back to our tracked frame if getFrame() fails.
+		try {
+			const finalFrame = mainWindow.getFrame();
+			flushWindowState(finalFrame);
+		} catch {
+			flushWindowState(currentFrame);
+		}
+	});
+}
+
+// ============================================================================
 // Bootstrap
 // ============================================================================
 
 /**
  * Main bootstrap sequence:
- * 1. Start embedded server on available port
- * 2. Wait for health check to pass
- * 3. Open native webview at the server URL
+ * 1. Load saved window state (or defaults)
+ * 2. Start embedded server on available port
+ * 3. Wait for health check to pass
+ * 4. Open native webview with restored window frame
+ * 5. Wire window lifecycle events for state persistence
  */
 async function bootstrap(): Promise<void> {
-	// Step 1: Start the embedded server
+	// Step 1: Load saved window state
+	const savedFrame = loadWindowState();
+	currentFrame = savedFrame;
+
+	console.log(
+		`Restoring window frame: ${savedFrame.width}×${savedFrame.height} at (${savedFrame.x}, ${savedFrame.y})`,
+	);
+
+	// Step 2: Start the embedded server
 	const { server: pibunServer, url: serverUrl } = startServer();
 
 	console.log(`${APP_TITLE} server started on ${serverUrl}`);
@@ -148,7 +239,7 @@ async function bootstrap(): Promise<void> {
 		console.log("No static directory found — web app may not be built yet");
 	}
 
-	// Step 2: Wait for server to be healthy
+	// Step 3: Wait for server to be healthy
 	try {
 		await waitForHealth(serverUrl);
 	} catch (error) {
@@ -156,18 +247,15 @@ async function bootstrap(): Promise<void> {
 		process.exit(1);
 	}
 
-	// Step 3: Open native webview
-	// biome-ignore lint/correctness/noUnusedVariables: retained for window lifecycle (2A.4) and shutdown (2A.5)
+	// Step 4: Open native webview with restored frame
 	const mainWindow = new BrowserWindow({
 		title: APP_TITLE,
 		url: serverUrl,
-		frame: {
-			width: DEFAULT_WIDTH,
-			height: DEFAULT_HEIGHT,
-			x: 100,
-			y: 100,
-		},
+		frame: savedFrame,
 	});
+
+	// Step 5: Wire window lifecycle events
+	wireWindowLifecycle(mainWindow);
 
 	console.log(`${APP_TITLE} window opened at ${serverUrl}`);
 }

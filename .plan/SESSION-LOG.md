@@ -1330,3 +1330,38 @@
 - 3 items remaining in Phase 2A (2A.4–2A.6)
 
 ---
+## Session 39 — Desktop Window Lifecycle (2026-03-23)
+
+**What happened:**
+- Implemented 2A.4: Window lifecycle with size/position persistence
+- Created `apps/desktop/src/bun/windowState.ts` module:
+  - `loadWindowState()` — reads `~/.pibun/window-state.json` with validation + defaults fallback
+  - `saveWindowState()` — writes frame to disk immediately
+  - `debouncedSaveWindowState()` — 500ms debounce for rapid resize/move events
+  - `flushWindowState()` — cancels pending debounce, writes immediately (used on close)
+  - `validateFrame()` — ensures min 600×400, checks `Number.isFinite`, handles corrupted files
+- Updated `apps/desktop/src/bun/index.ts`:
+  - Bootstrap loads saved frame before creating BrowserWindow (or uses defaults for first launch)
+  - `wireWindowLifecycle(mainWindow)` attaches resize/move/close event listeners
+  - Resize events include full frame — saves x/y/width/height
+  - Move events include only position — merges with current tracked size
+  - Close event calls `getFrame()` for definitive state, then `flushWindowState()`
+  - Removed hardcoded DEFAULT_WIDTH/DEFAULT_HEIGHT constants (now in windowState.ts)
+- Fixed: Electrobun `BrowserWindow.on()` types handler as `(event: unknown) => void` — cast inside callback
+- Fixed: Biome lint — `isFinite` → `Number.isFinite`, formatting adjustments
+
+**Items completed:**
+- [x] 2A.4 — Window lifecycle (open, close, remember size/position via config)
+
+**Issues encountered:**
+- Electrobun's `on()` method types the handler parameter as `unknown`, not the specific event type. Must cast `event as ElectrobunEvent<T>` inside callbacks. Logged as MEMORY #154.
+
+**Handoff to next session:**
+- Next: 2A.5 — Shutdown: close webview → stop server → stop all Pi processes → exit
+- The server's `stop()` method already exists (closes WS connections + HTTP server)
+- `PiRpcManager.stopAll()` already exists for killing Pi processes
+- Need to wire these into window close or process exit
+- Electrobun has `exitOnLastWindowClosed` built in (BrowserWindow.ts line ~100)
+- 2 items remaining in Phase 2A (2A.5–2A.6)
+
+---
