@@ -1440,3 +1440,40 @@
 - 6 items remaining in Phase 2B (2B.2–2B.7)
 
 ---
+
+## Session 42 — Menu Actions → WebSocket + IPC Forwarding (2026-03-23)
+
+**What happened:**
+- Implemented menu action forwarding from desktop native menus to the React app
+- Added `menu.action` push channel to WS protocol (contracts: `WS_CHANNELS`, `WsMenuActionData`, `WsChannelDataMap`)
+- Desktop `handleMenuAction` now handles two categories:
+  - **Native-only** actions (close window, zoom in/out/reset) handled directly via `mainWindow.close()` and `mainWindow.setPageZoom()`
+  - **All other** actions forwarded via `broadcastPush(connections, "menu.action", { action })` to connected WebSocket clients
+- Web app subscribes to `menu.action` channel in `wireTransport.ts` with `handleMenuAction()`
+- Menu actions map to existing infrastructure:
+  - `file.new-session` → `startNewSession()` + `fetchSessionList()`
+  - `view.toggle-sidebar` → `emitShortcut("toggleSidebar")`
+  - `session.abort` → `getTransport().request("session.abort")`
+  - `session.compact` → `compactSession()`
+  - `session.switch-model` → `emitShortcut("toggleModelSelector")`
+  - `session.set-thinking` → `emitShortcut("toggleThinkingSelector")`
+- Extended `ShortcutAction` type with `compact` and `toggleThinkingSelector`
+- ThinkingSelector now subscribes to `toggleThinkingSelector` shortcut (matching ModelSelector pattern)
+- `useKeyboardShortcuts` hook updated to handle Shift combos: Cmd+Shift+K (compact), Cmd+Shift+T (thinking)
+
+**Items completed:**
+- [x] 2B.2 — Menu actions → WebSocket commands (New Session, Abort, Compact, Switch Model)
+- [x] 2B.3 — IPC: forward native menu events to React app
+
+**Issues encountered:**
+- Biome formatter required multi-line import for the expanded `sessionActions` import. Auto-fixed with `bun run format`.
+- Decided against Electrobun RPC for menu forwarding — using WebSocket push channel keeps the web app framework-agnostic and follows the thin bridge principle. All data flows through WebSocket.
+- Dev mode limitation: when `pibunServer` is null (PIBUN_DEV_URL set), menu actions that need WS forwarding don't work. Acceptable since dev mode users rely on keyboard shortcuts.
+
+**Handoff to next session:**
+- Next: 2B.4 — File dialogs for project/folder selection
+- 4 items remaining in Phase 2B (2B.4–2B.7)
+- The `menu.action` push channel is generic — future native actions (e.g., from file dialogs or tray) can reuse it
+- ThinkingSelector and CompactButton now have keyboard shortcut support (Cmd+Shift+T, Cmd+Shift+K) even in browser mode
+
+---

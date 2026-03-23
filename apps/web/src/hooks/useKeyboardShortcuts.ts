@@ -5,12 +5,15 @@
  * - Ctrl/Cmd+C — abort streaming (when streaming and no text selected)
  * - Ctrl/Cmd+L — toggle model selector
  * - Ctrl/Cmd+N — create new session
+ * - Ctrl/Cmd+B — toggle sidebar
+ * - Ctrl/Cmd+Shift+K — compact context
+ * - Ctrl/Cmd+Shift+T — toggle thinking selector
  *
  * Reads store state imperatively (via getState) to avoid unnecessary
  * re-renders. Must be mounted once at the app level (AppShell).
  */
 
-import { fetchSessionList, startNewSession } from "@/lib/sessionActions";
+import { compactSession, fetchSessionList, startNewSession } from "@/lib/sessionActions";
 import { emitShortcut } from "@/lib/shortcuts";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
@@ -34,13 +37,41 @@ export function useKeyboardShortcuts(): void {
 		function handleKeyDown(e: KeyboardEvent) {
 			// Only handle platform modifier combos (Ctrl/Cmd + key)
 			if (!isPlatformMod(e)) return;
-			// Ignore if Alt or Shift is also held (different shortcut)
-			if (e.altKey || e.shiftKey) return;
+			// Ignore if Alt is held (different shortcut family)
+			if (e.altKey) return;
 
 			const state = useStore.getState();
 			const isConnected = state.connectionStatus === "open";
+			const key = e.key.toLowerCase();
 
-			switch (e.key.toLowerCase()) {
+			// ── Shift combos (Ctrl/Cmd+Shift+Key) ────────────────────
+			if (e.shiftKey) {
+				switch (key) {
+					case "k": {
+						// Ctrl/Cmd+Shift+K — compact context
+						if (isConnected && state.sessionId) {
+							e.preventDefault();
+							emitShortcut("compact");
+							compactSession().catch((err: unknown) => {
+								console.error("[Shortcut] Failed to compact:", err);
+							});
+						}
+						break;
+					}
+					case "t": {
+						// Ctrl/Cmd+Shift+T — toggle thinking selector
+						if (isConnected) {
+							e.preventDefault();
+							emitShortcut("toggleThinkingSelector");
+						}
+						break;
+					}
+				}
+				return;
+			}
+
+			// ── Non-shift combos (Ctrl/Cmd+Key) ─────────────────────
+			switch (key) {
 				case "c": {
 					// Ctrl/Cmd+C — abort streaming
 					// Only abort if streaming AND no text is selected (preserve copy)

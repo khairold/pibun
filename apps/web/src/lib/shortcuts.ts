@@ -6,7 +6,13 @@
  * (e.g., ModelSelector toggles on "toggleModelSelector").
  */
 
-export type ShortcutAction = "abort" | "toggleModelSelector" | "toggleSidebar" | "newSession";
+export type ShortcutAction =
+	| "abort"
+	| "compact"
+	| "newSession"
+	| "toggleModelSelector"
+	| "toggleSidebar"
+	| "toggleThinkingSelector";
 
 type ShortcutListener = (action: ShortcutAction) => void;
 

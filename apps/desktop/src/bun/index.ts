@@ -14,7 +14,7 @@
 
 import { resolve } from "node:path";
 import { PiRpcManager } from "@pibun/server/piRpcManager";
-import { type PiBunServer, createServer } from "@pibun/server/server";
+import { type PiBunServer, broadcastPush, createServer } from "@pibun/server/server";
 import Electrobun, { ApplicationMenu, BrowserWindow } from "electrobun/bun";
 import { type MenuAction, buildMenuConfig, createMenuClickHandler } from "./menu";
 import {
@@ -369,22 +369,46 @@ async function bootstrap(): Promise<void> {
 	ApplicationMenu.setApplicationMenu(buildMenuConfig());
 
 	// Handle menu click events from native menu items.
-	// For now, log the action. Items 2B.2/2B.3 will forward these
-	// to the React app via WebSocket or IPC.
+	// Native-only actions (close, zoom) are handled directly in the main process.
+	// All other actions are forwarded to the React app via WebSocket push
+	// on the `menu.action` channel. The web app dispatches them to the
+	// appropriate session actions or UI toggles.
 	const handleMenuAction = (action: MenuAction): void => {
 		console.log(`[Menu] Action: ${action}`);
 
-		// Handle native-only actions directly
 		switch (action) {
+			// ── Native-only actions ──────────────────────────────────
 			case "file.close-window": {
 				// Trigger window close → which triggers shutdown via wireWindowLifecycle
 				mainWindow.close();
 				break;
 			}
-			default:
-				// Custom actions (new session, abort, compact, switch model, etc.)
-				// will be forwarded to the React app in 2B.2/2B.3.
+			case "view.zoom-in": {
+				const current = mainWindow.getPageZoom();
+				mainWindow.setPageZoom(Math.min(current + 0.1, 3.0));
 				break;
+			}
+			case "view.zoom-out": {
+				const current = mainWindow.getPageZoom();
+				mainWindow.setPageZoom(Math.max(current - 0.1, 0.5));
+				break;
+			}
+			case "view.zoom-actual-size": {
+				mainWindow.setPageZoom(1.0);
+				break;
+			}
+
+			// ── Forward to React app via WebSocket push ──────────────
+			default: {
+				if (pibunServer) {
+					broadcastPush(pibunServer.connections, "menu.action", { action });
+				} else {
+					// Dev mode — no embedded server. Menu actions that need
+					// forwarding won't work (user relies on keyboard shortcuts).
+					console.warn(`[Menu] No server to forward action: ${action}`);
+				}
+				break;
+			}
 		}
 	};
 

@@ -9,6 +9,7 @@
  */
 
 import { cn } from "@/lib/cn";
+import { onShortcut } from "@/lib/shortcuts";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import type { PiThinkingLevel } from "@pibun/contracts";
@@ -119,6 +120,15 @@ export function ThinkingSelector() {
 		document.addEventListener("keydown", handleKeyDown);
 		return () => document.removeEventListener("keydown", handleKeyDown);
 	}, [isOpen]);
+
+	// ── Keyboard shortcut to toggle ───────────────────────────────────
+	useEffect(() => {
+		return onShortcut((action) => {
+			if (action === "toggleThinkingSelector") {
+				setIsOpen((prev) => !prev);
+			}
+		});
+	}, []);
 
 	// ── Display label ─────────────────────────────────────────────────
 	const info = LEVEL_INFO[currentLevel];

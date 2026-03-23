@@ -11,7 +11,13 @@
  * Use `getTransport()` to access the singleton for sending requests.
  */
 
-import { fetchSessionList, fetchSessionStats } from "@/lib/sessionActions";
+import {
+	compactSession,
+	fetchSessionList,
+	fetchSessionStats,
+	startNewSession,
+} from "@/lib/sessionActions";
+import { emitShortcut } from "@/lib/shortcuts";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { WsTransport } from "@/transport";
@@ -22,6 +28,7 @@ import type {
 	PiImageContent,
 	PiMessageUpdateEvent,
 	PiTextContent,
+	WsMenuActionData,
 } from "@pibun/contracts";
 
 // ============================================================================
@@ -373,6 +380,71 @@ function handleExtensionUiRequest(event: PiExtensionUIRequest): void {
 }
 
 // ============================================================================
+// Menu Action Dispatch (desktop native menus → web app)
+// ============================================================================
+
+/**
+ * Handle a native menu action forwarded from the desktop main process
+ * via the `menu.action` WebSocket push channel.
+ *
+ * Maps dot-namespaced action strings to the same operations triggered
+ * by keyboard shortcuts and UI buttons. Actions that map to UI toggles
+ * (sidebar, model selector, thinking selector) use the shortcut event bus.
+ * Actions that trigger operations (new session, abort, compact) call the
+ * appropriate async functions directly.
+ */
+function handleMenuAction(data: WsMenuActionData): void {
+	const { action } = data;
+	const store = useStore.getState();
+
+	switch (action) {
+		// ── File ──────────────────────────────────────────────────
+		case "file.new-session":
+			startNewSession()
+				.then(() => fetchSessionList())
+				.catch((err: unknown) => {
+					console.error("[Menu] Failed to create new session:", err);
+				});
+			break;
+
+		// ── View ─────────────────────────────────────────────────
+		case "view.toggle-sidebar":
+			emitShortcut("toggleSidebar");
+			break;
+
+		// ── Session ──────────────────────────────────────────────
+		case "session.abort":
+			if (store.isStreaming) {
+				getTransport()
+					.request("session.abort")
+					.catch((err: unknown) => {
+						const msg = err instanceof Error ? err.message : String(err);
+						useStore.getState().setLastError(`Failed to abort: ${msg}`);
+					});
+			}
+			break;
+
+		case "session.compact":
+			compactSession().catch((err: unknown) => {
+				console.error("[Menu] Failed to compact:", err);
+			});
+			break;
+
+		case "session.switch-model":
+			emitShortcut("toggleModelSelector");
+			break;
+
+		case "session.set-thinking":
+			emitShortcut("toggleThinkingSelector");
+			break;
+
+		default:
+			console.log(`[Menu] Unhandled menu action: ${action}`);
+			break;
+	}
+}
+
+// ============================================================================
 // Initialization
 // ============================================================================
 
@@ -381,6 +453,7 @@ function handleExtensionUiRequest(event: PiExtensionUIRequest): void {
  *
  * - Subscribes to `pi.event` → dispatches to store actions
  * - Subscribes to `server.welcome` / `server.error` → logs
+ * - Subscribes to `menu.action` → dispatches desktop menu actions
  * - Syncs transport state → connection slice
  *
  * Call once at app startup. Returns a cleanup function.
@@ -422,6 +495,9 @@ export function initTransport(): () => void {
 			useStore.getState().setLastError(data.message);
 		}),
 	);
+
+	// menu.action → dispatch native menu actions from desktop
+	cleanups.push(transport.subscribe("menu.action", handleMenuAction));
 
 	return () => {
 		for (const cleanup of cleanups) {

@@ -74,6 +74,8 @@ export const WS_CHANNELS = {
 	serverWelcome: "server.welcome",
 	/** Server-level error notifications. */
 	serverError: "server.error",
+	/** Native menu action forwarded from desktop app. */
+	menuAction: "menu.action",
 } as const;
 
 /** Union of all push channel strings. */
@@ -319,6 +321,16 @@ export interface WsServerErrorData {
 	message: string;
 }
 
+/**
+ * Data for `menu.action` push — native menu action from desktop app.
+ *
+ * Action strings use dot-namespaced format matching the desktop menu
+ * structure (e.g., "file.new-session", "session.abort").
+ */
+export interface WsMenuActionData {
+	action: string;
+}
+
 // ============================================================================
 // Channel → Data Type Map
 // ============================================================================
@@ -332,6 +344,7 @@ export interface WsChannelDataMap {
 	"pi.response": PiResponse;
 	"server.welcome": WsServerWelcomeData;
 	"server.error": WsServerErrorData;
+	"menu.action": WsMenuActionData;
 }
 
 // ============================================================================

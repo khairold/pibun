@@ -151,6 +151,7 @@ export type {
 	WsResponse,
 	WsResponseError,
 	WsResponseOk,
+	WsMenuActionData,
 	WsServerErrorData,
 	WsServerMessage,
 	WsServerWelcomeData,
