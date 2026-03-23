@@ -203,24 +203,35 @@ function handlePiEvent(event: PiEvent): void {
 			break;
 
 		case "auto_retry_start":
+			store.setRetrying(true, event.attempt, event.maxAttempts);
 			store.appendMessage(
 				makeMessage({
 					id: nextId("system"),
 					type: "system",
-					content: `Retrying (attempt ${event.attempt}/${event.maxAttempts}): ${event.errorMessage}`,
+					content: `🔄 Retrying (attempt ${event.attempt}/${event.maxAttempts}): ${event.errorMessage}`,
 				}),
 			);
 			break;
 
 		case "auto_retry_end":
-			if (!event.success && event.finalError) {
+			store.setRetrying(false);
+			if (event.success) {
 				store.appendMessage(
 					makeMessage({
 						id: nextId("system"),
 						type: "system",
-						content: `Retry failed: ${event.finalError}`,
+						content: "✅ Retry succeeded",
 					}),
 				);
+			} else if (event.finalError) {
+				store.appendMessage(
+					makeMessage({
+						id: nextId("system"),
+						type: "system",
+						content: `❌ Retry failed after ${event.attempt} attempts: ${event.finalError}`,
+					}),
+				);
+				store.setLastError(`Retry failed: ${event.finalError}`);
 			}
 			break;
 
@@ -289,9 +300,17 @@ function handleMessageUpdate(event: PiMessageUpdateEvent): void {
 			break;
 
 		case "done":
-		case "error":
 			// Mark streaming complete (message_end will also do this, but be safe)
 			store.setMessageStreaming(currentAssistantMessageId, false);
+			break;
+
+		case "error":
+			// Mark streaming complete and surface the error
+			store.setMessageStreaming(currentAssistantMessageId, false);
+			if (ame.reason === "error") {
+				store.setLastError("Assistant response ended with an error");
+			}
+			// "aborted" reason is expected (user pressed abort) — no error banner
 			break;
 
 		// toolcall_end: tool_execution_start will create the tool_call card

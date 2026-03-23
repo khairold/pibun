@@ -96,6 +96,12 @@ export interface SessionSlice {
 	isStreaming: boolean;
 	/** True while context compaction is in progress (manual or auto). */
 	isCompacting: boolean;
+	/** True while Pi is auto-retrying after an error. */
+	isRetrying: boolean;
+	/** Current retry attempt number (0 when not retrying). */
+	retryAttempt: number;
+	/** Maximum retry attempts (0 when not retrying). */
+	retryMaxAttempts: number;
 	/** Session statistics (tokens, cost), null before first fetch. */
 	stats: PiSessionStats | null;
 	/** Current session display name, null if not set. */
@@ -117,6 +123,8 @@ export interface SessionSlice {
 	setIsStreaming: (streaming: boolean) => void;
 	/** Set compacting state. */
 	setIsCompacting: (compacting: boolean) => void;
+	/** Set retrying state with attempt info. */
+	setRetrying: (retrying: boolean, attempt?: number, maxAttempts?: number) => void;
 	/** Set session stats. */
 	setStats: (stats: PiSessionStats | null) => void;
 	/** Set session display name. */

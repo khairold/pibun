@@ -125,6 +125,9 @@ export function ChatView() {
 	const messages = useStore((s) => s.messages);
 	const isStreaming = useStore((s) => s.isStreaming);
 	const isCompacting = useStore((s) => s.isCompacting);
+	const isRetrying = useStore((s) => s.isRetrying);
+	const retryAttempt = useStore((s) => s.retryAttempt);
+	const retryMaxAttempts = useStore((s) => s.retryMaxAttempts);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 
 	const { showScrollButton, scrollToBottom } = useAutoScroll(scrollContainerRef, messages);
@@ -168,6 +171,16 @@ export function ChatView() {
 					<div className="mt-4 flex items-center gap-2 text-xs text-amber-500/70">
 						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
 						<span>Compacting context\u2026</span>
+					</div>
+				)}
+
+				{/* Retry indicator when Pi is auto-retrying after an error */}
+				{isRetrying && (
+					<div className="mt-4 flex items-center gap-2 text-xs text-orange-400/80">
+						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-orange-400" />
+						<span>
+							Retrying\u2026 (attempt {retryAttempt}/{retryMaxAttempts})
+						</span>
 					</div>
 				)}
 			</div>

@@ -1136,3 +1136,41 @@
 - `NewSessionButton.tsx` still exists as a file but is no longer imported anywhere. Can be deleted or kept for potential reuse in mobile layout.
 
 ---
+
+## Session 33 — Error Handling: Retry Indicators + Error Banners (2026-03-23)
+
+**What happened:**
+- Added `isRetrying`, `retryAttempt`, `retryMaxAttempts` to SessionSlice (types.ts + sessionSlice.ts):
+  - `setRetrying(retrying, attempt?, maxAttempts?)` action tracks retry state
+  - Mirrors `isCompacting` pattern — set on `auto_retry_start`, cleared on `auto_retry_end`
+  - Reset to defaults in `resetSession()`
+- Enhanced `wireTransport.ts` retry event handling:
+  - `auto_retry_start` → sets `isRetrying=true` with attempt info + system message with 🔄 emoji
+  - `auto_retry_end` (success) → clears retry state + system message with ✅ emoji
+  - `auto_retry_end` (failure) → clears retry state + system message with ❌ emoji + `setLastError()` for ErrorBanner
+  - Retry failures now surface prominently via both system message AND error banner
+- Split `done`/`error` handling in `handleMessageUpdate`:
+  - `done` — marks streaming complete (unchanged behavior)
+  - `error` — marks streaming complete AND surfaces error banner when `reason === "error"` (not `"aborted"`)
+  - User-initiated abort does not show error banner (expected behavior)
+- Enhanced `SystemMessage` with category-based detection and styling:
+  - 5 categories: compaction (amber), retry-progress (orange), retry-success (green), retry-failed (red), default (neutral)
+  - Detection via emoji prefix matching (🔄, ✅ Retry, ❌ Retry, compaction keyword)
+- Added inline retry indicator in `ChatView` — orange pulsing dot + "Retrying… (attempt X/Y)"
+  - Same visual pattern as compaction and streaming indicators
+  - Only shows when `isRetrying` is true
+
+**Items completed:**
+- [x] 1D.18 — Error handling: retry indicators (auto_retry events), error banners
+
+**Issues encountered:**
+- Biome formatter required multi-line format for long union type in SystemMessage — fixed with `bun run format`
+
+**Handoff to next session:**
+- Next: 1D.19 — Message virtualization for long conversations (only render visible messages)
+- 2 items remaining in Phase 1D (1D.19, 1D.20)
+- Consider using `@tanstack/react-virtual` or a simpler windowing approach
+- Current ChatView renders all messages — may lag with 100+ messages especially with Shiki-highlighted code blocks
+- `groupMessages()` already produces the item list — could be the basis for virtualized rendering
+
+---

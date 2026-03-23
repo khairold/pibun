@@ -146,6 +146,8 @@
 | 134 | `SessionSlice` extended with `sessionName`, `sessionFile`, `sessionList`, `sessionListLoading` | `sessionName` and `sessionFile` populated from `get_state` response. `sessionList` populated by `session.listSessions` server method. Session list fetched on connect and after new/switch operations. | 2026-03-23 |
 | 135 | Sidebar replaces placeholder `<aside>` in AppShell, `NewSessionButton` moved to sidebar | New session button is now in the sidebar header. Removed from toolbar to avoid duplication. Toolbar retains CompactButton and ForkDialog. Ctrl+N shortcut still works via `useKeyboardShortcuts`. | 2026-03-23 |
 | 136 | Session list auto-fetched on `server.welcome` push and on manual connect | `wireTransport.ts` calls `fetchSessionList()` when welcome received. Sidebar also fetches on mount when connected. List refreshed after new session, switch, and fork operations. | 2026-03-23 |
+| 137 | `isRetrying`, `retryAttempt`, `retryMaxAttempts` added to SessionSlice for retry tracking | `auto_retry_start` sets `isRetrying=true` with attempt info, `auto_retry_end` clears it. ChatView shows inline retry indicator (orange pulsing dot + attempt/max). SystemMessage uses emoji prefixes: `🔄` for progress, `✅` for success, `❌` for failure. Failed retries surface as ErrorBanner via `setLastError`. | 2026-03-23 |
+| 138 | `message_update.error` events surface as ErrorBanner for `reason === "error"` | Abort (`reason === "aborted"`) is user-initiated so no error banner. Only `reason === "error"` sets `lastError`. Done/error are now separate `case` branches in `handleMessageUpdate`. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -286,7 +288,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Image paste in composer (1D.15) complete — clipboard paste, drag-and-drop, preview strip, base64 encoding, mimeType forwarding
 - Keyboard shortcuts: `useKeyboardShortcuts` hook in AppShell, `lib/shortcuts.ts` event bus, ModelSelector subscribes to toggle event. Ctrl/Cmd+C (abort), Ctrl/Cmd+L (model selector), Ctrl/Cmd+N (new session).
 - Sidebar: `Sidebar.tsx` with session list, current session info, new session button. Server-side `sessionListing.ts` reads `~/.pi/agent/sessions/`. WS methods `session.listSessions` and `session.switchSession` added end-to-end (contracts, handlers, registry).
-- Next: 1D.18 — Error handling
+- Error handling (1D.18) complete — retry indicators with `isRetrying` state, emoji-prefixed system messages, inline ChatView retry indicator, failed retries → ErrorBanner, message-level errors surfaced
+- Next: 1D.19 — Message virtualization
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings

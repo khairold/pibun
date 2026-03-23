@@ -3,7 +3,7 @@
  *
  * Used for compaction notices, retry banners, and other system events.
  * Displayed as subtle centered text with a divider-like appearance.
- * Compaction and retry messages get distinct styling/colors.
+ * Compaction, retry, and error messages get distinct styling/colors.
  */
 
 import { cn } from "@/lib/cn";
@@ -14,31 +14,65 @@ interface SystemMessageProps {
 	message: ChatMessage;
 }
 
+type SystemCategory =
+	| "compaction"
+	| "retry-progress"
+	| "retry-success"
+	| "retry-failed"
+	| "default";
+
 /** Detect message category for styling. */
-function getSystemMessageStyle(content: string): {
+function getCategory(content: string): SystemCategory {
+	if (content.includes("compaction")) return "compaction";
+	if (content.startsWith("✅ Retry succeeded")) return "retry-success";
+	if (content.startsWith("❌ Retry failed")) return "retry-failed";
+	if (content.startsWith("🔄 Retrying")) return "retry-progress";
+	return "default";
+}
+
+/** Get styling classes for a system message category. */
+function getCategoryStyle(category: SystemCategory): {
 	textClass: string;
 	dividerClass: string;
+	iconClass: string;
 } {
-	if (content.includes("compaction")) {
-		return {
-			textClass: "text-amber-500/70",
-			dividerClass: "bg-amber-500/20",
-		};
+	switch (category) {
+		case "compaction":
+			return {
+				textClass: "text-amber-500/70",
+				dividerClass: "bg-amber-500/20",
+				iconClass: "",
+			};
+		case "retry-progress":
+			return {
+				textClass: "text-orange-400/80",
+				dividerClass: "bg-orange-500/20",
+				iconClass: "animate-spin-slow",
+			};
+		case "retry-success":
+			return {
+				textClass: "text-green-400/70",
+				dividerClass: "bg-green-500/20",
+				iconClass: "",
+			};
+		case "retry-failed":
+			return {
+				textClass: "text-red-400/80",
+				dividerClass: "bg-red-500/20",
+				iconClass: "",
+			};
+		default:
+			return {
+				textClass: "text-neutral-500",
+				dividerClass: "bg-neutral-800",
+				iconClass: "",
+			};
 	}
-	if (content.includes("Retrying") || content.includes("Retry failed")) {
-		return {
-			textClass: "text-orange-500/70",
-			dividerClass: "bg-orange-500/20",
-		};
-	}
-	return {
-		textClass: "text-neutral-500",
-		dividerClass: "bg-neutral-800",
-	};
 }
 
 export const SystemMessage = memo(function SystemMessage({ message }: SystemMessageProps) {
-	const style = getSystemMessageStyle(message.content);
+	const category = getCategory(message.content);
+	const style = getCategoryStyle(category);
 
 	return (
 		<div className="flex items-center gap-3 py-1">
