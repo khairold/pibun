@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 2B in progress — 2B.1–2B.4 done, 3 items remain.
-> **Current Phase:** 2B
-> **Last Session:** 43 (2026-03-23)
+> **Status:** Phase 2B complete. Phase 2C next.
+> **Current Phase:** 2C
+> **Last Session:** 44 (2026-03-23)
 
 ---
 
@@ -172,9 +172,9 @@
 - [x] 2B.2 — Menu actions → WebSocket commands (New Session, Abort, Compact, Switch Model)
 - [x] 2B.3 — IPC: forward native menu events to React app
 - [x] 2B.4 — File dialogs for project/folder selection
-- [ ] 2B.5 — System notifications for long-running operations
-- [ ] 2B.6 — Keyboard shortcuts mapped to native accelerators
-- [ ] 2B.7 — App icon and branding
+- [x] 2B.5 — System notifications for long-running operations
+- [x] 2B.6 — Keyboard shortcuts mapped to native accelerators
+- [x] 2B.7 — App icon and branding
 
 **Exit criteria:** Menus work. Keyboard shortcuts trigger correct actions. Feels like a native app.
 

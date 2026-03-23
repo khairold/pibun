@@ -17,6 +17,7 @@ import { PiRpcManager } from "@pibun/server/piRpcManager";
 import { type PiBunServer, broadcastPush, createServer } from "@pibun/server/server";
 import Electrobun, { ApplicationMenu, BrowserWindow, Utils } from "electrobun/bun";
 import { type MenuAction, buildMenuConfig, createMenuClickHandler } from "./menu";
+import { initNotifications } from "./notifications";
 import {
 	type WindowFrame,
 	debouncedSaveWindowState,
@@ -471,7 +472,15 @@ async function bootstrap(): Promise<void> {
 
 	console.log("[Menu] Application menu configured");
 
-	// Step 7: Wire signal handlers for graceful shutdown
+	// Step 7: Wire system notifications for long-running operations
+	// Shows native OS notifications when Pi finishes a task and the
+	// window is not focused (e.g., user switched to another app).
+	if (pibunServer) {
+		initNotifications(mainWindow, pibunServer.config.rpcManager);
+		console.log("[Notifications] System notifications enabled");
+	}
+
+	// Step 8: Wire signal handlers for graceful shutdown
 	process.on("SIGINT", () => shutdown("SIGINT"));
 	process.on("SIGTERM", () => shutdown("SIGTERM"));
 

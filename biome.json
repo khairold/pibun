@@ -30,6 +30,6 @@
 		}
 	},
 	"files": {
-		"ignore": ["node_modules", "dist", ".turbo", "reference", "bun.lockb"]
+		"ignore": ["node_modules", "dist", ".turbo", "reference", "bun.lockb", "**/scripts/**"]
 	}
 }

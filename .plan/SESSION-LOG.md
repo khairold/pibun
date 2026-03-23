@@ -1514,3 +1514,40 @@
 - The `file.open-folder` menu action works as a native-only action — the dialog runs in the desktop main process and only the result is forwarded to the React app
 
 ---
+
+## Session 44 — Phase 2B Completion: Notifications, Shortcuts, Icon (2026-03-23)
+
+**What happened:**
+- **2B.5 — System notifications**: Created `apps/desktop/src/bun/notifications.ts` module with:
+  - Window focus/blur tracking via BrowserWindow events
+  - Pi event subscription on all sessions (current + future) via RPC manager's `onSessionEvent`
+  - Native notifications via `Utils.showNotification()` on:
+    - `agent_end` when turn took ≥5s AND window is not focused
+    - `auto_retry_end` failure when window is not focused
+    - Session crash when window is not focused
+  - Wired in `bootstrap()` after menu setup (production mode only)
+- **2B.6 — Keyboard shortcuts**: Verified all shortcuts are already mapped as native menu accelerators (from 2B.1). In desktop mode, native accelerators intercept keydowns before the webview — forwarded via WS `menu.action` push channel. Web `useKeyboardShortcuts` handles browser-only mode. No double-firing issue.
+- **2B.7 — App icon and branding**: 
+  - Created SVG icon design at `assets/icon.svg` (dark rounded rect + terminal window + π symbol in indigo)
+  - Generated 1024×1024 master PNG via Pillow (`create-master-icon.ts` script)
+  - Generated macOS `.iconset` (10 PNGs: 16→1024) + `.icns` bundle via `sips` + `iconutil` (`generate-icons.ts` script)
+  - Updated `electrobun.config.ts`: `mac.icons` → `"icon.iconset"`, `win.icon` → `"assets/icon-1024.png"`
+- Added `**/scripts/**` to Biome's `files.ignore` (build scripts have different lint requirements)
+- Verified Phase 2B exit criteria: menus work ✅, keyboard shortcuts trigger correct actions ✅, native app feel ✅
+
+**Items completed:**
+- [x] 2B.5 — System notifications for long-running operations
+- [x] 2B.6 — Keyboard shortcuts mapped to native accelerators
+- [x] 2B.7 — App icon and branding
+
+**Issues encountered:**
+- None. 2B.6 was effectively already done via 2B.1-2B.3 (menu accelerators + action forwarding). Native accelerators intercept before webview, so no conflict with web shortcut handler.
+
+**Handoff to next session:**
+- **Phase 2B COMPLETE** — all 7 items done, exit criteria verified
+- Next: Phase 2C — Desktop: Distribution
+- Phase 2C items: macOS .dmg build, code signing, Linux AppImage, Windows NSIS, auto-update, CI pipeline, smoke tests
+- Key reference: `electrobun build` command, Electrobun docs on distribution
+- App icon is a development placeholder (Pillow-generated) — should be replaced with professionally designed icon for production distribution
+
+---

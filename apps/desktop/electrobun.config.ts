@@ -14,12 +14,14 @@ export default {
 		// so we don't bundle any views. No copy or views config needed.
 		mac: {
 			bundleCEF: false,
+			icons: "icon.iconset",
 		},
 		linux: {
 			bundleCEF: false,
 		},
 		win: {
 			bundleCEF: false,
+			icon: "assets/icon-1024.png",
 		},
 	},
 	runtime: {
