@@ -200,3 +200,36 @@
 - The parser must split on `\n` only — see CONVENTIONS.md for the exact pattern
 - `packages/shared/src/jsonl.ts` already exists as a stub with the correct export path (`@pibun/shared/jsonl`)
 - After JSONL parser: 1A.5 (unit tests), then 1A.6 (PiProcess class in server)
+
+---
+
+## Session 6 — PiRpcManager + Crash Handling (2026-03-23)
+
+**What happened:**
+- Implemented `PiRpcManager` class in `apps/server/src/piRpcManager.ts`:
+  - **Session mapping**: `Map<string, ManagedSession>` with auto-generated IDs (`session_{counter}_{timestamp}`)
+  - **createSession()**: Accepts `CreateSessionOptions` (extends `PiProcessOptions` with optional custom `sessionId`), spawns PiProcess, wires crash listeners, emits "created" event
+  - **getSession()**: Lookup by ID, returns `ManagedSession | undefined`
+  - **getActiveSessions()**: Filters to only "running" state processes
+  - **getAllSessions()**: Returns all sessions regardless of state
+  - **stopSession()**: Removes from map FIRST (prevents re-entrant cleanup), then stops process, emits "stopped" event
+  - **stopAll()**: Parallel `Promise.all` stop of all sessions — used for server shutdown
+  - **Crash handling** (1A.8): `attachProcessListeners()` wires `onExit` + `onError` to each PiProcess. On unexpected exit (state === "crashed"), captures stderr, removes session, emits `{ type: "crashed", exitCode, stderr }`. Non-fatal errors (parse failures) don't remove the session.
+  - **Session events**: `onSessionEvent()` listener with unsubscribe. Events: created, stopped, crashed.
+  - **Cleanup**: `removeSession()` deletes from sessions map AND unsubscribes all PiProcess listeners to prevent memory leaks
+- Fixed unused import warning (`PiProcessState` not needed in manager)
+- Verified: `bun run typecheck` passes, `bun run lint` passes (0 warnings)
+
+**Items completed:**
+- [x] 1A.7 — Implement `PiRpcManager` in `apps/server/`
+- [x] 1A.8 — Handle Pi process crash/exit (emit error event, clean up session, log stderr)
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1A.9 — Write unit tests for PiRpcManager (mock subprocess, verify event routing)
+- Then: 1A.10 — Manual integration test (spawn Pi, send prompt, log streaming events)
+- PiRpcManager is at `apps/server/src/piRpcManager.ts`. It depends on `PiProcess` from `./piProcess.js`
+- Key test scenarios: create/get/stop session, duplicate ID rejection, crash detection with stderr capture, stopAll parallel, listener cleanup on session removal
+- For mocking: PiProcess spawns `Bun.spawn()` — tests will need to either mock the subprocess or use a fake Pi binary (a script that echoes JSONL)

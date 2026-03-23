@@ -3,7 +3,7 @@
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
 > **Status:** Phase 0 COMPLETE — all scaffolds exist, monorepo verified, Pi RPC verified
 > **Current Phase:** 1A
-> **Last Session:** 5 (2026-03-23)
+> **Last Session:** 6 (2026-03-23)
 
 ---
 
@@ -64,8 +64,8 @@
 - [x] 1A.4 — Implement JSONL parser in `packages/shared/` (strict LF splitting, no readline, buffer accumulation)
 - [x] 1A.5 — Write unit tests for JSONL parser (partial lines, embedded newlines in JSON strings, Unicode line separators in payloads, empty lines, rapid multi-line)
 - [x] 1A.6 — Implement `PiProcess` class in `apps/server/` (spawn with flags, stdin write, stdout read via JSONL parser, stderr capture, process lifecycle)
-- [ ] 1A.7 — Implement `PiRpcManager` in `apps/server/` (create session → spawn PiProcess, get session, stop session → kill process, stop all)
-- [ ] 1A.8 — Handle Pi process crash/exit (emit error event, clean up session, log stderr)
+- [x] 1A.7 — Implement `PiRpcManager` in `apps/server/` (create session → spawn PiProcess, get session, stop session → kill process, stop all)
+- [x] 1A.8 — Handle Pi process crash/exit (emit error event, clean up session, log stderr)
 - [ ] 1A.9 — Write unit tests for PiRpcManager (mock subprocess, verify event routing)
 - [ ] 1A.10 — Manual integration test: spawn Pi, send prompt, log streaming events to console
 

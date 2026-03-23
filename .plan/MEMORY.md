@@ -42,6 +42,8 @@
 | 32 | `PiProcess` uses `Subprocess<"pipe","pipe","pipe">` type for full stdin/stdout/stderr typing | Bun's `Bun.spawn()` with `const` generic parameters infers literal types from options. `Subprocess<"pipe","pipe","pipe">` narrows `stdin` to `FileSink`, `stdout`/`stderr` to `ReadableStream<Uint8Array>`. Alias: `PipedSubprocess`. | 2026-03-23 |
 | 33 | `Bun.spawn` cwd must not be `undefined` with `exactOptionalPropertyTypes` | Use `cwd: options.cwd ?? process.cwd()` to always provide a string. Same pattern for `env`: always pass `process.env` (merged or not). | 2026-03-23 |
 | 34 | `PiProcess.sendExtensionResponse()` is fire-and-forget, not correlated | Extension UI responses use the original request ID. Pi sends back an acknowledgment but PiProcess doesn't wait for it. Separate from `sendCommand()` which correlates request/response via generated IDs. | 2026-03-23 |
+| 35 | PiRpcManager removes session from map BEFORE calling `process.stop()` | Prevents re-entrant cleanup: `stop()` triggers process exit → `onExit` fires → `handleProcessExit` checks `sessions.has()` → already removed, so no double-cleanup. The "remove first, stop second" pattern avoids race conditions. | 2026-03-23 |
+| 36 | PiRpcManager crash handling: non-fatal errors don't remove sessions | JSONL parse errors and stream errors from `onError` are non-fatal — the process may still be running. Only actual process exit (via `onExit`) with state === "crashed" triggers session cleanup and crash event emission. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -138,7 +140,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Pi RPC types fully defined in `packages/contracts/` ✅
 - JSONL parser in `packages/shared/` ✅
 - PiProcess class in `apps/server/src/piProcess.ts` ✅ — wraps Bun.spawn of `pi --mode rpc`, uses JsonlParser, typed listeners, command correlation
-- Next: 1A.7 — PiRpcManager (session → PiProcess mapping), then crash handling, tests, integration test
+- PiRpcManager at `apps/server/src/piRpcManager.ts` ✅ — session ID → PiProcess mapping, crash handling with stderr capture, parallel stopAll for shutdown
+- Next: 1A.9 — Unit tests for PiRpcManager (mock subprocess), then 1A.10 — manual integration test
 - Pi RPC verified with Pi 0.61.1 — `get_available_models` and `get_state` work, commands use `{"type":"..."}` format
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
