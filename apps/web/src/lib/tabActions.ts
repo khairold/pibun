@@ -7,6 +7,7 @@
  * - Setting the active WS session on the transport
  * - Fetching messages from Pi when switching to a tab with no cached messages
  * - Refreshing session state (model, thinking, etc.) after a switch
+ * - Creating new tabs with their own Pi processes
  *
  * Dependency direction: tabActions → sessionActions (not circular).
  * Tab creation/association during session.start is handled inline
@@ -16,6 +17,72 @@
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import { loadSessionMessages, refreshSessionState } from "./sessionActions";
+
+// ============================================================================
+// Tab Creation
+// ============================================================================
+
+/**
+ * Create a new tab and spawn a Pi process for it.
+ *
+ * Flow:
+ * 1. Create a tab in the store
+ * 2. Switch to it (saves current tab's messages to cache)
+ * 3. Clear messages for the fresh tab
+ * 4. Start a new Pi session with `keepExisting: true` (preserves other tabs' sessions)
+ * 5. Associate the session with the tab
+ * 6. Set transport active session for routing
+ * 7. Refresh session state (model, thinking, etc.)
+ *
+ * If session start fails, the tab is removed and an error is shown.
+ *
+ * @param options Optional CWD for the new session.
+ * @returns The new tab ID on success, null on failure.
+ */
+export async function createNewTab(options?: { cwd?: string }): Promise<string | null> {
+	const store = useStore.getState();
+
+	// 1. Create a new tab
+	const tabId = store.addTab({
+		...(options?.cwd ? { cwd: options.cwd } : {}),
+	});
+
+	// 2. Switch to the new tab — saves current tab's messages, activates new tab
+	store.switchTab(tabId);
+
+	// 3. Clear messages for a fresh start (switchTab restores empty cache)
+	store.clearMessages();
+
+	// 4. Start a new Pi session (keepExisting prevents killing other tabs' sessions)
+	try {
+		const result = await getTransport().request("session.start", {
+			keepExisting: true,
+			...(options?.cwd ? { cwd: options.cwd } : {}),
+		});
+
+		// 5. Associate session with tab
+		const current = useStore.getState();
+		current.updateTab(tabId, { sessionId: result.sessionId });
+		current.setSessionId(result.sessionId);
+
+		// 6. Route transport to the new session
+		getTransport().setActiveSession(result.sessionId);
+
+		// 7. Refresh state to get model, thinking, session name, etc.
+		await refreshSessionState();
+
+		// Sync tab metadata with refreshed state
+		useStore.getState().syncActiveTabState();
+
+		return tabId;
+	} catch (err) {
+		// Session start failed — remove the orphan tab
+		useStore.getState().removeTab(tabId);
+		const msg = err instanceof Error ? err.message : String(err);
+		useStore.getState().setLastError(`Failed to create new tab: ${msg}`);
+		return null;
+	}
+}
 
 // ============================================================================
 // Tab Switching

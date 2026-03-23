@@ -5,6 +5,28 @@
 
 ---
 
+## Session 56 — Wire new tab creation (2026-03-23)
+
+**What happened:**
+- Added `createNewTab()` async function to `apps/web/src/lib/tabActions.ts` — coordinates tab creation with Pi process spawning
+- Flow: creates tab → switches to it (saves current tab's messages) → clears messages → starts Pi session with `keepExisting: true` → associates session with tab → routes transport → refreshes session state → syncs tab metadata
+- On failure (session start error), removes the orphan tab and shows error via `setLastError`
+- Accepts optional `{ cwd }` parameter for folder-specific sessions (can be used by "Open Folder" flow later)
+- Updated `TabBar.tsx` "+" button to use `createNewTab()` instead of raw `addTab() + switchTabAction()` — the "+" button now spawns a real Pi process for the new tab
+
+**Items completed:**
+- [x] 1.6 — Wire new tab: creates new Pi process via `session.start`, adds tab, switches to it
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1.7 — Wire close tab: stops Pi process via `session.stop`, removes tab, switches to adjacent tab (or empty state if last tab)
+- The `removeTab` in `tabsSlice.ts` already handles UI-level tab removal + adjacent tab switching. 1.7 needs to add the Pi process cleanup (`session.stop`) before removing the tab.
+- `TabBar.tsx` `handleCloseTab` currently calls raw `removeTab(tabId)` without stopping the Pi session — needs a `closeTab()` action in `tabActions.ts`.
+
+---
+
 ## Session 55 — Wire tab switching (2026-03-23)
 
 **What happened:**

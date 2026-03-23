@@ -227,6 +227,7 @@
 | 215 | Tab creation during session.start is inlined — no circular dependency | `sessionActions.ts` has inline `ensureTabExists()` + `linkSessionToActiveTab()` helpers that call `useStore.getState()` directly. Composer.tsx also inlines tab creation. Avoids circular dep with `tabActions.ts`. | 2026-03-23 |
 | 216 | Pi events routed by sessionId — only active tab's events dispatch to messages store | `wireTransport.ts` compares `data.sessionId` against active tab's sessionId. Matching events → `handlePiEvent()` + `syncActiveTabState()`. Non-matching events → only update tab's streaming indicator via `updateTabStreamingBySessionId()`. Events with no sessionId or no tabs always dispatch normally. | 2026-03-23 |
 | 217 | `loadSessionMessages` and `refreshSessionState` are now exported from sessionActions | Previously internal functions, now exported so `tabActions.ts` can call them for tab switch message loading and state refresh. | 2026-03-23 |
+| 218 | `createNewTab()` in tabActions.ts spawns a Pi process per tab | Creates tab → switches to it → starts Pi session with `keepExisting: true` → associates session → routes transport → refreshes state. On failure, removes the orphan tab and shows error. Accepts optional `cwd` for folder-specific sessions. TabBar "+" button uses this instead of raw `addTab() + switchTabAction()`. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -330,7 +331,7 @@ All core features are shipped. See `.plan/archive/PLAN-v1.md` for the 97-item bu
 ## What's Not Built Yet (v2 Plan)
 
 - Multi-session WS plumbing complete ✅ — `WsRequest.sessionId` for targeting, `WsConnectionData.sessionIds` for tracking, push events wrapped with sessionId, `WsTransport.setActiveSession()` for client, `keepExisting` flag on session.start
-- **Phase 1 in progress** — items 1.1–1.5 done (multi-session WS plumbing, SessionTab type, tabsSlice, TabBar component, tab switch wiring), items 1.6–1.12 remain (new tab, close tab, keyboard shortcuts, sidebar, desktop menus, verification)
+- **Phase 1 in progress** — items 1.1–1.6 done (multi-session WS plumbing, SessionTab type, tabsSlice, TabBar component, tab switch wiring, new tab creation), items 1.7–1.12 remain (close tab, drag-to-reorder, keyboard shortcuts, sidebar, desktop menus, verification)
 - Pi RPC types fully defined in `packages/contracts/` ✅
 - JSONL parser in `packages/shared/` ✅
 - PiProcess class in `apps/server/src/piProcess.ts` ✅ — wraps Bun.spawn of `pi --mode rpc`, uses JsonlParser, typed listeners, command correlation

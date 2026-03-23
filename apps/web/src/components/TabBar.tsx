@@ -13,7 +13,7 @@
  */
 
 import { cn } from "@/lib/cn";
-import { switchTabAction } from "@/lib/tabActions";
+import { createNewTab, switchTabAction } from "@/lib/tabActions";
 import { useStore } from "@/store";
 import type { SessionTab } from "@pibun/contracts";
 import { type MouseEvent, memo, useCallback, useRef } from "react";
@@ -146,7 +146,6 @@ function shortModelName(name: string): string {
 export function TabBar() {
 	const tabs = useStore((s) => s.tabs);
 	const activeTabId = useStore((s) => s.activeTabId);
-	const addTab = useStore((s) => s.addTab);
 	const removeTab = useStore((s) => s.removeTab);
 	const connectionStatus = useStore((s) => s.connectionStatus);
 
@@ -156,12 +155,11 @@ export function TabBar() {
 
 	const handleAddTab = useCallback(() => {
 		if (!isConnected) return;
-		const tabId = addTab();
-		// Switch to the new tab (async — coordinates with transport)
-		switchTabAction(tabId).catch((err: unknown) => {
-			console.error("[TabBar] Failed to switch to new tab:", err);
+		// Create a new tab with its own Pi process
+		createNewTab().catch((err: unknown) => {
+			console.error("[TabBar] Failed to create new tab:", err);
 		});
-	}, [addTab, isConnected]);
+	}, [isConnected]);
 
 	const handleCloseTab = useCallback(
 		(tabId: string) => {
