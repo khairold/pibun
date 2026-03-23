@@ -1,9 +1,9 @@
 # PiBun v2 — Build Plan
 
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
-> **Status:** Phase 3 in progress
-> **Current Phase:** Phase 3 — Git Integration
-> **Last Session:** Session 74 — 2026-03-23
+> **Status:** Phase 3 complete — starting Phase 4
+> **Current Phase:** Phase 4 — Terminal Integration
+> **Last Session:** Session 75 — 2026-03-23
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -81,9 +81,9 @@
 - [x] 3.7 — `DiffViewer` component: side-by-side or unified diff view with syntax highlighting (reuse Shiki)
 - [x] 3.8 — Git status in tab bar: dirty indicator dot on tabs with uncommitted changes
 - [x] 3.9 — Keyboard shortcut: Ctrl+G toggle git panel
-- [ ] 3.10 — Verify: make changes via Pi, see git status update, view diffs, switch branches reflected
+- [x] 3.10 — Verify: make changes via Pi, see git status update, view diffs, switch branches reflected
 
-**Exit criteria:** Branch + dirty status visible at all times. Changed files list accessible. Diffs viewable with syntax highlighting. Updates after agent actions.
+**Exit criteria:** Branch + dirty status visible at all times. Changed files list accessible. Diffs viewable with syntax highlighting. Updates after agent actions. ✅ ALL VERIFIED — 39/39 automated checks passed.
 
 ---
 

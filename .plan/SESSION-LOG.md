@@ -5,6 +5,38 @@
 
 ---
 
+## Session 75 — Phase 3 Git Integration Verification (2026-03-23)
+
+**What happened:**
+- Created comprehensive git integration verification test at `apps/server/src/git-integration-test.ts`
+- Test creates a temporary git repository, starts the PiBun server, and validates all 4 WS methods (`git.status`, `git.branch`, `git.diff`, `git.log`) end-to-end through WebSocket
+- 12 test groups covering: clean repo status, branch detection, log history, file modification detection (modified + untracked), unified diffs (staged + unstaged), non-git directory handling (isRepo: false, graceful errors), branch switching detection, commit + log update, file deletion detection, log count parameter
+- Added `test:smoke:git` script to root package.json
+- Verified all Phase 3 exit criteria met
+
+**Items completed:**
+- [x] 3.10 — Verify: make changes via Pi, see git status update, view diffs, switch branches reflected
+
+**Phase 3 Exit Criteria Verified:**
+- ✅ Branch + dirty status visible at all times (GitStatusBar in toolbar, always shows for git repos)
+- ✅ Changed files list accessible (GitPanel with status badges M/A/D/R/C/?)
+- ✅ Diffs viewable with syntax highlighting (DiffViewer with Shiki tokenization)
+- ✅ Updates after agent actions (auto-refresh on agent_end events + tab dirty dot)
+- ✅ Ctrl+G toggle (keyboard shortcut + native menu accelerator + WS push forwarding)
+- ✅ Tab dirty indicator (amber dot, hidden during streaming)
+
+**Issues encountered:**
+- None — clean verification run
+
+**Handoff to next session:**
+- **Phase 3 COMPLETE — 39/39 automated checks passed**
+- Next phase: Phase 4 — Terminal Integration
+- Next item: 4.1 — Research PTY options for Bun
+- Phase 4 is a large feature (embedded terminal with xterm.js, PTY, WebSocket bridge)
+- Item 4.1 is a research task — need to evaluate: node-pty (C++ addon, may need Bun compat work), Bun's native PTY if available, or shell → WebSocket bridge via Bun.spawn with pipe
+
+---
+
 ## Session 74 — Git dirty dot in tab bar + Ctrl+G shortcut (2026-03-23)
 
 **What happened:**
