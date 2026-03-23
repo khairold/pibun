@@ -17,6 +17,7 @@ export type ShortcutAction =
 	| "toggleGitPanel"
 	| "toggleModelSelector"
 	| "toggleSidebar"
+	| "toggleTerminal"
 	| "toggleThinkingSelector";
 
 type ShortcutListener = (action: ShortcutAction) => void;

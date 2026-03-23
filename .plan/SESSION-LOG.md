@@ -5,6 +5,34 @@
 
 ---
 
+## Session 78 — Terminal layout, shortcuts, native menu (2026-03-23)
+
+**What happened:**
+- Verified 4.7 (layout): TerminalPane already positioned as bottom panel with ResizeHandle in AppShell. Added `min-h-0` to ChatView's outer div for proper flex shrinking when terminal takes space. TerminalPane's `MAX_HEIGHT_RATIO=0.7` prevents ChatView from disappearing.
+- Verified 4.8 (multiple tabs): Already fully implemented in session 77 — TerminalPane has tab bar with create/close per tab, TerminalInstance per tab with show/hide.
+- Verified 4.9 (CWD inheritance): `createTerminal()` already resolves CWD from active tab → server default.
+- Built 4.10 (Ctrl+` shortcut): Added `"toggleTerminal"` to `ShortcutAction` union. Added backtick handler in `useKeyboardShortcuts` with three behaviors: open → close, closed with terminals → reopen, closed without terminals → create one. Imported `createTerminal` from `terminalActions`.
+- Built 4.11 (native menu): Added `toggleTerminal: "view.toggle-terminal"` to `MENU_ACTIONS`. Added "Toggle Terminal" item with `CommandOrControl+`` accelerator to View menu after Toggle Git Panel. Added `view.toggle-terminal` handler in `wireTransport.ts` `handleMenuAction` with same toggle logic. Imported `createTerminal` in `wireTransport.ts`.
+
+**Items completed:**
+- [x] 4.7 — Layout: terminal as bottom panel (resizable splitter between chat and terminal)
+- [x] 4.8 — Multiple terminal tabs (like VS Code)
+- [x] 4.9 — Terminal inherits CWD from active session/project
+- [x] 4.10 — Keyboard shortcut: Ctrl+` toggle terminal panel
+- [x] 4.11 — Desktop: native menu "View → Toggle Terminal"
+
+**Issues encountered:**
+- None — items 4.7, 4.8, 4.9 were largely already built in session 77. Only layout fix (min-h-0) and new shortcut/menu code needed.
+
+**Handoff to next session:**
+- Next: 4.12 — Verify: open terminal, run commands, resize, multiple terminals, CWD matches project
+- This is the last item in Phase 4. It's a verification/testing item.
+- All Phase 4 exit criteria to verify: embedded terminal works alongside chat, multiple terminal tabs, resizable, CWD-aware.
+- Create an automated verification test similar to `multi-session-test.ts` and `git-integration-test.ts`.
+- Key test areas: terminal.create (returns terminalId), terminal.write/data flow (echo test), terminal.resize, terminal.close, multiple terminals, CWD from session, terminal.exit event.
+
+---
+
 ## Session 77 — Phase 4 xterm.js install + TerminalPane component (2026-03-23)
 
 **What happened:**

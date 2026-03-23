@@ -12,6 +12,7 @@
  * - Ctrl/Cmd+Tab — next tab
  * - Ctrl/Cmd+Shift+Tab — previous tab
  * - Ctrl/Cmd+1-9 — jump to tab by position
+ * - Ctrl/Cmd+` — toggle terminal panel
  * - Ctrl/Cmd+Shift+K — compact context
  * - Ctrl/Cmd+Shift+T — toggle thinking selector
  *
@@ -22,6 +23,7 @@
 import { compactSession, fetchSessionList, startNewSession } from "@/lib/sessionActions";
 import { emitShortcut } from "@/lib/shortcuts";
 import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
+import { createTerminal } from "@/lib/terminalActions";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import { useEffect } from "react";
@@ -177,6 +179,24 @@ export function useKeyboardShortcuts(): void {
 								console.error("[Shortcut] Failed to switch tab:", err);
 							});
 						}
+					}
+					break;
+				}
+				case "`": {
+					// Ctrl/Cmd+` — toggle terminal panel
+					e.preventDefault();
+					emitShortcut("toggleTerminal");
+					const termState = useStore.getState();
+					if (termState.terminalPanelOpen) {
+						termState.setTerminalPanelOpen(false);
+					} else if (termState.terminalTabs.length > 0) {
+						// Re-open panel with existing terminals
+						termState.setTerminalPanelOpen(true);
+					} else if (isConnected) {
+						// No terminals — create one and open panel
+						createTerminal().catch((err: unknown) => {
+							console.error("[Shortcut] Failed to create terminal:", err);
+						});
 					}
 					break;
 				}

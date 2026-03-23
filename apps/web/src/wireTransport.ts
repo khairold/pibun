@@ -27,6 +27,7 @@ import {
 	switchTabAction,
 	updateTabStreamingBySessionId,
 } from "@/lib/tabActions";
+import { createTerminal } from "@/lib/terminalActions";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { WsTransport } from "@/transport";
@@ -517,6 +518,21 @@ function handleMenuAction(data: WsMenuActionData): void {
 			emitShortcut("toggleGitPanel");
 			useStore.getState().toggleGitPanel();
 			break;
+
+		case "view.toggle-terminal": {
+			emitShortcut("toggleTerminal");
+			const termStore = useStore.getState();
+			if (termStore.terminalPanelOpen) {
+				termStore.setTerminalPanelOpen(false);
+			} else if (termStore.terminalTabs.length > 0) {
+				termStore.setTerminalPanelOpen(true);
+			} else {
+				createTerminal().catch((err: unknown) => {
+					console.error("[Menu] Failed to create terminal:", err);
+				});
+			}
+			break;
+		}
 
 		case "view.next-tab": {
 			if (store.tabs.length > 1 && store.activeTabId) {
