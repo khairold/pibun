@@ -539,3 +539,33 @@
 - All new components follow conventions: Tailwind classes, `cn()` helper, Zustand selectors, no data fetching in components
 
 ---
+
+## Session 16 — ChatView with Message Sub-Components (2026-03-23)
+
+**What happened:**
+- Rewrote ChatView from placeholder to full implementation with dedicated message sub-components
+- Created `apps/web/src/components/chat/` directory with 5 memoized components:
+  - `UserMessage.tsx` — right-aligned bubble with pre-wrapped text
+  - `AssistantMessage.tsx` — streaming cursor (pulsing block), collapsible thinking section (chevron toggle, max-height 60, scroll overflow), content area with streaming indicator
+  - `ToolCallMessage.tsx` — collapsible card with tool icon, name, args summary; expand to see full JSON args. Tool icons for common Pi tools (bash, read, edit, write, glob, grep)
+  - `ToolResultMessage.tsx` — collapsible output with 8-line threshold, fade gradient, "Show all N lines" toggle. Error results shown in red. Streaming placeholder text while running
+  - `SystemMessage.tsx` — centered text with horizontal divider lines on both sides
+- ChatView now uses `MessageItem` switch component (memoized) to dispatch to the right sub-component
+- Added "Pi is thinking…" streaming indicator with pulsing dot for gap between agent_start and first message
+- Empty state shows 🥧 emoji with helpful prompt text
+- `scrollContainerRef` added to ChatView div (will be used in 1C.11 for auto-scroll)
+- Fixed Biome formatting (ran `bun run format` to fix 4 files)
+
+**Items completed:**
+- [x] 1C.9 — Build ChatView — render user messages and assistant text blocks
+
+**Issues encountered:**
+- None — clean implementation, all typecheck and lint passed after formatting
+
+**Handoff to next session:**
+- Next: 1C.10 — Wire text_delta streaming (append to current message content in real-time)
+- Note: text_delta streaming is already wired in `wireTransport.ts` (handleMessageUpdate dispatches `text_delta` → `appendToContent`, `thinking_delta` → `appendToThinking`). Item 1C.10 may just need verification that the ChatView correctly renders streaming content.
+- After that: 1C.11 (auto-scroll), 1C.12 (basic tool output — largely done, may just need verification), 1C.13 (loading/error states), 1C.14 (Vite proxy — already done in MEMORY #60), 1C.15 (end-to-end test)
+- The ChatView's `scrollContainerRef` is ready for auto-scroll implementation in 1C.11
+
+---

@@ -82,6 +82,10 @@
 | 72 | SVG icons use `aria-label` + `role="img"` for Biome a11y compliance | Biome's `noSvgWithoutTitle` rule requires accessible labeling on all `<svg>` elements. Using `aria-label` + `role="img"` instead of nested `<title>` for simpler markup. | 2026-03-23 |
 | 73 | Biome sorts `type` imports before value imports in named groups | `import { type KeyboardEvent, useCallback }` — type-prefixed members sort first alphabetically within the import group. Enforced by Biome's `organizeImports`. | 2026-03-23 |
 | 74 | Sidebar hidden on mobile (`hidden md:flex`), 256px on md+ | Responsive layout: sidebar collapses below `md` breakpoint. Main chat area always fills available width. | 2026-03-23 |
+| 75 | ChatView uses dedicated sub-components in `components/chat/` directory | `UserMessage`, `AssistantMessage`, `ToolCallMessage`, `ToolResultMessage`, `SystemMessage` — each memoized with `React.memo()`. `MessageItem` switch renders the correct component by `message.type`. | 2026-03-23 |
+| 76 | AssistantMessage has collapsible thinking section with toggle | Thinking content shown as expandable section above main content. Shows streaming cursor in thinking section while thinking (before content arrives), then in main content section during text streaming. | 2026-03-23 |
+| 77 | ToolResultMessage collapses output longer than 8 lines | `COLLAPSE_THRESHOLD = 8` lines. Shows "Show all N lines" button with fade gradient. Long tool outputs don't dominate the chat. | 2026-03-23 |
+| 78 | `hasStreamingMessage()` reverse-scans for streaming indicator | When agent is working but no individual message has `streaming: true` (gap between agent_start and first message_start), ChatView shows a "Pi is thinking…" indicator with pulsing dot. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -208,7 +212,9 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - ConnectionBanner at `apps/web/src/components/ConnectionBanner.tsx` ✅ — shows connecting/reconnecting/disconnected state
 - ChatView at `apps/web/src/components/ChatView.tsx` ✅ (placeholder) — basic message rendering, empty state prompt, will be fully built in 1C.9
 - `cn()` utility at `apps/web/src/lib/cn.ts` ✅ — simple className joiner, filters falsy values
-- Next: 1C.9 — Build ChatView (render user messages and assistant text blocks)
+- ChatView at `apps/web/src/components/ChatView.tsx` ✅ — scrollable message list with empty state, streaming indicator, message sub-components in `components/chat/`
+- Message sub-components in `apps/web/src/components/chat/` ✅ — UserMessage (right-aligned bubble), AssistantMessage (streaming cursor + collapsible thinking), ToolCallMessage (collapsible args), ToolResultMessage (collapsible long output), SystemMessage (centered divider)
+- Next: 1C.10 — Wire text_delta streaming (already wired in wireTransport.ts, may just need verification)
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings
