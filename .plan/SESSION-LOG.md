@@ -1697,3 +1697,38 @@
 - Cross-compilation is not supported — each platform must build on its own runner
 
 ---
+
+## Session 50 — GitHub Releases CI pipeline (2026-03-23)
+
+**What happened:**
+- Created `.github/workflows/ci.yml` — CI checks on push to main and PRs
+  - `check` job: typecheck + lint on ubuntu-latest
+  - `build-web` job: build web app + verify dist output
+  - Uses `bun install --frozen-lockfile` for reproducible installs
+  - Concurrency group cancels in-progress CI runs on same ref
+- Created `.github/workflows/release.yml` — full release pipeline
+  - Triggers: push `v*` tags or manual workflow dispatch with channel selection
+  - 5 jobs: preflight → build-macos / build-linux / build-windows (parallel) → release
+  - **preflight**: determines version from tag, channel from tag suffix or input, sets `PIBUN_RELEASE_URL`, runs typecheck + lint
+  - **build-macos**: runs on `macos-14` (arm64), sets up temporary keychain for code signing, imports .p12 certificate from base64 secret, writes .p8 API key for notarization, passes signing env vars to `electrobun build`, cleans up keychain/keys in `always()` step
+  - **build-linux**: runs on `ubuntu-latest`, installs `libwebkit2gtk-4.1-dev`, runs `electrobun build`
+  - **build-windows**: runs on `windows-latest`, runs `electrobun build` with PowerShell
+  - **release**: downloads all platform artifacts, flattens into release-assets/, generates SHA256SUMS.txt, creates draft GitHub Release with download table and verification instructions
+- Version extracted from tag (strips `v` prefix) or from `electrobun.config.ts`
+- Channel auto-detected: tags with `-canary/-beta/-alpha` → canary, else → stable
+- `PIBUN_RELEASE_URL` set to `https://github.com/${{ github.repository }}/releases/latest/download` for auto-update compatibility
+- Without macOS signing secrets, builds proceed unsigned (graceful fallback via existing `electrobun.config.ts` auto-detection)
+
+**Items completed:**
+- [x] 2C.6 — GitHub Releases CI pipeline
+
+**Issues encountered:**
+- None. Existing build scripts and electrobun.config.ts already handle the hard parts (signing auto-detection, prebuild, artifact generation). CI just orchestrates the builds on the right runners.
+
+**Handoff to next session:**
+- Next: 2C.7 — Smoke tests for each platform
+- This is the last item in Phase 2C
+- Consider: basic launch test (app starts, health check responds), artifact existence verification, or integration with the release workflow
+- If 2C.7 is the last item, verify Phase 2C exit criteria: "Downloadable installers on GitHub Releases. Auto-update works."
+
+---

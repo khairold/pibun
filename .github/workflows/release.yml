@@ -1,0 +1,349 @@
+# Release — Build desktop apps for all platforms and create a GitHub Release.
+#
+# Triggers:
+#   - Push a version tag (e.g., `git tag v0.1.0 && git push --tags`)
+#   - Manual dispatch from the Actions tab
+#
+# Required repository secrets for macOS code signing + notarization:
+#   MACOS_CERTIFICATE          — Base64-encoded .p12 Developer ID certificate
+#   MACOS_CERTIFICATE_PASSWORD — Password for the .p12 file
+#   MACOS_DEVELOPER_ID         — Certificate identity string
+#                                e.g., "Developer ID Application: Name (TEAMID)"
+#   APPLE_API_ISSUER           — App Store Connect API Issuer ID (UUID)
+#   APPLE_API_KEY_ID           — App Store Connect API Key ID (10-char)
+#   APPLE_API_KEY              — Base64-encoded .p8 private key content
+#
+# Without these secrets, macOS builds proceed unsigned (development builds).
+# Linux and Windows builds don't require signing.
+#
+# See docs/CODE_SIGNING.md for credential setup instructions.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "Release channel"
+        required: false
+        default: "stable"
+        type: choice
+        options:
+          - stable
+          - canary
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  BUN_VERSION: "1.2.21"
+
+jobs:
+  # ── Pre-flight checks ───────────────────────────────────────────────────
+  preflight:
+    name: Pre-flight Checks
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      channel: ${{ steps.channel.outputs.channel }}
+      release_url: ${{ steps.urls.outputs.release_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"  # Strip leading 'v'
+          else
+            VERSION=$(grep -oP '"version":\s*"\K[^"]+' apps/desktop/electrobun.config.ts | head -1)
+            if [ -z "$VERSION" ]; then
+              VERSION="0.0.0-dev"
+            fi
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "📦 Version: $VERSION"
+
+      - name: Determine channel
+        id: channel
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            CHANNEL="${{ inputs.channel }}"
+          elif [[ "${{ github.ref_name }}" == *"-canary"* || "${{ github.ref_name }}" == *"-beta"* || "${{ github.ref_name }}" == *"-alpha"* ]]; then
+            CHANNEL="canary"
+          else
+            CHANNEL="stable"
+          fi
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          echo "📡 Channel: $CHANNEL"
+
+      - name: Set release URLs
+        id: urls
+        run: |
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/latest/download"
+          echo "release_url=$RELEASE_URL" >> "$GITHUB_OUTPUT"
+          echo "🔗 Release URL: $RELEASE_URL"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+  # ── macOS (arm64) ───────────────────────────────────────────────────────
+  build-macos:
+    name: Build macOS (arm64)
+    needs: preflight
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Set up code signing
+        run: |
+          if [ -z "$MACOS_CERTIFICATE" ]; then
+            echo "⚠️  No signing certificate — building unsigned"
+            exit 0
+          fi
+
+          echo "🔐 Setting up code signing keychain…"
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+          # Create and configure temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+
+          # Import certificate
+          echo "$MACOS_CERTIFICATE" | base64 --decode > /tmp/certificate.p12
+          security import /tmp/certificate.p12 \
+            -k build.keychain \
+            -P "$MACOS_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
+          rm /tmp/certificate.p12
+
+          # Allow codesign to access the keychain without UI prompt
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+          echo "✅ Code signing keychain configured"
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+
+      - name: Set up notarization API key
+        run: |
+          if [ -z "$APPLE_API_KEY" ]; then
+            echo "⚠️  No API key — skipping notarization setup"
+            exit 0
+          fi
+
+          echo "$APPLE_API_KEY" | base64 --decode > /tmp/AuthKey.p8
+          echo "✅ Notarization API key written"
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+
+      - name: Build macOS app
+        run: |
+          cd apps/desktop
+          CHANNEL="${{ needs.preflight.outputs.channel }}"
+          echo "🍎 Building PiBun for macOS arm64 (${CHANNEL})…"
+          npx electrobun build --env="${CHANNEL}"
+        env:
+          ELECTROBUN_DEVELOPER_ID: ${{ secrets.MACOS_DEVELOPER_ID }}
+          ELECTROBUN_APPLEAPIISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          ELECTROBUN_APPLEAPIKEY: ${{ secrets.APPLE_API_KEY_ID }}
+          ELECTROBUN_APPLEAPIKEYPATH: /tmp/AuthKey.p8
+          PIBUN_RELEASE_URL: ${{ needs.preflight.outputs.release_url }}
+
+      - name: List build artifacts
+        run: ls -lh apps/desktop/artifacts/
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64
+          path: apps/desktop/artifacts/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Clean up signing artifacts
+        if: always()
+        run: |
+          security delete-keychain build.keychain 2>/dev/null || true
+          rm -f /tmp/AuthKey.p8 /tmp/certificate.p12
+
+  # ── Linux (x64) ─────────────────────────────────────────────────────────
+  build-linux:
+    name: Build Linux (x64)
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build Linux app
+        run: |
+          cd apps/desktop
+          CHANNEL="${{ needs.preflight.outputs.channel }}"
+          echo "🐧 Building PiBun for Linux x64 (${CHANNEL})…"
+          npx electrobun build --env="${CHANNEL}"
+        env:
+          PIBUN_RELEASE_URL: ${{ needs.preflight.outputs.release_url }}
+
+      - name: List build artifacts
+        run: ls -lh apps/desktop/artifacts/
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: apps/desktop/artifacts/
+          if-no-files-found: error
+          retention-days: 7
+
+  # ── Windows (x64) ───────────────────────────────────────────────────────
+  build-windows:
+    name: Build Windows (x64)
+    needs: preflight
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build Windows app
+        run: |
+          cd apps/desktop
+          $channel = "${{ needs.preflight.outputs.channel }}"
+          Write-Host "🪟 Building PiBun for Windows x64 ($channel)…"
+          npx electrobun build --env="$channel"
+        env:
+          PIBUN_RELEASE_URL: ${{ needs.preflight.outputs.release_url }}
+
+      - name: List build artifacts
+        run: Get-ChildItem -Path apps/desktop/artifacts/ -Recurse | Format-Table Name, Length
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: apps/desktop/artifacts/
+          if-no-files-found: error
+          retention-days: 7
+
+  # ── Create GitHub Release ───────────────────────────────────────────────
+  release:
+    name: Create GitHub Release
+    needs: [preflight, build-macos, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts/
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets/
+          echo "📦 Collected artifacts:"
+          find release-artifacts/ -type f | sort
+
+          # Flatten all platform artifacts into one directory
+          # Prefix with platform name to avoid filename collisions
+          for platform in macos-arm64 linux-x64 windows-x64; do
+            if [ -d "release-artifacts/${platform}" ]; then
+              for file in release-artifacts/${platform}/*; do
+                filename=$(basename "$file")
+                cp "$file" "release-assets/${filename}"
+              done
+            fi
+          done
+
+          echo ""
+          echo "📦 Release assets:"
+          ls -lh release-assets/
+
+      - name: Generate checksums
+        run: |
+          cd release-assets/
+          sha256sum * > SHA256SUMS.txt
+          echo ""
+          echo "🔒 Checksums:"
+          cat SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', needs.preflight.outputs.version) }}
+          name: PiBun v${{ needs.preflight.outputs.version }}
+          draft: true
+          generate_release_notes: true
+          files: release-assets/*
+          body: |
+            ## PiBun v${{ needs.preflight.outputs.version }}
+
+            ### Downloads
+
+            | Platform | File | Notes |
+            |----------|------|-------|
+            | 🍎 macOS (Apple Silicon) | `*-macos-arm64-PiBun.dmg` | Requires macOS 13+ |
+            | 🐧 Linux (x64) | `*-linux-x64-PiBun-Setup.tar.gz` | Requires WebKitGTK 4.1 |
+            | 🪟 Windows (x64) | `*-windows-x64-PiBun-Setup.zip` | Requires WebView2 (pre-installed on Win 10 21H2+) |
+
+            ### Prerequisites
+
+            - **[Pi coding agent](https://github.com/badlogic/pi-mono)** must be installed and accessible in your PATH
+            - An API key for your preferred LLM provider (set via Pi's configuration)
+
+            ### Verification
+
+            Verify downloads with the checksums in `SHA256SUMS.txt`:
+
+            ```bash
+            sha256sum -c SHA256SUMS.txt
+            ```
+
+            ### Auto-Updates
+
+            PiBun checks for updates automatically. You can also check manually via **PiBun → Check for Updates…** in the menu bar.
