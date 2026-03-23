@@ -16,6 +16,7 @@
 
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
+import { fetchGitStatus } from "./gitActions";
 import { loadSessionMessages, refreshSessionState } from "./sessionActions";
 
 // ============================================================================
@@ -221,6 +222,8 @@ export async function switchTabAction(tabId: string): Promise<void> {
 	// 4. Refresh session state for live data (model, thinking, streaming status)
 	if (targetTab.sessionId) {
 		await refreshSessionState();
+		// Refresh git status for the new tab's CWD
+		fetchGitStatus();
 	}
 }
 

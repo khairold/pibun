@@ -52,6 +52,7 @@ export const createTabsSlice: StateCreator<AppStore, [], [], TabsSlice> = (set, 
 			model: partial?.model ?? null,
 			thinkingLevel: partial?.thinkingLevel ?? "medium",
 			isStreaming: false,
+			gitDirty: false,
 			messageCount: 0,
 			createdAt: Date.now(),
 		};

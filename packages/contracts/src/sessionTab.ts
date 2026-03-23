@@ -32,6 +32,8 @@ export interface SessionTab {
 	thinkingLevel: PiThinkingLevel;
 	/** True while this session's Pi agent is processing. */
 	isStreaming: boolean;
+	/** True if this session's CWD has uncommitted git changes. */
+	gitDirty: boolean;
 	/** Number of messages in this tab's conversation. */
 	messageCount: number;
 	/** Unix timestamp when this tab was created. */

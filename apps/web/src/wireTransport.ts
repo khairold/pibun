@@ -623,6 +623,12 @@ export function initTransport(): () => void {
 					updateTabStreamingBySessionId(data.sessionId, true);
 				} else if (data.event.type === "agent_end") {
 					updateTabStreamingBySessionId(data.sessionId, false);
+					// Optimistically mark background tab as git-dirty — agent likely modified files.
+					// Actual status will be fetched when the tab becomes active.
+					const bgTab = store.tabs.find((t) => t.sessionId === data.sessionId);
+					if (bgTab) {
+						store.updateTab(bgTab.id, { gitDirty: true });
+					}
 				}
 			}
 		}),

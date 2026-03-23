@@ -38,10 +38,22 @@ export async function fetchGitStatus(): Promise<void> {
 		const result = await getTransport().request("git.status", {});
 		const { status } = result;
 		store.setGitStatus(status.isRepo, status.branch, status.files, status.isDirty);
+
+		// Sync gitDirty to the active tab for tab bar indicator
+		const current = useStore.getState();
+		if (current.activeTabId) {
+			current.updateTab(current.activeTabId, { gitDirty: status.isDirty });
+		}
 	} catch (err) {
 		console.warn("[gitActions] Failed to fetch git status:", err);
 		// Don't show error banner — git status is non-critical
 		store.resetGit();
+
+		// Clear gitDirty on the active tab too
+		const current = useStore.getState();
+		if (current.activeTabId) {
+			current.updateTab(current.activeTabId, { gitDirty: false });
+		}
 	}
 }
 
