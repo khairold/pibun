@@ -1,7 +1,7 @@
 /**
  * AppShell — top-level layout: sidebar (left) + main area (right).
  *
- * Main area is a flex column: toolbar (model/thinking selectors) +
+ * Main area is a flex column: toolbar (model/thinking selectors + session controls) +
  * chat messages (scrollable) + composer (fixed bottom).
  * Sidebar is a placeholder for now (Phase 1D.17).
  */
@@ -10,7 +10,9 @@ import { ChatView } from "@/components/ChatView";
 import { Composer } from "@/components/Composer";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { ForkDialog } from "@/components/ForkDialog";
 import { ModelSelector } from "@/components/ModelSelector";
+import { NewSessionButton } from "@/components/NewSessionButton";
 import { ThinkingSelector } from "@/components/ThinkingSelector";
 
 export function AppShell() {
@@ -31,10 +33,19 @@ export function AppShell() {
 				<ConnectionBanner />
 				<ErrorBanner />
 
-				{/* Toolbar — model selector, thinking level, etc. */}
+				{/* Toolbar — model/thinking selectors + session management */}
 				<div className="flex items-center gap-2 border-b border-neutral-800 px-4 py-2">
 					<ModelSelector />
 					<ThinkingSelector />
+
+					{/* Spacer pushes session controls to the right */}
+					<div className="flex-1" />
+
+					{/* Session management controls */}
+					<div className="flex items-center gap-1 border-l border-neutral-800 pl-2">
+						<NewSessionButton />
+						<ForkDialog />
+					</div>
 				</div>
 
 				<ChatView />

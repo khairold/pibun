@@ -9,6 +9,7 @@
 import type {
 	PiCommand,
 	PiResponse,
+	WsForkableMessage,
 	WsMethodResultMap,
 	WsOkResult,
 	WsSessionCompactParams,
@@ -332,6 +333,28 @@ export const handleSessionFork: WsHandler<"session.fork"> = async (
 
 	const { sessionId } = ctx.connection;
 	return { sessionId: sessionId ?? "unknown" };
+};
+
+/**
+ * session.getForkMessages — Get the list of messages that can be forked from.
+ */
+export const handleSessionGetForkMessages: WsHandler<"session.getForkMessages"> = async (
+	_params: undefined,
+	ctx: HandlerContext,
+): Promise<WsMethodResultMap["session.getForkMessages"]> => {
+	const process = getProcess(ctx);
+	const response = await process.sendCommand({ type: "get_fork_messages" });
+	assertSuccess(response);
+
+	if (response.command === "get_fork_messages" && response.success) {
+		const messages: WsForkableMessage[] = response.data.messages.map((m) => ({
+			entryId: m.entryId,
+			text: m.text,
+		}));
+		return { messages };
+	}
+
+	throw new Error("Unexpected response from get_fork_messages");
 };
 
 /**

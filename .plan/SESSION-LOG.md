@@ -814,3 +814,42 @@
 - 1D.10 (session stats) and 1D.11 (compaction controls) are independent and could be done in parallel
 
 ---
+
+## Session 24 — Session Management: New Session + Fork (2026-03-23)
+
+**What happened:**
+- Added `session.getForkMessages` WS method end-to-end:
+  - Contracts: `WsForkableMessage` type, `WsSessionGetForkMessagesResult`, method/params/result map entries
+  - Server: `handleSessionGetForkMessages` handler wrapping Pi's `get_fork_messages` command
+  - Handler registry: registered new handler
+- Created `apps/web/src/lib/sessionActions.ts` — coordinated async operations for session management:
+  - `startNewSession()` — abort if streaming → ensure session → call `session.new` → clear messages → refresh state
+  - `getForkableMessages()` — ensure session → call `session.getForkMessages` → return list
+  - `forkFromMessage(entryId)` — abort if streaming → call `session.fork` → clear messages → refresh state
+  - Shared `ensureSession()` and `refreshSessionState()` helpers
+- Built `NewSessionButton` component — toolbar button with plus icon, calls `startNewSession()`, disabled when not connected or creating
+- Built `ForkDialog` component — dropdown with forkable message list:
+  - Trigger button with git-branch icon
+  - Opens dropdown, fetches forkable messages from Pi
+  - Loading spinner, empty state, and message list with text previews
+  - Click-outside close, Escape close
+  - Disabled when no session exists
+- Updated `AppShell` — added session management controls (NewSessionButton + ForkDialog) to the right side of the toolbar, separated by a border divider
+
+**Design decisions:**
+- Fork uses a toolbar-level dropdown picker rather than per-message buttons. Pi's fork messages use internal `entryId`s that don't map to our ChatMessage IDs. This approach avoids needing to track entry IDs.
+- `switch_session` deferred to 1D.17 (sidebar). Pi's `switch_session` command takes a `sessionPath` but Pi has no `list_sessions` RPC command. A full session list needs the sidebar UI.
+
+**Items completed:**
+- [x] 1D.9 — Session management: new session, switch session, fork from message
+
+**Issues encountered:**
+- `WsForkableMessage` needed to be added to the contracts index.ts exports — initial typecheck failed until export was added
+
+**Handoff to next session:**
+- Next: 1D.10 — Session stats display (tokens, cost from get_session_stats)
+- `session.getStats` WS method and server handler already exist
+- Need a stats display component — could go in toolbar or sidebar area
+- 1D.11 (compaction controls) is independent and could be combined with 1D.10
+
+---

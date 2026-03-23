@@ -47,6 +47,7 @@ export const WS_METHODS = {
 	sessionCompact: "session.compact",
 	sessionFork: "session.fork",
 	sessionSetName: "session.setName",
+	sessionGetForkMessages: "session.getForkMessages",
 
 	// Extension UI
 	sessionExtensionUiResponse: "session.extensionUiResponse",
@@ -169,6 +170,7 @@ export interface WsMethodParamsMap {
 	"session.compact": WsSessionCompactParams;
 	"session.fork": WsSessionForkParams;
 	"session.setName": WsSessionSetNameParams;
+	"session.getForkMessages": undefined;
 	"session.extensionUiResponse": WsSessionExtensionUiResponseParams;
 }
 
@@ -216,6 +218,17 @@ export interface WsSessionForkResult {
 	sessionId: string;
 }
 
+/** A forkable message entry from Pi. */
+export interface WsForkableMessage {
+	entryId: string;
+	text: string;
+}
+
+/** Result for `session.getForkMessages`. */
+export interface WsSessionGetForkMessagesResult {
+	messages: WsForkableMessage[];
+}
+
 // ============================================================================
 // Method → Result Type Map
 // ============================================================================
@@ -241,6 +254,7 @@ export interface WsMethodResultMap {
 	"session.compact": WsOkResult;
 	"session.fork": WsSessionForkResult;
 	"session.setName": WsOkResult;
+	"session.getForkMessages": WsSessionGetForkMessagesResult;
 	"session.extensionUiResponse": WsOkResult;
 }
 

@@ -113,6 +113,11 @@
 | 102 | Toolbar bar added to AppShell between ErrorBanner and ChatView | `<div>` with border-b, holds ModelSelector (and later ThinkingSelector). Separates session controls from the chat area. |
 | 103 | `ThinkingSelector` component with static level list and intensity bar | Dropdown with 6 levels (off→xhigh), each with label + description + visual intensity bar (6 small rectangles). Optimistic selection with rollback on error. Same dropdown pattern as ModelSelector (click-outside, Escape, disabled when not connected). No server fetch needed — level list is static. | 2026-03-23 |
 | 104 | 1D.8 model/thinking wiring already complete via selector components | `ModelSelector` calls `session.setModel` (since session 22), `ThinkingSelector` calls `session.setThinking`. Both use optimistic updates with rollback. Server handlers (`handleSessionSetModel`, `handleSessionSetThinking`) were built in session 11. | 2026-03-23 | 2026-03-23 |
+| 105 | Session management uses `sessionActions.ts` module for coordinated store+transport operations | `startNewSession()`, `getForkableMessages()`, `forkFromMessage(entryId)` — async functions that call transport, clear messages, refresh state. Extracted from components to avoid duplication. Components (`NewSessionButton`, `ForkDialog`) are thin UI wrappers. | 2026-03-23 |
+| 106 | `session.getForkMessages` WS method added for fork dialog | New WS method wraps Pi's `get_fork_messages` command. Returns `WsForkableMessage[]` with `entryId` + `text`. Server handler `handleSessionGetForkMessages` in session.ts. Contracts types: `WsForkableMessage`, `WsSessionGetForkMessagesResult`. | 2026-03-23 |
+| 107 | Fork uses toolbar button with dropdown picker, not per-message buttons | Pi's fork messages use internal `entryId`s that don't map 1:1 to our ChatMessage IDs. The ForkDialog fetches the forkable list from Pi and lets the user pick. Avoids needing to track Pi entry IDs in our message store. Per-message fork buttons can be added later when entry ID tracking is implemented. | 2026-03-23 |
+| 108 | Session switch (`switch_session`) deferred to 1D.17 sidebar | Pi's `switch_session` takes a `sessionPath` but Pi has no `list_sessions` RPC command. Full session switching needs a session list UI in the sidebar, which is 1D.17. The Pi command type `PiSwitchSessionCommand` is already in contracts. The WS method/handler can be added when the sidebar is built. | 2026-03-23 |
+| 109 | New session aborts streaming before creating new session | `startNewSession()` calls `session.abort` if `isStreaming` is true before calling `session.new`. Same pattern for `forkFromMessage()`. Prevents orphaned streaming state. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -246,8 +251,9 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - `lastError`/`setLastError`/`clearLastError` added to ConnectionSlice ✅
 - E2E test at `apps/server/src/e2e-test.ts` — 44 checks verifying full browser-to-Pi chain
 - **Phase 1C COMPLETE** — all items done, exit criteria met
-- Phase 1D in progress — thinking blocks (1D.1), tool call cards (1D.2), syntax highlighting (1D.3), markdown rendering (1D.4), tool-specific output rendering (1D.5), model selector (1D.6), thinking selector (1D.7), model/thinking wiring (1D.8) complete
-- Next: 1D.9 — Session management (new session, switch session, fork from message)
+- Phase 1D in progress — thinking blocks (1D.1), tool call cards (1D.2), syntax highlighting (1D.3), markdown rendering (1D.4), tool-specific output rendering (1D.5), model selector (1D.6), thinking selector (1D.7), model/thinking wiring (1D.8), session management (1D.9) complete
+- Session management: `NewSessionButton` in toolbar, `ForkDialog` with message picker, `sessionActions.ts` module for coordinated operations. `session.getForkMessages` WS method added end-to-end.
+- Next: 1D.10 — Session stats display (tokens, cost from get_session_stats)
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings

@@ -15,3 +15,4 @@
 - 2026-03-23: [plan] Several items in Phase 1C (1C.10, 1C.12, 1C.14) were already implemented by the time they came up for execution. Plan granularity may need adjustment — or items should be checked off as side-effects of earlier work when they're clearly done.
 - 2026-03-23: [deps] react-markdown v10 changed export format (default vs named) — documentation/examples online still show v9 patterns. Version-specific API checks needed.
 - 2026-03-23: [tooling] Biome's static analysis for a11y can't track `alt` attribute through prop spreading — had to restructure img component to not spread `...props`.
+- 2026-03-23: [architecture] Pi RPC has no `list_sessions` command, which limits session switching UX. Need server-side session directory scanning or Pi protocol extension for proper session management.
