@@ -1,3 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.turbo/
+
+# Bun
+bun.lockb
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
 # Reference repositories (cloned for reading, not part of this project)
 reference/electrobun/
 reference/t3code/
+reference/pi-mono/
+
+# Autopilot logs (generated, not committed)
+.plan/autopilot-logs/
+
+# Note: .plan/, .pi/, .agents/, CLAUDE.md ARE committed — they're part of the project
