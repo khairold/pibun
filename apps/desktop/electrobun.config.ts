@@ -1,5 +1,13 @@
 import type { ElectrobunConfig } from "electrobun";
 
+// Auto-detect signing credentials from environment.
+// When ELECTROBUN_DEVELOPER_ID is set, code signing is enabled.
+// When notarization credentials are also set, notarization is enabled.
+// Without these env vars, builds proceed unsigned (development builds).
+const shouldCodesign = !!process.env.ELECTROBUN_DEVELOPER_ID;
+const shouldNotarize =
+	shouldCodesign && !!(process.env.ELECTROBUN_APPLEID || process.env.ELECTROBUN_APPLEAPIISSUER);
+
 export default {
 	app: {
 		name: "PiBun",
@@ -19,10 +27,18 @@ export default {
 		mac: {
 			bundleCEF: false,
 			icons: "icon.iconset",
-			// DMG creation is enabled by default (createDmg: true).
-			// Code signing and notarization handled in Phase 2C.2.
-			codesign: false,
-			notarize: false,
+			codesign: shouldCodesign,
+			notarize: shouldNotarize,
+			// Entitlements for hardened runtime (required for notarization).
+			// Electrobun provides defaults for JIT, unsigned memory, and library validation.
+			// We add entitlements PiBun specifically needs.
+			entitlements: {
+				// Network: PiBun runs a local HTTP/WebSocket server and Pi makes API calls
+				"com.apple.security.network.client": true,
+				"com.apple.security.network.server": true,
+				// File access: user selects project folders via file dialog
+				"com.apple.security.files.user-selected.read-write": true,
+			},
 		},
 		linux: {
 			bundleCEF: false,

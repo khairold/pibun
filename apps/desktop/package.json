@@ -9,6 +9,9 @@
 		"dev:desktop": "electrobun dev",
 		"build": "electrobun build",
 		"build:canary": "electrobun build --env=canary",
+		"build:signed": "bun scripts/build-signed.ts",
+		"build:signed:canary": "bun scripts/build-signed.ts --env=canary",
+		"build:signed:no-notarize": "bun scripts/build-signed.ts --skip-notarize",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {

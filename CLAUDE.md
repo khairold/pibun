@@ -57,6 +57,7 @@ pibun/
 │   ├── WS_PROTOCOL.md      # Browser ↔ server message contract
 │   ├── WEB_UI.md            # React app design and components
 │   ├── DESKTOP.md           # Electrobun integration plan
+│   ├── CODE_SIGNING.md      # macOS code signing & notarization setup
 │   └── ROADMAP.md           # High-level delivery phases
 ├── reference/               # Reference repos (read-only, not committed)
 │   ├── t3code/              # T3 Code — WebSocket patterns, UI structure
@@ -79,6 +80,7 @@ pibun/
 | [docs/WS_PROTOCOL.md](docs/WS_PROTOCOL.md) | When working on browser ↔ server communication |
 | [docs/WEB_UI.md](docs/WEB_UI.md) | When working on the React app |
 | [docs/DESKTOP.md](docs/DESKTOP.md) | When working on Electrobun integration |
+| [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md) | When working on macOS code signing & notarization |
 
 ## Reference Repos
 

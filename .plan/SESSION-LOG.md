@@ -1582,3 +1582,28 @@
 - Build artifacts are at `apps/desktop/artifacts/` — `stable-macos-arm64-PiBun.dmg` ready for signing
 
 ---
+
+## Session 46 — Code Signing + Notarization (2026-03-23)
+
+**What happened:**
+- Updated `electrobun.config.ts` to auto-detect signing credentials from env vars
+- Added PiBun-specific entitlements: `network.client`, `network.server`, `files.user-selected.read-write`
+- Created `scripts/build-signed.ts` — validates credentials before invoking Electrobun build, supports `--skip-notarize` and `--env=canary` flags
+- Created `apps/desktop/.env.example` documenting all required env vars
+- Added root scripts: `build:desktop:signed`, `build:desktop:signed:canary`
+- Created comprehensive `docs/CODE_SIGNING.md` with prerequisites, setup steps, verification commands, and troubleshooting
+- Updated `CLAUDE.md` with reference to CODE_SIGNING.md
+
+**Items completed:**
+- [x] 2C.2 — Code signing + notarization (macOS)
+
+**Issues encountered:**
+- None. Electrobun has excellent built-in support for codesign/notarize via env vars. The main design decision was making the config auto-detect credentials so unsigned builds still work without changes.
+
+**Handoff to next session:**
+- Next: 2C.3 — Linux AppImage build
+- Code signing cannot be tested without actual Apple Developer credentials — human needs to set up env vars and run `bun run build:desktop:signed` to verify end-to-end
+- The entitlements config will need verification on a signed build to ensure Gatekeeper accepts the app
+- Linux build will likely need changes to `electrobun.config.ts` and possibly a new build script
+
+---

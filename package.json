@@ -13,6 +13,8 @@
 		"build:web": "turbo run build --filter=@pibun/web",
 		"build:desktop": "cd apps/desktop && npx electrobun build --env=stable",
 		"build:desktop:canary": "cd apps/desktop && npx electrobun build --env=canary",
+		"build:desktop:signed": "cd apps/desktop && bun scripts/build-signed.ts",
+		"build:desktop:signed:canary": "cd apps/desktop && bun scripts/build-signed.ts --env=canary",
 		"typecheck": "turbo run typecheck",
 		"lint": "biome check .",
 		"format": "biome format --write ."
