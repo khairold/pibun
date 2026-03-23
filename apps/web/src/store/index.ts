@@ -18,6 +18,7 @@
 import { create } from "zustand";
 import { createConnectionSlice } from "./connectionSlice";
 import { createExtensionUiSlice } from "./extensionUiSlice";
+import { createGitSlice } from "./gitSlice";
 import { createMessagesSlice } from "./messagesSlice";
 import { createModelsSlice } from "./modelsSlice";
 import { createNotificationsSlice } from "./notificationsSlice";
@@ -40,6 +41,7 @@ export const useStore = create<AppStore>()((...a) => ({
 	...createUiSlice(...a),
 	...createTabsSlice(...a),
 	...createProjectsSlice(...a),
+	...createGitSlice(...a),
 }));
 
 // Re-export types for convenience
@@ -47,6 +49,7 @@ export type { AppStore, ChatMessage, ChatToolCall, ChatToolResult, Toast } from 
 export type {
 	ConnectionSlice,
 	ExtensionUiSlice,
+	GitSlice,
 	MessagesSlice,
 	ModelsSlice,
 	NotificationsSlice,

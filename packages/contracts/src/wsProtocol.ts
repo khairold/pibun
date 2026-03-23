@@ -8,6 +8,7 @@
  * See docs/WS_PROTOCOL.md for the full protocol specification.
  */
 
+import type { GitDiffResult, GitLogResult, GitStatusResult } from "./gitTypes.js";
 import type {
 	PiAgentMessage,
 	PiEvent,
@@ -62,6 +63,12 @@ export const WS_METHODS = {
 	projectAdd: "project.add",
 	projectRemove: "project.remove",
 	projectUpdate: "project.update",
+
+	// Git integration (server-side, not Pi RPC)
+	gitStatus: "git.status",
+	gitBranch: "git.branch",
+	gitDiff: "git.diff",
+	gitLog: "git.log",
 
 	// App-level (desktop integration)
 	appApplyUpdate: "app.applyUpdate",
@@ -212,6 +219,50 @@ export interface WsProjectUpdateParams {
 	sessionCount?: number;
 }
 
+// ============================================================================
+// Git Integration Parameters
+// ============================================================================
+
+/**
+ * Params for `git.status` — get branch + changed files.
+ *
+ * CWD is resolved from the active session's Pi process if not provided.
+ */
+export interface WsGitStatusParams {
+	/** Override CWD instead of using the session's CWD. */
+	cwd?: string;
+}
+
+/**
+ * Params for `git.branch` — get the current branch name.
+ */
+export interface WsGitBranchParams {
+	/** Override CWD instead of using the session's CWD. */
+	cwd?: string;
+}
+
+/**
+ * Params for `git.diff` — get unified diff output.
+ */
+export interface WsGitDiffParams {
+	/** Override CWD instead of using the session's CWD. */
+	cwd?: string;
+	/** If true, show staged changes (--cached). Default: unstaged. */
+	staged?: boolean;
+	/** Restrict diff to a specific file path. */
+	path?: string;
+}
+
+/**
+ * Params for `git.log` — get recent commit history.
+ */
+export interface WsGitLogParams {
+	/** Override CWD instead of using the session's CWD. */
+	cwd?: string;
+	/** Number of commits to return (default: 10). */
+	count?: number;
+}
+
 /** Params for `app.setWindowTitle` — set the native window title. */
 export interface WsAppSetWindowTitleParams {
 	title: string;
@@ -258,6 +309,10 @@ export interface WsMethodParamsMap {
 	"project.add": WsProjectAddParams;
 	"project.remove": WsProjectRemoveParams;
 	"project.update": WsProjectUpdateParams;
+	"git.status": WsGitStatusParams;
+	"git.branch": WsGitBranchParams;
+	"git.diff": WsGitDiffParams;
+	"git.log": WsGitLogParams;
 	"app.applyUpdate": undefined;
 	"app.checkForUpdates": undefined;
 	"app.openFolderDialog": undefined;
@@ -362,6 +417,30 @@ export interface WsProjectAddResult {
 	project: Project;
 }
 
+// ============================================================================
+// Git Integration Results
+// ============================================================================
+
+/** Result for `git.status` — branch + changed files. */
+export interface WsGitStatusResult {
+	status: GitStatusResult;
+}
+
+/** Result for `git.branch` — current branch name. */
+export interface WsGitBranchResult {
+	branch: string | null;
+}
+
+/** Result for `git.diff` — unified diff text. */
+export interface WsGitDiffResult {
+	diff: GitDiffResult;
+}
+
+/** Result for `git.log` — recent commits. */
+export interface WsGitLogResult {
+	log: GitLogResult;
+}
+
 /** Result for `app.openFolderDialog` — native folder picker. */
 export interface WsAppOpenFolderDialogResult {
 	/** Selected folder path, or null if the user cancelled. */
@@ -401,6 +480,10 @@ export interface WsMethodResultMap {
 	"project.add": WsProjectAddResult;
 	"project.remove": WsOkResult;
 	"project.update": WsOkResult;
+	"git.status": WsGitStatusResult;
+	"git.branch": WsGitBranchResult;
+	"git.diff": WsGitDiffResult;
+	"git.log": WsGitLogResult;
 	"app.applyUpdate": WsOkResult;
 	"app.checkForUpdates": WsOkResult;
 	"app.openFolderDialog": WsAppOpenFolderDialogResult;

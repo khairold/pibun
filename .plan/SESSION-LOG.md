@@ -5,6 +5,44 @@
 
 ---
 
+## Session 70 — Git WS methods + GitSlice (2026-03-23)
+
+**What happened:**
+- Added 4 git WS methods to `packages/contracts/src/wsProtocol.ts`:
+  - `git.status` — branch + changed files (wraps `GitStatusResult`)
+  - `git.branch` — current branch name only
+  - `git.diff` — unified diff with `staged` and `path` options
+  - `git.log` — recent commits with configurable `count`
+  - All params include optional `cwd` override
+- Added param types (`WsGitStatusParams`, `WsGitBranchParams`, `WsGitDiffParams`, `WsGitLogParams`) and result types (`WsGitStatusResult`, `WsGitBranchResult`, `WsGitDiffResult`, `WsGitLogResult`) — all re-exported from `index.ts`
+- Created `apps/server/src/handlers/git.ts` with 4 handler functions:
+  - Shared `resolveCwd()` helper: params.cwd → session process CWD → process.cwd()
+  - Each handler calls corresponding `gitService.ts` function
+  - Uses `?.` for optional params (git methods have all-optional params)
+  - Uses conditional spread for `exactOptionalPropertyTypes` compat (MEMORY #52)
+- Registered all 4 handlers in `apps/server/src/handlers/index.ts`
+- Created `apps/web/src/store/gitSlice.ts` — `GitSlice` with:
+  - State: `gitBranch`, `gitChangedFiles`, `gitIsDirty`, `gitIsRepo`, `gitLastFetched`, `gitLoading`
+  - Actions: `setGitStatus()` (atomic update), `setGitLoading()`, `resetGit()`
+- Added `GitSlice` interface to `store/types.ts`, wired into `AppStore` union
+- Registered `createGitSlice` in `store/index.ts`
+
+**Items completed:**
+- [x] 3.2 — New WS methods: `git.status`, `git.branch`, `git.diff`, `git.log`
+- [x] 3.3 — Add `gitSlice` to Zustand store: `branch`, `changedFiles`, `isDirty`, `lastFetched`
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 3.4 — `GitStatusBar` component: branch name + changed file count in toolbar or status bar area
+- The gitSlice is wired but has no data flow yet — 3.5 will wire auto-refresh after `agent_end` events
+- To fetch git status from a component: `getTransport().request("git.status", {})` → store `setGitStatus()`
+- Consider creating a `gitActions.ts` (like `sessionActions.ts` / `projectActions.ts`) to encapsulate the fetch + store update pattern
+- The `resolveCwd()` in handlers falls back gracefully — works even without an active session
+
+---
+
 ## Session 69 — Server-side git module (2026-03-23)
 
 **What happened:**

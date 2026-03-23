@@ -457,6 +457,10 @@ All core features are shipped. See `.plan/archive/PLAN-v1.md` for the 97-item bu
 | 251 | `gitService.ts` at `apps/server/src/gitService.ts` with 5 exported functions | `isGitRepo(cwd)`, `gitStatus(cwd)`, `gitBranch(cwd)`, `gitDiff(cwd, opts?)`, `gitLog(cwd, count?)`. All run git via `Bun.spawn` with `GIT_PAGER=""` and `LC_ALL=C` env overrides. `gitStatus` returns `{ isRepo: false }` for non-repos. `gitDiff`/`gitLog` throw for non-repos. `gitDiff` supports `staged` and `path` options. Parallel execution of branch + status in `gitStatus()`. | 2026-03-23 |
 | 252 | `parsePorcelainStatus()` handles renames/copies with `->` separator | Porcelain v1: 2-char status + space + path. Renames: `R  old -> new`. Parser checks for R/C in either status position and extracts `originalPath`. All other files get `originalPath: null`. | 2026-03-23 |
 
+| 253 | 4 git WS methods added: `git.status`, `git.branch`, `git.diff`, `git.log` — all in `wsProtocol.ts` | Method names, params, results, and type maps. Each param type has optional `cwd` override. `WsGitStatusResult` wraps `GitStatusResult`, `WsGitDiffResult` wraps `GitDiffResult`, `WsGitLogResult` wraps `GitLogResult`, `WsGitBranchResult` has `branch: string \| null`. | 2026-03-23 |
+| 254 | `handlers/git.ts` — 4 handlers with shared `resolveCwd()` helper | `resolveCwd()` priority: explicit `params.cwd` → session's `process.options.cwd` → `process.cwd()`. Doesn't require an active session — gracefully falls back. Pattern: like project handlers (server-side, no Pi RPC). Uses `?.` on params since git methods have optional params (params may be undefined). | 2026-03-23 |
+| 255 | `GitSlice` added to Zustand store: `gitBranch`, `gitChangedFiles`, `gitIsDirty`, `gitIsRepo`, `gitLastFetched`, `gitLoading` | All fields non-optional (no `undefined`) for `exactOptionalPropertyTypes` compat. `setGitStatus()` sets all fields atomically + `gitLastFetched: Date.now()`. `resetGit()` returns to initial state. Follows same `StateCreator` pattern as other slices. | 2026-03-23 |
+
 ## Technical Context
 
 - **Project dir:** `/Users/khairold/Pi/pibun/`

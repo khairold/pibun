@@ -3,7 +3,7 @@
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
 > **Status:** Phase 3 in progress
 > **Current Phase:** Phase 3 — Git Integration
-> **Last Session:** Session 69 — 2026-03-23
+> **Last Session:** Session 70 — 2026-03-23
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -73,8 +73,8 @@
 **Goal:** Show git status for the active project's CWD. Branch indicator, changed file count, diff viewer.
 
 - [x] 3.1 — Server-side git module: `git status --porcelain`, `git branch --show-current`, `git diff`, `git log --oneline -10` — execute via `Bun.spawn` in the session's CWD
-- [ ] 3.2 — New WS methods: `git.status`, `git.branch`, `git.diff`, `git.log`
-- [ ] 3.3 — Add `gitSlice` to Zustand store: `branch`, `changedFiles`, `isDirty`, `lastFetched`
+- [x] 3.2 — New WS methods: `git.status`, `git.branch`, `git.diff`, `git.log`
+- [x] 3.3 — Add `gitSlice` to Zustand store: `branch`, `changedFiles`, `isDirty`, `lastFetched`
 - [ ] 3.4 — `GitStatusBar` component: branch name + changed file count in toolbar or status bar area
 - [ ] 3.5 — Auto-refresh git status after `agent_end` events (agent likely modified files)
 - [ ] 3.6 — `GitChangedFiles` panel: list of changed files with status badges (M/A/D/?), click to view diff

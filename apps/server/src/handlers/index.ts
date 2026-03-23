@@ -11,6 +11,7 @@ import {
 	handleAppOpenFolderDialog,
 	handleAppSetWindowTitle,
 } from "./app.js";
+import { handleGitBranch, handleGitDiff, handleGitLog, handleGitStatus } from "./git.js";
 import {
 	handleProjectAdd,
 	handleProjectList,
@@ -88,6 +89,12 @@ export const handlers: HandlerRegistry = {
 	"project.add": handleProjectAdd,
 	"project.remove": handleProjectRemove,
 	"project.update": handleProjectUpdate,
+
+	// Git integration (server-side)
+	"git.status": handleGitStatus,
+	"git.branch": handleGitBranch,
+	"git.diff": handleGitDiff,
+	"git.log": handleGitLog,
 
 	// App-level (desktop integration)
 	"app.applyUpdate": handleAppApplyUpdate,

@@ -9,6 +9,7 @@
 import type { TransportState } from "@/transport";
 import type {
 	AppUpdateStatus,
+	GitChangedFile,
 	PiExtensionDialogRequest,
 	PiModel,
 	PiSessionStats,
@@ -281,6 +282,34 @@ export interface UiSlice {
 	setSidebarOpen: (open: boolean) => void;
 }
 
+/** Git state — repository status for the active session's CWD. */
+export interface GitSlice {
+	/** Current branch name, null if not a git repo or detached HEAD. */
+	gitBranch: string | null;
+	/** List of changed files (staged, unstaged, untracked). */
+	gitChangedFiles: GitChangedFile[];
+	/** True if there are uncommitted changes. */
+	gitIsDirty: boolean;
+	/** True if the CWD is inside a git repository. */
+	gitIsRepo: boolean;
+	/** Unix timestamp of last status fetch, null if never fetched. */
+	gitLastFetched: number | null;
+	/** True while fetching git status. */
+	gitLoading: boolean;
+
+	/** Set full git status from a git.status response. */
+	setGitStatus: (
+		isRepo: boolean,
+		branch: string | null,
+		files: GitChangedFile[],
+		isDirty: boolean,
+	) => void;
+	/** Set the git loading state. */
+	setGitLoading: (loading: boolean) => void;
+	/** Reset all git state to initial values (e.g., on session change). */
+	resetGit: () => void;
+}
+
 /** Tabs state — multi-session tab management. */
 export interface TabsSlice {
 	/** Ordered list of open tabs. */
@@ -327,4 +356,5 @@ export type AppStore = ConnectionSlice &
 	UpdateSlice &
 	UiSlice &
 	TabsSlice &
-	ProjectsSlice;
+	ProjectsSlice &
+	GitSlice;
