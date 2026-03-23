@@ -1,7 +1,8 @@
 /**
  * AppShell — top-level layout: sidebar (left) + main area (right).
  *
- * Main area is a flex column: chat messages (scrollable) + composer (fixed bottom).
+ * Main area is a flex column: toolbar (model/thinking selectors) +
+ * chat messages (scrollable) + composer (fixed bottom).
  * Sidebar is a placeholder for now (Phase 1D.17).
  */
 
@@ -9,6 +10,7 @@ import { ChatView } from "@/components/ChatView";
 import { Composer } from "@/components/Composer";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { ModelSelector } from "@/components/ModelSelector";
 
 export function AppShell() {
 	return (
@@ -27,6 +29,12 @@ export function AppShell() {
 			<main className="flex min-w-0 flex-1 flex-col">
 				<ConnectionBanner />
 				<ErrorBanner />
+
+				{/* Toolbar — model selector, thinking level, etc. */}
+				<div className="flex items-center gap-2 border-b border-neutral-800 px-4 py-2">
+					<ModelSelector />
+				</div>
+
 				<ChatView />
 				<Composer />
 			</main>

@@ -128,9 +128,22 @@ export interface MessagesSlice {
 	clearMessages: () => void;
 }
 
+/** Models state — available models list fetched from Pi. */
+export interface ModelsSlice {
+	/** List of available models from Pi. Empty before first fetch. */
+	availableModels: PiModel[];
+	/** True while fetching models from Pi. */
+	modelsLoading: boolean;
+
+	/** Set the available models list. */
+	setAvailableModels: (models: PiModel[]) => void;
+	/** Set the loading state for model fetching. */
+	setModelsLoading: (loading: boolean) => void;
+}
+
 // ============================================================================
 // Combined AppStore
 // ============================================================================
 
 /** Full Zustand store type — union of all slices. */
-export type AppStore = ConnectionSlice & SessionSlice & MessagesSlice;
+export type AppStore = ConnectionSlice & SessionSlice & MessagesSlice & ModelsSlice;

@@ -749,3 +749,37 @@
 - 1D.7 (thinking level selector) and 1D.8 (wire model/thinking commands) are closely related — could combine
 
 ---
+
+## Session 22 — Model Selector UI (2026-03-23)
+
+**What happened:**
+- Added `ModelsSlice` to Zustand store types (`availableModels`, `modelsLoading`, actions)
+- Created `modelsSlice.ts` following existing `StateCreator` pattern
+- Wired `ModelsSlice` into combined AppStore in `store/index.ts`
+- Built `ModelSelector` component with:
+  - Trigger button showing current model name + chevron icon
+  - Dropdown panel with models grouped by `provider` field
+  - Provider-grouped list with reasoning/vision badges per model
+  - Lazy fetch: models fetched via `session.getModels` on first dropdown open
+  - Refresh button to re-fetch models
+  - Optimistic model selection: updates store immediately, reverts on error
+  - Click-outside and Escape to close dropdown
+  - Disabled state when not connected or no session
+  - Active model indicator (blue dot + highlight)
+  - Model ID and context window size shown as secondary info
+- Added toolbar bar to AppShell (between ErrorBanner and ChatView)
+- ModelSelector placed in toolbar, ready for ThinkingSelector next
+
+**Items completed:**
+- [x] 1D.6 — Model selector UI (list from `get_available_models`, grouped by provider)
+
+**Issues encountered:**
+- Biome formatter adjusted multi-line `cn()` call and ternary operator formatting — fixed with `bun run format`
+
+**Handoff to next session:**
+- Next: 1D.7 — Thinking level selector (off → xhigh)
+- Toolbar bar is already in AppShell — just add ThinkingSelector next to ModelSelector
+- 1D.8 (wire model/thinking commands) is already partially done: ModelSelector calls `session.setModel`, ThinkingSelector will call `session.setThinking`
+- Consider combining 1D.7 + 1D.8 since they're closely related
+
+---
