@@ -392,3 +392,24 @@
 - This is the last item in Phase 1B. After verifying exit criteria, mark phase complete and EXIT.
 
 ---
+
+### Session 11 addendum — 1B.14 (Phase 1B complete)
+
+**Additional work:**
+- Wrote `ws-integration-test.ts` — scripted equivalent of manual wscat test
+- Full round-trip verified: connect → welcome → start session → prompt → 12 streaming events → text "Hello PiBun" → stop
+- Phase 1B exit criteria verified and met
+
+**Phase 1B Exit Criteria Status:**
+- ✅ Full round-trip works via WebSocket (wscat-equivalent test passes)
+- ✅ Events stream in real-time (12 pi.event pushes for a single prompt)
+- ✅ Session start/stop/abort all function
+- ✅ All 47 unit tests pass + integration test passes
+- ✅ `bun run typecheck && bun run lint` passes
+
+**Handoff to next session:**
+- Phase 1B is COMPLETE. Next phase: 1C — Web UI: Minimal Chat
+- First item: 1C.1 — Vite + React 19 + Tailwind v4 setup in `apps/web/`
+- The server is fully functional and tested. The web UI connects to `ws://localhost:24242`.
+
+---

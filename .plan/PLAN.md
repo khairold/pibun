@@ -1,8 +1,8 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 1B in progress — all handlers implemented, tests passing
-> **Current Phase:** 1B
+> **Status:** Phase 1B COMPLETE — full WebSocket bridge working. Ready for Phase 1C (Web UI).
+> **Current Phase:** 1C
 > **Last Session:** 11 (2026-03-23)
 
 ---
@@ -90,7 +90,7 @@
 - [x] 1B.11 — Pi response forwarding: push on `pi.response` channel
 - [x] 1B.12 — `server.welcome` push on WebSocket connect (cwd, version)
 - [x] 1B.13 — Write unit tests for WebSocket message routing
-- [ ] 1B.14 — Test with wscat: connect → start session → send prompt → receive streaming events → abort → stop
+- [x] 1B.14 — Test with wscat: connect → start session → send prompt → receive streaming events → abort → stop
 
 **Exit criteria:** Full round-trip works via wscat. Events stream in real-time. Session start/stop/abort all function.
 

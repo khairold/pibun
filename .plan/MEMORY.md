@@ -173,7 +173,9 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Pi event/response forwarding wired in session.start handler ✅ — onEvent → pi.event push, onResponse → pi.response push
 - server.welcome push on WebSocket connect ✅ — sends cwd and version
 - Dispatch unit tests at `apps/server/src/handlers/dispatch.test.ts` ✅ — 10 tests (welcome push, validation, error handling, handler routing, ID correlation, session.start)
-- Next: Phase 1B.14 — wscat integration test
+- WebSocket integration test at `apps/server/src/ws-integration-test.ts` ✅ — full round-trip verified with real Pi process (12 events, text_delta streaming, session start/stop)
+- **Phase 1B COMPLETE** — all items done, exit criteria met
+- Next: Phase 1C — Web UI: Minimal Chat
 - Pi RPC verified with Pi 0.61.1 — `get_available_models` and `get_state` work, commands use `{"type":"..."}` format
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
