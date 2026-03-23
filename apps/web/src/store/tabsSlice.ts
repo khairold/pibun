@@ -210,4 +210,23 @@ export const createTabsSlice: StateCreator<AppStore, [], [], TabsSlice> = (set, 
 			),
 		}));
 	},
+
+	reorderTabs: (fromIndex, toIndex) => {
+		set((s) => {
+			if (
+				fromIndex === toIndex ||
+				fromIndex < 0 ||
+				toIndex < 0 ||
+				fromIndex >= s.tabs.length ||
+				toIndex >= s.tabs.length
+			) {
+				return s;
+			}
+			const newTabs = [...s.tabs];
+			const [moved] = newTabs.splice(fromIndex, 1);
+			if (!moved) return s;
+			newTabs.splice(toIndex, 0, moved);
+			return { tabs: newTabs };
+		});
+	},
 });

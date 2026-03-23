@@ -6,6 +6,11 @@
  * - Ctrl/Cmd+L — toggle model selector
  * - Ctrl/Cmd+N — create new session
  * - Ctrl/Cmd+B — toggle sidebar
+ * - Ctrl/Cmd+T — new tab
+ * - Ctrl/Cmd+W — close active tab
+ * - Ctrl/Cmd+Tab — next tab
+ * - Ctrl/Cmd+Shift+Tab — previous tab
+ * - Ctrl/Cmd+1-9 — jump to tab by position
  * - Ctrl/Cmd+Shift+K — compact context
  * - Ctrl/Cmd+Shift+T — toggle thinking selector
  *
@@ -15,6 +20,7 @@
 
 import { compactSession, fetchSessionList, startNewSession } from "@/lib/sessionActions";
 import { emitShortcut } from "@/lib/shortcuts";
+import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import { useEffect } from "react";
@@ -66,6 +72,22 @@ export function useKeyboardShortcuts(): void {
 						}
 						break;
 					}
+					case "tab": {
+						// Ctrl/Cmd+Shift+Tab — previous tab
+						if (state.tabs.length > 1 && state.activeTabId) {
+							e.preventDefault();
+							emitShortcut("prevTab");
+							const idx = state.tabs.findIndex((t) => t.id === state.activeTabId);
+							const prevIdx = idx <= 0 ? state.tabs.length - 1 : idx - 1;
+							const prevTab = state.tabs[prevIdx];
+							if (prevTab) {
+								switchTabAction(prevTab.id).catch((err: unknown) => {
+									console.error("[Shortcut] Failed to switch tab:", err);
+								});
+							}
+						}
+						break;
+					}
 				}
 				return;
 			}
@@ -109,6 +131,66 @@ export function useKeyboardShortcuts(): void {
 							.catch((err: unknown) => {
 								console.error("[Shortcut] Failed to create new session:", err);
 							});
+					}
+					break;
+				}
+				case "t": {
+					// Ctrl/Cmd+T — new tab
+					if (isConnected) {
+						e.preventDefault();
+						emitShortcut("newTab");
+						createNewTab().catch((err: unknown) => {
+							console.error("[Shortcut] Failed to create new tab:", err);
+						});
+					}
+					break;
+				}
+				case "w": {
+					// Ctrl/Cmd+W — close active tab
+					if (state.tabs.length > 1 && state.activeTabId) {
+						e.preventDefault();
+						emitShortcut("closeTab");
+						closeTab(state.activeTabId).catch((err: unknown) => {
+							console.error("[Shortcut] Failed to close tab:", err);
+						});
+					}
+					break;
+				}
+				case "tab": {
+					// Ctrl/Cmd+Tab — next tab (Shift+Tab handled above)
+					if (state.tabs.length > 1 && state.activeTabId) {
+						e.preventDefault();
+						emitShortcut("nextTab");
+						const idx = state.tabs.findIndex((t) => t.id === state.activeTabId);
+						const nextIdx = idx >= state.tabs.length - 1 ? 0 : idx + 1;
+						const nextTab = state.tabs[nextIdx];
+						if (nextTab) {
+							switchTabAction(nextTab.id).catch((err: unknown) => {
+								console.error("[Shortcut] Failed to switch tab:", err);
+							});
+						}
+					}
+					break;
+				}
+				case "1":
+				case "2":
+				case "3":
+				case "4":
+				case "5":
+				case "6":
+				case "7":
+				case "8":
+				case "9": {
+					// Ctrl/Cmd+1-9 — jump to tab N
+					if (state.tabs.length > 1) {
+						const tabIndex = Number.parseInt(key, 10) - 1;
+						const targetTab = state.tabs[tabIndex];
+						if (targetTab && targetTab.id !== state.activeTabId) {
+							e.preventDefault();
+							switchTabAction(targetTab.id).catch((err: unknown) => {
+								console.error("[Shortcut] Failed to jump to tab:", err);
+							});
+						}
 					}
 					break;
 				}

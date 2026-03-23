@@ -5,6 +5,33 @@
 
 ---
 
+## Session 58 — Tab drag-to-reorder + keyboard shortcuts (2026-03-23)
+
+**What happened:**
+- Added `reorderTabs(fromIndex, toIndex)` action to `TabsSlice` interface and implementation — splices array to move tab between positions with bounds checking
+- Added HTML5 drag-and-drop to `TabBar`: `TabItem` is `draggable`, `TabBar` tracks `dragIndexRef` (source) and `dragOverIndex` (target) state. Drop indicator is a blue left-border on the target tab via conditional `border-l-2 border-l-blue-500` class
+- Extended `ShortcutAction` type with `newTab`, `closeTab`, `nextTab`, `prevTab` actions
+- Added 5 new keyboard shortcut groups to `useKeyboardShortcuts`:
+  - Ctrl/Cmd+T → `createNewTab()` (new tab with Pi process)
+  - Ctrl/Cmd+W → `closeTab(activeTabId)` (only when >1 tab)
+  - Ctrl/Cmd+Tab → next tab (wraps around)
+  - Ctrl/Cmd+Shift+Tab → previous tab (wraps around)
+  - Ctrl/Cmd+1-9 → jump to tab by position (only when target exists and differs from active)
+
+**Items completed:**
+- [x] 1.8 — Tab drag-to-reorder (optional polish)
+- [x] 1.9 — Keyboard shortcuts: Ctrl+T new tab, Ctrl+W close tab, Ctrl+Tab / Ctrl+Shift+Tab cycle tabs, Ctrl+1-9 jump to tab
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1.10 — Update Sidebar to show tabs grouped by CWD, or remove session list in favor of tabs
+- Key files: `apps/web/src/components/Sidebar.tsx` (needs tab-aware update), `apps/web/src/store/tabsSlice.ts` (tab data), `apps/web/src/components/TabBar.tsx` (tab UI)
+- Decision needed for 1.10: sidebar can either (a) show tabs grouped by CWD directory, or (b) replace the session list entirely with tabs. Tabs are already visible in TabBar — sidebar could show per-CWD grouping for project context.
+
+---
+
 ## Session 57 — Wire close tab (2026-03-23)
 
 **What happened:**

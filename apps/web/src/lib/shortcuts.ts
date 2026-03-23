@@ -8,8 +8,12 @@
 
 export type ShortcutAction =
 	| "abort"
+	| "closeTab"
 	| "compact"
 	| "newSession"
+	| "newTab"
+	| "nextTab"
+	| "prevTab"
 	| "toggleModelSelector"
 	| "toggleSidebar"
 	| "toggleThinkingSelector";

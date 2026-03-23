@@ -229,6 +229,8 @@
 | 217 | `loadSessionMessages` and `refreshSessionState` are now exported from sessionActions | Previously internal functions, now exported so `tabActions.ts` can call them for tab switch message loading and state refresh. | 2026-03-23 |
 | 218 | `createNewTab()` in tabActions.ts spawns a Pi process per tab | Creates tab → switches to it → starts Pi session with `keepExisting: true` → associates session → routes transport → refreshes state. On failure, removes the orphan tab and shows error. Accepts optional `cwd` for folder-specific sessions. TabBar "+" button uses this instead of raw `addTab() + switchTabAction()`. | 2026-03-23 |
 | 219 | `closeTab()` in tabActions.ts coordinates Pi session stop + tab removal | Stops Pi session before removing tab: (1) temporarily routes transport to target tab's session, (2) aborts streaming if active, (3) calls `session.stop`, (4) removes tab from store (store handles adjacent-tab switching), (5) routes transport to new active tab's session, (6) fetches messages from Pi if cache empty, (7) refreshes session state. Session stop failures don't block tab removal — no orphan UI. Closing last tab clears transport + shows empty state. | 2026-03-23 |
+| 220 | Tab drag-to-reorder uses HTML5 drag-and-drop API, no external library | `TabItem` is `draggable`, `TabBar` manages `dragIndexRef` + `dragOverIndex` state. Drop indicator is a blue left-border on the target tab. `reorderTabs(fromIndex, toIndex)` in `tabsSlice` splices the array. No library needed — tabs are simple horizontal elements. | 2026-03-23 |
+| 221 | Tab keyboard shortcuts: Ctrl+T (new), Ctrl+W (close), Ctrl+Tab/Shift+Tab (cycle), Ctrl+1-9 (jump) | Added to `useKeyboardShortcuts`. Tab cycling wraps around (last→first, first→last). Ctrl+W only active when >1 tab exists. Ctrl+1-9 only fires when >1 tab exists and target index exists. New `ShortcutAction` types: `newTab`, `closeTab`, `nextTab`, `prevTab`. Ctrl+Tab/Ctrl+Shift+Tab may not work in browser mode (browser intercepts) — works in desktop native webview. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -332,7 +334,7 @@ All core features are shipped. See `.plan/archive/PLAN-v1.md` for the 97-item bu
 ## What's Not Built Yet (v2 Plan)
 
 - Multi-session WS plumbing complete ✅ — `WsRequest.sessionId` for targeting, `WsConnectionData.sessionIds` for tracking, push events wrapped with sessionId, `WsTransport.setActiveSession()` for client, `keepExisting` flag on session.start
-- **Phase 1 in progress** — items 1.1–1.7 done (multi-session WS plumbing, SessionTab type, tabsSlice, TabBar component, tab switch wiring, new tab creation, close tab), items 1.8–1.12 remain (drag-to-reorder, keyboard shortcuts, sidebar, desktop menus, verification)
+- **Phase 1 in progress** — items 1.1–1.9 done (multi-session WS plumbing, SessionTab type, tabsSlice, TabBar component, tab switch wiring, new tab creation, close tab, drag-to-reorder, keyboard shortcuts), items 1.10–1.12 remain (sidebar, desktop menus, verification)
 - Pi RPC types fully defined in `packages/contracts/` ✅
 - JSONL parser in `packages/shared/` ✅
 - PiProcess class in `apps/server/src/piProcess.ts` ✅ — wraps Bun.spawn of `pi --mode rpc`, uses JsonlParser, typed listeners, command correlation

@@ -285,6 +285,8 @@ export interface TabsSlice {
 	saveActiveTabMessages: () => void;
 	/** Sync the active tab's metadata with current session slice state. */
 	syncActiveTabState: () => void;
+	/** Reorder tabs by moving a tab from one index to another. */
+	reorderTabs: (fromIndex: number, toIndex: number) => void;
 }
 
 // ============================================================================
