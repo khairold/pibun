@@ -181,6 +181,20 @@ export function Composer() {
 		try {
 			const result = await getTransport().request("session.start", {});
 			setSessionId(result.sessionId);
+			// Multi-session: set active session + create/associate tab
+			getTransport().setActiveSession(result.sessionId);
+			{
+				const s = useStore.getState();
+				if (s.tabs.length === 0 || !s.activeTabId) {
+					const tabId = s.addTab();
+					s.switchTab(tabId);
+				}
+				// Re-read state after potential tab mutations
+				const updated = useStore.getState();
+				if (updated.activeTabId) {
+					updated.updateTab(updated.activeTabId, { sessionId: result.sessionId });
+				}
+			}
 			return true;
 		} catch (err) {
 			console.error("[Composer] Failed to start session:", err);

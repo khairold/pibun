@@ -19,6 +19,7 @@ import {
 	startSessionInFolder,
 } from "@/lib/sessionActions";
 import { emitShortcut } from "@/lib/shortcuts";
+import { updateTabStreamingBySessionId } from "@/lib/tabActions";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { WsTransport } from "@/transport";
@@ -494,10 +495,23 @@ export function initTransport(): () => void {
 	// pi.event → Zustand store (unwrap sessionId-tagged envelope)
 	cleanups.push(
 		transport.subscribe("pi.event", (data: WsPiEventData) => {
-			// Multi-session: data.sessionId identifies which tab this event belongs to.
-			// For now, route all events to the single active store. Tab routing will be
-			// wired when the tabsSlice is built (item 1.5).
-			handlePiEvent(data.event);
+			const store = useStore.getState();
+			const activeTab = store.tabs.find((t) => t.id === store.activeTabId);
+			const activeSessionId = activeTab?.sessionId ?? store.sessionId;
+
+			// If event is for the active tab's session (or no tabs exist yet), dispatch normally
+			if (!data.sessionId || !activeSessionId || data.sessionId === activeSessionId) {
+				handlePiEvent(data.event);
+				// Sync active tab metadata with current streaming state
+				store.syncActiveTabState();
+			} else {
+				// Event is for a background tab — update tab's streaming indicator only
+				if (data.event.type === "agent_start") {
+					updateTabStreamingBySessionId(data.sessionId, true);
+				} else if (data.event.type === "agent_end") {
+					updateTabStreamingBySessionId(data.sessionId, false);
+				}
+			}
 		}),
 	);
 

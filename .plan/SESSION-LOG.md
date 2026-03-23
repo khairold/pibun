@@ -5,6 +5,31 @@
 
 ---
 
+## Session 55 — Wire tab switching (2026-03-23)
+
+**What happened:**
+- Created `apps/web/src/lib/tabActions.ts` — async tab switching action that coordinates store, transport, and Pi message loading
+- `switchTabAction(tabId)`: (1) calls `tabsSlice.switchTab` to save/restore messages, (2) calls `transport.setActiveSession()` to route WS requests to correct Pi process, (3) fetches messages from Pi via `get_messages` when cache is empty, (4) refreshes session state (model, thinking, etc.) from Pi
+- Updated `wireTransport.ts` pi.event routing: events are now filtered by sessionId — only active tab's session events dispatch to the messages store. Background tab events only update tab streaming indicator.
+- Updated `TabBar.tsx` to use `switchTabAction` instead of raw `tabsSlice.switchTab` for full async coordination
+- Added tab creation hooks into session start flow: `sessionActions.ts` has inline `ensureTabExists()` + `linkSessionToActiveTab()` helpers, `Composer.tsx` also creates/associates tabs on first session start
+- Exported `loadSessionMessages()` and `refreshSessionState()` from sessionActions (previously internal)
+- Avoided circular dependency: tabActions → sessionActions (one-way), tab creation in sessionActions is inlined (no import from tabActions)
+
+**Items completed:**
+- [x] 1.5 — Wire tab switching: switching tab saves current messages to tab state, loads target tab's messages from Pi via `get_messages`
+
+**Issues encountered:**
+- Circular dependency between tabActions.ts ↔ sessionActions.ts detected early and resolved by inlining tab creation helpers in sessionActions.ts
+- Zustand `getState()` snapshot stale after mutations — Composer re-reads state after tab creation mutations
+
+**Handoff to next session:**
+- Next: 1.6 — Wire new tab: creates new Pi process via `session.start`, adds tab, switches to it
+- The TabBar "+" button currently creates a tab and switches to it, but doesn't start a Pi session. Item 1.6 needs to: (1) create a new tab, (2) call `session.start` with `keepExisting: true`, (3) associate the new session with the tab, (4) switch to it. May also need to update Composer's `ensureSession` to handle the case where a tab exists but has no sessionId.
+- Key files: `apps/web/src/lib/tabActions.ts`, `apps/web/src/lib/sessionActions.ts`, `apps/web/src/components/TabBar.tsx`, `apps/web/src/wireTransport.ts`
+
+---
+
 ## Session 54 — TabBar component (2026-03-23)
 
 **What happened:**

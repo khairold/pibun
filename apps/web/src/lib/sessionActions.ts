@@ -33,6 +33,32 @@ function errorMessage(err: unknown): string {
 }
 
 // ============================================================================
+// Tab ↔ Session Helpers (inline to avoid circular dep with tabActions.ts)
+// ============================================================================
+
+/**
+ * Ensure at least one tab exists. Creates the initial tab if needed.
+ * Called when the first session starts so that tab switching is possible.
+ */
+function ensureTabExists(): void {
+	const store = useStore.getState();
+	if (store.tabs.length > 0 && store.activeTabId) return;
+
+	const tabId = store.addTab();
+	store.switchTab(tabId);
+}
+
+/**
+ * Link a session ID to the currently active tab.
+ * Called after session.start to associate the Pi session with its tab.
+ */
+function linkSessionToActiveTab(sessionId: string): void {
+	const store = useStore.getState();
+	if (!store.activeTabId) return;
+	store.updateTab(store.activeTabId, { sessionId });
+}
+
+// ============================================================================
 // Pi Message → ChatMessage Conversion
 // ============================================================================
 
@@ -166,7 +192,7 @@ function convertPiMessages(piMessages: PiAgentMessage[]): ChatMessage[] {
  * Called after session switch, fork, or folder open to load the
  * existing messages for display.
  */
-async function loadSessionMessages(): Promise<void> {
+export async function loadSessionMessages(): Promise<void> {
 	try {
 		const result = await getTransport().request("session.getMessages");
 		const chatMessages = convertPiMessages(result.messages);
@@ -182,6 +208,7 @@ async function loadSessionMessages(): Promise<void> {
 
 /**
  * Ensure a session is active. If none exists, starts one.
+ * Also ensures a tab exists and is associated with the session.
  * Returns true if a session is ready, false if start failed.
  */
 async function ensureSession(): Promise<boolean> {
@@ -193,6 +220,9 @@ async function ensureSession(): Promise<boolean> {
 		setSessionId(result.sessionId);
 		// Multi-session: set as active session so subsequent requests target it
 		getTransport().setActiveSession(result.sessionId);
+		// Ensure a tab exists and associate it with this session
+		ensureTabExists();
+		linkSessionToActiveTab(result.sessionId);
 		return true;
 	} catch (err) {
 		setLastError(`Failed to start session: ${errorMessage(err)}`);
@@ -204,7 +234,7 @@ async function ensureSession(): Promise<boolean> {
  * Refresh session state from Pi after a session change (new, fork, switch).
  * Fetches get_state to update model/thinking/streaming/name info.
  */
-async function refreshSessionState(): Promise<void> {
+export async function refreshSessionState(): Promise<void> {
 	try {
 		const result = await getTransport().request("session.getState");
 		const store = useStore.getState();
@@ -436,6 +466,9 @@ export async function startSessionInFolder(cwd: string): Promise<boolean> {
 		store.setSessionId(result.sessionId);
 		// Multi-session: set as active session for subsequent requests
 		getTransport().setActiveSession(result.sessionId);
+		// Associate the new session with the active tab
+		ensureTabExists();
+		linkSessionToActiveTab(result.sessionId);
 		store.setIsStreaming(false);
 
 		// Refresh state to pick up new session info (model, thinking, etc.)

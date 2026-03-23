@@ -13,6 +13,7 @@
  */
 
 import { cn } from "@/lib/cn";
+import { switchTabAction } from "@/lib/tabActions";
 import { useStore } from "@/store";
 import type { SessionTab } from "@pibun/contracts";
 import { type MouseEvent, memo, useCallback, useRef } from "react";
@@ -145,7 +146,6 @@ function shortModelName(name: string): string {
 export function TabBar() {
 	const tabs = useStore((s) => s.tabs);
 	const activeTabId = useStore((s) => s.activeTabId);
-	const switchTab = useStore((s) => s.switchTab);
 	const addTab = useStore((s) => s.addTab);
 	const removeTab = useStore((s) => s.removeTab);
 	const connectionStatus = useStore((s) => s.connectionStatus);
@@ -157,8 +157,11 @@ export function TabBar() {
 	const handleAddTab = useCallback(() => {
 		if (!isConnected) return;
 		const tabId = addTab();
-		switchTab(tabId);
-	}, [addTab, switchTab, isConnected]);
+		// Switch to the new tab (async — coordinates with transport)
+		switchTabAction(tabId).catch((err: unknown) => {
+			console.error("[TabBar] Failed to switch to new tab:", err);
+		});
+	}, [addTab, isConnected]);
 
 	const handleCloseTab = useCallback(
 		(tabId: string) => {
@@ -167,12 +170,12 @@ export function TabBar() {
 		[removeTab],
 	);
 
-	const handleSwitchTab = useCallback(
-		(tabId: string) => {
-			switchTab(tabId);
-		},
-		[switchTab],
-	);
+	const handleSwitchTab = useCallback((tabId: string) => {
+		// Async tab switch — coordinates store + transport + Pi message loading
+		switchTabAction(tabId).catch((err: unknown) => {
+			console.error("[TabBar] Failed to switch tab:", err);
+		});
+	}, []);
 
 	// Don't render the tab bar if there are 0 or 1 tabs
 	if (tabs.length <= 1) {
