@@ -5,6 +5,36 @@
 
 ---
 
+## Session 73 — DiffViewer with Shiki syntax highlighting (2026-03-23)
+
+**What happened:**
+- Added `tokenizeCode()` to `apps/web/src/lib/highlighter.ts` — returns `ThemedToken[][]` via Shiki's `codeToTokens()` API for per-line rendering. Extracted shared `ensureLanguage()` helper to avoid duplication with `highlightCode()`. Re-exported `ThemedToken` type so consumers don't need a direct shiki import.
+- Created `apps/web/src/components/DiffViewer.tsx` — standalone unified diff viewer with:
+  - Diff parser: extracts file path from headers, parses hunks with line numbers (old/new columns)
+  - Old/new file reconstruction: context+removals → "old" file, context+additions → "new" file. Both tokenized separately for proper syntax context across multi-line constructs
+  - Hunk sections with @@ headers showing function context
+  - Color-coded lines: green background for additions, red for removals, neutral for context
+  - Syntax-highlighted code via Shiki tokenization (language inferred from file path)
+  - Plain text fallback while Shiki loads, or for unknown languages / diffs > 2000 lines
+  - Stats bar showing +additions / −deletions / language, with copy button
+  - All sub-components memoized (`HunkSection`, `DiffLineRow`, `TokenizedLine`)
+- Updated `GitPanel.tsx`: replaced `DiffPreview` with `DiffDisplay` wrapper that delegates to `<DiffViewer>` with loading/empty state handling. Now passes `filePath` for language inference.
+
+**Items completed:**
+- [x] 3.7 — `DiffViewer` component: side-by-side or unified diff view with syntax highlighting (reuse Shiki)
+
+**Issues encountered:**
+- `exactOptionalPropertyTypes` required `filePath?: string | undefined` (not `filePath?: string`) on DiffViewerProps
+- Biome `useExhaustiveDependencies`: `parsed.hunks` derived from `diff` — fixed by memoizing `parsed` with `useMemo(() => parseDiff(diff), [diff])`
+- Biome formatting: long if-chain needed line breaks, ternaries condensed — fixed with `bun run format`
+
+**Handoff to next session:**
+- Next: 3.8 — Git status in tab bar: dirty indicator dot on tabs with uncommitted changes
+- The DiffViewer is feature-complete and standalone. It could be reused for the parking lot "Diff review mode" feature.
+- `GitSlice` already has `gitIsDirty` boolean — 3.8 needs to wire this to `TabBar.tsx` / `TabItem` as a visual dot indicator on tabs. The challenge: git status is fetched per-session CWD, and different tabs may have different CWDs. May need per-tab dirty tracking in `tabsSlice` or a per-CWD cache.
+
+---
+
 ## Session 72 — GitChangedFiles panel + diff preview (2026-03-23)
 
 **What happened:**

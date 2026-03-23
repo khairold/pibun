@@ -14,6 +14,7 @@ import { fetchGitDiff, fetchGitStatus } from "@/lib/gitActions";
 import { useStore } from "@/store";
 import type { GitChangedFile } from "@pibun/contracts";
 import { memo, useCallback } from "react";
+import { DiffViewer } from "./DiffViewer";
 
 // ============================================================================
 // Status badge helpers
@@ -138,10 +139,18 @@ const FileItem = memo(function FileItem({ file, isSelected, onSelect }: FileItem
 });
 
 // ============================================================================
-// Inline diff preview (simple, upgraded to DiffViewer in 3.7)
+// Diff display — delegates to DiffViewer with loading/empty states
 // ============================================================================
 
-function DiffPreview({ diff, loading }: { diff: string | null; loading: boolean }) {
+function DiffDisplay({
+	diff,
+	loading,
+	filePath,
+}: {
+	diff: string | null;
+	loading: boolean;
+	filePath: string | null;
+}) {
 	if (loading) {
 		return (
 			<div className="flex items-center gap-2 p-4 text-xs text-neutral-500">
@@ -167,28 +176,7 @@ function DiffPreview({ diff, loading }: { diff: string | null; loading: boolean 
 		);
 	}
 
-	return (
-		<pre className="overflow-auto p-3 font-mono text-[11px] leading-relaxed">
-			{diff.split("\n").map((line, i) => {
-				const key = `${String(i)}-${line.slice(0, 20)}`;
-				let lineClass = "text-neutral-400";
-				if (line.startsWith("+") && !line.startsWith("+++")) {
-					lineClass = "text-green-400 bg-green-400/5";
-				} else if (line.startsWith("-") && !line.startsWith("---")) {
-					lineClass = "text-red-400 bg-red-400/5";
-				} else if (line.startsWith("@@")) {
-					lineClass = "text-blue-400/70";
-				} else if (line.startsWith("diff ") || line.startsWith("index ")) {
-					lineClass = "text-neutral-600";
-				}
-				return (
-					<div key={key} className={lineClass}>
-						{line || " "}
-					</div>
-				);
-			})}
-		</pre>
-	);
+	return <DiffViewer diff={diff} filePath={filePath ?? undefined} />;
 }
 
 // ============================================================================
@@ -327,7 +315,11 @@ export function GitPanel() {
 								{selectedDiffPath}
 							</div>
 						)}
-						<DiffPreview diff={selectedDiffContent} loading={diffLoading} />
+						<DiffDisplay
+							diff={selectedDiffContent}
+							loading={diffLoading}
+							filePath={selectedDiffPath}
+						/>
 					</div>
 				</div>
 			)}

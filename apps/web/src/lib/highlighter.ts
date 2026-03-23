@@ -8,7 +8,12 @@
  * @module
  */
 
-import type { BundledLanguage, BundledTheme, HighlighterGeneric } from "shiki/bundle/web";
+import type {
+	BundledLanguage,
+	BundledTheme,
+	HighlighterGeneric,
+	ThemedToken,
+} from "shiki/bundle/web";
 
 /** The singleton highlighter instance. */
 let highlighterPromise: Promise<HighlighterGeneric<BundledLanguage, BundledTheme>> | null = null;
@@ -57,27 +62,51 @@ function resolveLanguage(lang: string): string {
 }
 
 /**
- * Highlight code with Shiki. Lazy-loads the language grammar on first use.
- *
- * @returns HTML string with syntax highlighting, or `null` if highlighting
- *          is not yet ready (caller should show plain text fallback).
+ * Re-export ThemedToken so consumers don't need a direct shiki import.
  */
-export async function highlightCode(code: string, lang: string): Promise<string> {
+export type { ThemedToken };
+
+/**
+ * Ensure a language is loaded and return the effective language ID.
+ * Shared between `highlightCode` and `tokenizeCode`.
+ */
+async function ensureLanguage(lang: string): Promise<string> {
 	const hl = await getHighlighter();
 	const resolved = resolveLanguage(lang);
 
-	// Load language grammar on demand if not already loaded
 	if (resolved !== "text" && !loadedLanguages.has(resolved)) {
 		loadedLanguages.add(resolved);
 		try {
 			await hl.loadLanguage(resolved as BundledLanguage);
 		} catch {
-			// Language not available — fall back to plain text
 			loadedLanguages.delete(resolved);
 		}
 	}
 
-	const effectiveLang = loadedLanguages.has(resolved) ? resolved : "text";
+	return loadedLanguages.has(resolved) ? resolved : "text";
+}
+
+/**
+ * Tokenize code into structured tokens per line. Used by DiffViewer
+ * for per-line rendering with syntax highlighting.
+ *
+ * @returns Array of lines, each containing an array of themed tokens.
+ */
+export async function tokenizeCode(code: string, lang: string): Promise<ThemedToken[][]> {
+	const hl = await getHighlighter();
+	const effectiveLang = await ensureLanguage(lang);
+
+	const result = await hl.codeToTokens(code, {
+		lang: effectiveLang as BundledLanguage,
+		theme: THEME,
+	});
+
+	return result.tokens;
+}
+
+export async function highlightCode(code: string, lang: string): Promise<string> {
+	const hl = await getHighlighter();
+	const effectiveLang = await ensureLanguage(lang);
 
 	return hl.codeToHtml(code, {
 		lang: effectiveLang as BundledLanguage,
