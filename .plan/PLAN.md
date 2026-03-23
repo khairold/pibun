@@ -1,9 +1,9 @@
 # PiBun v2 — Build Plan
 
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
-> **Status:** Not Started
-> **Current Phase:** —
-> **Last Session:** —
+> **Status:** In Progress
+> **Current Phase:** Phase 1 — Multi-Session & Tabs
+> **Last Session:** Session 52 — 2026-03-23
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -32,7 +32,7 @@
 
 **Goal:** Run multiple Pi processes simultaneously with a tabbed interface. Each tab is an independent session with its own CWD, model, and conversation.
 
-- [ ] 1.1 — Extend `PiRpcManager` to support multiple concurrent sessions (currently supports multiple but UI is single-session)
+- [x] 1.1 — Extend `PiRpcManager` to support multiple concurrent sessions (currently supports multiple but UI is single-session)
 - [ ] 1.2 — Add `SessionTab` type to contracts: `{ id, name, cwd, model, isStreaming, isActive, messageCount, createdAt }`
 - [ ] 1.3 — Add `tabsSlice` to Zustand store: `tabs: SessionTab[]`, `activeTabId`, `addTab`, `removeTab`, `switchTab`, `updateTab`
 - [ ] 1.4 — Build `TabBar` component: horizontal tabs with session name, model badge, streaming indicator, close button, "+" new tab button

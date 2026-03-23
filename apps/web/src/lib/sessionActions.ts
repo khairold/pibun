@@ -17,11 +17,11 @@ import type {
 	PiAgentMessage,
 	PiAssistantMessage,
 	PiBashExecutionMessage,
+	PiImageContent,
 	PiTextContent,
 	PiThinkingContent,
 	PiToolCall,
 	PiToolResultMessage,
-	PiImageContent,
 	WsForkableMessage,
 	WsSessionSummary,
 } from "@pibun/contracts";
@@ -83,50 +83,50 @@ function convertPiMessages(piMessages: PiAgentMessage[]): ChatMessage[] {
 			});
 		} else if (msg.role === "assistant") {
 			const aMsg = msg as PiAssistantMessage;
-				// Extract text and thinking from content blocks
-				const textParts: string[] = [];
-				const thinkingParts: string[] = [];
-				const toolCalls: PiToolCall[] = [];
+			// Extract text and thinking from content blocks
+			const textParts: string[] = [];
+			const thinkingParts: string[] = [];
+			const toolCalls: PiToolCall[] = [];
 
-				for (const block of aMsg.content) {
-					if (block.type === "text") {
-						textParts.push((block as PiTextContent).text);
-					} else if (block.type === "thinking") {
-						thinkingParts.push((block as PiThinkingContent).thinking);
-					} else if (block.type === "toolCall") {
-						toolCalls.push(block as PiToolCall);
-					}
+			for (const block of aMsg.content) {
+				if (block.type === "text") {
+					textParts.push((block as PiTextContent).text);
+				} else if (block.type === "thinking") {
+					thinkingParts.push((block as PiThinkingContent).thinking);
+				} else if (block.type === "toolCall") {
+					toolCalls.push(block as PiToolCall);
 				}
+			}
 
-				// Assistant text/thinking message
+			// Assistant text/thinking message
+			result.push({
+				id: nextHistoryId("assistant"),
+				timestamp: aMsg.timestamp,
+				type: "assistant",
+				content: textParts.join("\n"),
+				thinking: thinkingParts.join("\n"),
+				toolCall: null,
+				toolResult: null,
+				streaming: false,
+			});
+
+			// Tool call cards
+			for (const tc of toolCalls) {
 				result.push({
-					id: nextHistoryId("assistant"),
+					id: tc.id,
 					timestamp: aMsg.timestamp,
-					type: "assistant",
-					content: textParts.join("\n"),
-					thinking: thinkingParts.join("\n"),
-					toolCall: null,
+					type: "tool_call",
+					content: "",
+					thinking: "",
+					toolCall: {
+						id: tc.id,
+						name: tc.name,
+						args: tc.arguments,
+					},
 					toolResult: null,
 					streaming: false,
 				});
-
-				// Tool call cards
-				for (const tc of toolCalls) {
-					result.push({
-						id: tc.id,
-						timestamp: aMsg.timestamp,
-						type: "tool_call",
-						content: "",
-						thinking: "",
-						toolCall: {
-							id: tc.id,
-							name: tc.name,
-							args: tc.arguments,
-						},
-						toolResult: null,
-						streaming: false,
-					});
-				}
+			}
 		} else if (msg.role === "toolResult") {
 			const trMsg = msg as PiToolResultMessage;
 			result.push({
@@ -191,6 +191,8 @@ async function ensureSession(): Promise<boolean> {
 	try {
 		const result = await getTransport().request("session.start", {});
 		setSessionId(result.sessionId);
+		// Multi-session: set as active session so subsequent requests target it
+		getTransport().setActiveSession(result.sessionId);
 		return true;
 	} catch (err) {
 		setLastError(`Failed to start session: ${errorMessage(err)}`);
@@ -432,6 +434,8 @@ export async function startSessionInFolder(cwd: string): Promise<boolean> {
 		// Start a new session with the specified CWD
 		const result = await getTransport().request("session.start", { cwd });
 		store.setSessionId(result.sessionId);
+		// Multi-session: set as active session for subsequent requests
+		getTransport().setActiveSession(result.sessionId);
 		store.setIsStreaming(false);
 
 		// Refresh state to pick up new session info (model, thinking, etc.)

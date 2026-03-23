@@ -35,6 +35,12 @@ export interface HandlerContext {
 	) => void;
 	/** Optional hooks for desktop integration (auto-update, etc.). */
 	hooks: ServerHooks;
+	/**
+	 * Target session ID for the current request.
+	 * Resolved from: request-level `sessionId` → connection's primary `sessionId`.
+	 * Null if no session is active and none was specified.
+	 */
+	targetSessionId: string | null;
 }
 
 // ============================================================================

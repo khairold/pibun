@@ -30,6 +30,7 @@ import type {
 	PiMessageUpdateEvent,
 	PiTextContent,
 	WsMenuActionData,
+	WsPiEventData,
 } from "@pibun/contracts";
 
 // ============================================================================
@@ -490,8 +491,15 @@ export function initTransport(): () => void {
 		}),
 	);
 
-	// pi.event → Zustand store
-	cleanups.push(transport.subscribe("pi.event", handlePiEvent));
+	// pi.event → Zustand store (unwrap sessionId-tagged envelope)
+	cleanups.push(
+		transport.subscribe("pi.event", (data: WsPiEventData) => {
+			// Multi-session: data.sessionId identifies which tab this event belongs to.
+			// For now, route all events to the single active store. Tab routing will be
+			// wired when the tabsSlice is built (item 1.5).
+			handlePiEvent(data.event);
+		}),
+	);
 
 	// server.welcome → log + fetch session list
 	cleanups.push(

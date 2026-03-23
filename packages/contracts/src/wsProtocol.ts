@@ -97,6 +97,12 @@ export interface WsSessionStartParams {
 	provider?: string;
 	model?: string;
 	thinkingLevel?: PiThinkingLevel;
+	/**
+	 * If true, don't stop existing sessions on this connection.
+	 * Used by the tab system to create additional concurrent sessions.
+	 * Default: false (stops existing primary session for backward compat).
+	 */
+	keepExisting?: boolean;
 }
 
 /** An image attachment with base64 data and MIME type. */
@@ -324,6 +330,28 @@ export interface WsMethodResultMap {
 // Push Channel Data Types
 // ============================================================================
 
+/**
+ * Data for `pi.event` push — Pi RPC event tagged with source session ID.
+ *
+ * Multi-session: the client uses `sessionId` to route events to the correct tab.
+ */
+export interface WsPiEventData {
+	/** Which session emitted this event. */
+	sessionId: string;
+	/** The raw Pi event. */
+	event: PiEvent;
+}
+
+/**
+ * Data for `pi.response` push — Pi command acknowledgment tagged with session ID.
+ */
+export interface WsPiResponseData {
+	/** Which session this response belongs to. */
+	sessionId: string;
+	/** The raw Pi response. */
+	response: PiResponse;
+}
+
 /** Data for `server.welcome` push — sent on WebSocket connect. */
 export interface WsServerWelcomeData {
 	cwd: string;
@@ -383,8 +411,8 @@ export interface WsAppUpdateData {
  * Used for type-safe push handling.
  */
 export interface WsChannelDataMap {
-	"pi.event": PiEvent;
-	"pi.response": PiResponse;
+	"pi.event": WsPiEventData;
+	"pi.response": WsPiResponseData;
 	"server.welcome": WsServerWelcomeData;
 	"server.error": WsServerErrorData;
 	"menu.action": WsMenuActionData;
@@ -400,14 +428,19 @@ export interface WsChannelDataMap {
  *
  * Every request gets exactly one `WsResponse` back, correlated by `id`.
  *
+ * Multi-session: `sessionId` targets a specific Pi session. If omitted,
+ * the server uses the connection's primary session (backward compatible).
+ *
  * ```json
- * { "id": "req-1", "method": "session.prompt", "params": { "message": "hello" } }
+ * { "id": "req-1", "method": "session.prompt", "params": { "message": "hello" }, "sessionId": "session_1_..." }
  * ```
  */
 export interface WsRequest {
 	id: string;
 	method: WsMethod;
 	params?: Record<string, unknown>;
+	/** Target session ID for multi-session support. Falls back to connection's primary session. */
+	sessionId?: string;
 }
 
 /**

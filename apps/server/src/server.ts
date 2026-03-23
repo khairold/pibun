@@ -27,8 +27,16 @@ import type { PiRpcManager } from "./piRpcManager.js";
 export interface WsConnectionData {
 	/** Unique connection ID. */
 	id: string;
-	/** ID of the Pi session this connection is bound to (set after session.start). */
+	/**
+	 * Primary session ID (the most recently started session).
+	 * Used as fallback when a request doesn't specify a sessionId.
+	 */
 	sessionId: string | null;
+	/**
+	 * All session IDs owned by this connection (multi-session / tabs).
+	 * Includes the primary session. Cleaned up on WS disconnect.
+	 */
+	sessionIds: Set<string>;
 	/** When this connection was established. */
 	connectedAt: number;
 }
@@ -156,6 +164,7 @@ export function createServer(options: ServerOptions): PiBunServer {
 					data: {
 						id: connId,
 						sessionId: null,
+						sessionIds: new Set<string>(),
 						connectedAt: Date.now(),
 					},
 				});
@@ -197,6 +206,16 @@ export function createServer(options: ServerOptions): PiBunServer {
 
 			close(ws, _code, _reason) {
 				connections.delete(ws);
+
+				// Clean up all sessions owned by this connection
+				const ownedSessions = [...ws.data.sessionIds];
+				ws.data.sessionIds.clear();
+				ws.data.sessionId = null;
+				for (const sid of ownedSessions) {
+					config.rpcManager.stopSession(sid).catch(() => {
+						// Best-effort cleanup — process may already be gone
+					});
+				}
 			},
 		},
 	});
@@ -253,6 +272,8 @@ function handleWsMessage(
 
 		requestId = parsed.id;
 		const { method, params } = parsed;
+		// Multi-session: resolve target session from request or connection default
+		const requestSessionId = (parsed as { sessionId?: string }).sessionId ?? null;
 
 		// Look up the handler
 		const handler = handlers[method as WsMethod];
@@ -269,6 +290,8 @@ function handleWsMessage(
 			connections,
 			sendPush,
 			hooks,
+			// Prefer request-level sessionId, fall back to connection's primary
+			targetSessionId: requestSessionId ?? ws.data.sessionId,
 		};
 
 		// Call the handler (may be sync or async)

@@ -153,6 +153,8 @@ export type {
 	WsResponseOk,
 	WsAppUpdateData,
 	WsMenuActionData,
+	WsPiEventData,
+	WsPiResponseData,
 	WsServerErrorData,
 	WsServerMessage,
 	WsServerWelcomeData,

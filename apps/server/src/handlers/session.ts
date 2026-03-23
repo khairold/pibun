@@ -33,21 +33,34 @@ import type { HandlerContext, WsHandler } from "./types.js";
 // ============================================================================
 
 /**
- * Get the Pi process for the current connection.
- * Throws if no session is bound to this connection.
+ * Get the Pi process for the target session.
+ *
+ * Multi-session: uses `ctx.targetSessionId` which is resolved from
+ * the request-level `sessionId` or the connection's primary session.
+ *
+ * @returns The PiProcess and the resolved session ID.
+ * @throws If no session is bound or the session doesn't exist.
  */
-function getProcess(ctx: HandlerContext): PiProcess {
-	const { sessionId } = ctx.connection;
-	if (!sessionId) {
+function getProcessWithId(ctx: HandlerContext): { process: PiProcess; sessionId: string } {
+	const { targetSessionId } = ctx;
+	if (!targetSessionId) {
 		throw new Error("No active session. Call session.start first.");
 	}
 
-	const session = ctx.rpcManager.getSession(sessionId);
+	const session = ctx.rpcManager.getSession(targetSessionId);
 	if (!session) {
-		throw new Error(`Session '${sessionId}' not found. It may have been stopped or crashed.`);
+		throw new Error(`Session '${targetSessionId}' not found. It may have been stopped or crashed.`);
 	}
 
-	return session.process;
+	return { process: session.process, sessionId: targetSessionId };
+}
+
+/**
+ * Get the Pi process for the target session (convenience wrapper).
+ * @throws If no session is bound or the session doesn't exist.
+ */
+function getProcess(ctx: HandlerContext): PiProcess {
+	return getProcessWithId(ctx).process;
 }
 
 /**
@@ -85,9 +98,12 @@ export const handleSessionStart: WsHandler<"session.start"> = async (
 	params: WsSessionStartParams,
 	ctx: HandlerContext,
 ): Promise<WsMethodResultMap["session.start"]> => {
-	// If this connection already has a session, stop it first
-	if (ctx.connection.sessionId) {
-		await ctx.rpcManager.stopSession(ctx.connection.sessionId);
+	// Multi-session: keepExisting=true preserves existing sessions (tab mode).
+	// Default: stop existing primary session (backward compat).
+	if (!params?.keepExisting && ctx.connection.sessionId) {
+		const oldSessionId = ctx.connection.sessionId;
+		ctx.connection.sessionIds.delete(oldSessionId);
+		await ctx.rpcManager.stopSession(oldSessionId);
 		ctx.connection.sessionId = null;
 	}
 
@@ -99,11 +115,12 @@ export const handleSessionStart: WsHandler<"session.start"> = async (
 		...(params?.cwd && { cwd: params.cwd }),
 	});
 
-	// Bind session to this connection
+	// Track session ownership on this connection
 	ctx.connection.sessionId = session.id;
+	ctx.connection.sessionIds.add(session.id);
 
-	// Wire event and response forwarding
-	wireEventForwarding(session.process, ctx);
+	// Wire event and response forwarding (tagged with sessionId)
+	wireEventForwarding(session.id, session.process, ctx);
 
 	return { sessionId: session.id };
 };
@@ -115,13 +132,18 @@ export const handleSessionStop: WsHandler<"session.stop"> = async (
 	_params: undefined,
 	ctx: HandlerContext,
 ): Promise<WsOkResult> => {
-	const { sessionId } = ctx.connection;
-	if (!sessionId) {
+	const { targetSessionId } = ctx;
+	if (!targetSessionId) {
 		throw new Error("No active session to stop.");
 	}
 
-	await ctx.rpcManager.stopSession(sessionId);
-	ctx.connection.sessionId = null;
+	// Remove from connection's tracked sessions
+	ctx.connection.sessionIds.delete(targetSessionId);
+	if (ctx.connection.sessionId === targetSessionId) {
+		ctx.connection.sessionId = null;
+	}
+
+	await ctx.rpcManager.stopSession(targetSessionId);
 
 	return { ok: true };
 };
@@ -304,8 +326,7 @@ export const handleSessionNew: WsHandler<"session.new"> = async (
 
 	// The session ID on the connection stays the same (same PiProcess).
 	// Pi internally creates a new session file.
-	const { sessionId } = ctx.connection;
-	return { sessionId: sessionId ?? "unknown" };
+	return { sessionId: ctx.targetSessionId ?? "unknown" };
 };
 
 /**
@@ -333,8 +354,7 @@ export const handleSessionFork: WsHandler<"session.fork"> = async (
 	const response = await process.sendCommand({ type: "fork", entryId: params.entryId });
 	assertSuccess(response);
 
-	const { sessionId } = ctx.connection;
-	return { sessionId: sessionId ?? "unknown" };
+	return { sessionId: ctx.targetSessionId ?? "unknown" };
 };
 
 /**
@@ -457,25 +477,28 @@ export const handleSessionSwitchSession: WsHandler<"session.switchSession"> = as
 /**
  * Wire Pi event and response forwarding from a PiProcess to the WebSocket client.
  *
- * Pi events → pushed to the client on `pi.event` channel.
- * Pi responses → pushed to the client on `pi.response` channel.
+ * Pi events → pushed to the client on `pi.event` channel (tagged with sessionId).
+ * Pi responses → pushed to the client on `pi.response` channel (tagged with sessionId).
+ *
+ * Multi-session: the sessionId tag allows the client to route events to the
+ * correct tab. Each session's events are forwarded independently.
  *
  * Listener cleanup is handled by PiRpcManager when the session is stopped.
  */
-function wireEventForwarding(process: PiProcess, ctx: HandlerContext): void {
-	// Forward Pi events to the WebSocket client
+function wireEventForwarding(sessionId: string, process: PiProcess, ctx: HandlerContext): void {
+	// Forward Pi events to the WebSocket client (tagged with session)
 	process.onEvent((event) => {
 		try {
-			ctx.sendPush(ctx.ws, "pi.event", event);
+			ctx.sendPush(ctx.ws, "pi.event", { sessionId, event });
 		} catch {
 			// WebSocket may have closed — ignore send errors
 		}
 	});
 
-	// Forward Pi responses to the WebSocket client
+	// Forward Pi responses to the WebSocket client (tagged with session)
 	process.onResponse((response) => {
 		try {
-			ctx.sendPush(ctx.ws, "pi.response", response);
+			ctx.sendPush(ctx.ws, "pi.response", { sessionId, response });
 		} catch {
 			// WebSocket may have closed — ignore send errors
 		}

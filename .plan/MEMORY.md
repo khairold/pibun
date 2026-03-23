@@ -212,6 +212,11 @@
 | 200 | Release channel auto-detected from tag name | Tags with `-canary`, `-beta`, `-alpha` suffix → canary channel. Clean version tags (e.g., `v0.1.0`) → stable channel. Manual dispatch allows explicit channel selection. | 2026-03-23 |
 | 201 | Two-tier smoke test suite: server + artifact | `test:smoke` runs `apps/server/src/smoke-test.ts` (20 checks: health, static files, WS connect, welcome push, error handling, session ops without Pi, multiple connections). `test:smoke:artifacts` runs `apps/desktop/scripts/smoke-test.ts` (platform-aware artifact validation: macOS DMG/tar.zst, Linux tar.gz, Windows zip, update.json, web dist, electrobun config). Both in CI: `ci.yml` runs server smoke after web build, `release.yml` runs artifact smoke after each platform build. | 2026-03-23 |
 | 202 | `connectWsWithWelcome()` pattern for WebSocket tests | Welcome push fires immediately on WS upgrade. Listening for message after `connectWs()` resolves can miss it. `connectWsWithWelcome()` registers the message handler before open event, capturing the welcome atomically. Used in multi-connection tests. | 2026-03-23 |
+| 203 | Multi-session via request-level `sessionId` on `WsRequest`, not per-method params | `WsRequest` wire type gets optional `sessionId` field. Server resolves target: request `sessionId` → connection's primary `sessionId` fallback. This avoids changing every method's params type — backward compatible. `WsTransport.setActiveSession(id)` auto-includes it in all outgoing requests. | 2026-03-23 |
+| 204 | `WsConnectionData` has both `sessionId` (primary, singular) and `sessionIds` (Set, all owned) | `sessionId` is backward compat — most recently started session. `sessionIds` tracks ALL sessions created by this connection. On WS close, all owned sessions are stopped. Multi-tab: `keepExisting: true` in `session.start` prevents stopping the old session. | 2026-03-23 |
+| 205 | Push events `pi.event` and `pi.response` wrapped with `{ sessionId, event/response }` | `WsPiEventData = { sessionId: string; event: PiEvent }`. Allows client to route events to correct tab. Web app's `wireTransport.ts` unwraps the envelope; current single-session behavior preserved. | 2026-03-23 |
+| 206 | `getProcessWithId(ctx)` returns `{ process, sessionId }` for handlers that need both | `getProcess(ctx)` is convenience wrapper. Both use `ctx.targetSessionId` (resolved in `handleWsMessage`). No handler reads `ctx.connection.sessionId` for routing anymore. | 2026-03-23 |
+| 207 | `WsSessionStartParams.keepExisting` flag for multi-tab session creation | Default `false` = stop existing primary session (backward compat). `true` = create additional session without stopping existing ones. Tab system will use `keepExisting: true`. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -314,6 +319,8 @@ All core features are shipped. See `.plan/archive/PLAN-v1.md` for the 97-item bu
 
 ## What's Not Built Yet (v2 Plan)
 
+- Multi-session WS plumbing complete ✅ — `WsRequest.sessionId` for targeting, `WsConnectionData.sessionIds` for tracking, push events wrapped with sessionId, `WsTransport.setActiveSession()` for client, `keepExisting` flag on session.start
+- **Phase 1 in progress** — item 1.1 done, items 1.2–1.12 remain (types, store, UI, wiring)
 - Pi RPC types fully defined in `packages/contracts/` ✅
 - JSONL parser in `packages/shared/` ✅
 - PiProcess class in `apps/server/src/piProcess.ts` ✅ — wraps Bun.spawn of `pi --mode rpc`, uses JsonlParser, typed listeners, command correlation

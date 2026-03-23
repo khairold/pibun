@@ -107,6 +107,13 @@ export class WsTransport {
 	private _state: TransportState = "connecting";
 	private readonly url: string;
 
+	/**
+	 * Active session ID for multi-session support.
+	 * When set, all outgoing requests include this sessionId in the envelope.
+	 * Allows the server to route requests to the correct Pi process.
+	 */
+	private _activeSessionId: string | null = null;
+
 	constructor(url?: string) {
 		this.url = url ?? WsTransport.inferUrl();
 		this.connect();
@@ -147,6 +154,10 @@ export class WsTransport {
 		if (params !== undefined) {
 			envelope.params = params;
 		}
+		// Multi-session: include active session ID if set
+		if (this._activeSessionId) {
+			envelope.sessionId = this._activeSessionId;
+		}
 		const encoded = JSON.stringify(envelope);
 
 		return new Promise<WsMethodResultMap[M]>((resolve, reject) => {
@@ -163,6 +174,23 @@ export class WsTransport {
 
 			this.send(encoded);
 		});
+	}
+
+	/**
+	 * Set the active session ID for multi-session support.
+	 *
+	 * When set, all outgoing requests automatically include this sessionId
+	 * in the WsRequest envelope, routing them to the correct Pi process.
+	 *
+	 * Set to `null` to clear (uses the server's connection-level default).
+	 */
+	setActiveSession(sessionId: string | null): void {
+		this._activeSessionId = sessionId;
+	}
+
+	/** Get the currently active session ID. */
+	get activeSessionId(): string | null {
+		return this._activeSessionId;
 	}
 
 	/**

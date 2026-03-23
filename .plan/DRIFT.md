@@ -9,7 +9,7 @@
 
 | # | Date | What Changed | Why | Spec Updated? |
 |---|------|-------------|-----|---------------|
-| — | — | No changes yet | — | — |
+| 1 | 2026-03-23 | Multi-session via `WsRequest.sessionId` instead of per-method params | Adding `sessionId` to every method's params would break all existing web app call sites. Request-level `sessionId` + `WsTransport.setActiveSession()` is backward compatible and simpler. | N/A — v2 plan didn't specify implementation approach |
 
 ## Historical Drift (from v1 plan)
 

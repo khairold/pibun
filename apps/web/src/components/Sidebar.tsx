@@ -65,7 +65,8 @@ const SessionItem = memo(function SessionItem({
 				<span className="truncate text-sm font-medium">{displayName}</span>
 			</div>
 			<span className="truncate text-xs text-neutral-500">
-				{dateStr}{session.messageCount > 0 ? ` · ${session.messageCount} msgs` : ""}
+				{dateStr}
+				{session.messageCount > 0 ? ` · ${session.messageCount} msgs` : ""}
 			</span>
 		</button>
 	);
