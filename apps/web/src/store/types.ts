@@ -13,6 +13,7 @@ import type {
 	PiModel,
 	PiSessionStats,
 	PiThinkingLevel,
+	SessionTab,
 	WsSessionSummary,
 } from "@pibun/contracts";
 
@@ -256,6 +257,36 @@ export interface UiSlice {
 	setSidebarOpen: (open: boolean) => void;
 }
 
+/** Tabs state — multi-session tab management. */
+export interface TabsSlice {
+	/** Ordered list of open tabs. */
+	tabs: SessionTab[];
+	/** ID of the currently active tab, null when no tabs exist. */
+	activeTabId: string | null;
+	/** Per-tab message cache. Inactive tabs' messages are stored here. */
+	tabMessages: Map<string, ChatMessage[]>;
+
+	/**
+	 * Create a new tab with optional initial values.
+	 * Returns the new tab's ID.
+	 */
+	addTab: (
+		partial?: Partial<Pick<SessionTab, "name" | "sessionId" | "cwd" | "model" | "thinkingLevel">>,
+	) => string;
+	/** Remove a tab by ID. Switches to adjacent tab if active tab is removed. */
+	removeTab: (tabId: string) => void;
+	/** Switch to a different tab. Saves current tab's state, restores target's. */
+	switchTab: (tabId: string) => void;
+	/** Update a tab's metadata (name, model, streaming state, etc.). */
+	updateTab: (tabId: string, updates: Partial<SessionTab>) => void;
+	/** Get the currently active tab, or null if no tabs. */
+	getActiveTab: () => SessionTab | null;
+	/** Save the current messages to the active tab's message cache. */
+	saveActiveTabMessages: () => void;
+	/** Sync the active tab's metadata with current session slice state. */
+	syncActiveTabState: () => void;
+}
+
 // ============================================================================
 // Combined AppStore
 // ============================================================================
@@ -268,4 +299,5 @@ export type AppStore = ConnectionSlice &
 	ExtensionUiSlice &
 	NotificationsSlice &
 	UpdateSlice &
-	UiSlice;
+	UiSlice &
+	TabsSlice;

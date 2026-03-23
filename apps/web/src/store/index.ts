@@ -22,6 +22,7 @@ import { createMessagesSlice } from "./messagesSlice";
 import { createModelsSlice } from "./modelsSlice";
 import { createNotificationsSlice } from "./notificationsSlice";
 import { createSessionSlice } from "./sessionSlice";
+import { createTabsSlice } from "./tabsSlice";
 import type { AppStore } from "./types";
 import { createUiSlice } from "./uiSlice";
 import { createUpdateSlice } from "./updateSlice";
@@ -36,6 +37,7 @@ export const useStore = create<AppStore>()((...a) => ({
 	...createNotificationsSlice(...a),
 	...createUpdateSlice(...a),
 	...createUiSlice(...a),
+	...createTabsSlice(...a),
 }));
 
 // Re-export types for convenience
@@ -47,6 +49,7 @@ export type {
 	ModelsSlice,
 	NotificationsSlice,
 	SessionSlice,
+	TabsSlice,
 	UiSlice,
 	UpdateSlice,
 } from "./types";

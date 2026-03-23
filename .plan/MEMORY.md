@@ -217,6 +217,9 @@
 | 205 | Push events `pi.event` and `pi.response` wrapped with `{ sessionId, event/response }` | `WsPiEventData = { sessionId: string; event: PiEvent }`. Allows client to route events to correct tab. Web app's `wireTransport.ts` unwraps the envelope; current single-session behavior preserved. | 2026-03-23 |
 | 206 | `getProcessWithId(ctx)` returns `{ process, sessionId }` for handlers that need both | `getProcess(ctx)` is convenience wrapper. Both use `ctx.targetSessionId` (resolved in `handleWsMessage`). No handler reads `ctx.connection.sessionId` for routing anymore. | 2026-03-23 |
 | 207 | `WsSessionStartParams.keepExisting` flag for multi-tab session creation | Default `false` = stop existing primary session (backward compat). `true` = create additional session without stopping existing ones. Tab system will use `keepExisting: true`. | 2026-03-23 |
+| 208 | `SessionTab` type in `packages/contracts/src/sessionTab.ts` | Client-side tab representation: `{ id, name, sessionId, cwd, model, thinkingLevel, isStreaming, messageCount, createdAt }`. Server doesn't know about tabs — tabs are purely a UI concept. | 2026-03-23 |
+| 209 | `TabsSlice` manages per-tab message caching and tab ↔ session state sync | `tabMessages: Map<string, ChatMessage[]>` stores inactive tabs' messages. `switchTab()` saves current messages to map, restores target's cached messages to the global `messages` slice. `syncActiveTabState()` copies SessionSlice fields (sessionId, model, isStreaming, etc.) to the active tab's metadata. `saveActiveTabMessages()` snapshots messages without switching. | 2026-03-23 |
+| 210 | Tab IDs are client-generated (`tab-1`, `tab-2`, ...), not Pi session IDs | Tabs are a UI concept. `SessionTab.sessionId` links a tab to its Pi session. A tab can exist before its session starts (`sessionId: null`). Tab ID is stable across session lifecycle. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -320,7 +323,7 @@ All core features are shipped. See `.plan/archive/PLAN-v1.md` for the 97-item bu
 ## What's Not Built Yet (v2 Plan)
 
 - Multi-session WS plumbing complete ✅ — `WsRequest.sessionId` for targeting, `WsConnectionData.sessionIds` for tracking, push events wrapped with sessionId, `WsTransport.setActiveSession()` for client, `keepExisting` flag on session.start
-- **Phase 1 in progress** — item 1.1 done, items 1.2–1.12 remain (types, store, UI, wiring)
+- **Phase 1 in progress** — items 1.1–1.3 done (multi-session WS plumbing, SessionTab type, tabsSlice), items 1.4–1.12 remain (TabBar UI, wiring, keyboard shortcuts)
 - Pi RPC types fully defined in `packages/contracts/` ✅
 - JSONL parser in `packages/shared/` ✅
 - PiProcess class in `apps/server/src/piProcess.ts` ✅ — wraps Bun.spawn of `pi --mode rpc`, uses JsonlParser, typed listeners, command correlation

@@ -5,6 +5,29 @@
 
 ---
 
+## Session 53 — SessionTab type + tabsSlice (2026-03-23)
+
+**What happened:**
+- Added `SessionTab` interface to `packages/contracts/src/sessionTab.ts` — per-tab state type with id, name, sessionId, cwd, model, thinkingLevel, isStreaming, messageCount, createdAt
+- Added `TabsSlice` interface to `apps/web/src/store/types.ts` — tabs array, activeTabId, tabMessages cache, and 7 actions (addTab, removeTab, switchTab, updateTab, getActiveTab, saveActiveTabMessages, syncActiveTabState)
+- Created `apps/web/src/store/tabsSlice.ts` — full implementation with tab ID generation, default naming, per-tab message caching, tab switching (saves current state + restores target), adjacent-tab fallback on remove, active tab state sync
+- Wired tabsSlice into AppStore (store/index.ts) and re-exported types
+- Re-exported `SessionTab` from contracts package index
+
+**Items completed:**
+- [x] 1.2 — Add `SessionTab` type to contracts
+- [x] 1.3 — Add `tabsSlice` to Zustand store
+
+**Issues encountered:**
+- Biome `noNonNullAssertion` flagged `s.activeTabId!` in `saveActiveTabMessages` — fixed by extracting to a const checked earlier (MEMORY #30 pattern)
+
+**Handoff to next session:**
+- Next: 1.4 — Build `TabBar` component
+- The tabsSlice stores per-tab state and message caches. `switchTab` saves current messages and session state to the departing tab and restores the target tab's cached state. But tab switching doesn't yet call `setActiveSession()` on the transport or fetch messages from Pi — that's item 1.5 (wire tab switching).
+- Key files: `packages/contracts/src/sessionTab.ts`, `apps/web/src/store/tabsSlice.ts`, `apps/web/src/store/types.ts`
+
+---
+
 ## Session 52 — Multi-session WS plumbing (2026-03-23)
 
 **What happened:**

@@ -136,6 +136,9 @@ export type {
 	PiSwitchSessionResponse,
 } from "./piResponses.js";
 
+// Session tab types (multi-session UI)
+export type { SessionTab } from "./sessionTab.js";
+
 // WebSocket protocol types (browser ↔ server)
 export { WS_CHANNELS, WS_METHODS } from "./wsProtocol.js";
 export type {
