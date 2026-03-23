@@ -220,6 +220,9 @@
 | 208 | `SessionTab` type in `packages/contracts/src/sessionTab.ts` | Client-side tab representation: `{ id, name, sessionId, cwd, model, thinkingLevel, isStreaming, messageCount, createdAt }`. Server doesn't know about tabs — tabs are purely a UI concept. | 2026-03-23 |
 | 209 | `TabsSlice` manages per-tab message caching and tab ↔ session state sync | `tabMessages: Map<string, ChatMessage[]>` stores inactive tabs' messages. `switchTab()` saves current messages to map, restores target's cached messages to the global `messages` slice. `syncActiveTabState()` copies SessionSlice fields (sessionId, model, isStreaming, etc.) to the active tab's metadata. `saveActiveTabMessages()` snapshots messages without switching. | 2026-03-23 |
 | 210 | Tab IDs are client-generated (`tab-1`, `tab-2`, ...), not Pi session IDs | Tabs are a UI concept. `SessionTab.sessionId` links a tab to its Pi session. A tab can exist before its session starts (`sessionId: null`). Tab ID is stable across session lifecycle. | 2026-03-23 |
+| 211 | TabBar auto-hides when ≤1 tab exists, shows when ≥2 tabs | Component returns `null` when `tabs.length <= 1`. Tab bar only appears when user has opened multiple sessions. Avoids wasting vertical space for single-session usage. | 2026-03-23 |
+| 212 | TabItem uses `<div role="tab">` not `<button>` to allow nested close `<button>` | HTML forbids `<button>` inside `<button>`. TabItem is a `<div>` with `role="tab"`, `tabIndex={0}`, and keyboard handling (Enter/Space). Close button is a proper `<button>` nested inside. | 2026-03-23 |
+| 213 | `shortModelName()` strips provider prefixes (claude-, gpt-, gemini-) for compact display | Model badge in tab shows shortened name. Truncates to 10 chars + ellipsis if still long. Keeps tabs compact. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -323,7 +326,7 @@ All core features are shipped. See `.plan/archive/PLAN-v1.md` for the 97-item bu
 ## What's Not Built Yet (v2 Plan)
 
 - Multi-session WS plumbing complete ✅ — `WsRequest.sessionId` for targeting, `WsConnectionData.sessionIds` for tracking, push events wrapped with sessionId, `WsTransport.setActiveSession()` for client, `keepExisting` flag on session.start
-- **Phase 1 in progress** — items 1.1–1.3 done (multi-session WS plumbing, SessionTab type, tabsSlice), items 1.4–1.12 remain (TabBar UI, wiring, keyboard shortcuts)
+- **Phase 1 in progress** — items 1.1–1.4 done (multi-session WS plumbing, SessionTab type, tabsSlice, TabBar component), items 1.5–1.12 remain (wiring, keyboard shortcuts)
 - Pi RPC types fully defined in `packages/contracts/` ✅
 - JSONL parser in `packages/shared/` ✅
 - PiProcess class in `apps/server/src/piProcess.ts` ✅ — wraps Bun.spawn of `pi --mode rpc`, uses JsonlParser, typed listeners, command correlation

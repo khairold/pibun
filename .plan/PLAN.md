@@ -3,7 +3,7 @@
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
 > **Status:** In Progress
 > **Current Phase:** Phase 1 — Multi-Session & Tabs
-> **Last Session:** Session 53 — 2026-03-23
+> **Last Session:** Session 54 — 2026-03-23
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -35,7 +35,7 @@
 - [x] 1.1 — Extend `PiRpcManager` to support multiple concurrent sessions (currently supports multiple but UI is single-session)
 - [x] 1.2 — Add `SessionTab` type to contracts: `{ id, name, cwd, model, isStreaming, isActive, messageCount, createdAt }`
 - [x] 1.3 — Add `tabsSlice` to Zustand store: `tabs: SessionTab[]`, `activeTabId`, `addTab`, `removeTab`, `switchTab`, `updateTab`
-- [ ] 1.4 — Build `TabBar` component: horizontal tabs with session name, model badge, streaming indicator, close button, "+" new tab button
+- [x] 1.4 — Build `TabBar` component: horizontal tabs with session name, model badge, streaming indicator, close button, "+" new tab button
 - [ ] 1.5 — Wire tab switching: switching tab saves current messages to tab state, loads target tab's messages from Pi via `get_messages`
 - [ ] 1.6 — Wire new tab: creates new Pi process via `session.start`, adds tab, switches to it
 - [ ] 1.7 — Wire close tab: stops Pi process via `session.stop`, removes tab, switches to adjacent tab (or empty state if last tab)

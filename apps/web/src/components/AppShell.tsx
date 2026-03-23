@@ -20,6 +20,7 @@ import { ModelSelector } from "@/components/ModelSelector";
 import { SessionStats } from "@/components/SessionStats";
 import { Sidebar } from "@/components/Sidebar";
 import { StatusBar } from "@/components/StatusBar";
+import { TabBar } from "@/components/TabBar";
 import { ThinkingSelector } from "@/components/ThinkingSelector";
 import { ToastContainer } from "@/components/ToastContainer";
 import { UpdateBanner } from "@/components/UpdateBanner";
@@ -46,6 +47,9 @@ export function AppShell() {
 
 			{/* Main chat area */}
 			<main className="flex min-w-0 flex-1 flex-col">
+				{/* Tab bar — shown when multiple tabs are open */}
+				<TabBar />
+
 				<ConnectionBanner />
 				<ErrorBanner />
 				<UpdateBanner />

@@ -5,6 +5,31 @@
 
 ---
 
+## Session 54 — TabBar component (2026-03-23)
+
+**What happened:**
+- Built `TabBar` component at `apps/web/src/components/TabBar.tsx` — horizontal tab strip for multi-session UI
+- `TabItem` (memoized) renders each tab with: session name (truncated), model badge (shortened provider prefix), streaming indicator (pulsing blue dot), close button (visible on hover for inactive, always for active)
+- TabBar auto-hides when ≤1 tab, shows "+" new tab button, scrollable overflow
+- Outer tab element uses `<div role="tab">` (not `<button>`) to allow nested close `<button>` — valid HTML
+- `shortModelName()` strips `claude-`/`gpt-`/`gemini-` prefixes, truncates at 12 chars
+- Integrated TabBar into AppShell at top of main area (above ConnectionBanner/ErrorBanner)
+- Fixed Biome lint: `useSemanticElements` required `<button>` instead of `<span role="button">` for close button
+- Ran `bun run format` for Biome auto-formatting
+
+**Items completed:**
+- [x] 1.4 — Build `TabBar` component
+
+**Issues encountered:**
+- Nested `<button>` inside `<button>` is invalid HTML — restructured to `<div role="tab">` with keyboard handling as outer container
+
+**Handoff to next session:**
+- Next: 1.5 — Wire tab switching: switching tab saves current messages to tab state, loads target tab's messages from Pi via `get_messages`
+- TabBar is purely visual right now. `addTab` and `switchTab` call the tabsSlice actions directly, but they don't create Pi sessions or call `setActiveSession()` on the transport. Item 1.5 needs to wire: (1) `switchTab` → `transport.setActiveSession(tab.sessionId)` to route WS requests, (2) fetch messages from Pi via `get_messages` for tabs that were never cached locally
+- Key files: `apps/web/src/components/TabBar.tsx`, `apps/web/src/components/AppShell.tsx`
+
+---
+
 ## Session 53 — SessionTab type + tabsSlice (2026-03-23)
 
 **What happened:**
