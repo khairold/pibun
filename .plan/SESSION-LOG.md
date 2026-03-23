@@ -634,3 +634,44 @@
 - Consider: markdown rendering (1D.4) and syntax highlighting (1D.3) are high-impact items that will significantly improve the chat experience
 
 ---
+
+## Session 19 — Thinking Blocks + Tool Execution Cards (2026-03-23)
+
+**What happened:**
+- Enhanced `AssistantMessage.tsx` thinking section (1D.1):
+  - Auto-expand thinking section while streaming (thinking arriving, no content yet)
+  - Auto-collapse when main content starts, unless user explicitly toggled
+  - `userToggledRef` pattern prevents auto-behavior from overriding manual toggle
+  - Brain icon with pulse animation during active thinking
+  - Character count indicator (e.g., "2.3k chars") shown when collapsed and not streaming
+  - Indigo tint for active thinking section (indigo-500/30 border, indigo-950/20 bg)
+  - Increased max-height from 60 to 80 for more content visibility
+- Created `ToolExecutionCard.tsx` (1D.2) — unified card combining tool_call + tool_result:
+  - Header: tool emoji icon + name + tool-specific args summary + status badge + chevron
+  - Tool-specific summaries: bash=command, read/edit/write=path, glob/grep=pattern
+  - Three status states: running (blue pulse dot), success (green check), error (red X)
+  - Expandable body: args JSON + output with collapsible long output (12-line threshold)
+  - Collapsed view: first output line preview or "Running..." indicator
+  - Visual distinction: blue border while running, red border on error, neutral when done
+- Updated `ChatView.tsx` to group tool_call + tool_result into unified items:
+  - `groupMessages()` function scans message array, pairs adjacent tool_call + tool_result
+  - `ChatItem` union type: `{ kind: "message" }` | `{ kind: "tool_group" }`
+  - `ChatItemRenderer` dispatches to ToolExecutionCard or MessageItem
+  - Memoized with `useMemo` to avoid re-grouping on every render
+  - Original ToolCallMessage/ToolResultMessage retained as fallback for orphan messages
+
+**Items completed:**
+- [x] 1D.1 — Thinking blocks (collapsible section, streaming via thinking_delta)
+- [x] 1D.2 — Tool call cards (tool name + args header, expandable output body)
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1D.3 — Syntax highlighting for code blocks (Shiki, lazy-loaded per language)
+- Consider doing 1D.3 + 1D.4 (markdown rendering) together since they're closely related
+- Shiki needs to be lazy-loaded per language to avoid large upfront bundle
+- react-markdown with rehype-shiki or similar integration for rendering
+- Current assistant text is `whitespace-pre-wrap` in a `<p>` — needs to become proper markdown
+
+---

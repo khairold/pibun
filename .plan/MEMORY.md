@@ -92,6 +92,10 @@
 | 82 | E2E test at `apps/server/src/e2e-test.ts` validates entire browser-to-Pi chain | 44 checks: web build (dist exists, index.html, JS bundle), static serving (GET /, /health, SPA fallback, 404 for missing), WebSocket (connect, welcome, session start/stop), streaming (agent lifecycle, message events, text_delta, tool execution), wireTransport.ts compatibility (all events have correct structure). | 2026-03-23 |
 | 83 | `tool_execution_update` events are optional — fast tools skip them | Pi's `read` tool completes instantly, so it goes `tool_execution_start` → `tool_execution_end` with no `tool_execution_update` events in between. Only longer-running tools (like `bash`) emit intermediate updates. UI code must handle both paths. | 2026-03-23 |
 | 84 | Phase 1C COMPLETE — all 15 items done, exit criteria verified | Working chat (server + WS + streaming), text_delta accumulation correct, tool calls visible (start/end events), session auto-starts, web app builds and serves via HTTP with SPA routing. | 2026-03-23 |
+| 85 | AssistantMessage thinking auto-expands while streaming, auto-collapses when content starts | Uses `useEffect` + `userToggledRef` pattern: auto-expand when `isThinkingActive` (streaming + has thinking + no content), auto-collapse when content arrives, but user's explicit toggle overrides auto-behavior. Brain icon with pulse animation while thinking, character count shown when collapsed. Indigo tint for active thinking section. | 2026-03-23 |
+| 86 | ToolExecutionCard unifies tool_call + tool_result into single card | ChatView `groupMessages()` scans message array and pairs adjacent tool_call + tool_result into `tool_group` items. ToolExecutionCard renders as one card with header (icon + name + args summary + status badge) and expandable body (args + output). Three states: running (blue border, pulse), success (green check), error (red border, X icon). Collapsed view shows first output line preview or running indicator. | 2026-03-23 |
+| 87 | Tool-specific arg summaries in ToolExecutionCard header | `bash` shows command, `read/edit/write` show path, `glob/grep` show pattern. Falls back to generic first-arg display. Makes collapsed tool cards immediately informative. | 2026-03-23 |
+| 88 | ChatView uses `ChatItem` union type for grouped rendering | `ChatItem = { kind: "message" } \| { kind: "tool_group" }`. `groupMessages()` produces the list, memoized with `useMemo`. `ChatItemRenderer` dispatches to MessageItem or ToolExecutionCard. Original ToolCallMessage/ToolResultMessage kept as fallback for orphan messages. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -225,7 +229,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - `lastError`/`setLastError`/`clearLastError` added to ConnectionSlice ✅
 - E2E test at `apps/server/src/e2e-test.ts` — 44 checks verifying full browser-to-Pi chain
 - **Phase 1C COMPLETE** — all items done, exit criteria met
-- Next: Phase 1D — Web UI: Full Features (thinking blocks, markdown, syntax highlighting, model selector, etc.)
+- Phase 1D in progress — thinking blocks (1D.1) and tool call cards (1D.2) complete
+- Next: 1D.3 — Syntax highlighting for code blocks (Shiki)
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings

@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 1C COMPLETE. Phase 1D ready to begin.
+> **Status:** Phase 1D in progress — thinking blocks + tool cards done.
 > **Current Phase:** 1D
-> **Last Session:** 18 (2026-03-23)
+> **Last Session:** 19 (2026-03-23)
 
 ---
 
@@ -124,8 +124,8 @@
 
 **Goal:** Feature-complete web experience with all Pi capabilities exposed.
 
-- [ ] 1D.1 — Thinking blocks (collapsible section, streaming via thinking_delta)
-- [ ] 1D.2 — Tool call cards (tool name + args header, expandable output body)
+- [x] 1D.1 — Thinking blocks (collapsible section, streaming via thinking_delta)
+- [x] 1D.2 — Tool call cards (tool name + args header, expandable output body)
 - [ ] 1D.3 — Syntax highlighting for code blocks (Shiki, lazy-loaded per language)
 - [ ] 1D.4 — Markdown rendering for assistant text (react-markdown or similar)
 - [ ] 1D.5 — Tool-specific output rendering: `bash` as terminal, `read` as highlighted code with path, `edit` as diff view, `write` as file preview
