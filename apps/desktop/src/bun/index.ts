@@ -19,6 +19,7 @@ import { type PiBunServer, broadcastPush, createServer } from "@pibun/server/ser
 import Electrobun, { ApplicationMenu, BrowserWindow, Utils } from "electrobun/bun";
 import { type MenuAction, buildMenuConfig, createMenuClickHandler } from "./menu";
 import { initNotifications } from "./notifications";
+import { handleApplyUpdate, handleCheckForUpdates, initUpdater, stopUpdater } from "./updater";
 import {
 	type WindowFrame,
 	debouncedSaveWindowState,
@@ -207,6 +208,10 @@ function startServer(): { server: PiBunServer; url: string } {
 		hostname: "localhost",
 		staticDir: WEB_DIST_DIR,
 		rpcManager,
+		hooks: {
+			onApplyUpdate: () => handleApplyUpdate(),
+			onCheckForUpdates: () => handleCheckForUpdates(),
+		},
 	});
 
 	// Bun.serve() with port 0 assigns a random available port.
@@ -236,6 +241,9 @@ async function shutdown(reason: string): Promise<void> {
 	isShuttingDown = true;
 
 	console.log(`Shutting down (${reason})...`);
+
+	// Stop the auto-updater (clears periodic timers)
+	stopUpdater();
 
 	// In dev mode, there's no embedded server to stop
 	if (pibunServer) {
@@ -443,6 +451,12 @@ async function bootstrap(): Promise<void> {
 		console.log(`[Menu] Action: ${action}`);
 
 		switch (action) {
+			// ── App-level actions ────────────────────────────────────
+			case "app.check-for-updates": {
+				handleCheckForUpdates();
+				break;
+			}
+
 			// ── Native-only actions ──────────────────────────────────
 			case "file.close-window": {
 				// Trigger window close → which triggers shutdown via wireWindowLifecycle
@@ -494,6 +508,15 @@ async function bootstrap(): Promise<void> {
 	if (pibunServer) {
 		initNotifications(mainWindow, pibunServer.config.rpcManager);
 		console.log("[Notifications] System notifications enabled");
+	}
+
+	// Step 7b: Initialize auto-updater
+	// Checks for updates on startup (after 10s delay) and periodically (every 4h).
+	// "Check for Updates…" menu action also triggers a manual check.
+	// Update status is broadcast to the web app via the `app.update` WS push channel.
+	if (pibunServer) {
+		initUpdater(pibunServer);
+		console.log("[Updater] Auto-updater initialized");
 	}
 
 	// Step 8: Wire signal handlers for graceful shutdown

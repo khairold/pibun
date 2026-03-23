@@ -22,6 +22,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { StatusBar } from "@/components/StatusBar";
 import { ThinkingSelector } from "@/components/ThinkingSelector";
 import { ToastContainer } from "@/components/ToastContainer";
+import { UpdateBanner } from "@/components/UpdateBanner";
 import { ExtensionDialog } from "@/components/extension";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useStore } from "@/store";
@@ -47,6 +48,7 @@ export function AppShell() {
 			<main className="flex min-w-0 flex-1 flex-col">
 				<ConnectionBanner />
 				<ErrorBanner />
+				<UpdateBanner />
 
 				{/* Toolbar — sidebar toggle + model/thinking selectors + session management */}
 				<div className="flex items-center gap-2 border-b border-neutral-800 px-4 py-2">

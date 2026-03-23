@@ -5,6 +5,7 @@
  * The dispatch function in server.ts looks up methods from this registry.
  */
 
+import { handleAppApplyUpdate, handleAppCheckForUpdates } from "./app.js";
 import {
 	handleExtensionUiResponse,
 	handleSessionAbort,
@@ -70,4 +71,8 @@ export const handlers: HandlerRegistry = {
 	// Session listing (server-side)
 	"session.listSessions": handleSessionListSessions,
 	"session.switchSession": handleSessionSwitchSession,
+
+	// App-level (desktop integration)
+	"app.applyUpdate": handleAppApplyUpdate,
+	"app.checkForUpdates": handleAppCheckForUpdates,
 };

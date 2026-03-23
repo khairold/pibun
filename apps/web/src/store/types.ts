@@ -8,6 +8,7 @@
 
 import type { TransportState } from "@/transport";
 import type {
+	AppUpdateStatus,
 	PiExtensionDialogRequest,
 	PiModel,
 	PiSessionStats,
@@ -219,6 +220,31 @@ export interface NotificationsSlice {
 	clearStatuses: () => void;
 }
 
+/** Update state — auto-updater status from desktop main process. */
+export interface UpdateSlice {
+	/** Current update status. */
+	updateStatus: AppUpdateStatus | null;
+	/** Human-readable update message. */
+	updateMessage: string;
+	/** New version string, if an update is available. */
+	updateVersion: string | null;
+	/** Download progress percentage (0–100), null when not downloading. */
+	updateProgress: number | null;
+	/** Error message from the updater. */
+	updateError: string | null;
+
+	/** Set the full update state from an `app.update` push. */
+	setUpdateState: (
+		status: AppUpdateStatus,
+		message: string,
+		version?: string,
+		progress?: number,
+		error?: string,
+	) => void;
+	/** Clear the update notification (dismiss by user). */
+	dismissUpdate: () => void;
+}
+
 /** UI state — layout toggles and transient UI state. */
 export interface UiSlice {
 	/** Whether the sidebar is visible. Defaults to true on desktop, false on mobile. */
@@ -241,4 +267,5 @@ export type AppStore = ConnectionSlice &
 	ModelsSlice &
 	ExtensionUiSlice &
 	NotificationsSlice &
+	UpdateSlice &
 	UiSlice;

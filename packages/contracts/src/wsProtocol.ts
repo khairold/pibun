@@ -55,6 +55,10 @@ export const WS_METHODS = {
 	// Session listing (server-side, not Pi RPC)
 	sessionListSessions: "session.listSessions",
 	sessionSwitchSession: "session.switchSession",
+
+	// App-level (desktop integration)
+	appApplyUpdate: "app.applyUpdate",
+	appCheckForUpdates: "app.checkForUpdates",
 } as const;
 
 /** Union of all WebSocket method strings. */
@@ -76,6 +80,8 @@ export const WS_CHANNELS = {
 	serverError: "server.error",
 	/** Native menu action forwarded from desktop app. */
 	menuAction: "menu.action",
+	/** App update status from desktop auto-updater. */
+	appUpdate: "app.update",
 } as const;
 
 /** Union of all push channel strings. */
@@ -193,6 +199,8 @@ export interface WsMethodParamsMap {
 	"session.extensionUiResponse": WsSessionExtensionUiResponseParams;
 	"session.listSessions": undefined;
 	"session.switchSession": WsSessionSwitchSessionParams;
+	"app.applyUpdate": undefined;
+	"app.checkForUpdates": undefined;
 }
 
 // ============================================================================
@@ -304,6 +312,8 @@ export interface WsMethodResultMap {
 	"session.extensionUiResponse": WsOkResult;
 	"session.listSessions": WsSessionListSessionsResult;
 	"session.switchSession": WsSessionSwitchSessionResult;
+	"app.applyUpdate": WsOkResult;
+	"app.checkForUpdates": WsOkResult;
 }
 
 // ============================================================================
@@ -333,6 +343,33 @@ export interface WsMenuActionData {
 	data?: Record<string, unknown>;
 }
 
+/**
+ * Update status types for the auto-updater.
+ */
+export type AppUpdateStatus =
+	| "checking"
+	| "no-update"
+	| "update-available"
+	| "downloading"
+	| "download-progress"
+	| "update-ready"
+	| "applying"
+	| "error";
+
+/**
+ * Data for `app.update` push — auto-update status from desktop main process.
+ */
+export interface WsAppUpdateData {
+	status: AppUpdateStatus;
+	message: string;
+	/** The new version string, if available. */
+	newVersion?: string;
+	/** Download progress percentage (0–100). */
+	progress?: number;
+	/** Error message when status is "error". */
+	error?: string;
+}
+
 // ============================================================================
 // Channel → Data Type Map
 // ============================================================================
@@ -347,6 +384,7 @@ export interface WsChannelDataMap {
 	"server.welcome": WsServerWelcomeData;
 	"server.error": WsServerErrorData;
 	"menu.action": WsMenuActionData;
+	"app.update": WsAppUpdateData;
 }
 
 // ============================================================================

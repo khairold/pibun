@@ -24,6 +24,7 @@ import { createNotificationsSlice } from "./notificationsSlice";
 import { createSessionSlice } from "./sessionSlice";
 import type { AppStore } from "./types";
 import { createUiSlice } from "./uiSlice";
+import { createUpdateSlice } from "./updateSlice";
 
 /** The main application store. Use selectors for fine-grained reactivity. */
 export const useStore = create<AppStore>()((...a) => ({
@@ -33,6 +34,7 @@ export const useStore = create<AppStore>()((...a) => ({
 	...createModelsSlice(...a),
 	...createExtensionUiSlice(...a),
 	...createNotificationsSlice(...a),
+	...createUpdateSlice(...a),
 	...createUiSlice(...a),
 }));
 
@@ -46,4 +48,5 @@ export type {
 	NotificationsSlice,
 	SessionSlice,
 	UiSlice,
+	UpdateSlice,
 } from "./types";

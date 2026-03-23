@@ -20,6 +20,9 @@ import type { ApplicationMenuItemConfig } from "electrobun/bun";
  * These are matched in the `application-menu-clicked` event handler.
  */
 export const MENU_ACTIONS = {
+	// PiBun (App menu)
+	checkForUpdates: "app.check-for-updates",
+
 	// File
 	newSession: "file.new-session",
 	openFolder: "file.open-folder",
@@ -61,6 +64,10 @@ export function buildMenuConfig(): ApplicationMenuItemConfig[] {
 		{
 			submenu: [
 				{ label: "About PiBun", role: "about" },
+				{
+					label: "Check for Updates…",
+					action: MENU_ACTIONS.checkForUpdates,
+				},
 				{ type: "separator" },
 				{ label: "Hide PiBun", role: "hide" },
 				{ label: "Hide Others", role: "hideOthers" },

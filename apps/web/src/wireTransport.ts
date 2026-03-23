@@ -513,6 +513,16 @@ export function initTransport(): () => void {
 	// menu.action → dispatch native menu actions from desktop
 	cleanups.push(transport.subscribe("menu.action", handleMenuAction));
 
+	// app.update → update slice (auto-updater status from desktop)
+	cleanups.push(
+		transport.subscribe("app.update", (data) => {
+			console.log(`[PiBun] Update status: ${data.status} — ${data.message}`);
+			useStore
+				.getState()
+				.setUpdateState(data.status, data.message, data.newVersion, data.progress, data.error);
+		}),
+	);
+
 	return () => {
 		for (const cleanup of cleanups) {
 			cleanup();

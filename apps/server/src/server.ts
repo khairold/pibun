@@ -33,6 +33,18 @@ export interface WsConnectionData {
 	connectedAt: number;
 }
 
+/**
+ * Optional hooks for desktop integration.
+ * These callbacks are set by the desktop main process when embedding the server.
+ * In standalone server mode, they are null.
+ */
+export interface ServerHooks {
+	/** Called when the web app requests `app.applyUpdate`. */
+	onApplyUpdate?: () => void;
+	/** Called when the web app requests `app.checkForUpdates`. */
+	onCheckForUpdates?: () => void;
+}
+
 /** Options for creating the server. */
 export interface ServerOptions {
 	/** Port to listen on (default: 24242). */
@@ -43,6 +55,8 @@ export interface ServerOptions {
 	staticDir?: string;
 	/** Pi RPC manager for session management. */
 	rpcManager: PiRpcManager;
+	/** Optional hooks for desktop integration (auto-update, etc.). */
+	hooks?: ServerHooks;
 }
 
 /** Resolved and normalized server configuration. */
@@ -51,6 +65,7 @@ export interface ServerConfig {
 	hostname: string;
 	staticDir: string | null;
 	rpcManager: PiRpcManager;
+	hooks: ServerHooks;
 }
 
 /** The running PiBun server instance. */
@@ -177,7 +192,7 @@ export function createServer(options: ServerOptions): PiBunServer {
 			message(ws, message) {
 				// Parse and dispatch the incoming WebSocket message.
 				// Errors are caught and returned as WsResponseError.
-				handleWsMessage(ws, message, config.rpcManager, connections);
+				handleWsMessage(ws, message, config.rpcManager, connections, config.hooks);
 			},
 
 			close(ws, _code, _reason) {
@@ -221,6 +236,7 @@ function handleWsMessage(
 	message: string | Buffer,
 	rpcManager: PiRpcManager,
 	connections: Set<ServerWebSocket<WsConnectionData>>,
+	hooks: ServerHooks,
 ): void {
 	let requestId = "unknown";
 
@@ -252,6 +268,7 @@ function handleWsMessage(
 			rpcManager,
 			connections,
 			sendPush,
+			hooks,
 		};
 
 		// Call the handler (may be sync or async)
@@ -404,5 +421,6 @@ function resolveConfig(options: ServerOptions): ServerConfig {
 		hostname,
 		staticDir,
 		rpcManager: options.rpcManager,
+		hooks: options.hooks ?? {},
 	};
 }

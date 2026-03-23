@@ -151,6 +151,7 @@ export type {
 	WsResponse,
 	WsResponseError,
 	WsResponseOk,
+	WsAppUpdateData,
 	WsMenuActionData,
 	WsServerErrorData,
 	WsServerMessage,
@@ -182,4 +183,5 @@ export type {
 	WsTypedRequest,
 	WsTypedResponse,
 	WsTypedResponseOk,
+	AppUpdateStatus,
 } from "./wsProtocol.js";

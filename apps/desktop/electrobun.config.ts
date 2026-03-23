@@ -8,6 +8,12 @@ const shouldCodesign = !!process.env.ELECTROBUN_DEVELOPER_ID;
 const shouldNotarize =
 	shouldCodesign && !!(process.env.ELECTROBUN_APPLEID || process.env.ELECTROBUN_APPLEAPIISSUER);
 
+// Base URL for auto-update artifact distribution.
+// In production, this should point to the GitHub Releases URL or a CDN.
+// The Updater fetches <baseUrl>/<prefix>-update.json to check for updates.
+const releaseBaseUrl =
+	process.env.PIBUN_RELEASE_URL || "https://github.com/pibun/pibun/releases/download/latest";
+
 export default {
 	app: {
 		name: "PiBun",
@@ -54,6 +60,12 @@ export default {
 	// Build the web app before packaging. Script runs via Bun from apps/desktop/.
 	scripts: {
 		preBuild: "scripts/prebuild.ts",
+	},
+	// Release and distribution configuration for auto-updates.
+	// Electrobun's Updater fetches update.json from this URL to check for
+	// new versions. Patches (bsdiff) are also served from here.
+	release: {
+		baseUrl: releaseBaseUrl,
 	},
 	runtime: {
 		// We manage shutdown ourselves — window close triggers graceful

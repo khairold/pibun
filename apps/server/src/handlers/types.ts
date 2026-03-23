@@ -8,7 +8,7 @@
 import type { WsChannel, WsMethod, WsMethodParamsMap, WsMethodResultMap } from "@pibun/contracts";
 import type { ServerWebSocket } from "bun";
 import type { PiRpcManager } from "../piRpcManager.js";
-import type { WsConnectionData } from "../server.js";
+import type { ServerHooks, WsConnectionData } from "../server.js";
 
 // ============================================================================
 // Handler Context
@@ -33,6 +33,8 @@ export interface HandlerContext {
 		channel: WsChannel | string,
 		data: unknown,
 	) => void;
+	/** Optional hooks for desktop integration (auto-update, etc.). */
+	hooks: ServerHooks;
 }
 
 // ============================================================================
