@@ -9,3 +9,4 @@
 - 2026-03-23: [tooling] Turbo 2.8+ broke backward compat with `packageManager` requirement — t3code reference was slightly stale here.
 - 2026-03-23: [tooling] Biome organizeImports has opinions about `node:` builtin ordering that differ from typical convention — need to remember `node:` first when writing imports.
 - 2026-03-23: [docs] Pi RPC docs in our PI_INTEGRATION.md show command format with `"command"` field, but actual Pi 0.61.1 uses `"type"` field for commands. Our docs may need correction in Phase 1A.
+- 2026-03-23: [tooling] `noUncheckedIndexedAccess` + Biome `noNonNullAssertion` creates friction in test files — can't use `arr[0]` (TS error) or `arr[0]!` (Biome error). Need a `lineAt()` helper pattern.

@@ -36,6 +36,8 @@
 | 26 | `PiStdoutLine = PiEvent \| PiResponse` covers all JSONL from Pi stdout | Two top-level discriminants: events have various `type` values, responses always have `type: "response"`. Parse a line, check `type === "response"` first, then narrow to event union. | 2026-03-23 |
 | 27 | Contracts organized as 4 files: piTypes.ts, piEvents.ts, piCommands.ts, piResponses.ts | Base types in piTypes (content, messages, model). Events in piEvents. Commands + extension UI responses in piCommands. Responses in piResponses. All re-exported from index.ts. | 2026-03-23 |
 | 28 | Tool args typed as `Record<string, unknown>` not `any` | Stricter than Pi's source (which uses `any`) but still flexible for varied tool argument shapes. Encourages explicit narrowing at usage sites. | 2026-03-23 |
+| 29 | JSONL parser is a stateful `JsonlParser` class with `feed`/`flush`/`reset` | Follows Pi's own `attachJsonlLineReader` pattern but is framework-agnostic (not tied to Node `Readable`). Callback-based: constructor takes `onLine` callback. Works with any chunk source. | 2026-03-23 |
+| 30 | Test files use `lineAt()` helper instead of non-null assertions for array access | Biome's `noNonNullAssertion` rule forbids `!`. Combined with TS `noUncheckedIndexedAccess`, array indexing needs a safe accessor. `lineAt(lines, i)` throws if out of bounds. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -130,7 +132,7 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 ## What's Not Built Yet
 
 - Pi RPC types fully defined in `packages/contracts/` (piTypes.ts, piEvents.ts, piCommands.ts, piResponses.ts)
-- Next: 1A.4 — implement JSONL parser in `packages/shared/`, then PiProcess + PiRpcManager in `apps/server/`
+- Next: 1A.6 — implement PiProcess class in `apps/server/`, then PiRpcManager
 - Pi RPC verified with Pi 0.61.1 — `get_available_models` and `get_state` work, commands use `{"type":"..."}` format
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 

@@ -101,6 +101,44 @@
 
 ---
 
+## Session 4 — JSONL Parser + Tests (2026-03-23)
+
+**What happened:**
+- Implemented `JsonlParser` class in `packages/shared/src/jsonl.ts`:
+  - Stateful buffer accumulation, strict LF-only splitting, optional `\r` stripping
+  - `feed(chunk)` — processes data, emits complete lines via callback
+  - `flush()` — emits any remaining buffered content (for stream end)
+  - `reset()` — discards buffered content
+  - `serializeJsonl(value)` — serializes a value as `JSON + \n` for writing to Pi stdin
+  - Pattern follows Pi's own `attachJsonlLineReader` but is framework-agnostic (not tied to Node `Readable`)
+- Wrote 34 unit tests in `packages/shared/src/jsonl.test.ts` covering:
+  - Basic parsing (single line, multiple lines, valid JSON)
+  - Partial lines (split across 2-3 chunks, many small chunks)
+  - Unicode line separators (U+2028, U+2029 preserved inside JSON strings)
+  - Empty lines (skipped between records, leading, trailing)
+  - Rapid multi-line (100 lines in one chunk, interleaved boundaries)
+  - CRLF handling (normalized, mixed, bare `\r` preserved)
+  - Flush behavior (unterminated lines, empty buffer, post-complete)
+  - Reset behavior (discards buffer)
+  - Serialization (objects, primitives, round-trip, Unicode round-trip)
+- Fixed TS strict mode + Biome lint conflict: `noUncheckedIndexedAccess` requires narrowing array access, but Biome forbids `!` assertions → created `lineAt()` safe accessor helper
+
+**Items completed:**
+- [x] 1A.4 — Implement JSONL parser in `packages/shared/`
+- [x] 1A.5 — Write unit tests for JSONL parser
+
+**Issues encountered:**
+- `noUncheckedIndexedAccess` + Biome `noNonNullAssertion` tension in tests — resolved with `lineAt()` helper
+
+**Handoff to next session:**
+- Next: 1A.6 — Implement `PiProcess` class in `apps/server/`
+- `PiProcess` wraps `Bun.spawn()` of `pi --mode rpc`, uses `JsonlParser` for stdout, handles lifecycle
+- Then 1A.7 (PiRpcManager), 1A.8 (crash handling), 1A.9 (tests), 1A.10 (manual integration test)
+- Use `@pibun/shared/jsonl` import path for the parser
+- Bun's `Bun.spawn()` provides stdout as `ReadableStream` — need to pipe chunks through `JsonlParser.feed()`
+
+---
+
 ## Session 3 — Pi RPC Contract Types (2026-03-23)
 
 **What happened:**
