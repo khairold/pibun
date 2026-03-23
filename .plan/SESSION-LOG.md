@@ -98,3 +98,32 @@
 - Read `reference/pi-mono/packages/coding-agent/docs/rpc.md` for authoritative event type definitions
 - Key: Pi RPC commands use `{"type": "command_name"}` format, responses use `{"type": "response", "command": "..."}`
 - All source files are stubs — real implementation starts in Phase 1A
+
+---
+
+## Session 3 — Pi RPC Contract Types (2026-03-23)
+
+**What happened:**
+- Defined complete Pi RPC type system in `packages/contracts/` across 4 files:
+  - `piTypes.ts` — Base types: content blocks (text, thinking, image, toolCall), messages (user, assistant, toolResult, bashExecution), model, usage, session state, compaction/bash/session stats results, slash commands, thinking levels, stop reasons
+  - `piEvents.ts` — 16 event types: agent lifecycle, turn lifecycle, message lifecycle, tool execution, auto-compaction, auto-retry, extension error, extension UI requests (9 methods: select, confirm, input, editor, notify, setStatus, setWidget, setTitle, set_editor_text)
+  - `piCommands.ts` — 24 command types: prompting, state, model, thinking, queue modes, compaction, retry, bash, session management, slash commands. Plus 3 extension UI response types (value, confirm, cancel)
+  - `piResponses.ts` — Per-command success responses + generic error response. `PiStdoutLine` union covers all possible JSONL from Pi stdout
+  - `index.ts` — Re-exports all types (~80 type exports)
+- All types are pure TypeScript interfaces/types — zero runtime code (Decision 12)
+- Types modeled from authoritative Pi source (`reference/pi-mono/packages/coding-agent/src/modes/rpc/rpc-types.ts` and `rpc.md`)
+- Verified: `bun run typecheck` passes, `bun run lint` passes, types importable from `@pibun/contracts`
+
+**Items completed:**
+- [x] 1A.1 — Define Pi RPC event types in `packages/contracts/`
+- [x] 1A.2 — Define Pi RPC command types in `packages/contracts/`
+- [x] 1A.3 — Define Pi RPC response type in `packages/contracts/`
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1A.4 — Implement JSONL parser in `packages/shared/`
+- The parser must split on `\n` only — see CONVENTIONS.md for the exact pattern
+- `packages/shared/src/jsonl.ts` already exists as a stub with the correct export path (`@pibun/shared/jsonl`)
+- After JSONL parser: 1A.5 (unit tests), then 1A.6 (PiProcess class in server)

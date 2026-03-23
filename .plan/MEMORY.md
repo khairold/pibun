@@ -32,6 +32,10 @@
 | 22 | esbuild also needs `bun pm trust` (pulled in by Vite) | Added `esbuild` to `trustedDependencies` in root package.json alongside `@biomejs/biome`. | 2026-03-23 |
 | 23 | Biome import organizer: `node:` builtins first, then `@scoped`, then bare specifiers | Biome's `organizeImports` enforces `node:path` before `@tailwindcss/vite` before `vite`. Follow this in all files. | 2026-03-23 |
 | 24 | Web app uses `@/` path alias for src-relative imports | Configured in both `tsconfig.json` (paths) and `vite.config.ts` (resolve.alias). Pattern: `import { Foo } from "@/components/Foo"`. | 2026-03-23 |
+| 25 | Contracts types use `Pi` prefix for all exported names | e.g., `PiEvent`, `PiCommand`, `PiResponse`, `PiModel`, `PiTextContent`. Avoids collisions with React/DOM/library types and makes Pi-origin clear at usage sites. | 2026-03-23 |
+| 26 | `PiStdoutLine = PiEvent \| PiResponse` covers all JSONL from Pi stdout | Two top-level discriminants: events have various `type` values, responses always have `type: "response"`. Parse a line, check `type === "response"` first, then narrow to event union. | 2026-03-23 |
+| 27 | Contracts organized as 4 files: piTypes.ts, piEvents.ts, piCommands.ts, piResponses.ts | Base types in piTypes (content, messages, model). Events in piEvents. Commands + extension UI responses in piCommands. Responses in piResponses. All re-exported from index.ts. | 2026-03-23 |
+| 28 | Tool args typed as `Record<string, unknown>` not `any` | Stricter than Pi's source (which uses `any`) but still flexible for varied tool argument shapes. Encourages explicit narrowing at usage sites. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -125,8 +129,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 
 ## What's Not Built Yet
 
-- Monorepo scaffold exists but all source files are stubs (empty exports / console.log placeholders)
-- Next: Phase 1A — define Pi RPC types in contracts, implement JSONL parser in shared, build PiProcess + PiRpcManager in server
+- Pi RPC types fully defined in `packages/contracts/` (piTypes.ts, piEvents.ts, piCommands.ts, piResponses.ts)
+- Next: 1A.4 — implement JSONL parser in `packages/shared/`, then PiProcess + PiRpcManager in `apps/server/`
 - Pi RPC verified with Pi 0.61.1 — `get_available_models` and `get_state` work, commands use `{"type":"..."}` format
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
