@@ -11,6 +11,7 @@
  * - Error: result finalized, isError === true → red border, error icon
  */
 
+import { ToolOutput } from "@/components/chat/tools/ToolOutput";
 import { cn } from "@/lib/cn";
 import type { ChatMessage } from "@/store/types";
 import { memo, useCallback, useState } from "react";
@@ -41,20 +42,18 @@ function getToolStatus(toolResult: ChatMessage | null): ToolStatus {
 	return "success";
 }
 
+/** Tool names that have specialized output renderers. */
+const SPECIALIZED_TOOLS = new Set(["bash", "read", "edit", "write"]);
+
 export const ToolExecutionCard = memo(function ToolExecutionCard({
 	toolCall,
 	toolResult,
 }: ToolExecutionCardProps) {
 	const [expanded, setExpanded] = useState(false);
-	const [outputExpanded, setOutputExpanded] = useState(false);
 	const tc = toolCall.toolCall;
 
 	const toggleExpanded = useCallback(() => {
 		setExpanded((prev) => !prev);
-	}, []);
-
-	const toggleOutputExpanded = useCallback(() => {
-		setOutputExpanded((prev) => !prev);
 	}, []);
 
 	if (!tc) return null;
@@ -62,14 +61,10 @@ export const ToolExecutionCard = memo(function ToolExecutionCard({
 	const icon = TOOL_ICONS[tc.name] ?? "🔧";
 	const hasArgs = Object.keys(tc.args).length > 0;
 	const status = getToolStatus(toolResult);
+	const isSpecialized = SPECIALIZED_TOOLS.has(tc.name);
 	const resultContent = toolResult?.toolResult?.content ?? "";
 	const hasOutput = resultContent.length > 0;
 	const outputLines = resultContent.split("\n");
-	const isLongOutput = outputLines.length > OUTPUT_COLLAPSE_THRESHOLD;
-	const displayOutput =
-		!outputExpanded && isLongOutput
-			? outputLines.slice(0, OUTPUT_COLLAPSE_THRESHOLD).join("\n")
-			: resultContent;
 
 	return (
 		<div
@@ -112,51 +107,23 @@ export const ToolExecutionCard = memo(function ToolExecutionCard({
 				</span>
 			</button>
 
-			{/* Expanded body: args + output */}
+			{/* Expanded body */}
 			{expanded && (
 				<div className="border-t border-neutral-800">
-					{/* Args section */}
-					{hasArgs && (
-						<div className="border-b border-neutral-800/50 bg-neutral-900/30 px-3 py-2">
-							<pre className="overflow-x-auto text-xs text-neutral-500">
-								{JSON.stringify(tc.args, null, 2)}
-							</pre>
+					{isSpecialized ? (
+						/* Specialized tool output — handles its own layout */
+						<div className="p-2">
+							<ToolOutput toolCall={toolCall} toolResult={toolResult} />
 						</div>
-					)}
-
-					{/* Output section */}
-					<div className="relative">
-						<pre
-							className={cn(
-								"overflow-x-auto px-3 py-2 text-xs leading-relaxed",
-								status === "error" ? "text-red-300" : "text-neutral-300",
-								!hasOutput && "italic text-neutral-600",
-							)}
-						>
-							{displayOutput || (status === "running" ? "Running…" : "(no output)")}
-							{status === "running" && hasOutput && (
-								<span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-blue-400" />
-							)}
-						</pre>
-
-						{/* Fade gradient when collapsed */}
-						{isLongOutput && !outputExpanded && (
-							<div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-neutral-900 to-transparent" />
-						)}
-					</div>
-
-					{/* Expand/collapse toggle for long output */}
-					{isLongOutput && (
-						<button
-							type="button"
-							onClick={toggleOutputExpanded}
-							className={cn(
-								"w-full border-t border-neutral-800 px-3 py-1.5",
-								"text-xs text-neutral-500 transition-colors hover:text-neutral-300",
-							)}
-						>
-							{outputExpanded ? "Show less" : `Show all ${outputLines.length} lines`}
-						</button>
+					) : (
+						/* Default: raw args + raw output */
+						<DefaultExpandedBody
+							tc={tc}
+							hasArgs={hasArgs}
+							resultContent={resultContent}
+							hasOutput={hasOutput}
+							status={status}
+						/>
 					)}
 				</div>
 			)}
@@ -186,6 +153,82 @@ export const ToolExecutionCard = memo(function ToolExecutionCard({
 				</div>
 			)}
 		</div>
+	);
+});
+
+/** Default expanded body for non-specialized tools (raw args + output). */
+const DefaultExpandedBody = memo(function DefaultExpandedBody({
+	tc,
+	hasArgs,
+	resultContent,
+	hasOutput,
+	status,
+}: {
+	tc: { args: Record<string, unknown> };
+	hasArgs: boolean;
+	resultContent: string;
+	hasOutput: boolean;
+	status: ToolStatus;
+}) {
+	const [outputExpanded, setOutputExpanded] = useState(false);
+
+	const toggleOutputExpanded = useCallback(() => {
+		setOutputExpanded((prev) => !prev);
+	}, []);
+
+	const outputLines = resultContent.split("\n");
+	const isLongOutput = outputLines.length > OUTPUT_COLLAPSE_THRESHOLD;
+	const displayOutput =
+		!outputExpanded && isLongOutput
+			? outputLines.slice(0, OUTPUT_COLLAPSE_THRESHOLD).join("\n")
+			: resultContent;
+
+	return (
+		<>
+			{/* Args section */}
+			{hasArgs && (
+				<div className="border-b border-neutral-800/50 bg-neutral-900/30 px-3 py-2">
+					<pre className="overflow-x-auto text-xs text-neutral-500">
+						{JSON.stringify(tc.args, null, 2)}
+					</pre>
+				</div>
+			)}
+
+			{/* Output section */}
+			<div className="relative">
+				<pre
+					className={cn(
+						"overflow-x-auto px-3 py-2 text-xs leading-relaxed",
+						status === "error" ? "text-red-300" : "text-neutral-300",
+						!hasOutput && "italic text-neutral-600",
+					)}
+				>
+					{displayOutput || (status === "running" ? "Running…" : "(no output)")}
+					{status === "running" && hasOutput && (
+						<span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-blue-400" />
+					)}
+				</pre>
+
+				{/* Fade gradient when collapsed */}
+				{isLongOutput && !outputExpanded && (
+					<div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-neutral-900 to-transparent" />
+				)}
+			</div>
+
+			{/* Expand/collapse toggle for long output */}
+			{isLongOutput && (
+				<button
+					type="button"
+					onClick={toggleOutputExpanded}
+					className={cn(
+						"w-full border-t border-neutral-800 px-3 py-1.5",
+						"text-xs text-neutral-500 transition-colors hover:text-neutral-300",
+					)}
+				>
+					{outputExpanded ? "Show less" : `Show all ${outputLines.length} lines`}
+				</button>
+			)}
+		</>
 	);
 });
 

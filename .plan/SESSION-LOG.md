@@ -721,3 +721,31 @@
 - The `summarizeArgs` function in ToolExecutionCard already extracts paths/commands per tool — reuse for language detection
 
 ---
+## Session 21 — Tool-Specific Output Rendering (2026-03-23)
+
+**What happened:**
+- Built 4 specialized tool output renderers in `components/chat/tools/`:
+  - `BashOutput` — terminal-style UI with dark background, command line display (green `$` prompt), monospace output, streaming cursor
+  - `ReadOutput` — file path header with icon, syntax-highlighted content via CodeBlock, supports offset/limit range display
+  - `EditOutput` — unified diff view with red −removed / green +added lines, collapsible for long diffs, file path header with edit icon
+  - `WriteOutput` — file preview with syntax-highlighted content via CodeBlock, "written" badge, collapsible for long files
+- Created `ToolOutput` dispatcher that routes to specialized renderers or `DefaultOutput` (raw pre) for unknown tools
+- Created `lib/fileUtils.ts` with 70+ extension→language mappings, filename-based fallbacks (Dockerfile, Makefile, etc.), and helper functions (`inferLanguageFromPath`, `getFileName`, `getFileExtension`, `shortPath`)
+- Refactored `ToolExecutionCard` to use `SPECIALIZED_TOOLS` Set — specialized tools get `<ToolOutput>` in expanded body, others get legacy `<DefaultExpandedBody>` with raw args/output
+- Extracted `DefaultExpandedBody` as its own memoized component (cleaner separation)
+- All renderers handle 3 states: running (streaming cursor), success, error (red text)
+
+**Items completed:**
+- [x] 1D.5 — Tool-specific output rendering: bash as terminal, read as highlighted code with path, edit as diff view, write as file preview
+
+**Issues encountered:**
+- Biome formatter collapsed multi-line JSX return for `DefaultOutput` and removed parens around single-expression JSX — fixed with `bun run format`
+
+**Handoff to next session:**
+- Next: 1D.6 — Model selector UI (list from `get_available_models`, grouped by provider)
+- The `get_available_models` WebSocket method exists and handler is wired (`handlers/session.ts`)
+- Need a `models` slice in Zustand store or extend `SessionSlice` to hold available models list
+- Consider dropdown/popover UI pattern for model selection
+- 1D.7 (thinking level selector) and 1D.8 (wire model/thinking commands) are closely related — could combine
+
+---

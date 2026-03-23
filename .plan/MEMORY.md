@@ -105,6 +105,9 @@
 | 94 | Markdown component named `MarkdownContent` to avoid collision with react-markdown's `Markdown` | Avoids confusion with the library's own export. Used in AssistantMessage for rendering assistant text. | 2026-03-23 |
 | 95 | Shiki web bundle code-splits all grammars and themes as separate Vite chunks | Build produces ~130 separate `.js` chunks for languages/themes, loaded on demand. Core engine ~120KB gzipped, WASM ~230KB gzipped. Only loaded when first code block appears. | 2026-03-23 |
 | 96 | Dependencies added: `shiki@4.0.2`, `react-markdown@10.1.0`, `remark-gfm@4.0.1` | All in `apps/web/dependencies`. remark-gfm enables GFM tables, strikethrough, task lists, autolinks. | 2026-03-23 |
+| 97 | Tool-specific output renderers in `components/chat/tools/` directory | `ToolOutput` dispatcher routes to `BashOutput` (terminal style), `ReadOutput` (syntax-highlighted with file path), `EditOutput` (diff view with −/+ lines), `WriteOutput` (file preview with CodeBlock). Non-specialized tools fall through to `DefaultOutput` (raw pre). `fileUtils.ts` infers Shiki language from file extension. | 2026-03-23 |
+| 98 | `ToolExecutionCard` uses `SPECIALIZED_TOOLS` Set to switch rendering paths | For `bash/read/edit/write`, the expanded body renders `<ToolOutput>` which handles its own layout including args display. For all other tools, `<DefaultExpandedBody>` renders the legacy raw args JSON + raw output. Collapsed preview and header are shared. | 2026-03-23 |
+| 99 | `fileUtils.ts` maps 70+ file extensions to Shiki language IDs + filename matches | Extension map covers JS/TS, web, data/config, scripting, systems languages, docs, and misc. Filename map handles extensionless files like Dockerfile, Makefile, .gitignore. `inferLanguageFromPath()`, `getFileName()`, `getFileExtension()`, `shortPath()` exported. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -238,8 +241,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - `lastError`/`setLastError`/`clearLastError` added to ConnectionSlice ✅
 - E2E test at `apps/server/src/e2e-test.ts` — 44 checks verifying full browser-to-Pi chain
 - **Phase 1C COMPLETE** — all items done, exit criteria met
-- Phase 1D in progress — thinking blocks (1D.1), tool call cards (1D.2), syntax highlighting (1D.3), markdown rendering (1D.4) complete
-- Next: 1D.5 — Tool-specific output rendering
+- Phase 1D in progress — thinking blocks (1D.1), tool call cards (1D.2), syntax highlighting (1D.3), markdown rendering (1D.4), tool-specific output rendering (1D.5) complete
+- Next: 1D.6 — Model selector UI
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings
