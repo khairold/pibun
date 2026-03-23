@@ -1,5 +1,10 @@
 /**
- * ChatView — scrollable message area rendering the conversation.
+ * ChatView — virtualized scrollable message area rendering the conversation.
+ *
+ * Uses react-virtuoso for windowed rendering — only visible messages plus a
+ * small overscan buffer are mounted in the DOM. This keeps long conversations
+ * (100+ messages) performant by avoiding rendering hundreds of off-screen
+ * React subtrees.
  *
  * Renders all ChatMessage types using dedicated sub-components:
  * - UserMessage — user prompts (right-aligned bubbles)
@@ -10,8 +15,9 @@
  * Tool calls and their results are automatically grouped into ToolExecutionCard
  * when they appear as adjacent messages (tool_call followed by tool_result).
  *
- * Auto-scrolls to bottom on new content when user is at/near bottom.
- * Shows a floating "↓ New messages" button when user has scrolled up.
+ * Auto-scrolls to bottom on new content when user is at/near bottom (via
+ * Virtuoso's `followOutput`). Shows a floating "↓ New messages" button when
+ * user has scrolled up.
  */
 
 import { AssistantMessage } from "@/components/chat/AssistantMessage";
@@ -20,11 +26,11 @@ import { ToolCallMessage } from "@/components/chat/ToolCallMessage";
 import { ToolExecutionCard } from "@/components/chat/ToolExecutionCard";
 import { ToolResultMessage } from "@/components/chat/ToolResultMessage";
 import { UserMessage } from "@/components/chat/UserMessage";
-import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
-import { memo, useMemo, useRef } from "react";
+import { type ReactElement, memo, useCallback, useMemo, useRef, useState } from "react";
+import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 
 // ============================================================================
 // Message grouping — combine tool_call + tool_result into unified items
@@ -118,6 +124,32 @@ function chatItemKey(item: ChatItem): string {
 }
 
 // ============================================================================
+// Virtuoso sub-components (stable references for perf)
+// ============================================================================
+
+/** Wrapper div for the Virtuoso list — centers content with max-width. */
+function VirtuosoList({
+	style,
+	children,
+	...props
+}: React.HTMLAttributes<HTMLDivElement>): ReactElement {
+	return (
+		<div {...props} style={style} className="mx-auto w-full max-w-3xl px-4 pb-4">
+			{children}
+		</div>
+	);
+}
+
+/** Individual item wrapper — adds vertical gap between items. */
+function VirtuosoItem({ children, ...props }: React.HTMLAttributes<HTMLDivElement>): ReactElement {
+	return (
+		<div {...props} className="pt-4">
+			{children}
+		</div>
+	);
+}
+
+// ============================================================================
 // ChatView
 // ============================================================================
 
@@ -128,15 +160,102 @@ export function ChatView() {
 	const isRetrying = useStore((s) => s.isRetrying);
 	const retryAttempt = useStore((s) => s.retryAttempt);
 	const retryMaxAttempts = useStore((s) => s.retryMaxAttempts);
-	const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-	const { showScrollButton, scrollToBottom } = useAutoScroll(scrollContainerRef, messages);
+	const virtuosoRef = useRef<VirtuosoHandle>(null);
+	const [showScrollButton, setShowScrollButton] = useState(false);
 
 	// Group messages into renderable items (memoize to avoid re-grouping on every render)
 	const items = useMemo(() => groupMessages(messages), [messages]);
 
-	// Empty state
-	if (messages.length === 0) {
+	// ── Virtuoso callbacks (stable refs) ─────────────────────────────
+
+	/** Track whether user is at the bottom — controls scroll button visibility. */
+	const handleAtBottomStateChange = useCallback((atBottom: boolean) => {
+		setShowScrollButton(!atBottom);
+	}, []);
+
+	/**
+	 * followOutput — tells Virtuoso whether to auto-scroll when new items
+	 * appear or existing items grow. Returns "smooth" when at bottom so
+	 * streaming text scrolls naturally.
+	 */
+	const followOutput = useCallback((isAtBottom: boolean): false | "smooth" | "auto" => {
+		if (isAtBottom) return "smooth";
+		// When streaming and not at bottom, don't force scroll
+		return false;
+	}, []);
+
+	/** Render a single item by index. */
+	const itemContent = useCallback(
+		(index: number) => {
+			const item = items[index];
+			if (!item) return null;
+			return <ChatItemRenderer item={item} />;
+		},
+		[items],
+	);
+
+	/** Compute stable key per item for reconciliation. */
+	const computeItemKey = useCallback(
+		(index: number) => {
+			const item = items[index];
+			if (!item) return `item-${index}`;
+			return chatItemKey(item);
+		},
+		[items],
+	);
+
+	/** Scroll to bottom on button click. */
+	const scrollToBottom = useCallback(() => {
+		virtuosoRef.current?.scrollToIndex({
+			index: "LAST",
+			behavior: "smooth",
+		});
+		setShowScrollButton(false);
+	}, []);
+
+	// ── Footer: status indicators below the message list ─────────────
+	const footer = useCallback(() => {
+		const showThinking = isStreaming && !hasStreamingMessage(messages);
+		const showCompacting = isCompacting;
+		const showRetrying = isRetrying;
+
+		if (!showThinking && !showCompacting && !showRetrying) return null;
+
+		return (
+			<div className="mx-auto w-full max-w-3xl px-4 pb-4">
+				{/* Streaming indicator when agent is working but no messages are streaming */}
+				{showThinking && (
+					<div className="mt-4 flex items-center gap-2 text-xs text-neutral-500">
+						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
+						<span>Pi is thinking{"\u2026"}</span>
+					</div>
+				)}
+
+				{/* Compaction indicator when context is being compressed */}
+				{showCompacting && (
+					<div className="mt-4 flex items-center gap-2 text-xs text-amber-500/70">
+						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+						<span>Compacting context{"\u2026"}</span>
+					</div>
+				)}
+
+				{/* Retry indicator when Pi is auto-retrying after an error */}
+				{showRetrying && (
+					<div className="mt-4 flex items-center gap-2 text-xs text-orange-400/80">
+						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-orange-400" />
+						<span>
+							Retrying{"\u2026"} (attempt {retryAttempt}/{retryMaxAttempts})
+						</span>
+					</div>
+				)}
+			</div>
+		);
+	}, [isStreaming, messages, isCompacting, isRetrying, retryAttempt, retryMaxAttempts]);
+
+	// ── Empty state ──────────────────────────────────────────────────
+
+	if (items.length === 0) {
 		return (
 			<div className="flex flex-1 flex-col items-center justify-center px-4">
 				<div className="text-center">
@@ -148,45 +267,28 @@ export function ChatView() {
 		);
 	}
 
+	// ── Virtualized message list ─────────────────────────────────────
+
 	return (
-		<div ref={scrollContainerRef} className="relative flex flex-1 flex-col overflow-y-auto">
-			{/* Messages list — centered with max-width */}
-			<div className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
-				<div className="flex flex-col gap-4">
-					{items.map((item) => (
-						<ChatItemRenderer key={chatItemKey(item)} item={item} />
-					))}
-				</div>
-
-				{/* Streaming indicator when agent is working but no messages are streaming */}
-				{isStreaming && !hasStreamingMessage(messages) && (
-					<div className="mt-4 flex items-center gap-2 text-xs text-neutral-500">
-						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
-						<span>Pi is thinking\u2026</span>
-					</div>
-				)}
-
-				{/* Compaction indicator when context is being compressed */}
-				{isCompacting && (
-					<div className="mt-4 flex items-center gap-2 text-xs text-amber-500/70">
-						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
-						<span>Compacting context\u2026</span>
-					</div>
-				)}
-
-				{/* Retry indicator when Pi is auto-retrying after an error */}
-				{isRetrying && (
-					<div className="mt-4 flex items-center gap-2 text-xs text-orange-400/80">
-						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-orange-400" />
-						<span>
-							Retrying\u2026 (attempt {retryAttempt}/{retryMaxAttempts})
-						</span>
-					</div>
-				)}
-			</div>
-
-			{/* Bottom padding for visual breathing room */}
-			<div className="h-4 shrink-0" />
+		<div className="relative flex flex-1 flex-col overflow-hidden">
+			<Virtuoso
+				ref={virtuosoRef}
+				totalCount={items.length}
+				itemContent={itemContent}
+				computeItemKey={computeItemKey}
+				followOutput={followOutput}
+				atBottomStateChange={handleAtBottomStateChange}
+				atBottomThreshold={50}
+				increaseViewportBy={{ top: 400, bottom: 400 }}
+				defaultItemHeight={80}
+				components={{
+					List: VirtuosoList,
+					Item: VirtuosoItem,
+					Footer: footer,
+				}}
+				className="flex-1"
+				initialTopMostItemIndex={items.length - 1}
+			/>
 
 			{/* Floating "New messages" button when scrolled up */}
 			{showScrollButton && (

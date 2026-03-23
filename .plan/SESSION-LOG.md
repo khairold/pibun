@@ -1174,3 +1174,35 @@
 - `groupMessages()` already produces the item list — could be the basis for virtualized rendering
 
 ---
+
+## Session 34 — Message Virtualization (2026-03-23)
+
+**What happened:**
+- Installed `react-virtuoso@4.18.3` in `apps/web` for windowed message rendering
+- Rewrote `ChatView.tsx` to use `Virtuoso` component instead of manual div list
+- Key implementation details:
+  - `followOutput` callback for auto-scroll during streaming (returns "smooth" at bottom, false when scrolled up)
+  - `atBottomStateChange` callback controls "↓ New messages" button visibility
+  - Status indicators (thinking, compacting, retrying) moved to Virtuoso `Footer` slot
+  - `VirtuosoList` wrapper applies centered max-width layout (`mx-auto max-w-3xl`)
+  - `VirtuosoItem` wrapper adds vertical gap between items (`pt-4`)
+  - `increaseViewportBy: { top: 400, bottom: 400 }` for overscan buffer
+  - `defaultItemHeight: 80` for initial size estimation before measurement
+  - `initialTopMostItemIndex` starts view at the bottom of conversation
+- `useAutoScroll` hook is now unused (ChatView was its only consumer) — kept but not imported
+- Existing `groupMessages()` and `ChatItemRenderer` reused unchanged
+- Build verified: `typecheck` + `lint` + `vite build` all pass
+
+**Items completed:**
+- [x] 1D.19 — Message virtualization for long conversations (only render visible messages)
+
+**Issues encountered:**
+- Biome import sort: `Virtuoso` (value) must come before `type VirtuosoHandle` in named imports — fixed
+
+**Handoff to next session:**
+- Next: 1D.20 — Responsive layout (collapsible sidebar on narrow viewports)
+- 1 item remaining in Phase 1D — completing 1D.20 will close the phase
+- Current sidebar is `hidden md:flex` (256px on md+). Need a toggle button and slide-in/out animation for mobile
+- After Phase 1D: verify exit criteria (all Pi features accessible, extension dialogs work, keyboard shortcuts function, performance acceptable for 100+ messages)
+
+---

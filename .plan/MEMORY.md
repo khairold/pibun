@@ -147,7 +147,9 @@
 | 135 | Sidebar replaces placeholder `<aside>` in AppShell, `NewSessionButton` moved to sidebar | New session button is now in the sidebar header. Removed from toolbar to avoid duplication. Toolbar retains CompactButton and ForkDialog. Ctrl+N shortcut still works via `useKeyboardShortcuts`. | 2026-03-23 |
 | 136 | Session list auto-fetched on `server.welcome` push and on manual connect | `wireTransport.ts` calls `fetchSessionList()` when welcome received. Sidebar also fetches on mount when connected. List refreshed after new session, switch, and fork operations. | 2026-03-23 |
 | 137 | `isRetrying`, `retryAttempt`, `retryMaxAttempts` added to SessionSlice for retry tracking | `auto_retry_start` sets `isRetrying=true` with attempt info, `auto_retry_end` clears it. ChatView shows inline retry indicator (orange pulsing dot + attempt/max). SystemMessage uses emoji prefixes: `🔄` for progress, `✅` for success, `❌` for failure. Failed retries surface as ErrorBanner via `setLastError`. | 2026-03-23 |
-| 138 | `message_update.error` events surface as ErrorBanner for `reason === "error"` | Abort (`reason === "aborted"`) is user-initiated so no error banner. Only `reason === "error"` sets `lastError`. Done/error are now separate `case` branches in `handleMessageUpdate`. | 2026-03-23 |
+| 138 | `message_update.error` events surface as ErrorBanner for `reason === "error"` | Abort (`reason === "aborted"`) is user-initiated so no error banner. Only `reason === "error"` sets `lastError`. Done/error are now separate `case` branches in `handleMessageUpdate`. |
+| 139 | ChatView uses `react-virtuoso` for windowed message rendering | `Virtuoso` component replaces manual `div` list — only visible items + overscan buffer rendered. `followOutput` for auto-scroll during streaming, `atBottomStateChange` for scroll button, `Footer` slot for status indicators, `VirtuosoList`/`VirtuosoItem` for layout. Overscan: 400px top/bottom. Default item height: 80px. `useAutoScroll` hook is now unused (kept but not imported). | 2026-03-23 |
+| 140 | `react-virtuoso@4.18.3` installed in `apps/web` | Chosen for variable-height chat items, built-in `followOutput` (critical for streaming), and `atBottomStateChange` API. Lightweight (~15KB gzipped). No DOM measurement hacks needed — Virtuoso measures items automatically via ResizeObserver. | 2026-03-23 | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -289,7 +291,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Keyboard shortcuts: `useKeyboardShortcuts` hook in AppShell, `lib/shortcuts.ts` event bus, ModelSelector subscribes to toggle event. Ctrl/Cmd+C (abort), Ctrl/Cmd+L (model selector), Ctrl/Cmd+N (new session).
 - Sidebar: `Sidebar.tsx` with session list, current session info, new session button. Server-side `sessionListing.ts` reads `~/.pi/agent/sessions/`. WS methods `session.listSessions` and `session.switchSession` added end-to-end (contracts, handlers, registry).
 - Error handling (1D.18) complete — retry indicators with `isRetrying` state, emoji-prefixed system messages, inline ChatView retry indicator, failed retries → ErrorBanner, message-level errors surfaced
-- Next: 1D.19 — Message virtualization
+- Message virtualization (1D.19) complete — react-virtuoso replaces manual div list, only visible items rendered
+- Next: 1D.20 — Responsive layout (collapsible sidebar)
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings

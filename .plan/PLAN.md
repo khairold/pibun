@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 1D in progress — thinking blocks, tool cards, syntax highlighting, markdown rendering, tool-specific rendering, model selector, thinking selector, model/thinking wiring, session management, session stats, compaction controls, extension UI dialogs, extension notifications/status, message steering/follow-up, image paste, keyboard shortcuts, sidebar, error handling done.
+> **Status:** Phase 1D in progress — thinking blocks, tool cards, syntax highlighting, markdown rendering, tool-specific rendering, model selector, thinking selector, model/thinking wiring, session management, session stats, compaction controls, extension UI dialogs, extension notifications/status, message steering/follow-up, image paste, keyboard shortcuts, sidebar, error handling, message virtualization done.
 > **Current Phase:** 1D
-> **Last Session:** 33 (2026-03-23)
+> **Last Session:** 34 (2026-03-23)
 
 ---
 
@@ -142,7 +142,7 @@
 - [x] 1D.16 — Keyboard shortcuts (Ctrl+C abort, Ctrl+L model selector, Ctrl+N new session)
 - [x] 1D.17 — Sidebar: session list with switch, current session info, new session button
 - [x] 1D.18 — Error handling: retry indicators (auto_retry events), error banners
-- [ ] 1D.19 — Message virtualization for long conversations (only render visible messages)
+- [x] 1D.19 — Message virtualization for long conversations (only render visible messages)
 - [ ] 1D.20 — Responsive layout (collapsible sidebar on narrow viewports)
 
 **Exit criteria:** All Pi features accessible through the UI. Extension dialogs work. Keyboard shortcuts function. Performance acceptable for 100+ message conversations.
