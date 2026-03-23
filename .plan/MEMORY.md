@@ -45,7 +45,10 @@
 | 35 | PiRpcManager removes session from map BEFORE calling `process.stop()` | Prevents re-entrant cleanup: `stop()` triggers process exit → `onExit` fires → `handleProcessExit` checks `sessions.has()` → already removed, so no double-cleanup. The "remove first, stop second" pattern avoids race conditions. | 2026-03-23 |
 | 36 | PiRpcManager crash handling: non-fatal errors don't remove sessions | JSONL parse errors and stream errors from `onError` are non-fatal — the process may still be running. Only actual process exit (via `onExit`) with state === "crashed" triggers session cleanup and crash event emission. | 2026-03-23 |
 | 37 | Tests use a fake Pi binary (test-fixtures/fake-pi.ts) for subprocess tests | Executable Bun script with `#!/usr/bin/env bun` shebang. Accepts same CLI args as `pi --mode rpc`, responds to JSONL commands with success responses. Configurable via env vars: `FAKE_PI_CRASH_AFTER_MS`, `FAKE_PI_EXIT_CODE`, `FAKE_PI_STDERR`. Use `piCommand` option in PiProcessOptions to point at it. | 2026-03-23 |
-| 38 | Biome sorts `type` imports before value imports in named import groups | `import { type Foo, Bar }` not `import { Bar, type Foo }`. Also `process.env.KEY` not `process.env["KEY"]` (useLiteralKeys). | 2026-03-23 |
+| 38 | Biome sorts `type` imports before value imports in named import groups | `import { type Foo, Bar }` not `import { Bar, type Foo }`. Also `process.env.KEY` not `process.env["KEY"]` (useLiteralKeys). |
+| 39 | Integration test confirmed full Pi RPC event lifecycle | Observed sequence: `agent_start` → `turn_start` → `message_start` (user) → `message_end` (user) → `message_start` (assistant) → `message_update` (text_start) → `message_update` (text_delta) → `message_update` (text_end) → `message_end` (assistant) → `turn_end` → `agent_end`. Text deltas are inside `message_update.assistantMessageEvent.delta`. | 2026-03-23 |
+| 40 | `PiResponse` union requires narrowing via `command` + `success` to access `data` | Can't access `.data` on the raw `PiResponse` type — must narrow with `stateResp.command === "get_state"` first. TS discriminated union pattern. | 2026-03-23 |
+| 41 | `PiPromptCommand.message` is `string`, not content block array | The prompt command takes a plain string message. Images go in a separate `images` field. Don't send `[{ type: "text", text: "..." }]`. | 2026-03-23 | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -145,7 +148,9 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - PiRpcManager at `apps/server/src/piRpcManager.ts` ✅ — session ID → PiProcess mapping, crash handling with stderr capture, parallel stopAll for shutdown
 - PiRpcManager tests at `apps/server/src/piRpcManager.test.ts` — 37 tests covering CRUD, stop, crash, events, command forwarding
 - Fake Pi binary at `apps/server/test-fixtures/fake-pi.ts` — reusable for any tests needing a Pi subprocess
-- Next: 1A.10 — Manual integration test (spawn real Pi, send prompt, log streaming events)
+- Integration test at `apps/server/src/integration-test.ts` ✅ — verified full Pi RPC round-trip with real Pi process
+- **Phase 1A COMPLETE** — all items done, exit criteria met
+- Next: Phase 1B — Server: WebSocket Bridge (1B.1 — Define WS protocol types)
 - Pi RPC verified with Pi 0.61.1 — `get_available_models` and `get_state` work, commands use `{"type":"..."}` format
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 

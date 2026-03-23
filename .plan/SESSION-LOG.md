@@ -236,6 +236,40 @@
 
 ---
 
+## Session 8 — Integration Test + Phase 1A Complete (2026-03-23)
+
+**What happened:**
+- Created integration test script at `apps/server/src/integration-test.ts`:
+  - Spawns a real Pi RPC process via PiRpcManager (anthropic/sonnet/low thinking, ephemeral mode)
+  - Sends `get_state` command first (no API cost) to verify connectivity
+  - Sends a minimal prompt ("Respond with exactly one word: hello") to test streaming
+  - Logs all events, responses, stderr, and errors with timestamps
+  - Waits for `agent_end` event, then cleanly stops all sessions
+- Ran the test successfully against Pi 0.61.1:
+  - `get_state` returned model info (claude-sonnet-4-6, thinking=low)
+  - Prompt produced full streaming event lifecycle: agent_start → turn_start → message_start (user) → message_end (user) → message_start (assistant) → message_update (text_start, text_delta: "hello", text_end) → message_end (assistant) → turn_end → agent_end
+  - Session stopped cleanly with no errors
+  - Total cost: ~$0.015 (mostly cache write tokens)
+- Fixed two type errors: `PiPromptCommand.message` is `string` (not content blocks), `PiResponse.data` requires narrowing via `command` field
+- **Phase 1A exit criteria verified**: test script spawns Pi via RPC, sends "hello", logs all streaming events, process cleanup works on exit
+
+**Items completed:**
+- [x] 1A.10 — Manual integration test: spawn Pi, send prompt, log streaming events
+
+**Issues encountered:**
+- `PiPromptCommand.message` type is `string`, not `PiTextContent[]` — fixed immediately
+- `PiResponse` discriminated union requires narrowing via `command` field before accessing `data` — fixed by adding `stateResp.command === "get_state"` check
+
+**Handoff to next session:**
+- **Phase 1A is COMPLETE** — all 10 items done, exit criteria met
+- Next: Phase 1B.1 — Define WebSocket protocol types in `packages/contracts/`
+- Read `docs/WS_PROTOCOL.md` for the WebSocket message contract
+- Key types needed: WsRequest (method + params + id), WsResponse (result/error + id), WsPush (channel + data), method strings
+- The server needs HTTP + WebSocket setup (Bun.serve with websocket handler)
+- Reference `reference/t3code/packages/contracts/src/ws.ts` for patterns (but use our simpler method string approach)
+
+---
+
 ## Session 6 — PiRpcManager + Crash Handling (2026-03-23)
 
 **What happened:**
