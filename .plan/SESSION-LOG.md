@@ -853,3 +853,33 @@
 - 1D.11 (compaction controls) is independent and could be combined with 1D.10
 
 ---
+
+## Session 25 — Session Stats Display (2026-03-23)
+
+**What happened:**
+- Added `fetchSessionStats()` to `apps/web/src/lib/sessionActions.ts` — calls `session.getStats` via transport, updates Zustand store's `stats` field. Silent failure (console.warn only, no error banner — stats are non-critical).
+- Wired stats fetching in `wireTransport.ts` — `agent_end` event handler now calls `fetchSessionStats()` after each agent turn completes. Import added at top following Biome's `@/` before `@pibun/` sort order.
+- Created `SessionStats` component at `apps/web/src/components/SessionStats.tsx`:
+  - Compact trigger button: token icon + total tokens (formatted as k/M) + cost (formatted as $X.XX)
+  - Expandable detail panel with three sections: token breakdown (input/output/cache read/cache write/total), message counts (user/assistant/tool/total), and total cost
+  - Refresh button in panel header
+  - Pulse animation on trigger while streaming
+  - Same dropdown UX pattern as ModelSelector (click-outside close, Escape close)
+  - Only renders when connected, has session, and stats are available
+- Added `SessionStats` to AppShell toolbar — positioned between the spacer and session controls (right side of toolbar, before new/fork buttons)
+- Biome format fix applied (one line too long in JSX)
+
+**Items completed:**
+- [x] 1D.10 — Session stats display (tokens, cost from get_session_stats)
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1D.11 — Compaction controls (manual compact button, auto-compaction start/end indicators)
+- `session.compact` WS method and server handler already exist (handleSessionCompact in session.ts)
+- Auto-compaction events already handled in wireTransport.ts (system messages for start/end)
+- Need a manual compact button in toolbar + possibly visual indicators during compaction
+- 10 items remaining in Phase 1D
+
+---

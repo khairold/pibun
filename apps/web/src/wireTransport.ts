@@ -11,6 +11,7 @@
  * Use `getTransport()` to access the singleton for sending requests.
  */
 
+import { fetchSessionStats } from "@/lib/sessionActions";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { WsTransport } from "@/transport";
@@ -120,6 +121,8 @@ function handlePiEvent(event: PiEvent): void {
 		case "agent_end":
 			store.setIsStreaming(false);
 			currentAssistantMessageId = null;
+			// Fetch updated session stats (tokens, cost) after each agent turn
+			fetchSessionStats();
 			break;
 
 		// ── Message lifecycle ──────────────────────────────────────────

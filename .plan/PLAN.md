@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 1D in progress — thinking blocks, tool cards, syntax highlighting, markdown rendering, tool-specific rendering, model selector, thinking selector, model/thinking wiring, session management done.
+> **Status:** Phase 1D in progress — thinking blocks, tool cards, syntax highlighting, markdown rendering, tool-specific rendering, model selector, thinking selector, model/thinking wiring, session management, session stats done.
 > **Current Phase:** 1D
-> **Last Session:** 24 (2026-03-23)
+> **Last Session:** 25 (2026-03-23)
 
 ---
 
@@ -133,7 +133,7 @@
 - [x] 1D.7 — Thinking level selector (off → xhigh)
 - [x] 1D.8 — Wire model/thinking commands (session.setModel, session.setThinking)
 - [x] 1D.9 — Session management: new session, switch session, fork from message
-- [ ] 1D.10 — Session stats display (tokens, cost from get_session_stats)
+- [x] 1D.10 — Session stats display (tokens, cost from get_session_stats)
 - [ ] 1D.11 — Compaction controls (manual compact button, auto-compaction start/end indicators)
 - [ ] 1D.12 — Extension UI dialogs (select list, confirm yes/no, text input, multi-line editor)
 - [ ] 1D.13 — Extension notifications (toast) and status (persistent indicator)

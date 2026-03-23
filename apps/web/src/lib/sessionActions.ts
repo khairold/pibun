@@ -116,6 +116,28 @@ export async function getForkableMessages(): Promise<WsForkableMessage[] | null>
 }
 
 /**
+ * Fetch session stats (tokens, cost) from Pi and update the store.
+ *
+ * Called after agent_end to show updated usage. Also callable on demand
+ * (e.g., by a refresh button in the stats display).
+ *
+ * Returns true on success, false on failure (silent — doesn't show error banner).
+ */
+export async function fetchSessionStats(): Promise<boolean> {
+	const store = useStore.getState();
+	if (!store.sessionId) return false;
+
+	try {
+		const result = await getTransport().request("session.getStats");
+		store.setStats(result.stats);
+		return true;
+	} catch (err) {
+		console.warn("[sessionActions] Failed to fetch stats:", err);
+		return false;
+	}
+}
+
+/**
  * Fork the conversation from a specific message.
  *
  * Flow:

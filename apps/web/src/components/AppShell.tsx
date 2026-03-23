@@ -13,6 +13,7 @@ import { ErrorBanner } from "@/components/ErrorBanner";
 import { ForkDialog } from "@/components/ForkDialog";
 import { ModelSelector } from "@/components/ModelSelector";
 import { NewSessionButton } from "@/components/NewSessionButton";
+import { SessionStats } from "@/components/SessionStats";
 import { ThinkingSelector } from "@/components/ThinkingSelector";
 
 export function AppShell() {
@@ -40,6 +41,9 @@ export function AppShell() {
 
 					{/* Spacer pushes session controls to the right */}
 					<div className="flex-1" />
+
+					{/* Session stats — tokens + cost */}
+					<SessionStats />
 
 					{/* Session management controls */}
 					<div className="flex items-center gap-1 border-l border-neutral-800 pl-2">
