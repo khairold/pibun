@@ -5,6 +5,36 @@
 
 ---
 
+## Session 71 — GitStatusBar + auto-refresh (2026-03-23)
+
+**What happened:**
+- Created `apps/web/src/lib/gitActions.ts` — `fetchGitStatus()` function that calls `git.status` WS method and dispatches to Zustand `setGitStatus()`. Silent on failure (resets git state, no error banner — git is non-critical). Same pattern as `sessionActions.ts` / `projectActions.ts`.
+- Created `apps/web/src/components/GitStatusBar.tsx` — toolbar component showing:
+  - Git branch icon + branch name (truncated to 120px max-width)
+  - Changed files count badge (amber color, dot icon + count) — clickable for manual refresh
+  - Clean indicator (small green dot) when working tree is clean
+  - Only renders when connected, has session, and CWD is a git repo
+- Added `GitStatusBar` to `AppShell.tsx` toolbar, positioned right-aligned between spacer and SessionStats, with a divider
+- Wired auto-refresh in `wireTransport.ts`:
+  - `fetchGitStatus()` called after every `agent_end` event (agent likely modified files)
+  - `fetchGitStatus()` called on `server.welcome` (initial connection / reconnect)
+
+**Items completed:**
+- [x] 3.4 — `GitStatusBar` component: branch name + changed file count in toolbar or status bar area
+- [x] 3.5 — Auto-refresh git status after `agent_end` events (agent likely modified files)
+
+**Issues encountered:**
+- Biome formatting issue with multi-line div attributes — fixed via `bun run format`
+
+**Handoff to next session:**
+- Next: 3.6 — `GitChangedFiles` panel: list of changed files with status badges (M/A/D/?), click to view diff
+- The `gitActions.ts` module has only `fetchGitStatus()` for now — 3.6/3.7 will need `fetchGitDiff(path?)` and possibly other actions
+- The changed files badge is clickable (calls refresh) — 3.9 will wire Ctrl+G to toggle a git panel, and the badge click could be changed to open the panel instead
+- The `gitChangedFiles` array is already in the store from 3.3 — the panel just needs to render it
+- Consider whether the `GitChangedFiles` panel should be a sidebar section, a bottom panel, or a dropdown from the toolbar
+
+---
+
 ## Session 70 — Git WS methods + GitSlice (2026-03-23)
 
 **What happened:**

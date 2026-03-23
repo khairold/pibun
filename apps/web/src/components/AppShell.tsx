@@ -16,6 +16,7 @@ import { Composer } from "@/components/Composer";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { ForkDialog } from "@/components/ForkDialog";
+import { GitStatusBar } from "@/components/GitStatusBar";
 import { ModelSelector } from "@/components/ModelSelector";
 import { SessionStats } from "@/components/SessionStats";
 import { Sidebar } from "@/components/Sidebar";
@@ -108,6 +109,12 @@ export function AppShell() {
 
 					{/* Spacer pushes session controls to the right */}
 					<div className="flex-1" />
+
+					{/* Git status — branch + changed files */}
+					<GitStatusBar />
+
+					{/* Divider between git and stats (when both visible) */}
+					<div className="h-5 w-px bg-neutral-800" />
 
 					{/* Session stats — tokens + cost */}
 					<SessionStats />

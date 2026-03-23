@@ -11,6 +11,7 @@
  * Use `getTransport()` to access the singleton for sending requests.
  */
 
+import { fetchGitStatus } from "@/lib/gitActions";
 import { addProject, fetchProjects, openProject } from "@/lib/projectActions";
 import {
 	compactSession,
@@ -140,6 +141,8 @@ function handlePiEvent(event: PiEvent): void {
 			currentAssistantMessageId = null;
 			// Fetch updated session stats (tokens, cost) after each agent turn
 			fetchSessionStats();
+			// Refresh git status — agent likely modified files
+			fetchGitStatus();
 			break;
 
 		// ── Message lifecycle ──────────────────────────────────────────
@@ -625,7 +628,7 @@ export function initTransport(): () => void {
 		}),
 	);
 
-	// server.welcome → log + fetch session list + fetch projects
+	// server.welcome → log + fetch session list + fetch projects + git status
 	cleanups.push(
 		transport.subscribe("server.welcome", (data) => {
 			console.log(`[PiBun] Connected to server — cwd: ${data.cwd}, version: ${data.version}`);
@@ -633,6 +636,8 @@ export function initTransport(): () => void {
 			fetchSessionList();
 			// Fetch saved projects for the sidebar
 			fetchProjects();
+			// Fetch initial git status for the active session
+			fetchGitStatus();
 		}),
 	);
 
