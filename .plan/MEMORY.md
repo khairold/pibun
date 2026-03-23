@@ -72,6 +72,12 @@
 | 62 | ChatMessage uses non-optional fields (no `undefined`) for `exactOptionalPropertyTypes` compat | All fields have default values: `content: ""`, `thinking: ""`, `toolCall: null`, `toolResult: null`, `streaming: false`. Avoids `undefined` assignment issues. | 2026-03-23 |
 | 63 | Messages slice uses reverse-scan `findMessageIndex` for O(1)-ish streaming updates | Streaming messages are always at the tail. Scanning from the end finds them in 1-2 iterations. Tool results use `result-{toolCallId}` ID convention. | 2026-03-23 |
 | 64 | Biome sorts `@/` path alias imports BEFORE `@pibun/` scoped packages | Alphabetical: `@/` < `@p`. Always put `@/` imports first in web app files. | 2026-03-23 |
+| 65 | WsTransport `inferUrl()` appends `/ws` path for Vite proxy compatibility | Vite proxy at `/ws` → `ws://localhost:24242`. Transport connects to `ws://host:port/ws`. Works in both dev (via proxy) and production (server upgrades any path). | 2026-03-23 |
+| 66 | Event wiring uses module-level state for streaming message tracking | `currentAssistantMessageId` tracks the currently streaming assistant message for routing `text_delta`/`thinking_delta` deltas. Reset on `agent_end`. `messageIdCounter` generates unique IDs like `user-1`, `assistant-2`. | 2026-03-23 |
+| 67 | Tool call messages created at `tool_execution_start`, not `toolcall_end` | `toolcall_end` is the LLM finishing tool call construction. `tool_execution_start` is when execution begins (and has the same info: toolCallId, toolName, args). Creating at execution_start gives better UX timing. | 2026-03-23 |
+| 68 | `makeMessage()` helper provides ChatMessage defaults for `exactOptionalPropertyTypes` compat | Takes required fields (id, type, content) + optional overrides. Defaults: `timestamp: Date.now()`, `thinking: ""`, `toolCall: null`, `toolResult: null`, `streaming: false`. Spread-based — caller overrides only what's needed. | 2026-03-23 |
+| 69 | `done`/`error` assistant message events set streaming=false as safety net | `message_end` is the definitive "done" event, but `done`/`error` in `assistantMessageEvent` also mark streaming=false. Redundant but safe — prevents stale streaming state if `message_end` is missed. | 2026-03-23 |
+| 70 | `initTransport()` called from `main.tsx` before `createRoot().render()` | Ensures transport is connected and subscriptions are active before any React component mounts. Returns cleanup function (unused in production but available for testing). | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -189,7 +195,10 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Zustand 5.0.12 added as dependency ✅
 - Vite dev proxy configured for WebSocket ✅
 - Zustand store at `apps/web/src/store/` ✅ — 3 slices (connection, session, messages), ChatMessage type, combined AppStore, reverse-scan find for streaming perf
-- Next: 1C.6 — Wire WsTransport → Zustand (pi.event push → state updates)
+- Next: 1C.7 — Build AppShell layout (sidebar placeholder left, main chat area right, composer bottom)
+- Event wiring at `apps/web/src/wireTransport.ts` ✅ — singleton WsTransport, pi.event dispatch to store, transport state sync to connection slice
+- `initTransport()` called from `main.tsx` before React renders
+- `getTransport()` provides singleton access for sending requests (e.g., from Composer)
 - Pi RPC verified with Pi 0.61.1 — `get_available_models` and `get_state` work, commands use `{"type":"..."}` format
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 

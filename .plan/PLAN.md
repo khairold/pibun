@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 1C in progress — Zustand store slices done, event wiring next.
+> **Status:** Phase 1C in progress — Event wiring done, UI components next.
 > **Current Phase:** 1C
-> **Last Session:** 13 (2026-03-23)
+> **Last Session:** 14 (2026-03-23)
 
 ---
 
@@ -105,7 +105,7 @@
 - [x] 1C.3 — Create Zustand store: `connection` slice (status, reconnectAttempt)
 - [x] 1C.4 — Create Zustand store: `session` slice (isStreaming, model, thinkingLevel)
 - [x] 1C.5 — Create Zustand store: `messages` slice (ChatMessage array, append, update streaming message)
-- [ ] 1C.6 — Wire WsTransport → Zustand (pi.event push → state updates, see event→state mapping in WEB_UI.md)
+- [x] 1C.6 — Wire WsTransport → Zustand (pi.event push → state updates, see event→state mapping in WEB_UI.md)
 - [ ] 1C.7 — Build AppShell layout (sidebar placeholder left, main chat area right, composer bottom)
 - [ ] 1C.8 — Build Composer (multi-line input, Enter to send, Shift+Enter for newline, abort button during streaming)
 - [ ] 1C.9 — Build ChatView — render user messages and assistant text blocks

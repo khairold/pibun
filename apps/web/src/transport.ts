@@ -427,9 +427,9 @@ export class WsTransport {
 	// Static
 	// ========================================================================
 
-	/** Infer WebSocket URL from the current page location. */
+	/** Infer WebSocket URL from the current page location (uses /ws path for Vite proxy compat). */
 	private static inferUrl(): string {
 		const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-		return `${protocol}://${window.location.hostname}:${window.location.port}`;
+		return `${protocol}://${window.location.hostname}:${window.location.port}/ws`;
 	}
 }

@@ -474,3 +474,40 @@
 - Consider creating a `bridge.ts` or wiring in `App.tsx` with a useEffect
 
 ---
+## Session 14 — Wire WsTransport → Zustand (2026-03-23)
+
+**What happened:**
+- Created `apps/web/src/wireTransport.ts` — the event wiring module that bridges WsTransport push channels to Zustand store actions
+  - `initTransport()` creates singleton WsTransport, subscribes to all channels, returns cleanup function
+  - `getTransport()` provides singleton access for sending requests (Composer, etc.)
+  - `handlePiEvent()` dispatches all Pi event types to appropriate store actions:
+    - `agent_start/end` → `setIsStreaming()`
+    - `message_start` → `appendMessage()` with user/assistant ChatMessage
+    - `message_update` → `appendToContent()` / `appendToThinking()` for text/thinking deltas
+    - `message_end` → `setMessageStreaming(false)`
+    - `tool_execution_start` → creates both tool_call card + tool_result placeholder
+    - `tool_execution_update` → `updateToolOutput()` (accumulated, not delta)
+    - `tool_execution_end` → `finalizeToolResult()`
+    - `auto_compaction/retry` → system messages
+    - Extension events → no-op (Phase 1D)
+  - Transport state changes → `setConnectionStatus()` / `setReconnectAttempt()`
+  - `server.welcome` / `server.error` → console logging
+- Updated `WsTransport.inferUrl()` to append `/ws` path for Vite dev proxy compatibility
+- Updated `main.tsx` to call `initTransport()` before React renders
+- Helper functions: `extractText()` for tool results, `extractUserContent()` for user messages, `makeMessage()` with defaults
+- Module-level tracking: `currentAssistantMessageId` for routing streaming deltas, `messageIdCounter` for unique IDs
+
+**Items completed:**
+- [x] 1C.6 — Wire WsTransport → Zustand (pi.event push → state updates)
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1C.7 — Build AppShell layout (sidebar placeholder left, main chat area right, composer bottom)
+- Transport wiring is complete — events will flow into Zustand store when connected to a running server
+- `getTransport()` is the API for sending requests from UI components (e.g., `getTransport().request("session.prompt", { message })`)
+- Session auto-start not yet implemented — will need to be triggered somewhere (Composer or App on mount)
+- The Vite proxy is configured at `/ws` path — transport connects to `ws://host:port/ws`
+
+---
