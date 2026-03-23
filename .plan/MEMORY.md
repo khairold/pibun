@@ -134,6 +134,9 @@
 | 123 | Extension `notify` → `addToast()`, `setStatus` → `setExtensionStatus()` in wireTransport | Fire-and-forget events now dispatch to store actions instead of just logging. `setWidget`, `setTitle`, `set_editor_text` still log-only (no UI for these). | 2026-03-23 |
 | 124 | Composer steer/follow-up: Enter during streaming → steer, Ctrl+Enter → follow-up | During streaming, Composer shows textarea + steer button + abort button. Enter sends `session.steer` (redirect Pi immediately after current tool calls). Ctrl+Enter/Cmd+Enter sends `session.followUp` (queued for after agent finishes). Both show toast confirmation. Textarea border turns blue during streaming to indicate steer mode. Hint text below textarea shows available shortcuts. | 2026-03-23 |
 | 125 | No optimistic user messages for steer/follow-up — relies on Pi event stream | Steer/follow-up messages will appear in the chat when Pi processes them and emits `message_start` (user) events. Toast confirms the action was sent. This avoids duplicate message logic. | 2026-03-23 |
+| 126 | `WsSessionPromptParams.images` is `WsImageAttachment[]` with data + mimeType | Changed from `string[]` to carry proper MIME types. Server handler now passes mimeType through to Pi's `PiImageContent` instead of hardcoding `image/png`. | 2026-03-23 |
+| 127 | Composer image paste: clipboard + drag-and-drop, preview strip, max 10 images | `handlePaste` extracts image files from `ClipboardEvent.clipboardData.items`. `handleDrop` handles drag-and-drop. Images stored as `ImageAttachment[]` state with base64 data + preview URL. Preview strip shows 64x64 thumbnails with hover-remove buttons. Images sent as `{ data, mimeType }` with prompt. | 2026-03-23 |
+| 128 | `canSend` now checks `hasContent` (text OR images) instead of just text | Allows sending images with empty text (sends `" "` as message placeholder). Both text and images can be combined in one prompt. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -271,7 +274,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Session management: `NewSessionButton` in toolbar, `ForkDialog` with message picker, `sessionActions.ts` module for coordinated operations. `session.getForkMessages` WS method added end-to-end.
 - Extension UI dialogs (1D.12) complete — SelectDialog, ConfirmDialog, InputDialog, EditorDialog, ExtensionDialog modal, useExtensionResponse hook, wireTransport wiring, ExtensionUiSlice in store
 - Composer steer/follow-up support (1D.14) complete — Enter to steer, Ctrl+Enter for follow-up, toast feedback, streaming-mode UI with blue border + hint text
-- Next: 1D.15 — Image paste in composer
+- Image paste in composer (1D.15) complete — clipboard paste, drag-and-drop, preview strip, base64 encoding, mimeType forwarding
+- Next: 1D.16 — Keyboard shortcuts
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings

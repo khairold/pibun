@@ -1037,3 +1037,35 @@
 - 6 items remaining in Phase 1D
 
 ---
+## Session 30 — Image Paste in Composer (2026-03-23)
+
+**What happened:**
+- Updated `WsSessionPromptParams.images` from `string[]` to `WsImageAttachment[]` (with `data` + `mimeType` fields) in contracts
+- Added `WsImageAttachment` interface to contracts and exported from index
+- Updated server `handleSessionPrompt` to use provided mimeType instead of hardcoding `image/png`
+- Rewrote Composer component with full image support:
+  - Clipboard paste handler (`handlePaste`) — extracts image files from `ClipboardEvent.clipboardData.items`
+  - Drag-and-drop support (`handleDragOver`, `handleDragLeave`, `handleDrop`) — accepts dropped image files
+  - Image preview strip — 64x64 thumbnails with hover-to-remove buttons, dashed "+" indicator for more
+  - Max 10 images with toast warnings when limit reached
+  - `readFileAsBase64()` helper converts File → base64 data string + mimeType
+  - Images sent as `{ data, mimeType }` array with prompt via `session.prompt`
+  - `canSend` now checks `hasContent` (text OR images), allows image-only prompts
+  - `clearInput` resets both text and images after sending
+  - Accepted types: PNG, JPEG, GIF, WebP
+  - Drop zone visual: blue border on drag-over with "Drop images here" hint
+
+**Items completed:**
+- [x] 1D.15 — Image paste in composer (Ctrl+V, convert to base64, attach to prompt)
+
+**Issues encountered:**
+- Biome `noRedundantAlt` rule flagged `alt="Attached image"` — changed to `alt="Attachment preview"`
+- Biome formatting differences for multi-line Set constructor and callback deps array — fixed by running `bun run format`
+
+**Handoff to next session:**
+- Next: 1D.16 — Keyboard shortcuts (Ctrl+C abort, Ctrl+L model selector, Ctrl+N new session)
+- 5 items remaining in Phase 1D
+- Keyboard shortcuts need to be global (not per-component) — consider a `useKeyboardShortcuts` hook or document-level listener
+- Some shortcuts may conflict with browser defaults (Ctrl+L = address bar) — may need to use different bindings for web mode vs desktop mode
+
+---

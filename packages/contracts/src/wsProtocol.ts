@@ -87,10 +87,18 @@ export interface WsSessionStartParams {
 	thinkingLevel?: PiThinkingLevel;
 }
 
+/** An image attachment with base64 data and MIME type. */
+export interface WsImageAttachment {
+	/** Base64-encoded image data (no data-URL prefix). */
+	data: string;
+	/** MIME type, e.g. "image/png", "image/jpeg", "image/gif", "image/webp". */
+	mimeType: string;
+}
+
 /** Params for `session.prompt` — send a user message. */
 export interface WsSessionPromptParams {
 	message: string;
-	images?: string[];
+	images?: WsImageAttachment[];
 }
 
 /** Params for `session.steer` — queue a steering message during streaming. */

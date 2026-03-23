@@ -1,9 +1,9 @@
 # PiBun — Build Plan
 
 > **Spec:** `docs/` directory (ARCHITECTURE.md, PI_INTEGRATION.md, WS_PROTOCOL.md, WEB_UI.md, DESKTOP.md)
-> **Status:** Phase 1D in progress — thinking blocks, tool cards, syntax highlighting, markdown rendering, tool-specific rendering, model selector, thinking selector, model/thinking wiring, session management, session stats, compaction controls, extension UI dialogs, extension notifications/status, message steering/follow-up done.
+> **Status:** Phase 1D in progress — thinking blocks, tool cards, syntax highlighting, markdown rendering, tool-specific rendering, model selector, thinking selector, model/thinking wiring, session management, session stats, compaction controls, extension UI dialogs, extension notifications/status, message steering/follow-up, image paste done.
 > **Current Phase:** 1D
-> **Last Session:** 29 (2026-03-23)
+> **Last Session:** 30 (2026-03-23)
 
 ---
 
@@ -138,7 +138,7 @@
 - [x] 1D.12 — Extension UI dialogs (select list, confirm yes/no, text input, multi-line editor)
 - [x] 1D.13 — Extension notifications (toast) and status (persistent indicator)
 - [x] 1D.14 — Message steering (Enter during streaming → steer) and follow-up support
-- [ ] 1D.15 — Image paste in composer (Ctrl+V, convert to base64, attach to prompt)
+- [x] 1D.15 — Image paste in composer (Ctrl+V, convert to base64, attach to prompt)
 - [ ] 1D.16 — Keyboard shortcuts (Ctrl+C abort, Ctrl+L model selector, Ctrl+N new session)
 - [ ] 1D.17 — Sidebar: session list with switch, current session info, new session button
 - [ ] 1D.18 — Error handling: retry indicators (auto_retry events), error banners

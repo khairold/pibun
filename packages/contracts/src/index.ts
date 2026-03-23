@@ -141,6 +141,7 @@ export { WS_CHANNELS, WS_METHODS } from "./wsProtocol.js";
 export type {
 	WsChannel,
 	WsChannelDataMap,
+	WsImageAttachment,
 	WsMethod,
 	WsMethodParamsMap,
 	WsMethodResultMap,

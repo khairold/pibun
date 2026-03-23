@@ -194,10 +194,10 @@ export const handleSessionPrompt: WsHandler<"session.prompt"> = async (
 		type: "prompt",
 		message: params.message,
 		...(params.images && {
-			images: params.images.map((data) => ({
+			images: params.images.map((img) => ({
 				type: "image" as const,
-				data,
-				mimeType: "image/png",
+				data: img.data,
+				mimeType: img.mimeType,
 			})),
 		}),
 	};
