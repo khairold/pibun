@@ -10,6 +10,7 @@
  */
 
 import { cn } from "@/lib/cn";
+import { onShortcut } from "@/lib/shortcuts";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import type { PiModel } from "@pibun/contracts";
@@ -143,6 +144,15 @@ export function ModelSelector() {
 		return () => document.removeEventListener("keydown", handleKeyDown);
 	}, [isOpen]);
 
+	// ── Keyboard shortcut to toggle ───────────────────────────────────
+	useEffect(() => {
+		return onShortcut((action) => {
+			if (action === "toggleModelSelector") {
+				setIsOpen((prev) => !prev);
+			}
+		});
+	}, []);
+
 	// ── Group models by provider ──────────────────────────────────────
 	const grouped = useMemo(() => groupByProvider(availableModels), [availableModels]);
 
@@ -165,7 +175,7 @@ export function ModelSelector() {
 						: "cursor-not-allowed text-neutral-600",
 					isOpen && "border-neutral-500 bg-neutral-800",
 				)}
-				title="Switch model"
+				title="Switch model (Ctrl+L)"
 			>
 				{/* Model icon */}
 				<svg

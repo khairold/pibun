@@ -19,8 +19,10 @@ import { StatusBar } from "@/components/StatusBar";
 import { ThinkingSelector } from "@/components/ThinkingSelector";
 import { ToastContainer } from "@/components/ToastContainer";
 import { ExtensionDialog } from "@/components/extension";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 export function AppShell() {
+	useKeyboardShortcuts();
 	return (
 		<div className="flex h-screen bg-neutral-950 text-neutral-100">
 			{/* Extension UI dialog overlay (modal — blocks interaction until response) */}

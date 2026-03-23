@@ -1069,3 +1069,33 @@
 - Some shortcuts may conflict with browser defaults (Ctrl+L = address bar) — may need to use different bindings for web mode vs desktop mode
 
 ---
+
+## Session 31 — Keyboard Shortcuts (2026-03-23)
+
+**What happened:**
+- Created `lib/shortcuts.ts` — lightweight pub/sub event bus for shortcut actions (3 action types: abort, toggleModelSelector, newSession)
+- Created `hooks/useKeyboardShortcuts.ts` — global `keydown` listener hook mounted in AppShell
+  - Ctrl/Cmd+C: abort streaming (only when streaming AND no text selected — preserves copy)
+  - Ctrl/Cmd+L: toggle model selector via shortcut event emission
+  - Ctrl/Cmd+N: create new session via `startNewSession()`
+  - Reads Zustand state imperatively via `getState()` to avoid re-renders
+  - Ignores Alt/Shift modifiers to avoid conflicting with other shortcuts
+  - `preventDefault()` blocks browser defaults (Ctrl+L address bar, Ctrl+N new window)
+- Modified `ModelSelector` to subscribe to `toggleModelSelector` shortcut event, toggling its local `isOpen` state
+- Updated ModelSelector title to show shortcut hint: "Switch model (Ctrl+L)"
+- Updated Composer streaming hint: "Stop" → "Ctrl+C" for abort shortcut
+- Mounted `useKeyboardShortcuts()` hook in `AppShell`
+
+**Items completed:**
+- [x] 1D.16 — Keyboard shortcuts (Ctrl+C abort, Ctrl+L model selector, Ctrl+N new session)
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1D.17 — Sidebar: session list with switch, current session info, new session button
+- 4 items remaining in Phase 1D
+- Sidebar needs Pi's `list_sessions` or similar — check if Pi has this RPC command (MEMORY #108 notes Pi has no `list_sessions`)
+- The shortcut event bus pattern (`lib/shortcuts.ts`) can be reused if sidebar needs keyboard shortcuts
+
+---

@@ -137,6 +137,9 @@
 | 126 | `WsSessionPromptParams.images` is `WsImageAttachment[]` with data + mimeType | Changed from `string[]` to carry proper MIME types. Server handler now passes mimeType through to Pi's `PiImageContent` instead of hardcoding `image/png`. | 2026-03-23 |
 | 127 | Composer image paste: clipboard + drag-and-drop, preview strip, max 10 images | `handlePaste` extracts image files from `ClipboardEvent.clipboardData.items`. `handleDrop` handles drag-and-drop. Images stored as `ImageAttachment[]` state with base64 data + preview URL. Preview strip shows 64x64 thumbnails with hover-remove buttons. Images sent as `{ data, mimeType }` with prompt. | 2026-03-23 |
 | 128 | `canSend` now checks `hasContent` (text OR images) instead of just text | Allows sending images with empty text (sends `" "` as message placeholder). Both text and images can be combined in one prompt. | 2026-03-23 |
+| 129 | Keyboard shortcuts use `lib/shortcuts.ts` event bus + `useKeyboardShortcuts` hook | Lightweight pub/sub: hook emits shortcut actions, components subscribe. Avoids lifting dropdown state to global store. Hook reads Zustand state imperatively via `getState()` to avoid re-renders. Mounted once in AppShell. | 2026-03-23 |
+| 130 | `Ctrl/Cmd+C` abort preserves copy behavior via `hasTextSelection()` check | Only aborts when streaming AND no text is selected in the document. If text is selected, Ctrl+C copies as usual. Both `metaKey` (Cmd on Mac) and `ctrlKey` (Ctrl everywhere) accepted. | 2026-03-23 |
+| 131 | `Ctrl/Cmd+L` toggles ModelSelector via shortcut event subscription | ModelSelector subscribes to `onShortcut("toggleModelSelector")` in a `useEffect`. Toggles its local `isOpen` state. `preventDefault()` blocks browser address bar focus. | 2026-03-23 |
 
 ## Architecture Notes
 
@@ -275,7 +278,8 @@ Pi has its own web UI package built with mini-lit web components. **We are NOT u
 - Extension UI dialogs (1D.12) complete — SelectDialog, ConfirmDialog, InputDialog, EditorDialog, ExtensionDialog modal, useExtensionResponse hook, wireTransport wiring, ExtensionUiSlice in store
 - Composer steer/follow-up support (1D.14) complete — Enter to steer, Ctrl+Enter for follow-up, toast feedback, streaming-mode UI with blue border + hint text
 - Image paste in composer (1D.15) complete — clipboard paste, drag-and-drop, preview strip, base64 encoding, mimeType forwarding
-- Next: 1D.16 — Keyboard shortcuts
+- Keyboard shortcuts: `useKeyboardShortcuts` hook in AppShell, `lib/shortcuts.ts` event bus, ModelSelector subscribes to toggle event. Ctrl/Cmd+C (abort), Ctrl/Cmd+L (model selector), Ctrl/Cmd+N (new session).
+- Next: 1D.17 — Sidebar
 - Electrobun's cross-platform status (Linux/Windows) needs verification before Phase 2
 
 ## Gotchas & Warnings

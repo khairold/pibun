@@ -534,7 +534,7 @@ export function Composer() {
 						<p className="text-xs text-neutral-500">
 							<span className="text-blue-400">Enter</span> to steer ·{" "}
 							<span className="text-blue-400">Ctrl+Enter</span> for follow-up ·{" "}
-							<span className="text-red-400">Stop</span> to abort
+							<span className="text-red-400">Ctrl+C</span> to abort
 						</p>
 					</div>
 				)}
