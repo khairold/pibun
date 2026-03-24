@@ -19,106 +19,10 @@ import { existsSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import type { Project } from "@pibun/contracts";
-import { PiRpcManager } from "./piRpcManager.js";
-import { type PiBunServer, createServer } from "./server.js";
+import type { PiBunServer } from "./server.js";
+import { connectWsWithWelcome, createCheckCounter, request, startServer } from "./test-harness.js";
 
-// ============================================================================
-// Helpers
-// ============================================================================
-
-let passed = 0;
-let failed = 0;
-
-function check(label: string, condition: boolean, detail?: string): void {
-	if (condition) {
-		passed++;
-		console.log(`  ✅ ${label}`);
-	} else {
-		failed++;
-		console.log(`  ❌ ${label}${detail ? ` — ${detail}` : ""}`);
-	}
-}
-
-interface WsMessage {
-	id?: string;
-	type?: string;
-	channel?: string;
-	result?: Record<string, unknown>;
-	error?: { message: string };
-	data?: unknown;
-}
-
-function parseMsg(data: string | Buffer | ArrayBuffer): WsMessage {
-	const raw = typeof data === "string" ? data : new TextDecoder().decode(data as ArrayBuffer);
-	return JSON.parse(raw) as WsMessage;
-}
-
-function waitForMessage(ws: WebSocket, timeoutMs = 5000): Promise<WsMessage> {
-	return new Promise((resolve, reject) => {
-		const timer = setTimeout(() => {
-			ws.removeEventListener("message", handler);
-			reject(new Error(`Timeout (${timeoutMs}ms) waiting for WS message`));
-		}, timeoutMs);
-
-		function handler(event: MessageEvent): void {
-			clearTimeout(timer);
-			ws.removeEventListener("message", handler);
-			resolve(parseMsg(event.data as string));
-		}
-
-		ws.addEventListener("message", handler);
-	});
-}
-
-function connectWsWithWelcome(url: string): Promise<{ ws: WebSocket; welcome: WsMessage }> {
-	return new Promise((resolve, reject) => {
-		const ws = new WebSocket(url);
-		const timer = setTimeout(() => {
-			reject(new Error("WebSocket connection timeout"));
-		}, 5000);
-
-		ws.addEventListener("message", function handler(event: MessageEvent) {
-			ws.removeEventListener("message", handler);
-			clearTimeout(timer);
-			const msg = parseMsg(event.data as string);
-			resolve({ ws, welcome: msg });
-		});
-
-		ws.addEventListener("error", (e) => {
-			clearTimeout(timer);
-			reject(new Error(`WebSocket error: ${e}`));
-		});
-	});
-}
-
-let reqIdCounter = 0;
-
-function sendRequest(
-	ws: WebSocket,
-	method: string,
-	params?: Record<string, unknown>,
-): { id: string } {
-	const id = `req-${String(++reqIdCounter)}`;
-	const msg: Record<string, unknown> = { id, method };
-	if (params) msg.params = params;
-	ws.send(JSON.stringify(msg));
-	return { id };
-}
-
-async function request(
-	ws: WebSocket,
-	method: string,
-	params?: Record<string, unknown>,
-): Promise<WsMessage> {
-	const { id } = sendRequest(ws, method, params);
-	// Drain messages until we get our response
-	for (let i = 0; i < 20; i++) {
-		const msg = await waitForMessage(ws);
-		if (msg.id === id) return msg;
-		// Skip push messages
-	}
-	throw new Error(`No response for ${method} (id: ${id})`);
-}
+const { check, printResults } = createCheckCounter();
 
 // ============================================================================
 // Projects file management
@@ -157,15 +61,8 @@ function clearProjectsFile(): void {
 // ============================================================================
 
 function startTestServer(): { server: PiBunServer; wsUrl: string } {
-	const rpcManager = new PiRpcManager();
-	const server = createServer({
-		port: 0,
-		hostname: "localhost",
-		rpcManager,
-	});
-	const port = server.server.port;
-	const wsUrl = `ws://localhost:${port}/ws`;
-	return { server, wsUrl };
+	const ts = startServer();
+	return { server: ts.server, wsUrl: ts.wsUrl };
 }
 
 // ============================================================================
@@ -360,20 +257,8 @@ async function main(): Promise<void> {
 		restoreProjectsFile();
 	}
 
-	// Summary
-	console.log("\n══════════════════════════════════════");
-	console.log(`✅ Passed: ${passed}`);
-	console.log(`❌ Failed: ${failed}`);
-	console.log(`📊 Total:  ${passed + failed}`);
-	console.log("══════════════════════════════════════\n");
-
-	if (failed > 0) {
-		console.error("❌ VERIFICATION FAILED");
-		process.exit(1);
-	}
-
-	console.log("✅ Phase 2 project management verification passed!");
-	process.exit(0);
+	const { failed } = printResults("Project management verification");
+	process.exit(failed > 0 ? 1 : 0);
 }
 
 main().catch((err) => {

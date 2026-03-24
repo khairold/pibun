@@ -22,9 +22,14 @@ import { existsSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import type { ThemeId } from "@pibun/contracts";
-import { PiRpcManager } from "./piRpcManager.js";
-import { createServer } from "./server.js";
 import { loadSettings, updateSettings } from "./settingsStore.js";
+import {
+	connectWsWithWelcome,
+	createCheckCounter,
+	request,
+	startServer,
+	stopServer,
+} from "./test-harness.js";
 
 // ============================================================================
 // Constants
@@ -99,80 +104,7 @@ const ALL_COLOR_TOKENS = [
 // Helpers
 // ============================================================================
 
-let passed = 0;
-let failed = 0;
-
-function check(label: string, condition: boolean, detail?: string): void {
-	if (condition) {
-		passed++;
-		console.log(`  ✅ ${label}`);
-	} else {
-		failed++;
-		console.log(`  ❌ ${label}${detail ? ` — ${detail}` : ""}`);
-	}
-}
-
-interface WsMessage {
-	id?: string;
-	type?: string;
-	channel?: string;
-	result?: Record<string, unknown>;
-	error?: { message: string };
-	data?: unknown;
-}
-
-function parseMsg(data: string | Buffer | ArrayBuffer): WsMessage {
-	const raw = typeof data === "string" ? data : new TextDecoder().decode(data as ArrayBuffer);
-	return JSON.parse(raw) as WsMessage;
-}
-
-function connectWsWithWelcome(url: string): Promise<{ ws: WebSocket; welcome: WsMessage }> {
-	return new Promise((resolve, reject) => {
-		const ws = new WebSocket(url);
-		const timer = setTimeout(() => {
-			reject(new Error("WebSocket connection timeout"));
-		}, 5000);
-
-		ws.addEventListener("message", function handler(event: MessageEvent) {
-			ws.removeEventListener("message", handler);
-			clearTimeout(timer);
-			const msg = parseMsg(event.data as string);
-			resolve({ ws, welcome: msg });
-		});
-
-		ws.addEventListener("error", (e) => {
-			clearTimeout(timer);
-			reject(new Error(`WebSocket error: ${e}`));
-		});
-	});
-}
-
-function sendRequest(
-	ws: WebSocket,
-	method: string,
-	params?: Record<string, unknown>,
-): Promise<WsMessage> {
-	const id = `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-	return new Promise((resolve, reject) => {
-		const timer = setTimeout(() => {
-			reject(new Error(`Request timeout: ${method}`));
-		}, 5000);
-
-		function handler(event: MessageEvent) {
-			const msg = parseMsg(event.data as string);
-			if (msg.id === id) {
-				ws.removeEventListener("message", handler);
-				clearTimeout(timer);
-				resolve(msg);
-			}
-		}
-
-		ws.addEventListener("message", handler);
-		const payload: Record<string, unknown> = { id, method };
-		if (params) payload.params = params;
-		ws.send(JSON.stringify(payload));
-	});
-}
+const { check, printResults } = createCheckCounter();
 
 // ============================================================================
 // Test suites
@@ -397,10 +329,7 @@ async function testSettingsWsMethods(): Promise<void> {
 	console.log("\n🔌 Settings WS Methods");
 
 	// Start server (no Pi process needed)
-	const rpcManager = new PiRpcManager();
-	const pibunServer = createServer({ rpcManager, port: 0 });
-	const port = pibunServer.server.port;
-	const wsUrl = `ws://localhost:${port}/ws`;
+	const ts = startServer();
 
 	// Backup existing settings
 	let originalSettings: string | null = null;
@@ -409,10 +338,10 @@ async function testSettingsWsMethods(): Promise<void> {
 	}
 
 	try {
-		const { ws } = await connectWsWithWelcome(wsUrl);
+		const { ws } = await connectWsWithWelcome(ts.wsUrl);
 
 		// 1. settings.get returns settings
-		const getResp = await sendRequest(ws, "settings.get");
+		const getResp = await request(ws, "settings.get");
 		check("settings.get succeeds", "result" in getResp);
 		const settings = getResp.result?.settings as Record<string, unknown> | undefined;
 		check(
@@ -421,7 +350,7 @@ async function testSettingsWsMethods(): Promise<void> {
 		);
 
 		// 2. settings.update with theme
-		const updateResp = await sendRequest(ws, "settings.update", {
+		const updateResp = await request(ws, "settings.update", {
 			themeId: "high-contrast-dark",
 		});
 		check("settings.update succeeds", "result" in updateResp);
@@ -432,18 +361,18 @@ async function testSettingsWsMethods(): Promise<void> {
 		);
 
 		// 3. settings.get reflects the update
-		const getResp2 = await sendRequest(ws, "settings.get");
+		const getResp2 = await request(ws, "settings.get");
 		const settings2 = getResp2.result?.settings as Record<string, unknown> | undefined;
 		check("settings.get reflects update", settings2?.themeId === "high-contrast-dark");
 
 		// 4. Update to "system"
-		const sysResp = await sendRequest(ws, "settings.update", { themeId: "system" });
+		const sysResp = await request(ws, "settings.update", { themeId: "system" });
 		check("settings.update to 'system' succeeds", "result" in sysResp);
 		const sysSettings = sysResp.result?.settings as Record<string, unknown> | undefined;
 		check("settings.update returns 'system'", sysSettings?.themeId === "system");
 
 		// 5. Update to null (clear)
-		const nullResp = await sendRequest(ws, "settings.update", { themeId: null });
+		const nullResp = await request(ws, "settings.update", { themeId: null });
 		check("settings.update to null succeeds", "result" in nullResp);
 		const nullSettings = nullResp.result?.settings as Record<string, unknown> | undefined;
 		check("settings.update returns null themeId", nullSettings?.themeId === null);
@@ -465,8 +394,7 @@ async function testSettingsWsMethods(): Promise<void> {
 			rmSync(SETTINGS_FILE);
 		}
 
-		await rpcManager.stopAll();
-		pibunServer.stop();
+		stopServer(ts);
 	}
 }
 
@@ -776,21 +704,12 @@ async function main(): Promise<void> {
 		await testWebBuildThemeFiles();
 	} catch (err) {
 		console.error("\n💥 Unexpected error:", err);
-		failed++;
 	} finally {
 		clearTimeout(timer);
 	}
 
-	console.log(`\n${"=".repeat(60)}`);
-	console.log(`📊 Results: ${passed} passed, ${failed} failed, ${passed + failed} total`);
-
-	if (failed > 0) {
-		console.log("\n❌ VERIFICATION FAILED");
-		process.exit(1);
-	} else {
-		console.log("\n✅ ALL CHECKS PASSED");
-		process.exit(0);
-	}
+	const { failed } = printResults("Theme system verification");
+	process.exit(failed > 0 ? 1 : 0);
 }
 
 main();

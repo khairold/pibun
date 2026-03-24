@@ -20,98 +20,10 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import type { Plugin, PluginManifest } from "@pibun/contracts";
-import { PiRpcManager } from "./piRpcManager.js";
-import { type PiBunServer, createServer } from "./server.js";
+import type { PiBunServer } from "./server.js";
+import { connectWsWithWelcome, createCheckCounter, request, startServer } from "./test-harness.js";
 
-// ============================================================================
-// Helpers
-// ============================================================================
-
-let passed = 0;
-let failed = 0;
-
-function check(label: string, condition: boolean, detail?: string): void {
-	if (condition) {
-		passed++;
-		console.log(`  ✅ ${label}`);
-	} else {
-		failed++;
-		console.log(`  ❌ ${label}${detail ? ` — ${detail}` : ""}`);
-	}
-}
-
-interface WsMessage {
-	id?: string;
-	type?: string;
-	channel?: string;
-	result?: Record<string, unknown>;
-	error?: { message: string };
-	data?: unknown;
-}
-
-function parseMsg(data: string | Buffer | ArrayBuffer): WsMessage {
-	const raw = typeof data === "string" ? data : new TextDecoder().decode(data as ArrayBuffer);
-	return JSON.parse(raw) as WsMessage;
-}
-
-function waitForMessage(ws: WebSocket, timeoutMs = 5000): Promise<WsMessage> {
-	return new Promise((resolve, reject) => {
-		const timer = setTimeout(() => {
-			ws.removeEventListener("message", handler);
-			reject(new Error(`Timeout (${timeoutMs}ms) waiting for WS message`));
-		}, timeoutMs);
-
-		function handler(event: MessageEvent): void {
-			clearTimeout(timer);
-			ws.removeEventListener("message", handler);
-			resolve(parseMsg(event.data as string));
-		}
-
-		ws.addEventListener("message", handler);
-	});
-}
-
-function connectWsWithWelcome(url: string): Promise<{ ws: WebSocket; welcome: WsMessage }> {
-	return new Promise((resolve, reject) => {
-		const ws = new WebSocket(url);
-		const timer = setTimeout(() => {
-			reject(new Error("WebSocket connection timeout"));
-		}, 5000);
-
-		ws.addEventListener("message", function handler(event: MessageEvent) {
-			ws.removeEventListener("message", handler);
-			clearTimeout(timer);
-			const msg = parseMsg(event.data as string);
-			resolve({ ws, welcome: msg });
-		});
-
-		ws.addEventListener("error", (e) => {
-			clearTimeout(timer);
-			reject(new Error(`WebSocket error: ${e}`));
-		});
-	});
-}
-
-let reqIdCounter = 0;
-
-async function request(
-	ws: WebSocket,
-	method: string,
-	params?: Record<string, unknown>,
-): Promise<WsMessage> {
-	const id = `req-${String(++reqIdCounter)}`;
-	const msg: Record<string, unknown> = { id, method };
-	if (params) msg.params = params;
-	ws.send(JSON.stringify(msg));
-
-	// Drain messages until we get our response
-	for (let i = 0; i < 20; i++) {
-		const resp = await waitForMessage(ws);
-		if (resp.id === id) return resp;
-		// Skip push messages
-	}
-	throw new Error(`No response for ${method} (id: ${id})`);
-}
+const { check, printResults } = createCheckCounter();
 
 // ============================================================================
 // Fixture Management
@@ -252,18 +164,8 @@ window.parent.postMessage({ type: "plugin:ready", pluginId: "test-plugin" }, "*"
 // ============================================================================
 
 function startTestServer(): { server: PiBunServer; wsUrl: string; baseUrl: string } {
-	const rpcManager = new PiRpcManager();
-	const server = createServer({
-		port: 0,
-		hostname: "localhost",
-		rpcManager,
-	});
-	const port = server.server.port;
-	return {
-		server,
-		wsUrl: `ws://localhost:${port}/ws`,
-		baseUrl: `http://localhost:${port}`,
-	};
+	const ts = startServer();
+	return { server: ts.server, wsUrl: ts.wsUrl, baseUrl: ts.baseUrl };
 }
 
 // ============================================================================
@@ -889,25 +791,8 @@ async function main(): Promise<void> {
 		restorePluginsState();
 	}
 
-	// Summary
-	console.log("\n══════════════════════════════════════════");
-	console.log(`✅ Passed: ${passed}`);
-	console.log(`❌ Failed: ${failed}`);
-	console.log(`📊 Total:  ${passed + failed}`);
-	console.log("══════════════════════════════════════════\n");
-
-	if (failed > 0) {
-		console.error("❌ PLUGIN VERIFICATION FAILED");
-		process.exit(1);
-	}
-
-	console.log("✅ Phase 7 plugin system verification passed!");
-	console.log("\nPhase 7 Exit Criteria Verified:");
-	console.log("  ✅ Plugins can add panels to the UI (manifest → load → render pipeline)");
-	console.log("  ✅ Sandboxed (iframe with allow-scripts, allow-same-origin, allow-forms)");
-	console.log("  ✅ Can interact with session state via message bridge (postMessage API)");
-	console.log("  ✅ Example plugin works (Prompt Library — install, serve, interact, uninstall)");
-	process.exit(0);
+	const { failed } = printResults("Plugin system verification");
+	process.exit(failed > 0 ? 1 : 0);
 }
 
 main().catch((err) => {

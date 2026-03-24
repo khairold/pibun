@@ -21,26 +21,11 @@
  *   🎉 All integration checks passed!
  */
 
-import { PiRpcManager } from "./piRpcManager.js";
-import { type PiBunServer, createServer } from "./server.js";
+import { type WsMessage, parseMsg, startServer, stopServer } from "./test-harness.js";
 
 // ============================================================================
 // Helpers
 // ============================================================================
-
-interface WsMessage {
-	id?: string;
-	type?: string;
-	channel?: string;
-	result?: Record<string, unknown>;
-	error?: { message: string };
-	data?: unknown;
-}
-
-function parseMsg(data: string | Buffer | ArrayBuffer): WsMessage {
-	const raw = typeof data === "string" ? data : new TextDecoder().decode(data as ArrayBuffer);
-	return JSON.parse(raw) as WsMessage;
-}
 
 function waitFor(
 	ws: WebSocket,
@@ -87,19 +72,13 @@ function collectFor(ws: WebSocket, durationMs: number): Promise<WsMessage[]> {
 // Integration Test
 // ============================================================================
 
-const TEST_PORT = 24298;
-
-let rpcManager: PiRpcManager | undefined;
-let server: PiBunServer | undefined;
+const ts = startServer();
 
 try {
-	// Start server
-	rpcManager = new PiRpcManager();
-	server = createServer({ port: TEST_PORT, hostname: "localhost", rpcManager });
-	console.log(`Server started on port ${TEST_PORT}\n`);
+	console.log(`Server started on port ${ts.port}\n`);
 
 	// --- Step 1: Connect ---
-	const ws = new WebSocket(`ws://localhost:${TEST_PORT}`);
+	const ws = new WebSocket(ts.wsUrl);
 	await new Promise<void>((resolve, reject) => {
 		ws.addEventListener("open", () => resolve());
 		ws.addEventListener("error", () => reject(new Error("WebSocket connect failed")));
@@ -196,13 +175,7 @@ try {
 	console.error("\n❌ Integration test failed:", error);
 	process.exitCode = 1;
 } finally {
-	// Clean up
-	if (server) {
-		await server.stop();
-	}
-	if (rpcManager) {
-		await rpcManager.stopAll();
-	}
+	await stopServer(ts);
 	console.log("\nCleanup complete.");
 	process.exit(process.exitCode ?? 0);
 }

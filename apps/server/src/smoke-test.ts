@@ -24,8 +24,15 @@
 
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { PiRpcManager } from "./piRpcManager.js";
-import { type PiBunServer, createServer } from "./server.js";
+import {
+	type WsMessage,
+	connectWs,
+	createCheckCounter,
+	parseMsg,
+	startServer,
+	stopServer,
+	waitForMessage,
+} from "./test-harness.js";
 
 // ============================================================================
 // Helpers
@@ -34,68 +41,7 @@ import { type PiBunServer, createServer } from "./server.js";
 const WEB_DIST = resolve(import.meta.dir, "../../web/dist");
 const hasWebDist = existsSync(WEB_DIST) && existsSync(resolve(WEB_DIST, "index.html"));
 
-let passed = 0;
-let failed = 0;
-
-function check(label: string, condition: boolean, detail?: string): void {
-	if (condition) {
-		passed++;
-		console.log(`  ✅ ${label}`);
-	} else {
-		failed++;
-		console.log(`  ❌ ${label}${detail ? ` — ${detail}` : ""}`);
-	}
-}
-
-interface WsMessage {
-	id?: string;
-	type?: string;
-	channel?: string;
-	result?: Record<string, unknown>;
-	error?: { message: string };
-	data?: unknown;
-}
-
-function parseMsg(data: string | Buffer | ArrayBuffer): WsMessage {
-	const raw = typeof data === "string" ? data : new TextDecoder().decode(data as ArrayBuffer);
-	return JSON.parse(raw) as WsMessage;
-}
-
-function waitForMessage(ws: WebSocket, timeoutMs = 5000): Promise<WsMessage> {
-	return new Promise((resolve, reject) => {
-		const timer = setTimeout(() => {
-			ws.removeEventListener("message", handler);
-			reject(new Error(`Timeout (${timeoutMs}ms) waiting for WS message`));
-		}, timeoutMs);
-
-		function handler(event: MessageEvent): void {
-			clearTimeout(timer);
-			ws.removeEventListener("message", handler);
-			resolve(parseMsg(event.data as string));
-		}
-
-		ws.addEventListener("message", handler);
-	});
-}
-
-function connectWs(url: string): Promise<WebSocket> {
-	return new Promise((resolve, reject) => {
-		const ws = new WebSocket(url);
-		const timer = setTimeout(() => {
-			reject(new Error("WebSocket connection timeout"));
-		}, 5000);
-
-		ws.addEventListener("open", () => {
-			clearTimeout(timer);
-			resolve(ws);
-		});
-
-		ws.addEventListener("error", (e) => {
-			clearTimeout(timer);
-			reject(new Error(`WebSocket error: ${e}`));
-		});
-	});
-}
+const { check, printResults } = createCheckCounter();
 
 // ============================================================================
 // Test Sections
@@ -256,50 +202,26 @@ async function main(): Promise<void> {
 	console.log("🔥 PiBun Server Smoke Test");
 	console.log("══════════════════════════");
 
-	// Start server on random port
-	const rpcManager = new PiRpcManager();
-	let server: PiBunServer | null = null;
+	const ts = startServer({
+		...(hasWebDist ? { staticDir: WEB_DIST } : {}),
+	});
+
+	console.log(`\nServer started on port ${ts.port}`);
+	console.log(`Web dist: ${hasWebDist ? WEB_DIST : "NOT FOUND (will skip static tests)"}`);
 
 	try {
-		server = createServer({
-			port: 0,
-			hostname: "localhost",
-			...(hasWebDist && { staticDir: WEB_DIST }),
-			rpcManager,
-		});
-
-		const port = server.server.port;
-		const baseUrl = `http://localhost:${port}`;
-		const wsUrl = `ws://localhost:${port}/ws`;
-
-		console.log(`\nServer started on port ${port}`);
-		console.log(`Web dist: ${hasWebDist ? WEB_DIST : "NOT FOUND (will skip static tests)"}`);
-
-		// Run test sections
-		await testHealthEndpoint(baseUrl);
-		await testStaticServing(baseUrl);
-		await testWebSocketConnect(wsUrl);
-		await testWebSocketErrorHandling(wsUrl);
-		await testSessionWithoutPi(wsUrl);
-		await testMultipleConnections(wsUrl);
-
-		// Summary
-		console.log("\n══════════════════════════");
-		console.log(`Results: ${passed} passed, ${failed} failed, ${passed + failed} total`);
-
-		if (failed > 0) {
-			console.log("\n❌ SMOKE TEST FAILED");
-			process.exit(1);
-		}
-
-		console.log("\n✅ ALL SMOKE TESTS PASSED");
+		await testHealthEndpoint(ts.baseUrl);
+		await testStaticServing(ts.baseUrl);
+		await testWebSocketConnect(ts.wsUrl);
+		await testWebSocketErrorHandling(ts.wsUrl);
+		await testSessionWithoutPi(ts.wsUrl);
+		await testMultipleConnections(ts.wsUrl);
 	} finally {
-		// Clean shutdown
-		if (server) {
-			await server.stop();
-			await rpcManager.stopAll();
-		}
+		await stopServer(ts);
 	}
+
+	const { failed } = printResults("Smoke test");
+	process.exit(failed > 0 ? 1 : 0);
 }
 
 main().catch((error) => {

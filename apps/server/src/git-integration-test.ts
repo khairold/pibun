@@ -19,98 +19,11 @@
 
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-import { PiRpcManager } from "./piRpcManager.js";
-import { type PiBunServer, createServer } from "./server.js";
+import { join } from "node:path";
+import type { PiBunServer } from "./server.js";
+import { connectWsWithWelcome, createCheckCounter, request, startServer } from "./test-harness.js";
 
-// ============================================================================
-// Constants
-// ============================================================================
-
-const TIMEOUT_MS = 10000;
-
-// ============================================================================
-// Helpers
-// ============================================================================
-
-let passed = 0;
-let failed = 0;
-
-function check(label: string, condition: boolean, detail?: string): void {
-	if (condition) {
-		passed++;
-		console.log(`  ✅ ${label}`);
-	} else {
-		failed++;
-		console.log(`  ❌ ${label}${detail ? ` — ${detail}` : ""}`);
-	}
-}
-
-interface WsMessage {
-	id?: string;
-	type?: string;
-	channel?: string;
-	result?: Record<string, unknown>;
-	error?: { message: string };
-	data?: unknown;
-}
-
-function parseMsg(data: string | Buffer | ArrayBuffer): WsMessage {
-	const raw = typeof data === "string" ? data : new TextDecoder().decode(data as ArrayBuffer);
-	return JSON.parse(raw) as WsMessage;
-}
-
-/**
- * Connect and wait for the server.welcome push.
- */
-function connectWsWithWelcome(url: string): Promise<{ ws: WebSocket; welcome: WsMessage }> {
-	return new Promise((resolve, reject) => {
-		const ws = new WebSocket(url);
-		let welcomeMsg: WsMessage | null = null;
-
-		ws.addEventListener("message", (ev) => {
-			if (!welcomeMsg) {
-				welcomeMsg = parseMsg(ev.data);
-				resolve({ ws, welcome: welcomeMsg });
-			}
-		});
-		ws.addEventListener("open", () => {
-			// Welcome should arrive shortly after open
-		});
-		ws.addEventListener("error", (e) => reject(e));
-	});
-}
-
-/**
- * Send a request and wait for the correlated response.
- */
-function sendRequest(
-	ws: WebSocket,
-	method: string,
-	params?: Record<string, unknown>,
-): Promise<WsMessage> {
-	const id = `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-	return new Promise((resolve, reject) => {
-		const timeout = setTimeout(
-			() => reject(new Error(`Timeout waiting for ${method}`)),
-			TIMEOUT_MS,
-		);
-
-		const handler = (ev: MessageEvent) => {
-			const msg = parseMsg(ev.data);
-			if (msg.id === id) {
-				clearTimeout(timeout);
-				ws.removeEventListener("message", handler);
-				resolve(msg);
-			}
-		};
-		ws.addEventListener("message", handler);
-
-		const payload: Record<string, unknown> = { id, method };
-		if (params) payload.params = params;
-		ws.send(JSON.stringify(payload));
-	});
-}
+const { check, printResults } = createCheckCounter();
 
 /**
  * Run a git command in a directory.
@@ -176,17 +89,9 @@ async function main(): Promise<void> {
 		// Server Setup
 		// ================================================================
 		console.log("📦 Setting up server...");
-		const rpcManager = new PiRpcManager();
-		const webDist = resolve(import.meta.dir, "../../web/dist");
-		server = createServer({
-			port: 0,
-			hostname: "localhost",
-			staticDir: webDist,
-			rpcManager,
-		});
-
-		const port = server.server.port;
-		const wsUrl = `ws://localhost:${port}/ws`;
+		const ts = startServer();
+		server = ts.server;
+		const wsUrl = ts.wsUrl;
 
 		// Connect WebSocket
 		const { ws: socket, welcome } = await connectWsWithWelcome(wsUrl);
@@ -202,7 +107,7 @@ async function main(): Promise<void> {
 		// ================================================================
 		console.log("\n📋 Test 1: git.status on clean repo");
 
-		const statusClean = await sendRequest(ws, "git.status", { cwd: gitDir });
+		const statusClean = await request(ws, "git.status", { cwd: gitDir });
 		check("git.status returns result", "result" in statusClean);
 
 		const status1 = statusClean.result as Record<string, unknown>;
@@ -220,7 +125,7 @@ async function main(): Promise<void> {
 		// ================================================================
 		console.log("\n📋 Test 2: git.branch");
 
-		const branchResult = await sendRequest(ws, "git.branch", { cwd: gitDir });
+		const branchResult = await request(ws, "git.branch", { cwd: gitDir });
 		check("git.branch returns result", "result" in branchResult);
 
 		const branch1 = branchResult.result as Record<string, unknown>;
@@ -231,7 +136,7 @@ async function main(): Promise<void> {
 		// ================================================================
 		console.log("\n📋 Test 3: git.log");
 
-		const logResult = await sendRequest(ws, "git.log", { cwd: gitDir });
+		const logResult = await request(ws, "git.log", { cwd: gitDir });
 		check("git.log returns result", "result" in logResult);
 
 		const log1 = logResult.result as Record<string, unknown>;
@@ -255,7 +160,7 @@ async function main(): Promise<void> {
 		writeFileSync(join(gitDir, "README.md"), "# Test Project\n\nModified content.\n");
 		writeFileSync(join(gitDir, "newfile.ts"), "export const x = 42;\n");
 
-		const statusDirty = await sendRequest(ws, "git.status", { cwd: gitDir });
+		const statusDirty = await request(ws, "git.status", { cwd: gitDir });
 		const status2 = statusDirty.result as Record<string, unknown>;
 		const statusData2 = status2.status as Record<string, unknown>;
 		check("isDirty is true after modifications", statusData2.isDirty === true);
@@ -277,7 +182,7 @@ async function main(): Promise<void> {
 		// ================================================================
 		console.log("\n📋 Test 5: git.diff for specific file");
 
-		const diffResult = await sendRequest(ws, "git.diff", { cwd: gitDir, path: "README.md" });
+		const diffResult = await request(ws, "git.diff", { cwd: gitDir, path: "README.md" });
 		check("git.diff returns result", "result" in diffResult);
 
 		const diff1 = diffResult.result as Record<string, unknown>;
@@ -296,7 +201,7 @@ async function main(): Promise<void> {
 		console.log("\n📋 Test 6: Staged diff");
 
 		git(["add", "README.md"], gitDir);
-		const diffStaged = await sendRequest(ws, "git.diff", {
+		const diffStaged = await request(ws, "git.diff", {
 			cwd: gitDir,
 			path: "README.md",
 			staged: true,
@@ -308,7 +213,7 @@ async function main(): Promise<void> {
 		check("staged diff shows the modification", stagedDiffText.includes("+Modified content"));
 
 		// Unstaged diff should be empty for this file now
-		const diffUnstaged = await sendRequest(ws, "git.diff", { cwd: gitDir, path: "README.md" });
+		const diffUnstaged = await request(ws, "git.diff", { cwd: gitDir, path: "README.md" });
 		const unstaged1 = diffUnstaged.result as Record<string, unknown>;
 		const unstagedDiffData = unstaged1.diff as Record<string, unknown>;
 		const unstagedDiffText = unstagedDiffData.diff as string;
@@ -319,14 +224,14 @@ async function main(): Promise<void> {
 		// ================================================================
 		console.log("\n📋 Test 7: Non-git directory");
 
-		const statusNonGit = await sendRequest(ws, "git.status", { cwd: nonGitDir });
+		const statusNonGit = await request(ws, "git.status", { cwd: nonGitDir });
 		const statusNG = statusNonGit.result as Record<string, unknown>;
 		const statusDataNG = statusNG.status as Record<string, unknown>;
 		check("isRepo is false for non-git directory", statusDataNG.isRepo === false);
 		check("branch is null for non-git directory", statusDataNG.branch === null);
 		check("isDirty is false for non-git directory", statusDataNG.isDirty === false);
 
-		const branchNonGit = await sendRequest(ws, "git.branch", { cwd: nonGitDir });
+		const branchNonGit = await request(ws, "git.branch", { cwd: nonGitDir });
 		const branchNG = branchNonGit.result as Record<string, unknown>;
 		check("git.branch returns null for non-git directory", branchNG.branch === null);
 
@@ -335,10 +240,10 @@ async function main(): Promise<void> {
 		// ================================================================
 		console.log("\n📋 Test 8: Error handling");
 
-		const diffNonGit = await sendRequest(ws, "git.diff", { cwd: nonGitDir });
+		const diffNonGit = await request(ws, "git.diff", { cwd: nonGitDir });
 		check("git.diff on non-git dir returns error", "error" in diffNonGit);
 
-		const logNonGit = await sendRequest(ws, "git.log", { cwd: nonGitDir });
+		const logNonGit = await request(ws, "git.log", { cwd: nonGitDir });
 		check("git.log on non-git dir returns error", "error" in logNonGit);
 
 		// ================================================================
@@ -347,11 +252,11 @@ async function main(): Promise<void> {
 		console.log("\n📋 Test 9: Branch switching");
 
 		git(["checkout", "-b", "feature-test"], gitDir);
-		const branchAfterSwitch = await sendRequest(ws, "git.branch", { cwd: gitDir });
+		const branchAfterSwitch = await request(ws, "git.branch", { cwd: gitDir });
 		const branchAS = branchAfterSwitch.result as Record<string, unknown>;
 		check("branch reflects switch to 'feature-test'", branchAS.branch === "feature-test");
 
-		const statusAfterSwitch = await sendRequest(ws, "git.status", { cwd: gitDir });
+		const statusAfterSwitch = await request(ws, "git.status", { cwd: gitDir });
 		const statusAS = statusAfterSwitch.result as Record<string, unknown>;
 		const statusDataAS = statusAS.status as Record<string, unknown>;
 		check("git.status also shows 'feature-test' branch", statusDataAS.branch === "feature-test");
@@ -364,7 +269,7 @@ async function main(): Promise<void> {
 		git(["add", "."], gitDir);
 		git(["commit", "-m", "Add changes on feature branch"], gitDir);
 
-		const logAfterCommit = await sendRequest(ws, "git.log", { cwd: gitDir });
+		const logAfterCommit = await request(ws, "git.log", { cwd: gitDir });
 		const log2 = logAfterCommit.result as Record<string, unknown>;
 		const logData2 = log2.log as Record<string, unknown>;
 		const entries2 = logData2.entries as Array<{ hash: string; message: string }>;
@@ -376,7 +281,7 @@ async function main(): Promise<void> {
 		check("initial commit still present", entries2[1]?.message === "Initial commit");
 
 		// Status should be clean after commit
-		const statusAfterCommit = await sendRequest(ws, "git.status", { cwd: gitDir });
+		const statusAfterCommit = await request(ws, "git.status", { cwd: gitDir });
 		const statusAC = statusAfterCommit.result as Record<string, unknown>;
 		const statusDataAC = statusAC.status as Record<string, unknown>;
 		check("isDirty is false after commit", statusDataAC.isDirty === false);
@@ -392,7 +297,7 @@ async function main(): Promise<void> {
 
 		rmSync(join(gitDir, "newfile.ts"));
 
-		const statusAfterDelete = await sendRequest(ws, "git.status", { cwd: gitDir });
+		const statusAfterDelete = await request(ws, "git.status", { cwd: gitDir });
 		const statusAD = statusAfterDelete.result as Record<string, unknown>;
 		const statusDataAD = statusAD.status as Record<string, unknown>;
 		check("isDirty after file deletion", statusDataAD.isDirty === true);
@@ -406,48 +311,17 @@ async function main(): Promise<void> {
 		// ================================================================
 		console.log("\n📋 Test 12: git.log count parameter");
 
-		const logLimited = await sendRequest(ws, "git.log", { cwd: gitDir, count: 1 });
+		const logLimited = await request(ws, "git.log", { cwd: gitDir, count: 1 });
 		const logLim = logLimited.result as Record<string, unknown>;
 		const logDataLim = logLim.log as Record<string, unknown>;
 		const entriesLim = logDataLim.entries as Array<{ hash: string; message: string }>;
 		check("log with count=1 returns 1 entry", entriesLim.length === 1);
 
-		// ================================================================
-		// Summary
-		// ================================================================
-		console.log(`\n${"=".repeat(50)}`);
-		console.log(`\n🧪 Results: ${String(passed)}/${String(passed + failed)} checks passed\n`);
-
-		if (failed > 0) {
-			console.log("❌ VERIFICATION FAILED\n");
-			process.exit(1);
-		} else {
-			console.log("✅ Phase 3 — Git Integration VERIFIED\n");
-			console.log("Exit criteria validated:");
-			console.log(
-				"  ✅ Branch + dirty status visible (git.status returns isRepo, branch, isDirty, files)",
-			);
-			console.log(
-				"  ✅ Changed files list accessible (git.status returns file list with status badges)",
-			);
-			console.log("  ✅ Diffs viewable (git.diff returns unified diff, staged/unstaged support)");
-			console.log(
-				"  ✅ Branch switching reflected (git.branch + git.status update after checkout)",
-			);
-			console.log("  ✅ File changes detected (modifications, new files, deletions)");
-			console.log("  ✅ Commit history accessible (git.log with count parameter)");
-			console.log("  ✅ Non-git directories handled gracefully (isRepo: false)");
-			console.log("  ✅ Error handling for unsupported operations on non-git dirs");
-		}
+		const { failed } = printResults("Git integration verification");
+		process.exit(failed > 0 ? 1 : 0);
 	} finally {
-		// Cleanup
-		if (ws && ws.readyState === WebSocket.OPEN) {
-			ws.close();
-		}
-		if (server) {
-			server.stop();
-		}
-		// Clean up temp dirs
+		if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+		if (server) server.stop();
 		try {
 			rmSync(gitDir, { recursive: true, force: true });
 		} catch {

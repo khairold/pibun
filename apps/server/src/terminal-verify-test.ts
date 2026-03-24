@@ -22,149 +22,18 @@
 import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { PiRpcManager } from "./piRpcManager.js";
-import { type PiBunServer, createServer } from "./server.js";
+import type { PiBunServer } from "./server.js";
+import {
+	collectPushes,
+	connectWsWithWelcome,
+	createCheckCounter,
+	request,
+	startServer,
+	waitForPush,
+} from "./test-harness.js";
 
-// ============================================================================
-// Constants
-// ============================================================================
+const { check, printResults } = createCheckCounter();
 
-const TIMEOUT_MS = 10000;
-const DATA_TIMEOUT_MS = 5000;
-
-// ============================================================================
-// Helpers
-// ============================================================================
-
-let passed = 0;
-let failed = 0;
-
-function check(label: string, condition: boolean, detail?: string): void {
-	if (condition) {
-		passed++;
-		console.log(`  ✅ ${label}`);
-	} else {
-		failed++;
-		console.log(`  ❌ ${label}${detail ? ` — ${detail}` : ""}`);
-	}
-}
-
-interface WsMessage {
-	id?: string;
-	type?: string;
-	channel?: string;
-	result?: Record<string, unknown>;
-	error?: { message: string };
-	data?: unknown;
-}
-
-function parseMsg(data: string | Buffer | ArrayBuffer): WsMessage {
-	const raw = typeof data === "string" ? data : new TextDecoder().decode(data as ArrayBuffer);
-	return JSON.parse(raw) as WsMessage;
-}
-
-/**
- * Connect and wait for the server.welcome push.
- */
-function connectWsWithWelcome(url: string): Promise<{ ws: WebSocket; welcome: WsMessage }> {
-	return new Promise((resolve, reject) => {
-		const ws = new WebSocket(url);
-		let welcomeMsg: WsMessage | null = null;
-
-		ws.addEventListener("message", (ev) => {
-			if (!welcomeMsg) {
-				welcomeMsg = parseMsg(ev.data);
-				resolve({ ws, welcome: welcomeMsg });
-			}
-		});
-		ws.addEventListener("error", (e) => reject(e));
-	});
-}
-
-/**
- * Send a request and wait for the correlated response.
- */
-function sendRequest(
-	ws: WebSocket,
-	method: string,
-	params?: Record<string, unknown>,
-): Promise<WsMessage> {
-	const id = `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-	return new Promise((resolve, reject) => {
-		const timeout = setTimeout(
-			() => reject(new Error(`Timeout waiting for response to ${method} (${id})`)),
-			TIMEOUT_MS,
-		);
-
-		const handler = (ev: MessageEvent) => {
-			const msg = parseMsg(ev.data);
-			if (msg.id === id) {
-				clearTimeout(timeout);
-				ws.removeEventListener("message", handler);
-				resolve(msg);
-			}
-		};
-		ws.addEventListener("message", handler);
-
-		const payload: Record<string, unknown> = { id, method };
-		if (params) payload.params = params;
-		ws.send(JSON.stringify(payload));
-	});
-}
-
-/**
- * Wait for a specific push channel message.
- * Optionally filter by a predicate on the push data.
- */
-function waitForPush(
-	ws: WebSocket,
-	channel: string,
-	predicate?: (data: unknown) => boolean,
-	timeoutMs: number = DATA_TIMEOUT_MS,
-): Promise<WsMessage> {
-	return new Promise((resolve, reject) => {
-		const timeout = setTimeout(
-			() => reject(new Error(`Timeout waiting for push on channel: ${channel}`)),
-			timeoutMs,
-		);
-
-		const handler = (ev: MessageEvent) => {
-			const msg = parseMsg(ev.data);
-			if (msg.type === "push" && msg.channel === channel) {
-				if (!predicate || predicate(msg.data)) {
-					clearTimeout(timeout);
-					ws.removeEventListener("message", handler);
-					resolve(msg);
-				}
-			}
-		};
-		ws.addEventListener("message", handler);
-	});
-}
-
-/**
- * Collect push messages on a channel for a duration.
- */
-function collectPushes(ws: WebSocket, channel: string, durationMs: number): Promise<WsMessage[]> {
-	return new Promise((resolve) => {
-		const collected: WsMessage[] = [];
-		const handler = (ev: MessageEvent) => {
-			const msg = parseMsg(ev.data);
-			if (msg.type === "push" && msg.channel === channel) {
-				collected.push(msg);
-			}
-		};
-		ws.addEventListener("message", handler);
-		setTimeout(() => {
-			ws.removeEventListener("message", handler);
-			resolve(collected);
-		}, durationMs);
-	});
-}
-
-/**
- * Small delay helper.
- */
 function delay(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -191,17 +60,11 @@ async function main(): Promise<void> {
 		// Server Setup
 		// ================================================================
 		console.log("📦 Setting up server...");
-		const rpcManager = new PiRpcManager();
-		const webDist = resolve(import.meta.dir, "../../web/dist");
-		server = createServer({
-			port: 0,
-			hostname: "localhost",
-			staticDir: webDist,
-			rpcManager,
+		const ts = startServer({
+			staticDir: resolve(import.meta.dir, "../../web/dist"),
 		});
-
-		const port = server.server.port;
-		const wsUrl = `ws://localhost:${port}/ws`;
+		server = ts.server;
+		const wsUrl = ts.wsUrl;
 
 		// Connect WebSocket
 		const { ws: socket, welcome } = await connectWsWithWelcome(wsUrl);
@@ -217,7 +80,7 @@ async function main(): Promise<void> {
 		// ================================================================
 		console.log("\n📋 Test 1: terminal.create");
 
-		const createResult = await sendRequest(ws, "terminal.create", {
+		const createResult = await request(ws, "terminal.create", {
 			cwd: tempDir1,
 			cols: 120,
 			rows: 40,
@@ -248,7 +111,7 @@ async function main(): Promise<void> {
 		const dataCollector = collectPushes(ws, "terminal.data", 3000);
 
 		// Write the echo command
-		const writeResult = await sendRequest(ws, "terminal.write", {
+		const writeResult = await request(ws, "terminal.write", {
 			terminalId: terminalId1,
 			data: `echo ${marker}\n`,
 		});
@@ -283,7 +146,7 @@ async function main(): Promise<void> {
 		// ================================================================
 		console.log("\n📋 Test 3: terminal.resize");
 
-		const resizeResult = await sendRequest(ws, "terminal.resize", {
+		const resizeResult = await request(ws, "terminal.resize", {
 			terminalId: terminalId1,
 			cols: 200,
 			rows: 50,
@@ -296,7 +159,7 @@ async function main(): Promise<void> {
 		// Verify the resize took effect by checking $COLUMNS via echo
 		const resizeMarker = `RESIZE_${Date.now()}`;
 		const resizeDataCollector = collectPushes(ws, "terminal.data", 2000);
-		await sendRequest(ws, "terminal.write", {
+		await request(ws, "terminal.write", {
 			terminalId: terminalId1,
 			data: `echo ${resizeMarker}_$COLUMNS\n`,
 		});
@@ -315,7 +178,7 @@ async function main(): Promise<void> {
 		console.log("\n📋 Test 4: Multiple terminals");
 
 		// Create second terminal in a different CWD
-		const createResult2 = await sendRequest(ws, "terminal.create", {
+		const createResult2 = await request(ws, "terminal.create", {
 			cwd: tempDir2,
 		});
 		check("second terminal.create returns result", "result" in createResult2);
@@ -329,7 +192,7 @@ async function main(): Promise<void> {
 		);
 
 		// Create third terminal
-		const createResult3 = await sendRequest(ws, "terminal.create", {
+		const createResult3 = await request(ws, "terminal.create", {
 			cwd: tempDir1,
 		});
 		const create3 = createResult3.result as Record<string, unknown>;
@@ -347,11 +210,11 @@ async function main(): Promise<void> {
 
 		const allDataCollector = collectPushes(ws, "terminal.data", 3000);
 
-		await sendRequest(ws, "terminal.write", {
+		await request(ws, "terminal.write", {
 			terminalId: terminalId2,
 			data: `echo ${marker2}\n`,
 		});
-		await sendRequest(ws, "terminal.write", {
+		await request(ws, "terminal.write", {
 			terminalId: terminalId3,
 			data: `echo ${marker3}\n`,
 		});
@@ -387,7 +250,7 @@ async function main(): Promise<void> {
 		// Terminal 1 was created with tempDir1 — verify via pwd
 		const cwdMarker1 = `CWD1_${Date.now()}`;
 		const cwdCollector1 = collectPushes(ws, "terminal.data", 2000);
-		await sendRequest(ws, "terminal.write", {
+		await request(ws, "terminal.write", {
 			terminalId: terminalId1,
 			data: `echo ${cwdMarker1}_$(pwd)\n`,
 		});
@@ -400,7 +263,7 @@ async function main(): Promise<void> {
 		// Terminal 2 was created with tempDir2
 		const cwdMarker2 = `CWD2_${Date.now()}`;
 		const cwdCollector2 = collectPushes(ws, "terminal.data", 2000);
-		await sendRequest(ws, "terminal.write", {
+		await request(ws, "terminal.write", {
 			terminalId: terminalId2,
 			data: `echo ${cwdMarker2}_$(pwd)\n`,
 		});
@@ -422,7 +285,7 @@ async function main(): Promise<void> {
 			(data) => (data as Record<string, unknown>).terminalId === terminalId3,
 		);
 
-		const closeResult = await sendRequest(ws, "terminal.close", {
+		const closeResult = await request(ws, "terminal.close", {
 			terminalId: terminalId3,
 		});
 		check("terminal.close returns result", "result" in closeResult);
@@ -440,26 +303,26 @@ async function main(): Promise<void> {
 		// ================================================================
 		console.log("\n📋 Test 7: Error handling — operations on closed/invalid terminal");
 
-		const writeClosedResult = await sendRequest(ws, "terminal.write", {
+		const writeClosedResult = await request(ws, "terminal.write", {
 			terminalId: terminalId3,
 			data: "hello\n",
 		});
 		check("terminal.write on closed terminal returns error", "error" in writeClosedResult);
 
-		const resizeClosedResult = await sendRequest(ws, "terminal.resize", {
+		const resizeClosedResult = await request(ws, "terminal.resize", {
 			terminalId: terminalId3,
 			cols: 100,
 			rows: 30,
 		});
 		check("terminal.resize on closed terminal returns error", "error" in resizeClosedResult);
 
-		const closeClosedResult = await sendRequest(ws, "terminal.close", {
+		const closeClosedResult = await request(ws, "terminal.close", {
 			terminalId: terminalId3,
 		});
 		check("terminal.close on already-closed terminal returns error", "error" in closeClosedResult);
 
 		// Invalid terminal ID
-		const writeInvalidResult = await sendRequest(ws, "terminal.write", {
+		const writeInvalidResult = await request(ws, "terminal.write", {
 			terminalId: "nonexistent-terminal",
 			data: "hello\n",
 		});
@@ -471,7 +334,7 @@ async function main(): Promise<void> {
 		console.log("\n📋 Test 8: Shell exit (natural exit) → terminal.exit push");
 
 		// Create a terminal that we'll exit naturally
-		const createResult4 = await sendRequest(ws, "terminal.create", {
+		const createResult4 = await request(ws, "terminal.create", {
 			cwd: tempDir1,
 		});
 		const create4 = createResult4.result as Record<string, unknown>;
@@ -487,7 +350,7 @@ async function main(): Promise<void> {
 		);
 
 		// Tell the shell to exit
-		await sendRequest(ws, "terminal.write", {
+		await request(ws, "terminal.write", {
 			terminalId: terminalId4,
 			data: "exit\n",
 		});
@@ -509,12 +372,12 @@ async function main(): Promise<void> {
 		const { ws: socket2 } = await connectWsWithWelcome(wsUrl);
 		ws2 = socket2;
 
-		const createOnWs2_1 = await sendRequest(ws2, "terminal.create", {
+		const createOnWs2_1 = await request(ws2, "terminal.create", {
 			cwd: tempDir1,
 		});
 		const ws2Term1 = (createOnWs2_1.result as Record<string, unknown>).terminalId as string;
 
-		const createOnWs2_2 = await sendRequest(ws2, "terminal.create", {
+		const createOnWs2_2 = await request(ws2, "terminal.create", {
 			cwd: tempDir2,
 		});
 		const ws2Term2 = (createOnWs2_2.result as Record<string, unknown>).terminalId as string;
@@ -532,13 +395,13 @@ async function main(): Promise<void> {
 
 		// Verify terminals are gone by trying to write to them from ws1
 		// (The server should have cleaned them up on WS disconnect)
-		const writeOrphan1 = await sendRequest(ws, "terminal.write", {
+		const writeOrphan1 = await request(ws, "terminal.write", {
 			terminalId: ws2Term1,
 			data: "hello\n",
 		});
 		check("terminal from disconnected ws2 is cleaned up (write fails)", "error" in writeOrphan1);
 
-		const writeOrphan2 = await sendRequest(ws, "terminal.write", {
+		const writeOrphan2 = await request(ws, "terminal.write", {
 			terminalId: ws2Term2,
 			data: "hello\n",
 		});
@@ -555,7 +418,7 @@ async function main(): Promise<void> {
 		// Terminals 1 and 2 from ws1 should still be alive
 		const aliveMarker1 = `ALIVE1_${Date.now()}`;
 		const aliveCollector1 = collectPushes(ws, "terminal.data", 2000);
-		await sendRequest(ws, "terminal.write", {
+		await request(ws, "terminal.write", {
 			terminalId: terminalId1,
 			data: `echo ${aliveMarker1}\n`,
 		});
@@ -567,7 +430,7 @@ async function main(): Promise<void> {
 
 		const aliveMarker2 = `ALIVE2_${Date.now()}`;
 		const aliveCollector2 = collectPushes(ws, "terminal.data", 2000);
-		await sendRequest(ws, "terminal.write", {
+		await request(ws, "terminal.write", {
 			terminalId: terminalId2,
 			data: `echo ${aliveMarker2}\n`,
 		});
@@ -582,7 +445,7 @@ async function main(): Promise<void> {
 		// ================================================================
 		console.log("\n📋 Test 11: terminal.create default CWD");
 
-		const createDefault = await sendRequest(ws, "terminal.create", {});
+		const createDefault = await request(ws, "terminal.create", {});
 		check("terminal.create with empty params returns result", "result" in createDefault);
 
 		const createDef = createDefault.result as Record<string, unknown>;
@@ -597,7 +460,7 @@ async function main(): Promise<void> {
 		// Check CWD is process.cwd() (server's working directory)
 		const defCwdMarker = `DEFCWD_${Date.now()}`;
 		const defCwdCollector = collectPushes(ws, "terminal.data", 2000);
-		await sendRequest(ws, "terminal.write", {
+		await request(ws, "terminal.write", {
 			terminalId: terminalIdDefault,
 			data: `echo ${defCwdMarker}_$(pwd)\n`,
 		});
@@ -608,7 +471,7 @@ async function main(): Promise<void> {
 		check("default CWD terminal output contains a valid path", defCwdOutput.includes(defCwdMarker));
 
 		// Clean up default terminal
-		await sendRequest(ws, "terminal.close", { terminalId: terminalIdDefault });
+		await request(ws, "terminal.close", { terminalId: terminalIdDefault });
 
 		// ================================================================
 		// Cleanup remaining terminals
@@ -627,46 +490,18 @@ async function main(): Promise<void> {
 			(data) => (data as Record<string, unknown>).terminalId === terminalId2,
 		);
 
-		await sendRequest(ws, "terminal.close", { terminalId: terminalId1 });
-		await sendRequest(ws, "terminal.close", { terminalId: terminalId2 });
+		await request(ws, "terminal.close", { terminalId: terminalId1 });
+		await request(ws, "terminal.close", { terminalId: terminalId2 });
 
 		await Promise.all([exit1Promise, exit2Promise]);
 		check("all remaining terminals closed cleanly", true);
 
-		// ================================================================
-		// Summary
-		// ================================================================
-		console.log(`\n${"=".repeat(50)}`);
-		console.log(`\n🧪 Results: ${String(passed)}/${String(passed + failed)} checks passed\n`);
-
-		if (failed > 0) {
-			console.log("❌ VERIFICATION FAILED\n");
-			process.exit(1);
-		} else {
-			console.log("✅ Phase 4 — Terminal Integration VERIFIED\n");
-			console.log("Exit criteria validated:");
-			console.log("  ✅ Embedded terminal works alongside chat (PTY spawn + data flow)");
-			console.log("  ✅ Multiple terminal tabs (3 concurrent terminals, independent routing)");
-			console.log("  ✅ Resizable (terminal.resize accepted, shell responsive after)");
-			console.log("  ✅ CWD-aware (terminal CWD matches create param, default CWD works)");
-			console.log("  ✅ Terminal close + exit events (terminal.close → terminal.exit push)");
-			console.log("  ✅ Natural shell exit triggers terminal.exit push");
-			console.log("  ✅ Error handling (invalid/closed terminal operations → error)");
-			console.log("  ✅ Cleanup on WS disconnect (no orphaned PTY processes)");
-			console.log("  ✅ Remaining terminals unaffected by closing others");
-		}
+		const { failed } = printResults("Terminal integration verification");
+		process.exit(failed > 0 ? 1 : 0);
 	} finally {
-		// Cleanup
-		if (ws2 && ws2.readyState === WebSocket.OPEN) {
-			ws2.close();
-		}
-		if (ws && ws.readyState === WebSocket.OPEN) {
-			ws.close();
-		}
-		if (server) {
-			server.stop();
-		}
-		// Clean up temp dirs
+		if (ws2 && ws2.readyState === WebSocket.OPEN) ws2.close();
+		if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+		if (server) server.stop();
 		try {
 			rmSync(tempDir1, { recursive: true, force: true });
 		} catch {

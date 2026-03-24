@@ -17,8 +17,15 @@
  */
 
 import { resolve } from "node:path";
-import { PiRpcManager } from "./piRpcManager.js";
-import { type PiBunServer, createServer } from "./server.js";
+import type { PiRpcManager } from "./piRpcManager.js";
+import {
+	type WsMessage,
+	connectWsWithWelcome,
+	createCheckCounter,
+	parseMsg,
+	startServer,
+	stopServer,
+} from "./test-harness.js";
 
 // ============================================================================
 // Constants
@@ -27,56 +34,11 @@ import { type PiBunServer, createServer } from "./server.js";
 const FAKE_PI = resolve(import.meta.dir, "../test-fixtures/fake-pi-streaming.ts");
 const TIMEOUT_MS = 15000;
 
+const { check, printResults } = createCheckCounter();
+
 // ============================================================================
-// Helpers
+// Helpers (test-specific — custom request patterns for multi-session)
 // ============================================================================
-
-let passed = 0;
-let failed = 0;
-
-function check(label: string, condition: boolean, detail?: string): void {
-	if (condition) {
-		passed++;
-		console.log(`  ✅ ${label}`);
-	} else {
-		failed++;
-		console.log(`  ❌ ${label}${detail ? ` — ${detail}` : ""}`);
-	}
-}
-
-interface WsMessage {
-	id?: string;
-	type?: string;
-	channel?: string;
-	result?: Record<string, unknown>;
-	error?: { message: string };
-	data?: unknown;
-}
-
-function parseMsg(data: string | Buffer | ArrayBuffer): WsMessage {
-	const raw = typeof data === "string" ? data : new TextDecoder().decode(data as ArrayBuffer);
-	return JSON.parse(raw) as WsMessage;
-}
-
-function connectWsWithWelcome(url: string): Promise<{ ws: WebSocket; welcome: WsMessage }> {
-	return new Promise((resolve, reject) => {
-		const ws = new WebSocket(url);
-		const timer = setTimeout(() => {
-			reject(new Error("WebSocket connection+welcome timeout"));
-		}, 5000);
-
-		ws.addEventListener("message", function onFirstMsg(event: MessageEvent) {
-			ws.removeEventListener("message", onFirstMsg);
-			clearTimeout(timer);
-			resolve({ ws, welcome: parseMsg(event.data as string) });
-		});
-
-		ws.addEventListener("error", (e) => {
-			clearTimeout(timer);
-			reject(new Error(`WebSocket error: ${e}`));
-		});
-	});
-}
 
 function sendRequest(
 	ws: WebSocket,
@@ -523,23 +485,13 @@ async function main(): Promise<void> {
 	console.log("═══════════════════════════════════════════════════════════════");
 	console.log(`Using fake Pi: ${FAKE_PI}`);
 
-	const rpcManager = new PiRpcManager({ defaultPiCommand: FAKE_PI });
-	let server: PiBunServer | null = null;
+	const ts = startServer({ defaultPiCommand: FAKE_PI });
 
 	try {
-		server = createServer({
-			port: 0,
-			hostname: "localhost",
-			rpcManager,
-		});
-
-		const port = server.server.port;
-		const wsUrl = `ws://localhost:${port}/ws`;
-
-		console.log(`\nServer started on port ${port}`);
+		console.log(`\nServer started on port ${ts.port}`);
 
 		// Test 1: Create 3 simultaneous sessions
-		const { ws: mainWs, sessionIds } = await testThreeSimultaneousSessions(wsUrl, rpcManager);
+		const { ws: mainWs, sessionIds } = await testThreeSimultaneousSessions(ts.wsUrl, ts.rpcManager);
 
 		// Test 2: Stream in parallel from all 3
 		await testParallelStreaming(mainWs, sessionIds);
@@ -551,7 +503,7 @@ async function main(): Promise<void> {
 		await testSessionRoutingIsolation(mainWs, sessionIds);
 
 		// Test 5: Close one session, verify no orphaned processes
-		const remaining = await testCloseSession(mainWs, sessionIds, rpcManager);
+		const remaining = await testCloseSession(mainWs, sessionIds, ts.rpcManager);
 
 		// Test 6: Remaining sessions still work
 		await testRemainingSessionsWork(mainWs, remaining);
@@ -561,30 +513,12 @@ async function main(): Promise<void> {
 		await new Promise((resolve) => setTimeout(resolve, 300));
 
 		// Test 7: Cleanup on disconnect (fresh connection)
-		await testCleanupOnDisconnect(wsUrl, rpcManager);
+		await testCleanupOnDisconnect(ts.wsUrl, ts.rpcManager);
 
-		// Summary
-		console.log("\n═══════════════════════════════════════════════════════════════");
-		console.log(`Results: ${passed} passed, ${failed} failed, ${passed + failed} total`);
-
-		if (failed > 0) {
-			console.log("\n❌ MULTI-SESSION VERIFICATION FAILED");
-			process.exit(1);
-		}
-
-		console.log("\n✅ ALL MULTI-SESSION CHECKS PASSED");
-		console.log("\nPhase 1 exit criteria verified:");
-		console.log("  ✅ Multiple Pi sessions run in parallel");
-		console.log("  ✅ Events tagged with sessionId (tabs can show streaming state)");
-		console.log("  ✅ Per-session state retrieval works (switch is instant with cache)");
-		console.log("  ✅ No process leaks on close");
-		console.log("  ✅ No orphaned processes on WebSocket disconnect");
+		const { failed } = printResults("Multi-session verification");
+		process.exit(failed > 0 ? 1 : 0);
 	} finally {
-		// Clean shutdown
-		if (server) {
-			await server.stop();
-		}
-		await rpcManager.stopAll();
+		await stopServer(ts);
 	}
 }
 

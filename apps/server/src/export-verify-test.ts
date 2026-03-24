@@ -19,131 +19,21 @@
 
 import { existsSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
-import { PiRpcManager } from "./piRpcManager.js";
-import { createServer } from "./server.js";
+import {
+	connectWsWithWelcome,
+	createCheckCounter,
+	request,
+	startServer,
+	stopServer,
+	waitForAgentEnd,
+} from "./test-harness.js";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const TIMEOUT_MS = 10000;
 const FAKE_PI_PATH = resolve(import.meta.dir, "../test-fixtures/fake-pi-streaming.ts");
-
-// ============================================================================
-// Helpers
-// ============================================================================
-
-let passed = 0;
-let failed = 0;
-
-function check(label: string, condition: boolean, detail?: string): void {
-	if (condition) {
-		passed++;
-		console.log(`  ✅ ${label}`);
-	} else {
-		failed++;
-		console.log(`  ❌ ${label}${detail ? ` — ${detail}` : ""}`);
-	}
-}
-
-interface WsMessage {
-	id?: string;
-	type?: string;
-	channel?: string;
-	result?: Record<string, unknown>;
-	error?: { message: string };
-	data?: unknown;
-}
-
-function parseMsg(data: string | Buffer | ArrayBuffer): WsMessage {
-	const raw = typeof data === "string" ? data : new TextDecoder().decode(data as ArrayBuffer);
-	return JSON.parse(raw) as WsMessage;
-}
-
-function connectWsWithWelcome(url: string): Promise<{ ws: WebSocket; welcome: WsMessage }> {
-	return new Promise((resolve, reject) => {
-		const ws = new WebSocket(url);
-		const timer = setTimeout(() => {
-			reject(new Error("WebSocket connection timeout"));
-		}, 5000);
-
-		ws.addEventListener("message", function handler(event: MessageEvent) {
-			ws.removeEventListener("message", handler);
-			clearTimeout(timer);
-			const msg = parseMsg(event.data as string);
-			resolve({ ws, welcome: msg });
-		});
-
-		ws.addEventListener("error", (e) => {
-			clearTimeout(timer);
-			reject(new Error(`WebSocket error: ${e}`));
-		});
-	});
-}
-
-function waitForMessage(ws: WebSocket, timeoutMs = 5000): Promise<WsMessage> {
-	return new Promise((resolve, reject) => {
-		const timer = setTimeout(() => {
-			ws.removeEventListener("message", handler);
-			reject(new Error(`Timeout (${timeoutMs}ms) waiting for WS message`));
-		}, timeoutMs);
-
-		function handler(event: MessageEvent): void {
-			clearTimeout(timer);
-			ws.removeEventListener("message", handler);
-			resolve(parseMsg(event.data as string));
-		}
-
-		ws.addEventListener("message", handler);
-	});
-}
-
-let reqIdCounter = 0;
-
-function sendRequest(
-	ws: WebSocket,
-	method: string,
-	params?: Record<string, unknown>,
-	sessionId?: string,
-): { id: string } {
-	const id = `req-${String(++reqIdCounter)}`;
-	const msg: Record<string, unknown> = { id, method };
-	if (params) msg.params = params;
-	if (sessionId) msg.sessionId = sessionId;
-	ws.send(JSON.stringify(msg));
-	return { id };
-}
-
-async function request(
-	ws: WebSocket,
-	method: string,
-	params?: Record<string, unknown>,
-	sessionId?: string,
-): Promise<WsMessage> {
-	const { id } = sendRequest(ws, method, params, sessionId);
-	// Drain messages until we get our response
-	for (let i = 0; i < 50; i++) {
-		const msg = await waitForMessage(ws, TIMEOUT_MS);
-		if (msg.id === id) return msg;
-		// Skip push messages (pi.event, pi.response, etc.)
-	}
-	throw new Error(`No response for ${method} (id: ${id})`);
-}
-
-/**
- * Drain all messages until agent_end push is received.
- */
-async function waitForAgentEnd(ws: WebSocket): Promise<void> {
-	for (let i = 0; i < 100; i++) {
-		const msg = await waitForMessage(ws, TIMEOUT_MS);
-		if (msg.type === "push" && msg.channel === "pi.event") {
-			const data = msg.data as Record<string, unknown>;
-			const event = data.event as Record<string, unknown>;
-			if (event.type === "agent_end") return;
-		}
-	}
-	throw new Error("Never received agent_end event");
-}
+const { check, printResults } = createCheckCounter();
 
 // ============================================================================
 // Markdown generation (mirrors ExportDialog.tsx messagesToMarkdown)
@@ -625,20 +515,12 @@ async function testExportAfterConversation(ws: WebSocket, sessionId: string): Pr
 async function main(): Promise<void> {
 	console.log("🔍 PiBun Session Export Verification Test\n");
 
-	// Start server with fake-pi-streaming
-	const rpcManager = new PiRpcManager({ defaultPiCommand: FAKE_PI_PATH });
-	const server = createServer({
-		port: 0,
-		hostname: "localhost",
-		rpcManager,
-	});
-	const port = server.server.port;
-	const wsUrl = `ws://localhost:${port}/ws`;
-	console.log(`Server started on ${wsUrl}`);
+	const ts = startServer({ defaultPiCommand: FAKE_PI_PATH });
+	console.log(`Server started on ${ts.wsUrl}`);
 
 	try {
 		// Connect and start session
-		const { ws, welcome } = await connectWsWithWelcome(wsUrl);
+		const { ws, welcome } = await connectWsWithWelcome(ts.wsUrl);
 		check("WebSocket connected with welcome", welcome.channel === "server.welcome");
 
 		// Start a session
@@ -688,23 +570,11 @@ async function main(): Promise<void> {
 		// Clean up
 		ws.close();
 	} finally {
-		await server.stop();
+		await stopServer(ts);
 	}
 
-	// Summary
-	console.log("\n══════════════════════════════════════");
-	console.log(`✅ Passed: ${passed}`);
-	console.log(`❌ Failed: ${failed}`);
-	console.log(`📊 Total:  ${passed + failed}`);
-	console.log("══════════════════════════════════════\n");
-
-	if (failed > 0) {
-		console.error("❌ VERIFICATION FAILED");
-		process.exit(1);
-	}
-
-	console.log("✅ Phase 5 session export verification passed!");
-	process.exit(0);
+	const { failed } = printResults("Export verification");
+	process.exit(failed > 0 ? 1 : 0);
 }
 
 main().catch((err) => {

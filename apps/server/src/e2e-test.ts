@@ -23,21 +23,17 @@
 
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { PiRpcManager } from "./piRpcManager.js";
-import { type PiBunServer, createServer } from "./server.js";
+import {
+	type WsMessage,
+	createCheckCounter,
+	parseMsg,
+	startServer,
+	stopServer,
+} from "./test-harness.js";
 
 // ============================================================================
 // Types
 // ============================================================================
-
-interface WsMessage {
-	id?: string;
-	type?: string;
-	channel?: string;
-	result?: Record<string, unknown>;
-	error?: { message: string };
-	data?: unknown;
-}
 
 interface PiEventData {
 	type: string;
@@ -48,26 +44,9 @@ interface PiEventData {
 // Helpers
 // ============================================================================
 
-const TEST_PORT = 24299;
 const WEB_DIST = resolve(import.meta.dir, "../../web/dist");
 
-let passed = 0;
-let failed = 0;
-
-function check(label: string, condition: boolean, detail?: string): void {
-	if (condition) {
-		passed++;
-		console.log(`  ✅ ${label}`);
-	} else {
-		failed++;
-		console.log(`  ❌ ${label}${detail ? ` — ${detail}` : ""}`);
-	}
-}
-
-function parseMsg(data: string | Buffer | ArrayBuffer): WsMessage {
-	const raw = typeof data === "string" ? data : new TextDecoder().decode(data as ArrayBuffer);
-	return JSON.parse(raw) as WsMessage;
-}
+const { check, printResults } = createCheckCounter();
 
 function waitFor(
 	ws: WebSocket,
@@ -391,8 +370,7 @@ async function testWebSocketFlow(wsUrl: string): Promise<void> {
 // Main
 // ============================================================================
 
-let rpcManager: PiRpcManager | undefined;
-let server: PiBunServer | undefined;
+const ts = startServer({ staticDir: WEB_DIST });
 
 try {
 	console.log("╔══════════════════════════════════════════════════╗");
@@ -412,57 +390,21 @@ try {
 				.trim().length > 0,
 	);
 
-	// ── Start Server with Static Serving ──
+	// ── Server Ready ──
 	console.log("\n── Server Startup ──");
+	check("Server started", !!ts.server.server);
+	check("Static dir configured", !!ts.server.config.staticDir);
+	console.log(`  📡 Server listening on ${ts.baseUrl}`);
 
-	rpcManager = new PiRpcManager();
-	server = createServer({
-		port: TEST_PORT,
-		hostname: "localhost",
-		staticDir: WEB_DIST,
-		rpcManager,
-	});
+	await testStaticServing(ts.baseUrl);
+	await testWebSocketFlow(ts.wsUrl);
 
-	check("Server started", !!server.server);
-	check("Static dir configured", !!server.config.staticDir);
-	console.log(`  📡 Server listening on http://localhost:${TEST_PORT}`);
-
-	// ── Run Tests ──
-	const baseUrl = `http://localhost:${TEST_PORT}`;
-	const wsUrl = `ws://localhost:${TEST_PORT}`;
-
-	await testStaticServing(baseUrl);
-	await testWebSocketFlow(wsUrl);
-
-	// ── Summary ──
-	console.log("\n╔══════════════════════════════════════════════════╗");
-	console.log(`║  Results: ${passed} passed, ${failed} failed                     `);
-	console.log("╚══════════════════════════════════════════════════╝");
-
-	if (failed === 0) {
-		console.log("\n🎉 All E2E checks passed!");
-		console.log("\nPhase 1C Exit Criteria Verified:");
-		console.log("  ✅ Working chat with Pi in the browser (server + WebSocket + streaming)");
-		console.log("  ✅ Streaming text renders smoothly (text_delta events flow correctly)");
-		console.log("  ✅ Tool calls visible (tool_execution_start/update/end events)");
-		console.log("  ✅ Session starts automatically (session.start → sessionId returned)");
-		console.log("  ✅ Web app builds and serves via HTTP (SPA routing works)");
-	} else {
-		console.log(`\n⚠️  ${failed} check(s) failed — review output above`);
-		process.exitCode = 1;
-	}
+	const { failed } = printResults("E2E verification");
+	process.exitCode = failed > 0 ? 1 : 0;
 } catch (error) {
 	console.error("\n❌ E2E test failed:", error);
 	process.exitCode = 1;
 } finally {
-	// Clean up
-	console.log("\nCleaning up...");
-	if (server) {
-		await server.stop();
-	}
-	if (rpcManager) {
-		await rpcManager.stopAll();
-	}
-	console.log("Done.");
+	await stopServer(ts);
 	process.exit(process.exitCode ?? 0);
 }
