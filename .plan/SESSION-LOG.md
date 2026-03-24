@@ -1000,3 +1000,34 @@
 - Terminal theme (xterm.js TERMINAL_THEME in TerminalInstance.tsx) needs separate handling in 6.8
 
 ---
+
+## Session 85 — Phase 6 ThemeSelector component (2026-03-24)
+
+**What happened:**
+- Built `ThemeSelector` component at `apps/web/src/components/ThemeSelector.tsx`:
+  - Trigger button with palette icon + chevron, follows same border/bg/hover pattern as ModelSelector
+  - Dropdown panel with 5 theme preview cards in a vertical list
+  - `ThemePreview` sub-component renders mini color swatch strip (5 segments: surface-primary, surface-secondary, accent-primary, text-primary Aa sample, user-bubble-bg) giving instant visual impression
+  - Active theme highlighted with accent border + ring-1 + checkmark icon
+  - Each card shows theme name + "Light"/"Dark" badge
+  - Click applies immediately: `applyTheme(theme)` → `setActiveThemeId()` → `localStorage.setItem("pibun-theme")`
+  - Same dropdown interaction pattern: click-outside close, Escape close, focus return to trigger
+  - Cross-tab sync via `storage` event listener — changing theme in one tab updates all tabs
+  - No Zustand store needed — theme is CSS-level (custom properties on `<html>`) + localStorage
+- Added ThemeSelector to AppShell toolbar in session management controls section (after ExportDialog)
+- Ran `bun run format` to fix Biome formatting (short JSX props collapsed to single line)
+- Build gate passed: `bun run typecheck && bun run lint` clean
+
+**Items completed:**
+- [x] 6.4 — Build `ThemeSelector` component: grid of theme previews, click to apply
+
+**Issues encountered:**
+- None — straightforward component following established dropdown patterns.
+
+**Handoff to next session:**
+- Next: 6.5 — Persist theme choice: `localStorage` in browser, `~/.pibun/settings.json` in desktop
+- Note: `localStorage` persistence is already implemented in ThemeSelector (reads on init, writes on select, listens for cross-tab sync). Browser-side persistence is done.
+- Desktop side needs: `~/.pibun/settings.json` for persistence across sessions — could use a WS method to read/write settings, or just rely on localStorage in the webview (which Electrobun's native webview may or may not persist).
+- After 6.5: 6.6 (system preference detection — `prefers-color-scheme`), 6.7 (macOS appearance changes), 6.8 (Shiki + xterm theme matching), 6.9 (verification)
+
+---
