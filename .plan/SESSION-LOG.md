@@ -116,3 +116,37 @@
 - `closeTab` still has stale-session bugs — slated for Phase 3.6, not 1.6.
 
 ---
+
+## Session 5 — Phase 1.6+1.7: Remove multi-session-only features + verify (2026-03-24)
+
+**What happened:**
+- Removed `tabTerminalActiveIds` Map from TabsSlice type and workspaceSlice state
+- Updated `switchTab` and `removeTab` to use `terminalTabs.find(t => t.ownerTabId === tabId)` instead of the cache
+- Removed `reorderTabs` method (type + implementation) — only consumer was dead `TabBar` component
+- Removed `setBackgroundTabStatus` and `setBackgroundTabWidget` (type + implementation) — were already no-ops since 1.3
+- Cleaned up `TabBar.tsx`: removed drag-to-reorder handlers, drag props from TabItemProps, unused imports (`DragEvent`, `useState`)
+- Ran full verification: `bun run typecheck && bun run build && bun run format` — all pass
+- **Phase 1 complete** — all 7 items checked off, exit criteria met
+
+**Items completed:**
+- [x] 1.6 — Remove `reorderTabs`, `setBackgroundTabStatus`, `setBackgroundTabWidget`, `tabTerminalActiveIds`
+- [x] 1.7 — Verify: `bun run typecheck && bun run build`
+
+**Phase 1 exit criteria verification:**
+- ✅ Only one Pi process runs (enforced by `startSession` — 1.1)
+- ✅ Switching sessions stops the old one (`switchTabAction` — 1.5)
+- ✅ No background event routing (removed in 1.2)
+- ✅ No per-tab message/status/widget caches (removed in 1.3)
+- ✅ No multi-session-only features (removed in 1.6)
+- ✅ All type checks pass, build succeeds
+
+**Issues encountered:**
+- `TabBar.tsx` still referenced `reorderTabs` despite being dead code (not imported anywhere). Fixed by stripping drag-to-reorder from TabBar.
+
+**Handoff to next session:**
+- Next: Phase 2 — Session Lifecycle UX
+- Start with 2.1 — Auto-remove empty sessions on switch
+- `TabBar` is dead code — not imported anywhere. Full removal deferred to Phase 3.
+- Terminal active ID selection now uses first-match instead of cached value — acceptable since terminals are going project-scoped post-Phase 3.
+
+---

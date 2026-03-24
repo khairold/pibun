@@ -20,6 +20,9 @@
 | 10 | Per-tab message/status/widget caches removed | `tabMessages`, `tabStatuses`, `tabWidgets` removed from state. `saveActiveTabMessages` removed. `switchTab` now clears messages and relies on async action layer to load from Pi via `session.getMessages`. `setBackgroundTabStatus`/`setBackgroundTabWidget` are no-ops pending removal in 1.6. | 2026-03-24 |
 | 11 | `sessionFile` added to `SessionTab` | Tabs now track their Pi session file path. Saved during `switchTab` snapshot and `syncActiveTabState`. Required for session resume when switching back to a previously active tab. | 2026-03-24 |
 | 12 | `switchTabAction` uses `switchSession()` for resume | When switching to a tab with a `sessionFile`, clears `store.sessionId` (so `ensureSession` starts a fresh Pi process), then calls `switchSession(sessionFile)` which handles: start process → switch to file → load messages → refresh state. No manual stop/start orchestration. | 2026-03-24 |
+| 13 | `tabTerminalActiveIds` removed — terminal selection uses first-match | Was a per-tab cache for active terminal ID. Removed because terminals are going project-scoped (DRIFT #1). Now `switchTab`/`removeTab` select the first terminal owned by the target tab via `terminalTabs.find(t => t.ownerTabId === tabId)`. | 2026-03-24 |
+| 14 | `reorderTabs`, `setBackgroundTabStatus`, `setBackgroundTabWidget` removed | Dead code. `reorderTabs` was only used by `TabBar` (not imported anywhere). Background tab methods were no-ops since 1.3. All removed from type + implementation. | 2026-03-24 |
+| 15 | `TabBar` component is dead code | Not imported or rendered anywhere. Sidebar handles session navigation. Drag-to-reorder stripped out. Full removal deferred to Phase 3. | 2026-03-24 |
 
 ## Architecture Notes
 

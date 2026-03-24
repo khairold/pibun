@@ -117,7 +117,6 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	// ==== Tabs state ====
 	tabs: [],
 	activeTabId: null,
-	tabTerminalActiveIds: new Map<string, string | null>(),
 
 	addTab: (partial) => {
 		const state = get();
@@ -150,8 +149,6 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	removeTab: (tabId) => {
 		set((s) => {
 			const newTabs = s.tabs.filter((t) => t.id !== tabId);
-			const newTabTerminalActiveIds = new Map(s.tabTerminalActiveIds);
-			newTabTerminalActiveIds.delete(tabId);
 
 			// Remove terminals owned by this tab
 			const newTerminalTabs = s.terminalTabs.filter((t) => t.ownerTabId !== tabId);
@@ -162,7 +159,6 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 
 			const updates: Partial<AppStore> = {
 				tabs: newTabs,
-				tabTerminalActiveIds: newTabTerminalActiveIds,
 				terminalTabs: newTerminalTabs,
 			};
 
@@ -191,8 +187,9 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					updates.isStreaming = nextTab.isStreaming;
 					updates.sessionName = nextTab.name;
 					updates.sessionFile = nextTab.sessionFile;
-					// Restore next tab's terminal state
-					updates.activeTerminalTabId = newTabTerminalActiveIds.get(nextTab.id) ?? null;
+					// Select first terminal owned by the next tab, if any
+					const nextTabTerminal = newTerminalTabs.find((t) => t.ownerTabId === nextTab.id);
+					updates.activeTerminalTabId = nextTabTerminal?.id ?? null;
 				} else {
 					// No tabs left — clear everything
 					updates.messages = [];
@@ -227,14 +224,9 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 		if (!targetTab) return;
 
 		set((s) => {
-			const newTabTerminalActiveIds = new Map(s.tabTerminalActiveIds);
-
 			// Snapshot the leaving tab's metadata from current session state
 			let updatedTabs = s.tabs;
 			if (s.activeTabId) {
-				// Save current active terminal tab ID for the leaving tab
-				newTabTerminalActiveIds.set(s.activeTabId, s.activeTerminalTabId);
-
 				// NOTE: Do NOT overwrite t.sessionId — it holds the PiBun manager ID
 				// from session.start. Only sync piSessionId for session list matching.
 				updatedTabs = s.tabs.map((t) =>
@@ -257,13 +249,12 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				);
 			}
 
-			// Restore target tab's active terminal tab ID
-			const targetTerminalActiveId = newTabTerminalActiveIds.get(tabId) ?? null;
+			// Select first terminal owned by the target tab, if any
+			const targetTerminal = s.terminalTabs.find((t) => t.ownerTabId === tabId);
 
 			return {
 				tabs: updatedTabs,
 				activeTabId: tabId,
-				tabTerminalActiveIds: newTabTerminalActiveIds,
 				// Clear messages/statuses/widgets — the async action layer
 				// loads fresh data from Pi via session.getMessages
 				messages: [],
@@ -287,7 +278,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				retryDelayMs: 0,
 				retryStartedAt: 0,
 				// Restore terminal state for target tab
-				activeTerminalTabId: targetTerminalActiveId,
+				activeTerminalTabId: targetTerminal?.id ?? null,
 				// Close diff panel on tab switch (diff is per-session context)
 				diffPanelOpen: false,
 				diffPanelFiles: [],
@@ -335,31 +326,6 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			),
 		}));
 	},
-
-	reorderTabs: (fromIndex, toIndex) => {
-		set((s) => {
-			if (
-				fromIndex === toIndex ||
-				fromIndex < 0 ||
-				toIndex < 0 ||
-				fromIndex >= s.tabs.length ||
-				toIndex >= s.tabs.length
-			) {
-				return s;
-			}
-			const newTabs = [...s.tabs];
-			const [moved] = newTabs.splice(fromIndex, 1);
-			if (!moved) return s;
-			newTabs.splice(toIndex, 0, moved);
-			return { tabs: newTabs };
-		});
-	},
-
-	// Dead code — nothing calls these after background event routing was removed (1.2).
-	// Kept as no-ops until 1.6 removes them from the type interface.
-	setBackgroundTabStatus: (_tabId, _key, _text) => {},
-
-	setBackgroundTabWidget: (_tabId, _key, _lines, _placement) => {},
 
 	// ==== Terminal state ====
 	terminalPanelOpen: false,

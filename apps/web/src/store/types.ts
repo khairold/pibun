@@ -550,12 +550,6 @@ export interface TabsSlice {
 	tabs: SessionTab[];
 	/** ID of the currently active tab, null when no tabs exist. */
 	activeTabId: string | null;
-	/**
-	 * Per-tab active terminal tab ID cache.
-	 * When switching session tabs, the current `activeTerminalTabId` is saved here
-	 * for the leaving tab, and restored from here for the arriving tab.
-	 */
-	tabTerminalActiveIds: Map<string, string | null>;
 
 	/**
 	 * Create a new tab with optional initial values.
@@ -578,17 +572,6 @@ export interface TabsSlice {
 	getActiveTab: () => SessionTab | null;
 	/** Sync the active tab's metadata with current session slice state. */
 	syncActiveTabState: () => void;
-	/** Reorder tabs by moving a tab from one index to another. */
-	reorderTabs: (fromIndex: number, toIndex: number) => void;
-	/** Set or clear an extension status for a background (inactive) tab. */
-	setBackgroundTabStatus: (tabId: string, key: string, text: string | undefined) => void;
-	/** Set or clear an extension widget for a background (inactive) tab. */
-	setBackgroundTabWidget: (
-		tabId: string,
-		key: string,
-		lines: string[] | undefined,
-		placement: "aboveEditor" | "belowEditor",
-	) => void;
 }
 
 /** Maximum number of terminals visible in a single split group. */

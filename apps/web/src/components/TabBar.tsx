@@ -17,7 +17,7 @@ import { closeTab, startSession, switchTabAction } from "@/lib/tabActions";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { SessionTab, TabStatus } from "@pibun/contracts";
-import { type DragEvent, type MouseEvent, memo, useCallback, useRef, useState } from "react";
+import { type MouseEvent, memo, useCallback, useRef } from "react";
 
 // ============================================================================
 // Tab Item
@@ -30,23 +30,14 @@ interface TabItemProps {
 	onSwitch: (tabId: string) => void;
 	onClose: (tabId: string) => void;
 	canClose: boolean;
-	onDragStart: (e: DragEvent, index: number) => void;
-	onDragOver: (e: DragEvent, index: number) => void;
-	onDragEnd: () => void;
-	isDragOver: boolean;
 }
 
 const TabItem = memo(function TabItem({
 	tab,
-	index,
 	isActive,
 	onSwitch,
 	onClose,
 	canClose,
-	onDragStart,
-	onDragOver,
-	onDragEnd,
-	isDragOver,
 }: TabItemProps) {
 	const displayName = tab.name || "New Session";
 	const modelName = tab.model ? shortModelName(tab.model.name) : null;
@@ -63,25 +54,10 @@ const TabItem = memo(function TabItem({
 		onSwitch(tab.id);
 	}, [onSwitch, tab.id]);
 
-	const handleDragStart = useCallback(
-		(e: DragEvent) => {
-			onDragStart(e, index);
-		},
-		[onDragStart, index],
-	);
-
-	const handleDragOver = useCallback(
-		(e: DragEvent) => {
-			onDragOver(e, index);
-		},
-		[onDragOver, index],
-	);
-
 	return (
 		<div
 			role="tab"
 			tabIndex={0}
-			draggable
 			onClick={handleClick}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {
@@ -89,15 +65,11 @@ const TabItem = memo(function TabItem({
 					handleClick();
 				}
 			}}
-			onDragStart={handleDragStart}
-			onDragOver={handleDragOver}
-			onDragEnd={onDragEnd}
 			className={cn(
 				"group relative flex h-9 min-w-0 max-w-[200px] shrink-0 cursor-pointer items-center gap-1.5 border-r border-border-secondary px-3 text-left transition-colors",
 				isActive
 					? "bg-surface-base text-text-primary"
 					: "bg-surface-primary text-text-secondary hover:bg-surface-primary hover:text-text-primary",
-				isDragOver && "border-l-2 border-l-accent-primary",
 			)}
 			aria-selected={isActive}
 			aria-label={displayName}
@@ -231,11 +203,8 @@ export function TabBar() {
 	const tabs = useStore((s) => s.tabs);
 	const activeTabId = useStore((s) => s.activeTabId);
 	const connectionStatus = useStore((s) => s.connectionStatus);
-	const reorderTabs = useStore((s) => s.reorderTabs);
 
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
-	const dragIndexRef = useRef<number | null>(null);
-	const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
 	const isConnected = connectionStatus === "open";
 
@@ -261,41 +230,6 @@ export function TabBar() {
 		});
 	}, []);
 
-	// ── Drag-to-reorder handlers ─────────────────────────────────
-	const handleDragStart = useCallback((e: DragEvent, index: number) => {
-		dragIndexRef.current = index;
-		e.dataTransfer.effectAllowed = "move";
-		// Use a minimal drag image — the browser shows the element ghost by default
-		e.dataTransfer.setData("text/plain", String(index));
-	}, []);
-
-	const handleDragOver = useCallback((e: DragEvent, index: number) => {
-		e.preventDefault();
-		e.dataTransfer.dropEffect = "move";
-		if (dragIndexRef.current !== null && dragIndexRef.current !== index) {
-			setDragOverIndex(index);
-		}
-	}, []);
-
-	const handleDrop = useCallback(
-		(e: DragEvent<HTMLDivElement>) => {
-			e.preventDefault();
-			const fromIndex = dragIndexRef.current;
-			const toIndex = dragOverIndex;
-			if (fromIndex !== null && toIndex !== null && fromIndex !== toIndex) {
-				reorderTabs(fromIndex, toIndex);
-			}
-			dragIndexRef.current = null;
-			setDragOverIndex(null);
-		},
-		[dragOverIndex, reorderTabs],
-	);
-
-	const handleDragEnd = useCallback(() => {
-		dragIndexRef.current = null;
-		setDragOverIndex(null);
-	}, []);
-
 	// Don't render the tab bar if there are 0 or 1 tabs
 	if (tabs.length <= 1) {
 		return null;
@@ -308,8 +242,6 @@ export function TabBar() {
 				ref={scrollContainerRef}
 				className="flex min-w-0 flex-1 items-stretch overflow-x-auto"
 				style={{ scrollbarWidth: "none" }}
-				onDrop={handleDrop}
-				onDragOver={(e) => e.preventDefault()}
 			>
 				{tabs.map((tab, index) => (
 					<TabItem
@@ -320,10 +252,6 @@ export function TabBar() {
 						onSwitch={handleSwitchTab}
 						onClose={handleCloseTab}
 						canClose={tabs.length > 1}
-						onDragStart={handleDragStart}
-						onDragOver={handleDragOver}
-						onDragEnd={handleDragEnd}
-						isDragOver={dragOverIndex === index}
 					/>
 				))}
 			</div>

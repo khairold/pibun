@@ -1,9 +1,9 @@
 # Single-Session Simplification — Build Plan
 
 > **Spec:** Simplify from multi-tab-session to single-active-session model
-> **Status:** In Progress
-> **Current Phase:** Phase 1 — Single-Session Enforcement
-> **Last Session:** Session 4 — 2026-03-24
+> **Status:** In Progress — Phase 1 complete
+> **Current Phase:** Phase 2 — Session Lifecycle UX
+> **Last Session:** Session 5 — 2026-03-24
 
 ---
 
@@ -61,8 +61,8 @@ status tracking (`tabStatuses`, `tabWidgets`), `keepExisting` flag,
 - [x] 1.3 — Remove `tabMessages`, `tabStatuses`, `tabWidgets` caches from `workspaceSlice`. No save/restore on switch — messages live in the store directly. On switch, clear messages and load from Pi via `session.getMessages`.
 - [x] 1.4 — Simplify `switchTab` in workspaceSlice: no message save/restore. Just update `activeTabId`, set session metadata. The async load happens in the action layer.
 - [x] 1.5 — Simplify `switchTabAction` in tabActions: stop current session → switch tab → start new session (or resume existing) → load messages + refresh state.
-- [ ] 1.6 — Remove `reorderTabs`, `setBackgroundTabStatus`, `setBackgroundTabWidget`, `tabTerminalActiveIds` — all multi-session-only features.
-- [ ] 1.7 — Verify: `bun run typecheck && bun run build`. Fix any broken references.
+- [x] 1.6 — Remove `reorderTabs`, `setBackgroundTabStatus`, `setBackgroundTabWidget`, `tabTerminalActiveIds` — all multi-session-only features.
+- [x] 1.7 — Verify: `bun run typecheck && bun run build`. Fix any broken references.
 
 **Exit criteria:** Only one Pi process runs. Switching sessions stops the old one. No background event routing. All type checks pass.
 
