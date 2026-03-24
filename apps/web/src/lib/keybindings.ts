@@ -382,7 +382,7 @@ export const DEFAULT_KEYBINDINGS: readonly KeybindingRule[] = [
 	{ key: "mod+t", command: "newTab" },
 	{ key: "mod+w", command: "closeTab" },
 	{ key: "mod+,", command: "settings" },
-	{ key: "mod+`", command: "toggleTerminal" },
+	{ key: "mod+j", command: "toggleTerminal" },
 	{ key: "mod+tab", command: "nextTab" },
 	// Shift combos
 	{ key: "mod+shift+b", command: "toggleBashInput" },

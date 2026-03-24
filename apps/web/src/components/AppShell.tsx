@@ -40,6 +40,59 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useWindowTitle } from "@/hooks/useWindowTitle";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
+import { useCallback } from "react";
+
+function TerminalButton() {
+	const terminalPanelOpen = useStore((s) => s.terminalPanelOpen);
+	const connectionStatus = useStore((s) => s.connectionStatus);
+	const isConnected = connectionStatus === "open";
+
+	const handleClick = useCallback(async () => {
+		const store = useStore.getState();
+		if (store.terminalPanelOpen) {
+			store.setTerminalPanelOpen(false);
+		} else {
+			const hasTerminals = store.terminalTabs.some((t) => t.ownerTabId === store.activeTabId);
+			if (hasTerminals) {
+				store.setTerminalPanelOpen(true);
+			} else if (isConnected) {
+				const { createTerminal } = await import("@/lib/appActions");
+				await createTerminal();
+			}
+		}
+	}, [isConnected]);
+
+	return (
+		<button
+			type="button"
+			onClick={handleClick}
+			disabled={!isConnected}
+			className={cn(
+				"flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition-colors",
+				terminalPanelOpen
+					? "border-accent-primary bg-accent-soft text-accent-text"
+					: "border-border-primary bg-surface-primary text-text-primary hover:border-text-tertiary hover:bg-surface-secondary",
+				!isConnected && "cursor-not-allowed opacity-50",
+			)}
+			title="Terminal (Ctrl+J)"
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 16 16"
+				fill="currentColor"
+				className="h-3.5 w-3.5"
+				aria-label="Terminal"
+				role="img"
+			>
+				<path
+					fillRule="evenodd"
+					d="M2 4.25A2.25 2.25 0 0 1 4.25 2h7.5A2.25 2.25 0 0 1 14 4.25v7.5A2.25 2.25 0 0 1 11.75 14h-7.5A2.25 2.25 0 0 1 2 11.75v-7.5Zm3.03.47a.75.75 0 0 0-1.06 1.06L5.69 7.5 3.97 9.22a.75.75 0 1 0 1.06 1.06l2.25-2.25a.75.75 0 0 0 0-1.06L5.03 4.72ZM7.75 10a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5Z"
+					clipRule="evenodd"
+				/>
+			</svg>
+		</button>
+	);
+}
 
 function SettingsButton() {
 	const setSettingsOpen = useStore((s) => s.setSettingsOpen);
@@ -170,6 +223,7 @@ export function AppShell() {
 
 						{/* Session management controls */}
 						<div className="flex items-center gap-1 border-l border-border-secondary pl-2">
+							<TerminalButton />
 							<CompactButton />
 							<ForkDialog />
 							<ExportDialog />
