@@ -486,6 +486,106 @@ function wireWindowLifecycle(mainWindow: BrowserWindow): void {
 }
 
 // ============================================================================
+// Navigation Rules
+// ============================================================================
+
+/**
+ * Prevent the webview from navigating away from PiBun.
+ *
+ * Three layers of protection:
+ *
+ * 1. **`setNavigationRules`** — Electrobun's native URL filter. Blocks all
+ *    URLs except the PiBun server (localhost with the dynamic port) and
+ *    Electrobun's internal `views://` protocol.
+ *
+ * 2. **`will-navigate` event** — Fires when the webview is about to navigate.
+ *    If the target URL is external (not our server), we block the navigation
+ *    and open the URL in the system browser instead.
+ *
+ * 3. **`new-window-open` event** — Fires when the user Cmd-clicks a link or
+ *    a link has `target="_blank"`. We open the URL in the system browser.
+ *
+ * This prevents accidental navigation away from the app when clicking links
+ * in rendered markdown, tool output, or any other content.
+ */
+function wireNavigationRules(mainWindow: BrowserWindow, serverUrl: string): void {
+	// Extract the origin (e.g., "http://localhost:12345") for URL matching.
+	const serverOrigin = new URL(serverUrl).origin;
+
+	// Layer 1: Native navigation rules — block all, allow only our server + views://
+	mainWindow.webview.setNavigationRules([
+		"^*", // Block all URLs
+		`${serverOrigin}/*`, // Allow PiBun server (localhost with dynamic port)
+		"views://*", // Allow Electrobun internal views
+	]);
+
+	console.log(`[Navigation] Rules set: allow ${serverOrigin}/*, views://*`);
+
+	// Layer 2: will-navigate — catch navigation attempts and redirect external
+	// URLs to the system browser.
+	mainWindow.webview.on("will-navigate", (event: unknown) => {
+		const { data } = event as { data: { detail: string }; response?: { allow: boolean } };
+		const targetUrl = data.detail;
+
+		// Allow navigation within our server (including path changes, hash changes)
+		if (targetUrl.startsWith(serverOrigin)) {
+			return;
+		}
+
+		// Allow Electrobun internal views
+		if (targetUrl.startsWith("views://")) {
+			return;
+		}
+
+		// Block external navigation and open in system browser
+		console.log(`[Navigation] Blocked: ${targetUrl} → opening in system browser`);
+
+		// Open HTTP/HTTPS URLs in the system browser.
+		// Other protocols (mailto:, etc.) are also forwarded to the OS handler.
+		try {
+			Utils.openExternal(targetUrl);
+		} catch (err) {
+			console.warn(`[Navigation] Failed to open external URL: ${targetUrl}`, err);
+		}
+
+		// Block the navigation in the webview
+		(event as { response?: { allow: boolean } }).response = { allow: false };
+	});
+
+	// Layer 3: new-window-open — catch Cmd-clicks and target="_blank" links.
+	// The event data is a JSON string or object with the URL.
+	// Note: "new-window-open" is emitted by Electrobun's native layer but not
+	// yet included in BrowserView.on()'s type union. Cast to bypass the type check.
+	(mainWindow.webview as { on: (name: string, handler: (event: unknown) => void) => void }).on(
+		"new-window-open",
+		(event: unknown) => {
+			const { data } = event as { data: { detail: string | { url: string; isCmdClick: boolean } } };
+			const detail = data.detail;
+
+			// Extract URL from event data (can be string or object)
+			const url = typeof detail === "string" ? detail : detail.url;
+
+			if (!url) {
+				return;
+			}
+
+			// Allow internal URLs to pass through
+			if (url.startsWith(serverOrigin) || url.startsWith("views://")) {
+				return;
+			}
+
+			console.log(`[Navigation] New window request: ${url} → opening in system browser`);
+
+			try {
+				Utils.openExternal(url);
+			} catch (err) {
+				console.warn(`[Navigation] Failed to open external URL: ${url}`, err);
+			}
+		},
+	);
+}
+
+// ============================================================================
 // Bootstrap
 // ============================================================================
 
@@ -556,6 +656,12 @@ async function bootstrap(): Promise<void> {
 
 	// Step 5: Wire window lifecycle events (state persistence + shutdown)
 	wireWindowLifecycle(mainWindow);
+
+	// Step 5b: Set navigation rules to prevent webview from navigating away
+	// Block all URLs except the PiBun server (localhost with dynamic port)
+	// and internal Electrobun views. External URLs are opened in the system
+	// browser via will-navigate and new-window-open event handlers below.
+	wireNavigationRules(mainWindow, webviewUrl);
 
 	// Step 6: Set up native application menu (initially without recent projects)
 	ApplicationMenu.setApplicationMenu(buildMenuConfig());

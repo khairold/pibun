@@ -1182,3 +1182,30 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 40 — Electrobun navigation rules (2026-03-24)
+
+**What happened:**
+- Implemented navigation rules to prevent the webview from navigating away from PiBun (4B.3):
+  - **`wireNavigationRules()` function**: New function in `apps/desktop/src/bun/index.ts` with 3 layers of protection:
+    - **Layer 1 — `setNavigationRules()`**: Electrobun's native URL filter. Sets `["^*", "${serverOrigin}/*", "views://*"]` — blocks all URLs except the PiBun server (localhost with dynamic port) and Electrobun's internal views protocol.
+    - **Layer 2 — `will-navigate` event**: Intercepts navigation attempts. Allows internal URLs (server origin, views://). For external URLs, blocks the navigation (`event.response = { allow: false }`) and opens the URL in the system browser via `Utils.openExternal()`.
+    - **Layer 3 — `new-window-open` event**: Catches Cmd-clicks and `target="_blank"` links. Opens external URLs in the system browser. Event data can be either a string URL or `{ url, isCmdClick }` object — handles both formats.
+  - **Bootstrap wiring**: `wireNavigationRules(mainWindow, webviewUrl)` called after `wireWindowLifecycle()` in the bootstrap sequence (Step 5b).
+  - Uses `new URL(serverUrl).origin` to extract the origin for URL matching — handles dynamic port correctly.
+- Only 1 file modified: `apps/desktop/src/bun/index.ts`. No new dependencies, no contracts/server/web changes.
+
+**Items completed:**
+- [x] 4B.3 — Add Electrobun navigation rules to prevent webview from navigating away from PiBun
+
+**Issues encountered:**
+- `new-window-open` is emitted by Electrobun's native layer but NOT included in `BrowserView.on()`'s TypeScript type union (only 9 events are typed). Had to cast `mainWindow.webview` to bypass the type check. This is a gap in Electrobun's type definitions.
+
+**Handoff to next session:**
+- Next: 4B.4 — Add Electrobun window focus/blur events: dim status bar when unfocused, track focus for notification suppression
+- `wireNavigationRules()` is self-contained in `index.ts` — extends the existing bootstrap pattern.
+- `Utils.openExternal()` from Electrobun handles all URL protocols (http, https, mailto, custom schemes).
+- If Electrobun adds `new-window-open` to the `on()` type union in a future version, the cast can be removed.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---
