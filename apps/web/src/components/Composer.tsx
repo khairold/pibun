@@ -10,11 +10,13 @@
  * - Auto-starts Pi session on first prompt if none exists
  * - Image paste from clipboard (Ctrl+V / Cmd+V)
  * - Image preview strip with remove buttons
- * - Draft persistence per tab (text + images survive tab switch and page reload)
+ * - Draft persistence per tab (text + images + mentions survive tab switch and page reload)
  * - Slash command menu: type `/` at line start to see available commands
+ * - File mention chips: type `@` to search files, selected files show as removable chips
  */
 
 import {
+	type PersistedFileMention,
 	type PersistedImageAttachment,
 	clearComposerDraft,
 	getComposerDraft,
@@ -63,6 +65,19 @@ interface ImageAttachment {
 	/** Data URL for preview rendering (data:mimeType;base64,data). */
 	previewUrl: string;
 }
+
+/** A file mention chip in the composer. */
+interface FileMention {
+	/** Unique ID for this mention (for key and removal). */
+	id: string;
+	/** Relative path from project root. */
+	path: string;
+	/** File or directory. */
+	kind: "file" | "directory";
+}
+
+/** Auto-incrementing counter for file mention IDs. */
+let mentionIdCounter = 0;
 
 /** Accepted image MIME types. */
 const ACCEPTED_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
@@ -127,6 +142,7 @@ export function Composer() {
 	const [value, setValue] = useState("");
 	const [isSending, setIsSending] = useState(false);
 	const [images, setImages] = useState<ImageAttachment[]>([]);
+	const [mentions, setMentions] = useState<FileMention[]>([]);
 	const [isDragOver, setIsDragOver] = useState(false);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -149,8 +165,10 @@ export function Composer() {
 	const prevTabIdRef = useRef<string | null>(activeTabId);
 	const valueRef = useRef(value);
 	const imagesRef = useRef(images);
+	const mentionsRef = useRef(mentions);
 	valueRef.current = value;
 	imagesRef.current = images;
+	mentionsRef.current = mentions;
 
 	// ── Slash command menu state ──
 	/** Cached Pi slash commands (fetched once per session, cleared on session change). */
@@ -351,24 +369,36 @@ export function Composer() {
 	/** Whether the file mention menu should be visible. */
 	const fileMentionMenuOpen = atTrigger !== null && !commandMenuOpen && !modelPickerOpen;
 
-	/** Handle file mention selection — replace trigger text with @path. */
+	/** Handle file mention selection — add as chip and remove trigger text. */
 	const handleFileMentionSelect = useCallback(
 		(item: FileMentionMenuItem) => {
 			if (!atTrigger) return;
 
-			// Replace the trigger range with @path (including trailing space)
-			const replacement = `@${item.path} `;
+			// Add mention chip (avoid duplicates by path)
+			setMentions((prev) => {
+				if (prev.some((m) => m.path === item.path)) return prev;
+				return [
+					...prev,
+					{
+						id: `mention-${String(++mentionIdCounter)}`,
+						path: item.path,
+						kind: item.file.kind,
+					},
+				];
+			});
+
+			// Remove the @query trigger text from textarea
 			const before = value.slice(0, atTrigger.rangeStart);
 			const after = value.slice(atTrigger.rangeEnd);
-			const newValue = `${before}${replacement}${after}`;
+			const newValue = `${before}${after}`;
 
 			setValue(newValue);
 			setAtTrigger(null);
 			setActiveFileMentionId(null);
 			setFileMentionItems([]);
 
-			// Set cursor position after the replacement
-			const newCursorPos = atTrigger.rangeStart + replacement.length;
+			// Set cursor position where the trigger was
+			const newCursorPos = atTrigger.rangeStart;
 			requestAnimationFrame(() => {
 				const textarea = textareaRef.current;
 				if (textarea) {
@@ -471,7 +501,7 @@ export function Composer() {
 	);
 
 	const isConnected = connectionStatus === "open";
-	const hasContent = value.trim().length > 0 || images.length > 0;
+	const hasContent = value.trim().length > 0 || images.length > 0 || mentions.length > 0;
 	const canSend = isConnected && hasContent && !isSending;
 
 	// Watch for pending text from plugins — insert into textarea and clear.
@@ -502,7 +532,16 @@ export function Composer() {
 				mimeType: img.mimeType,
 				previewUrl: img.previewUrl,
 			}));
-			saveComposerDraft(prevTabId, { text: valueRef.current, images: currentImages });
+			const currentMentions: PersistedFileMention[] = mentionsRef.current.map((m) => ({
+				id: m.id,
+				path: m.path,
+				kind: m.kind,
+			}));
+			saveComposerDraft(prevTabId, {
+				text: valueRef.current,
+				images: currentImages,
+				mentions: currentMentions,
+			});
 		}
 
 		// Restore draft for the tab we're switching to
@@ -518,16 +557,24 @@ export function Composer() {
 						previewUrl: img.previewUrl,
 					})),
 				);
+				setMentions(
+					(draft.mentions ?? []).map((m) => ({
+						id: m.id,
+						path: m.path,
+						kind: m.kind,
+					})),
+				);
 			} else {
 				setValue("");
 				setImages([]);
+				setMentions([]);
 			}
 			// Resize textarea to fit restored content
 			requestAnimationFrame(resizeTextarea);
 		}
 	}, [activeTabId, resizeTextarea]);
 
-	// ── Draft persistence: save on every text/image change (debounced via module) ──
+	// ── Draft persistence: save on every text/image/mention change (debounced via module) ──
 	useEffect(() => {
 		if (!activeTabId) return;
 		const currentImages: PersistedImageAttachment[] = images.map((img) => ({
@@ -536,13 +583,23 @@ export function Composer() {
 			mimeType: img.mimeType,
 			previewUrl: img.previewUrl,
 		}));
-		saveComposerDraft(activeTabId, { text: value, images: currentImages });
-	}, [activeTabId, value, images]);
+		const currentMentions: PersistedFileMention[] = mentions.map((m) => ({
+			id: m.id,
+			path: m.path,
+			kind: m.kind,
+		}));
+		saveComposerDraft(activeTabId, {
+			text: value,
+			images: currentImages,
+			mentions: currentMentions,
+		});
+	}, [activeTabId, value, images, mentions]);
 
-	/** Reset textarea and images after sending. Also clears the persisted draft. */
+	/** Reset textarea, images, and mentions after sending. Also clears the persisted draft. */
 	const clearInput = useCallback(() => {
 		setValue("");
 		setImages([]);
+		setMentions([]);
 		if (activeTabId) {
 			clearComposerDraft(activeTabId);
 		}
@@ -599,6 +656,11 @@ export function Composer() {
 		setImages((prev) => prev.filter((img) => img.id !== id));
 	}, []);
 
+	/** Remove a file mention by ID. */
+	const removeMention = useCallback((id: string) => {
+		setMentions((prev) => prev.filter((m) => m.id !== id));
+	}, []);
+
 	/** Ensure a session exists, starting one if needed. Returns true if ready. */
 	const ensureSession = useCallback(async (): Promise<boolean> => {
 		if (sessionId) return true;
@@ -633,9 +695,18 @@ export function Composer() {
 		return images.map((img) => ({ data: img.data, mimeType: img.mimeType }));
 	}, [images]);
 
+	/** Build the prompt message with file mentions expanded as @path references. */
+	const buildPromptMessage = useCallback((): string => {
+		const text = value.trim();
+		if (mentions.length === 0) return text || " ";
+
+		// Prepend @path references so Pi sees them as file context
+		const mentionRefs = mentions.map((m) => `@${m.path}`).join(" ");
+		return text ? `${mentionRefs} ${text}` : mentionRefs;
+	}, [value, mentions]);
+
 	/** Send the current message as a prompt (when not streaming). */
 	const handleSend = useCallback(async () => {
-		const message = value.trim();
 		if (!hasContent || isSending) return;
 
 		setIsSending(true);
@@ -644,8 +715,9 @@ export function Composer() {
 			if (!ready) return;
 
 			const imagesParam = buildImagesParam();
+			const message = buildPromptMessage();
 			await getTransport().request("session.prompt", {
-				message: message || " ",
+				message,
 				...(imagesParam && { images: imagesParam }),
 			});
 			clearInput();
@@ -655,7 +727,15 @@ export function Composer() {
 		} finally {
 			setIsSending(false);
 		}
-	}, [value, hasContent, isSending, ensureSession, setLastError, clearInput, buildImagesParam]);
+	}, [
+		hasContent,
+		isSending,
+		ensureSession,
+		setLastError,
+		clearInput,
+		buildImagesParam,
+		buildPromptMessage,
+	]);
 
 	/** Send a steering message (redirects Pi during streaming). */
 	const handleSteer = useCallback(async () => {
@@ -1018,6 +1098,77 @@ export function Composer() {
 								<span className="text-xs">+</span>
 							</div>
 						)}
+					</div>
+				)}
+
+				{/* File mention chips */}
+				{mentions.length > 0 && (
+					<div className="mb-2 flex flex-wrap gap-1.5">
+						{mentions.map((mention) => {
+							const segments = mention.path.split("/");
+							const filename = segments[segments.length - 1] ?? mention.path;
+							return (
+								<span
+									key={mention.id}
+									className={cn(
+										"group/chip inline-flex items-center gap-1 rounded-md border px-2 py-1",
+										"border-border-primary bg-surface-primary text-xs text-text-secondary",
+										"transition-colors hover:border-accent-primary hover:bg-accent-soft",
+									)}
+									title={mention.path}
+								>
+									{/* File/directory icon */}
+									{mention.kind === "directory" ? (
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											viewBox="0 0 16 16"
+											fill="currentColor"
+											className="h-3 w-3 shrink-0 text-accent-text"
+											aria-label="Directory"
+											role="img"
+										>
+											<path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h3.879a1.5 1.5 0 0 1 1.06.44l1.122 1.12A1.5 1.5 0 0 0 9.62 4H13.5A1.5 1.5 0 0 1 15 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5v-9z" />
+										</svg>
+									) : (
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											viewBox="0 0 16 16"
+											fill="currentColor"
+											className="h-3 w-3 shrink-0 text-text-muted"
+											aria-label="File"
+											role="img"
+										>
+											<path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0H4zm5.5 1.5v2a1 1 0 0 0 1 1h2l-3-3z" />
+										</svg>
+									)}
+									{/* Filename */}
+									<span className="max-w-[200px] truncate">{filename}</span>
+									{/* Remove button */}
+									<button
+										type="button"
+										onClick={() => removeMention(mention.id)}
+										className={cn(
+											"ml-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-sm",
+											"text-text-tertiary opacity-0 transition-opacity",
+											"hover:bg-status-error hover:text-text-on-accent",
+											"group-hover/chip:opacity-100",
+										)}
+										aria-label={`Remove ${filename}`}
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											viewBox="0 0 16 16"
+											fill="currentColor"
+											className="h-2.5 w-2.5"
+											aria-label="Remove"
+											role="img"
+										>
+											<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+										</svg>
+									</button>
+								</span>
+							);
+						})}
 					</div>
 				)}
 

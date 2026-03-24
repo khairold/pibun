@@ -697,10 +697,18 @@ export interface PersistedImageAttachment {
 	previewUrl: string;
 }
 
+/** Persisted file mention shape (matches Composer's FileMention). */
+export interface PersistedFileMention {
+	id: string;
+	path: string;
+	kind: "file" | "directory";
+}
+
 /** A composer draft for a single tab. */
 export interface ComposerDraft {
 	text: string;
 	images: PersistedImageAttachment[];
+	mentions: PersistedFileMention[];
 }
 
 /** In-memory draft storage — fast reads/writes, no re-renders. */
@@ -721,7 +729,7 @@ function flushDrafts(): void {
 		const obj: Record<string, ComposerDraft> = {};
 		for (const [tabId, draft] of _drafts) {
 			// Only persist non-empty drafts
-			if (draft.text.length > 0 || draft.images.length > 0) {
+			if (draft.text.length > 0 || draft.images.length > 0 || draft.mentions.length > 0) {
 				obj[tabId] = draft;
 			}
 		}
@@ -756,7 +764,7 @@ export function getComposerDraft(tabId: string): ComposerDraft | null {
  * and schedules a debounced localStorage write.
  */
 export function saveComposerDraft(tabId: string, draft: ComposerDraft): void {
-	if (draft.text.length === 0 && draft.images.length === 0) {
+	if (draft.text.length === 0 && draft.images.length === 0 && draft.mentions.length === 0) {
 		// Empty draft — remove it
 		if (_drafts.has(tabId)) {
 			_drafts.delete(tabId);
@@ -796,10 +804,14 @@ export function restoreComposerDrafts(): void {
 		if (!raw) return;
 		const obj = JSON.parse(raw) as Record<string, ComposerDraft>;
 		for (const [tabId, draft] of Object.entries(obj)) {
-			if (draft && (draft.text?.length > 0 || draft.images?.length > 0)) {
+			if (
+				draft &&
+				(draft.text?.length > 0 || draft.images?.length > 0 || draft.mentions?.length > 0)
+			) {
 				_drafts.set(tabId, {
 					text: draft.text ?? "",
 					images: Array.isArray(draft.images) ? draft.images : [],
+					mentions: Array.isArray(draft.mentions) ? draft.mentions : [],
 				});
 			}
 		}

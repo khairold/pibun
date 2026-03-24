@@ -2,9 +2,9 @@
 
 > **Spec:** Audit of T3Code, Pi-mono RPC, Electrobun reference repos (2026-03-24)
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
-> **Status:** Phase 2A complete
-> **Current Phase:** Phase 2B — File Mentions
-> **Last Session:** Session 20 — 2026-03-24
+> **Status:** Phase 2B complete
+> **Current Phase:** Phase 2C — Terminal Context & Image Improvements
+> **Last Session:** Session 21 — 2026-03-24
 
 ---
 
@@ -85,8 +85,8 @@
 
 - [x] 2B.1 — Add workspace file search API: new WS method `project.searchFiles` → server-side `fd`/`find` with gitignore respect, debounced query, returns `{ path, kind }[]`
 - [x] 2B.2 — Implement `@` trigger detection in composer: typing `@` opens file search menu, debounced query (120ms), fuzzy matched
-- [ ] 2B.3 — Render file mentions as inline chips in composer (visual pill with filename, removable)
-- [ ] 2B.4 — On send, expand file mention chips into `@path/to/file` text in the prompt message (Pi understands this as file reference)
+- [x] 2B.3 — Render file mentions as inline chips in composer (visual pill with filename, removable)
+- [x] 2B.4 — On send, expand file mention chips into `@path/to/file` text in the prompt message (Pi understands this as file reference)
 
 **Exit criteria:** Users can type `@` to search and reference project files in prompts. Mentions show as removable chips.
 

@@ -617,3 +617,36 @@
 - `consumeDeferredActiveTabId()` still not consumed
 
 ---
+
+## Session 21 — File mention chips + expand on send (2026-03-24)
+
+**What happened:**
+- Implemented file mention chips (2B.3) and mention expansion on send (2B.4), completing Phase 2B:
+  - **Design decision**: PiBun uses a plain `<textarea>` which can't render inline HTML chips (unlike T3Code which uses Lexical rich text editor with custom `ComposerMentionNode`). Chose to render mention chips as a strip above the textarea, same pattern as the image preview strip.
+  - **FileMention type**: Added `FileMention` interface (`id`, `path`, `kind`) + auto-incrementing ID counter in Composer.
+  - **Mentions state**: Added `mentions: FileMention[]` state + `mentionsRef` for tab-switch persistence.
+  - **handleFileMentionSelect refactored**: Instead of inserting `@path/to/file ` as plain text, now adds a `FileMention` chip to `mentions` array (with duplicate-by-path prevention) and removes the `@query` trigger text from the textarea.
+  - **Chip rendering**: New chip strip between image preview and textarea. Each chip shows file/directory icon + truncated filename (max 200px) + full path on hover (title). Remove button uses `group/chip` named group pattern (appears on hover). Visual: rounded border pill with accent highlight on hover.
+  - **removeMention**: Proper `useCallback` to avoid inline closure recreation.
+  - **buildPromptMessage**: New function that expands mentions to `@path` text prepended to the user's message. Pi understands `@` references natively. If only mentions (no text), sends just the `@path` references.
+  - **Draft persistence**: Extended `ComposerDraft` with `mentions: PersistedFileMention[]`. Updated `saveComposerDraft`, `restoreComposerDrafts`, and all empty-check logic to include mentions. Backward compatible via `draft.mentions ?? []`.
+  - **hasContent**: Updated to include `mentions.length > 0` — can send with just file mentions and no text.
+  - **clearInput**: Now also clears `setMentions([])`.
+- Phase 2B exit criteria verified: ✅ Users can type `@` to search and reference project files in prompts. ✅ Mentions show as removable chips.
+
+**Items completed:**
+- [x] 2B.3 — Render file mentions as inline chips in composer (visual pill with filename, removable)
+- [x] 2B.4 — On send, expand file mention chips into `@path/to/file` text in the prompt message
+
+**Issues encountered:**
+- Biome formatting: long `saveComposerDraft` call and `useCallback` deps array needed multi-line formatting. Fixed with `bun run format`.
+
+**Handoff to next session:**
+- **Phase 2B is COMPLETE.** Next: Phase 2C — Terminal Context & Image Improvements
+- Start with 2C.1 — Add terminal content selection API
+- The chip strip pattern is established (between image strip and textarea). Reuse for terminal context chips (2C.2).
+- `FileMention` chips are tracked as separate state from textarea text. On send, `buildPromptMessage()` prepends `@path` references.
+- `PersistedFileMention` in `appActions.ts` is exported — if other features need to read mentions (e.g., tab badge), they can access via `getComposerDraft()`.
+- `consumeDeferredActiveTabId()` still not consumed
+
+---
