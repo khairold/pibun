@@ -277,11 +277,19 @@ export interface ProjectsSlice {
 export interface UiSlice {
 	/** Whether the sidebar is visible. Defaults to true on desktop, false on mobile. */
 	sidebarOpen: boolean;
+	/**
+	 * Text to insert into the Composer. Set by plugin `sendPrompt` (sendImmediately=false).
+	 * Composer watches this field and picks up the text, then clears it.
+	 * Null when no pending text.
+	 */
+	pendingComposerText: string | null;
 
 	/** Toggle the sidebar open/closed. */
 	toggleSidebar: () => void;
 	/** Set the sidebar open state explicitly. */
 	setSidebarOpen: (open: boolean) => void;
+	/** Set pending text to insert into the Composer. Null to clear. */
+	setPendingComposerText: (text: string | null) => void;
 }
 
 /** Git state — repository status for the active session's CWD. */

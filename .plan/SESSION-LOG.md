@@ -5,6 +5,39 @@
 
 ---
 
+## Session 92 — Plugin ↔ PiBun messaging: postMessage bridge (2026-03-24)
+
+**What happened:**
+- Implemented the full plugin message bridge (7.5) — bidirectional postMessage communication between PiBun and plugin iframes
+- **New file: `apps/web/src/lib/pluginMessageBridge.ts`**
+  - Registry (`Map<string, PluginFrameEntry>`) tracks active plugin iframes by panelKey
+  - 5 inbound message handlers: `plugin:ready` (log + send current theme), `plugin:getSessionState` (read Zustand → respond), `plugin:sendPrompt` (send via transport OR insert into Composer), `plugin:subscribeEvents` (store per-plugin event filter), `plugin:unsubscribeEvents` (clear subscriptions)
+  - Outbound: `sendToPlugin()`, `broadcastToPlugins()`, `forwardPiEventToPlugins()`
+  - `initPluginMessageBridge()` sets up `window.addEventListener("message")`, validates `plugin:` prefix, matches source to registry
+- **Updated `store/types.ts` + `store/uiSlice.ts`**: Added `pendingComposerText: string | null` + `setPendingComposerText()` to `UiSlice` for plugin prompt insertion
+- **Updated `PluginPanel.tsx`**: `PluginPanelFrame` now registers/unregisters iframe with the bridge via `useEffect`
+- **Updated `wireTransport.ts`**: Bridge initialized in `initTransport()` alongside other subscriptions; `forwardPiEventToPlugins(data.event)` called in `pi.event` handler for active tab events
+- **Updated `themes.ts`**: `applyTheme()` now broadcasts `pibun:themeChanged` to all plugin iframes via dynamic import
+- **Updated `Composer.tsx`**: Watches `pendingComposerText` via `useEffect` — picks up plugin-inserted text, focuses textarea, auto-resizes
+
+**Items completed:**
+- [x] 7.5 — Plugin ↔ PiBun messaging: `postMessage` bridge for reading session state, sending prompts, subscribing to events
+
+**Issues encountered:**
+- Biome formatting: new file needed `bun run format` for tab indentation consistency
+- TS error: `resizeTextarea` used before declaration in Composer — moved `useEffect` after the callback definition
+
+**Handoff to next session:**
+- Next: 7.6 — Plugin manager UI: list installed plugins, enable/disable, install from URL/path
+- The message bridge is fully wired. A plugin iframe can now:
+  1. Send `plugin:ready` → receives current theme
+  2. Send `plugin:getSessionState` → receives session info
+  3. Send `plugin:sendPrompt` → text inserted in Composer or sent directly
+  4. Send `plugin:subscribeEvents` → receives Pi events as they happen
+- 7.6 needs a `PluginManager` component (dialog or panel) that lists all installed plugins, shows enable/disable toggles, and has an "Install" button for URL or path input. Should use existing `plugin.list`, `plugin.install`, `plugin.uninstall`, `plugin.setEnabled` WS methods.
+
+---
+
 ## Session 91 — Plugin panel rendering: sandboxed iframes + store + layout (2026-03-24)
 
 **What happened:**

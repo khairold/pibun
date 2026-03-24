@@ -13,6 +13,7 @@
 
 import { fetchGitStatus } from "@/lib/gitActions";
 import { fetchPlugins } from "@/lib/pluginActions";
+import { forwardPiEventToPlugins, initPluginMessageBridge } from "@/lib/pluginMessageBridge";
 import { addProject, fetchProjects, openProject } from "@/lib/projectActions";
 import {
 	compactSession,
@@ -623,6 +624,9 @@ export function initTransport(): () => void {
 	transport = new WsTransport();
 	const cleanups: Array<() => void> = [];
 
+	// Plugin message bridge — listens for postMessage from plugin iframes
+	cleanups.push(initPluginMessageBridge());
+
 	// Transport state → connection slice
 	cleanups.push(
 		transport.onStateChange((state) => {
@@ -642,6 +646,8 @@ export function initTransport(): () => void {
 			// If event is for the active tab's session (or no tabs exist yet), dispatch normally
 			if (!data.sessionId || !activeSessionId || data.sessionId === activeSessionId) {
 				handlePiEvent(data.event);
+				// Forward Pi events to subscribed plugin iframes
+				forwardPiEventToPlugins(data.event);
 				// Sync active tab metadata with current streaming state
 				store.syncActiveTabState();
 			} else {

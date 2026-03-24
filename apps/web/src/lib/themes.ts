@@ -457,6 +457,16 @@ export function applyTheme(theme: Theme): void {
 	import("./highlighter").then(({ setShikiTheme }) => {
 		setShikiTheme(theme.shikiTheme as BundledTheme);
 	});
+
+	// Notify plugin iframes about theme change (dynamic import to avoid
+	// circular dependency — pluginMessageBridge.ts may import themes.ts indirectly).
+	import("./pluginMessageBridge").then(({ broadcastToPlugins }) => {
+		broadcastToPlugins({
+			type: "pibun:themeChanged",
+			themeId: theme.id,
+			isDark: theme.isDark,
+		});
+	});
 }
 
 // ============================================================================

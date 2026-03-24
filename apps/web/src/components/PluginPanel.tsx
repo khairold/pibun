@@ -13,9 +13,10 @@
 
 import { cn } from "@/lib/cn";
 import { resolvePluginComponentUrl } from "@/lib/pluginActions";
+import { registerPluginFrame, unregisterPluginFrame } from "@/lib/pluginMessageBridge";
 import { useStore } from "@/store";
 import type { ActivePluginPanel } from "@/store/types";
-import { memo, useCallback, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 // ============================================================================
 // Plugin Panel Frame
@@ -47,6 +48,20 @@ const PluginPanelFrame = memo(function PluginPanelFrame({
 	const iframeRef = useRef<HTMLIFrameElement>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [hasError, setHasError] = useState(false);
+
+	const panelKey = `${panel.pluginId}:${panel.panelId}`;
+
+	// Register/unregister the iframe with the plugin message bridge.
+	// Once loaded, the iframe can communicate via postMessage.
+	useEffect(() => {
+		const iframe = iframeRef.current;
+		if (!iframe || hasError) return;
+
+		registerPluginFrame(panelKey, iframe, panel.pluginId);
+		return () => {
+			unregisterPluginFrame(panelKey);
+		};
+	}, [panelKey, panel.pluginId, hasError]);
 
 	const handleLoad = useCallback(() => {
 		setIsLoading(false);

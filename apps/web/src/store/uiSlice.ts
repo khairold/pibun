@@ -19,7 +19,9 @@ function isDesktopWidth(): boolean {
 
 export const createUiSlice: StateCreator<AppStore, [], [], UiSlice> = (set) => ({
 	sidebarOpen: isDesktopWidth(),
+	pendingComposerText: null,
 
 	toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 	setSidebarOpen: (open) => set({ sidebarOpen: open }),
+	setPendingComposerText: (text) => set({ pendingComposerText: text }),
 });

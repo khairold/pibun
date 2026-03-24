@@ -20,6 +20,7 @@ import {
 	type DragEvent,
 	type KeyboardEvent,
 	useCallback,
+	useEffect,
 	useRef,
 	useState,
 } from "react";
@@ -105,6 +106,9 @@ export function Composer() {
 	const [isDragOver, setIsDragOver] = useState(false);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+	const pendingComposerText = useStore((s) => s.pendingComposerText);
+	const setPendingComposerText = useStore((s) => s.setPendingComposerText);
+
 	const isConnected = connectionStatus === "open";
 	const hasContent = value.trim().length > 0 || images.length > 0;
 	const canSend = isConnected && hasContent && !isSending;
@@ -117,6 +121,19 @@ export function Composer() {
 		textarea.style.height = "auto";
 		textarea.style.height = `${Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT)}px`;
 	}, []);
+
+	// Watch for pending text from plugins — insert into textarea and clear.
+	useEffect(() => {
+		if (pendingComposerText !== null) {
+			setValue(pendingComposerText);
+			setPendingComposerText(null);
+			// Focus the textarea and auto-resize after inserting text
+			requestAnimationFrame(() => {
+				textareaRef.current?.focus();
+				resizeTextarea();
+			});
+		}
+	}, [pendingComposerText, setPendingComposerText, resizeTextarea]);
 
 	/** Reset textarea and images after sending. */
 	const clearInput = useCallback(() => {
