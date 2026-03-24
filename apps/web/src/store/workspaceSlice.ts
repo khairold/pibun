@@ -104,6 +104,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	tabMessages: new Map<string, ChatMessage[]>(),
 	tabStatuses: new Map<string, Map<string, string>>(),
 	tabWidgets: new Map<string, Map<string, ExtensionWidget>>(),
+	tabTerminalActiveIds: new Map<string, string | null>(),
 
 	addTab: (partial) => {
 		const state = get();
@@ -139,13 +140,28 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			newTabStatuses.delete(tabId);
 			const newTabWidgets = new Map(s.tabWidgets);
 			newTabWidgets.delete(tabId);
+			const newTabTerminalActiveIds = new Map(s.tabTerminalActiveIds);
+			newTabTerminalActiveIds.delete(tabId);
+
+			// Remove terminals owned by this tab
+			const newTerminalTabs = s.terminalTabs.filter((t) => t.ownerTabId !== tabId);
+			// If active terminal was owned by removed tab, clear it
+			const activeTerminalOwned = s.terminalTabs.some(
+				(t) => t.id === s.activeTerminalTabId && t.ownerTabId === tabId,
+			);
 
 			const updates: Partial<AppStore> = {
 				tabs: newTabs,
 				tabMessages: newTabMessages,
 				tabStatuses: newTabStatuses,
 				tabWidgets: newTabWidgets,
+				tabTerminalActiveIds: newTabTerminalActiveIds,
+				terminalTabs: newTerminalTabs,
 			};
+
+			if (activeTerminalOwned) {
+				updates.activeTerminalTabId = null;
+			}
 
 			// If removing the active tab, switch to adjacent
 			if (s.activeTabId === tabId) {
@@ -165,6 +181,8 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					updates.thinkingLevel = nextTab.thinkingLevel;
 					updates.isStreaming = nextTab.isStreaming;
 					updates.sessionName = nextTab.name;
+					// Restore next tab's terminal state
+					updates.activeTerminalTabId = newTabTerminalActiveIds.get(nextTab.id) ?? null;
 				} else {
 					// No tabs left — clear everything
 					updates.messages = [];
@@ -176,7 +194,13 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					updates.thinkingLevel = "medium";
 					updates.isStreaming = false;
 					updates.sessionName = null;
+					updates.activeTerminalTabId = null;
 				}
+			}
+
+			// Close panel if no terminals left for the new active tab
+			if (newTerminalTabs.length === 0) {
+				updates.terminalPanelOpen = false;
 			}
 
 			return updates;
@@ -194,6 +218,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			const newTabMessages = new Map(s.tabMessages);
 			const newTabStatuses = new Map(s.tabStatuses);
 			const newTabWidgets = new Map(s.tabWidgets);
+			const newTabTerminalActiveIds = new Map(s.tabTerminalActiveIds);
 
 			// Save current tab's messages, statuses, widgets, and state
 			if (s.activeTabId) {
@@ -210,6 +235,11 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				} else {
 					newTabWidgets.delete(s.activeTabId);
 				}
+				// Save current active terminal tab ID for the leaving tab
+				newTabTerminalActiveIds.set(s.activeTabId, s.activeTerminalTabId);
+
+				// Restore target tab's active terminal tab ID
+				const targetTerminalActiveId = newTabTerminalActiveIds.get(tabId) ?? null;
 
 				// Update the current tab's snapshot with current session state
 				// Clear hasUnread on the target tab (user is now viewing it)
@@ -236,6 +266,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					tabMessages: newTabMessages,
 					tabStatuses: newTabStatuses,
 					tabWidgets: newTabWidgets,
+					tabTerminalActiveIds: newTabTerminalActiveIds,
 					// Restore target tab's cached state
 					messages: newTabMessages.get(tabId) ?? [],
 					statuses: newTabStatuses.get(tabId) ?? new Map<string, string>(),
@@ -255,6 +286,8 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					retryMaxAttempts: 0,
 					retryDelayMs: 0,
 					retryStartedAt: 0,
+					// Restore terminal state for target tab
+					activeTerminalTabId: targetTerminalActiveId,
 					// Close diff panel on tab switch (diff is per-session context)
 					diffPanelOpen: false,
 					diffPanelFiles: [],
@@ -265,6 +298,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			}
 
 			// No previous active tab — just activate target
+			const targetTerminalActiveId = newTabTerminalActiveIds.get(tabId) ?? null;
 			return {
 				activeTabId: tabId,
 				messages: newTabMessages.get(tabId) ?? [],
@@ -276,6 +310,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				thinkingLevel: targetTab.thinkingLevel,
 				isStreaming: targetTab.isStreaming,
 				sessionName: targetTab.name,
+				activeTerminalTabId: targetTerminalActiveId,
 			};
 		});
 	},
@@ -391,7 +426,9 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	setTerminalPanelOpen: (open) => set({ terminalPanelOpen: open }),
 
 	addTerminalTab: (terminalId, cwd) => {
+		const state = get();
 		const tabId = `ttab-${String(++terminalTabCounter)}`;
+		const ownerTabId = state.activeTabId ?? "";
 		const tab: TerminalTab = {
 			id: tabId,
 			terminalId,
@@ -399,9 +436,10 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			cwd,
 			isRunning: true,
 			groupId: tabId, // Each new terminal starts in its own group
+			ownerTabId,
 		};
-		set((state) => ({
-			terminalTabs: [...state.terminalTabs, tab],
+		set((s) => ({
+			terminalTabs: [...s.terminalTabs, tab],
 			// Auto-activate the new tab
 			activeTerminalTabId: tabId,
 		}));
@@ -411,36 +449,37 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	removeTerminalTab: (tabId) => {
 		const state = get();
 		const removedTab = state.terminalTabs.find((t) => t.id === tabId);
-		const idx = state.terminalTabs.findIndex((t) => t.id === tabId);
 		const newTabs = state.terminalTabs.filter((t) => t.id !== tabId);
+		const ownerTabId = removedTab?.ownerTabId ?? state.activeTabId ?? "";
+
+		// Only consider sibling terminals from the same owner tab for active selection
+		const ownerTabs = newTabs.filter((t) => t.ownerTabId === ownerTabId);
 
 		let newActiveId = state.activeTerminalTabId;
 		if (state.activeTerminalTabId === tabId) {
-			if (newTabs.length === 0) {
+			if (ownerTabs.length === 0) {
 				newActiveId = null;
 			} else if (removedTab) {
 				// Prefer a sibling in the same split group first
-				const groupSibling = newTabs.find((t) => t.groupId === removedTab.groupId);
+				const groupSibling = ownerTabs.find((t) => t.groupId === removedTab.groupId);
 				if (groupSibling) {
 					newActiveId = groupSibling.id;
 				} else {
-					// Fall back to adjacent tab in the flat list
-					const newIdx = Math.min(idx, newTabs.length - 1);
-					const adjacent = newTabs[newIdx];
-					newActiveId = adjacent ? adjacent.id : null;
+					// Fall back to first terminal in the same owner tab
+					const first = ownerTabs[0];
+					newActiveId = first ? first.id : null;
 				}
 			} else {
-				const newIdx = Math.min(idx, newTabs.length - 1);
-				const adjacent = newTabs[newIdx];
-				newActiveId = adjacent ? adjacent.id : null;
+				const first = ownerTabs[0];
+				newActiveId = first ? first.id : null;
 			}
 		}
 
 		set({
 			terminalTabs: newTabs,
 			activeTerminalTabId: newActiveId,
-			// Close panel if no terminals left
-			...(newTabs.length === 0 ? { terminalPanelOpen: false } : {}),
+			// Close panel if no terminals left for the owner tab
+			...(ownerTabs.length === 0 ? { terminalPanelOpen: false } : {}),
 		});
 	},
 
@@ -468,6 +507,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			? state.terminalTabs.find((t) => t.id === state.activeTerminalTabId)
 			: null;
 		const groupId = activeTab ? activeTab.groupId : null;
+		const ownerTabId = state.activeTabId ?? "";
 
 		// Check group size limit
 		if (groupId) {
@@ -483,9 +523,10 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			cwd,
 			isRunning: true,
 			groupId: groupId ?? tabId, // Join active group, or create new group
+			ownerTabId,
 		};
-		set((state) => ({
-			terminalTabs: [...state.terminalTabs, tab],
+		set((s) => ({
+			terminalTabs: [...s.terminalTabs, tab],
 			activeTerminalTabId: tabId,
 		}));
 		return tabId;

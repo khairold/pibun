@@ -95,6 +95,12 @@ export async function closeTab(tabId: string): Promise<void> {
 	// ── Clean up composer draft for the closed tab ──────────────
 	deleteComposerDraft(tabId);
 
+	// ── Close terminals owned by this tab ────────────────────────
+	const ownedTerminals = store.terminalTabs.filter((t) => t.ownerTabId === tabId);
+	for (const term of ownedTerminals) {
+		transport.request("terminal.close", { terminalId: term.terminalId }).catch(() => {});
+	}
+
 	// ── Remove the tab ───────────────────────────────────────────
 	// The store handles: adjacent tab switching, session state restore,
 	// message cache restore, and empty state if last tab.

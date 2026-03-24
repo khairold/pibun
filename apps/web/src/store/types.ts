@@ -529,6 +529,12 @@ export interface TabsSlice {
 	tabStatuses: Map<string, Map<string, string>>;
 	/** Per-tab extension widget cache. Inactive tabs' widgets are stored here. */
 	tabWidgets: Map<string, Map<string, ExtensionWidget>>;
+	/**
+	 * Per-tab active terminal tab ID cache.
+	 * When switching session tabs, the current `activeTerminalTabId` is saved here
+	 * for the leaving tab, and restored from here for the arriving tab.
+	 */
+	tabTerminalActiveIds: Map<string, string | null>;
 
 	/**
 	 * Create a new tab with optional initial values.
@@ -584,6 +590,12 @@ export interface TerminalTab {
 	 * Splitting creates a new terminal and assigns it the same `groupId`.
 	 */
 	groupId: string;
+	/**
+	 * Session tab that owns this terminal. Terminals are scoped to the session tab
+	 * that created them — switching session tabs shows only that tab's terminals.
+	 * The TerminalPane filters by `ownerTabId === activeTabId`.
+	 */
+	ownerTabId: string;
 }
 
 /** Terminal state — embedded terminal panel and tabs. */

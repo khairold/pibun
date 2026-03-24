@@ -330,13 +330,26 @@ const DEFAULT_HEIGHT = 280;
 
 export function TerminalPane() {
 	const terminalPanelOpen = useStore((s) => s.terminalPanelOpen);
-	const terminalTabs = useStore((s) => s.terminalTabs);
+	const allTerminalTabs = useStore((s) => s.terminalTabs);
+	const activeTabId = useStore((s) => s.activeTabId);
 	const activeTerminalTabId = useStore((s) => s.activeTerminalTabId);
 	const setActiveTerminalTabId = useStore((s) => s.setActiveTerminalTabId);
 	const setTerminalPanelOpen = useStore((s) => s.setTerminalPanelOpen);
 
 	const heightRef = useRef(DEFAULT_HEIGHT);
 	const panelRef = useRef<HTMLDivElement>(null);
+
+	// Filter terminals to only show the current session tab's terminals in the tab bar
+	const terminalTabs = useMemo(
+		() => allTerminalTabs.filter((t) => t.ownerTabId === activeTabId),
+		[allTerminalTabs, activeTabId],
+	);
+
+	// Terminals from other session tabs — kept mounted but hidden
+	const otherTabTerminals = useMemo(
+		() => allTerminalTabs.filter((t) => t.ownerTabId !== activeTabId),
+		[allTerminalTabs, activeTabId],
+	);
 
 	// Derive the active group's tabs
 	const activeGroup = useMemo(() => {
@@ -558,7 +571,7 @@ export function TerminalPane() {
 								/>
 							</div>
 						)}
-						{/* Hidden tabs: keep mounted but invisible for other groups */}
+						{/* Hidden tabs: keep mounted but invisible for other groups in this tab */}
 						{terminalTabs
 							.filter((tab) => tab.groupId !== activeGroupId)
 							.map((tab) => (
@@ -572,6 +585,16 @@ export function TerminalPane() {
 							))}
 					</>
 				)}
+				{/* Hidden terminals from other session tabs — stay mounted to preserve xterm state */}
+				{otherTabTerminals.map((tab) => (
+					<div key={tab.id} className="absolute inset-0 hidden">
+						<TerminalInstance
+							terminalId={tab.terminalId}
+							isActive={false}
+							terminalLabel={tab.name}
+						/>
+					</div>
+				))}
 			</div>
 		</div>
 	);

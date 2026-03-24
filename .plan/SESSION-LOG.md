@@ -1468,3 +1468,34 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 49 — Terminal groups per tab (2026-03-24)
+
+**What happened:**
+- Implemented per-tab terminal groups so each session tab has its own set of terminals (5B.2):
+  - **`ownerTabId: string` on `TerminalTab`**: New field tracks which session tab owns each terminal. Set to `activeTabId` when terminal is created (both `addTerminalTab` and `splitTerminalTab`).
+  - **`tabTerminalActiveIds: Map<string, string | null>`**: New per-tab cache in `TabsSlice` — saves/restores the active terminal tab ID when switching session tabs. Same pattern as `tabStatuses`/`tabWidgets`.
+  - **`switchTab` updated**: Saves `activeTerminalTabId` to `tabTerminalActiveIds[leavingTabId]`, restores from `tabTerminalActiveIds[targetTabId]`. Works in both "has previous tab" and "no previous tab" branches.
+  - **`removeTab` updated**: Removes terminals owned by the deleted session tab from `terminalTabs`. Clears `tabTerminalActiveIds[tabId]`. Closes terminal panel if no terminals remain.
+  - **`removeTerminalTab` updated**: Now uses `ownerTabId` scoping — selects next active terminal only from same-owner terminals, closes panel only when no terminals remain for that owner.
+  - **`closeTab` in tabActions**: Now sends `terminal.close` requests to the server for all terminals owned by the tab being closed (fire-and-forget, before `removeTab`).
+  - **`TerminalPane` refactored**: Reads `activeTabId`, filters `terminalTabs` by `ownerTabId === activeTabId` for the tab bar, active group, and current-tab hidden groups. `otherTabTerminals` (from different session tabs) rendered as hidden divs to keep xterm.js instances alive and receiving data.
+  - **Keyboard shortcuts + menu actions updated**: `toggleTerminal`, `splitTerminal`, `view.toggle-terminal` now check `ownerTabId` match instead of global `terminalTabs.length`.
+- **Design decisions**:
+  - `terminalTabs` stays as a global flat array (not per-tab cached like messages) because xterm.js instances must remain mounted in the DOM to preserve terminal state. Filtering by `ownerTabId` achieves the per-tab separation without losing xterm state on tab switch.
+  - `terminalPanelOpen` is global (not per-tab) — panel open/close is a layout preference, not session state. Switching to a tab with no terminals shows the "Create a terminal" empty state.
+- 6 files modified: `types.ts`, `workspaceSlice.ts`, `TerminalPane.tsx`, `tabActions.ts`, `useKeyboardShortcuts.ts`, `wireTransport.ts`. No contracts or server changes.
+
+**Items completed:**
+- [x] 5B.2 — Terminal groups per tab: each tab has its own terminal group (preserved across tab switches)
+
+**Issues encountered:**
+- Biome flagged unused `idx` variable in `removeTerminalTab` — the old adjacent-tab fallback logic used `idx` for index-based selection but was replaced with `ownerTabs[0]` (first terminal from same owner). Removed the variable.
+
+**Handoff to next session:**
+- Next: 5B.3 — Terminal link detection: parse file paths in terminal output, make clickable (open in editor)
+- `ownerTabId` is set at terminal creation time. If a session tab has no `activeTabId` (shouldn't happen in practice), it falls back to empty string.
+- All xterm.js instances stay mounted across session tab switches (hidden via `display: none`). This prevents data loss but may use more memory with many terminals. Consider pruning very old hidden terminals if memory becomes an issue.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

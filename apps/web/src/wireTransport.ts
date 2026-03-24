@@ -627,9 +627,12 @@ function handleMenuAction(data: WsMenuActionData): void {
 		case "view.toggle-terminal": {
 			emitShortcut("toggleTerminal");
 			const termStore = useStore.getState();
+			const hasOwnedTerms = termStore.terminalTabs.some(
+				(t) => t.ownerTabId === termStore.activeTabId,
+			);
 			if (termStore.terminalPanelOpen) {
 				termStore.setTerminalPanelOpen(false);
-			} else if (termStore.terminalTabs.length > 0) {
+			} else if (hasOwnedTerms) {
 				termStore.setTerminalPanelOpen(true);
 			} else {
 				createTerminal().catch((err: unknown) => {

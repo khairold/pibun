@@ -150,7 +150,11 @@ export function useKeyboardShortcuts(): void {
 					}
 					case "\\": {
 						// Ctrl/Cmd+Shift+\ — split terminal
-						if (isConnected && state.terminalPanelOpen && state.terminalTabs.length > 0) {
+						if (
+							isConnected &&
+							state.terminalPanelOpen &&
+							state.terminalTabs.some((t) => t.ownerTabId === state.activeTabId)
+						) {
 							e.preventDefault();
 							emitShortcut("splitTerminal");
 							splitTerminal().catch((err: unknown) => {
@@ -312,10 +316,13 @@ export function useKeyboardShortcuts(): void {
 					e.preventDefault();
 					emitShortcut("toggleTerminal");
 					const termState = useStore.getState();
+					const hasOwnedTerminals = termState.terminalTabs.some(
+						(t) => t.ownerTabId === termState.activeTabId,
+					);
 					if (termState.terminalPanelOpen) {
 						termState.setTerminalPanelOpen(false);
-					} else if (termState.terminalTabs.length > 0) {
-						// Re-open panel with existing terminals
+					} else if (hasOwnedTerminals) {
+						// Re-open panel with existing terminals for this tab
 						termState.setTerminalPanelOpen(true);
 					} else if (isConnected) {
 						// No terminals — create one and open panel
