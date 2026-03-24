@@ -27,11 +27,13 @@
 | 17 | piProtocol.ts created (1182 lines) — merged from piTypes + piEvents + piCommands + piResponses | All Pi RPC types in one file. No cross-imports needed. Organized with `// ==== SECTION ====` headers: Content Blocks → Messages → Model → Events → Commands → Responses → StdoutLine. | 2026-03-24 |
 | 18 | domain.ts created (497 lines) — merged from sessionTab + project + theme + settings + plugin + gitTypes | All app domain types in one file. Only import is PiModel/PiThinkingLevel from piProtocol.ts. settings→theme cross-reference resolved internally. | 2026-03-24 |
 | 19 | wsProtocol.ts now imports from domain.js and piProtocol.js directly | Previously imported from index.js (barrel) and 4 domain files. Updated to import from 2 canonical files. No more circular barrel import. | 2026-03-24 |
+| 20 | Phase 2 complete — contracts/ has exactly 4 files | piProtocol.ts (1182 lines), domain.ts (497 lines), wsProtocol.ts (953 lines), index.ts (15 lines). Down from 12 files. All external consumers use `@pibun/contracts` barrel — zero import changes needed. | 2026-03-24 |
+| 21 | index.ts uses `export type *` for type-only files | piProtocol.ts and domain.ts are pure types (interfaces + type aliases). `export type * from` used for them. wsProtocol.ts has runtime values (WS_METHODS, WS_CHANNELS) so uses plain `export * from`. | 2026-03-24 |
 
 ## Architecture Notes
 
 ### Current file counts (in progress)
-- contracts/: 4 files (was 12 → 9 after piProtocol merge → 4 after domain merge)
+- contracts/: 4 files ✅ DONE (was 12 → 9 after piProtocol merge → 4 after domain merge. index.ts: 15 lines)
 - server src (non-test): 19 files, 4460 lines
 - server handlers/: 8 files + types + index = 10 files
 - web store/: 15 files, 1409 lines

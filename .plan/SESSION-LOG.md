@@ -183,3 +183,33 @@
 - Then: 2.5 — Update all imports across packages (may be a no-op since barrel exports unchanged)
 
 ---
+
+## Session 7 — Complete Phase 2: slim index.ts + verify contracts (2026-03-24)
+
+**What happened:**
+- Verified wsProtocol.ts already has comprehensive TSDoc (protocol overview header from Session 4, section headers with `// ====`, per-interface JSDoc). Nothing to add from deleted WS_PROTOCOL.md (which was severely stale at 17/42 methods anyway).
+- Rewrote index.ts from 200+ individually named type exports to 3 slim re-export lines: `export type * from "./piProtocol.js"`, `export type * from "./domain.js"`, `export * from "./wsProtocol.js"`. Uses `export type *` for type-only files and plain `export *` for wsProtocol.ts (has runtime WS_METHODS/WS_CHANNELS).
+- Verified all imports: every external consumer uses `@pibun/contracts` barrel, so zero import changes needed across server/web/desktop.
+- Full build passes: `bun run typecheck && bun run lint && bun run build` — all 5 packages succeed.
+
+**Items completed:**
+- [x] 2.3 — wsProtocol.ts TSDoc already comprehensive, nothing to add
+- [x] 2.4 — Rewrite index.ts as slim 3-line re-export (15 lines down from 200+)
+- [x] 2.5 — Update all imports — no changes needed (barrel unchanged)
+- [x] 2.6 — Verify: full build passes
+
+**Phase 2 complete.** Exit criteria met:
+- contracts/ has 4 files (piProtocol.ts, domain.ts, wsProtocol.ts, index.ts) ✅
+- All packages compile ✅
+- No import breaks ✅
+
+**Issues encountered:**
+- None. Items 2.3–2.5 were smaller than estimated — the barrel pattern meant no external changes.
+
+**Handoff to next session:**
+- Next: Phase 3 — Deep Store + Actions
+- Start with 3.1: Merge store slices connection + ui + update + notifications → `appSlice.ts`
+- Read MEMORY.md for gotcha about `StateCreator` generics — merging slices changes the combined slice type
+- Each store slice uses `StateCreator<AppStore, [], [], SliceType>` — the `SliceType` generic must match the merged interface
+
+---

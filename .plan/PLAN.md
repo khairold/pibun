@@ -2,8 +2,8 @@
 
 > **Spec:** Audit findings from 2026-03-24 session + "deep modules" principle
 > **Status:** In Progress
-> **Current Phase:** Phase 2 — Deep Contracts Package
-> **Last Session:** Session 6 — 2026-03-24
+> **Current Phase:** Phase 3 — Deep Store + Actions
+> **Last Session:** Session 7 — 2026-03-24
 
 ---
 
@@ -63,10 +63,10 @@ With a 1M token context window, the entire codebase (~532K tokens) fits in one s
 
 - [x] 2.1 — Merge piTypes.ts + piEvents.ts + piCommands.ts + piResponses.ts → `piProtocol.ts` (~1200 lines). All Pi RPC types in one file. Organize with `// ==== SECTION ====` headers.
 - [x] 2.2 — Merge sessionTab.ts + project.ts + theme.ts + settings.ts + plugin.ts + gitTypes.ts → `domain.ts` (~300 lines). All app domain types.
-- [ ] 2.3 — Keep wsProtocol.ts as-is (already 933 lines, already deep). Add TSDoc from the deleted WS_PROTOCOL.md.
-- [ ] 2.4 — Rewrite index.ts as a slim re-export from 3 files (piProtocol, wsProtocol, domain)
-- [ ] 2.5 — Update all imports across server, web, desktop packages — run typecheck to verify
-- [ ] 2.6 — Verify: `bun run typecheck && bun run lint && bun run build` all pass
+- [x] 2.3 — Keep wsProtocol.ts as-is (already 933 lines, already deep). TSDoc already comprehensive from Session 4 — nothing to add from deleted WS_PROTOCOL.md.
+- [x] 2.4 — Rewrite index.ts as a slim re-export from 3 files (piProtocol, wsProtocol, domain) — 15 lines down from 200+
+- [x] 2.5 — Update all imports across server, web, desktop packages — no changes needed, all use barrel `@pibun/contracts`
+- [x] 2.6 — Verify: `bun run typecheck && bun run lint && bun run build` all pass ✅
 
 **Exit criteria:** contracts/ has 4 files. All packages compile. No import breaks.
 
