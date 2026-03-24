@@ -51,3 +51,26 @@
 - CLAUDE.md is written but the old files still exist — items 1.3-1.4 handle trimming and deletion
 
 ---
+
+## Session 2 — Trim CONVENTIONS.md + Delete old context files (2026-03-24)
+
+**What happened:**
+- Trimmed CONVENTIONS.md from ~200 lines to ~95 lines, removing 5 sections that duplicated CLAUDE.md or code-level types
+- Removed: Thin Bridge Principle (in CLAUDE.md), WebSocket Protocol (in wsProtocol.ts types), File Organization (stale after refactoring), Quick Checklist (plan/skills handle), TypeScript & Types contracts section (in CLAUDE.md)
+- Kept: JSONL parsing (trimmed to reference JsonlParser), Tool execution updates, Text streaming, React components, State management, Imports, Naming, Error handling, Git
+- Deleted 4 files: .pi/AGENTS.md, .pi/CAPABILITY-MAP.md, .agents/SOUL.md, .agents/HUMAN.md
+- Updated CONVENTIONS.md git section to remove .pi/ reference
+
+**Items completed:**
+- [x] 1.3 — Trim CONVENTIONS.md
+- [x] 1.4 — Delete AGENTS.md, CAPABILITY-MAP.md, SOUL.md, HUMAN.md
+
+**Issues encountered:**
+- None. Straightforward trimming and deletion. The audit artifact made this mechanical.
+
+**Handoff to next session:**
+- Next: 1.5 — Audit docs/ for staleness (compare WS_PROTOCOL.md against handler registry, check PI_INTEGRATION.md against piProcess.ts)
+- Then: 1.6 — Delete stale docs and move useful content to TSDoc
+- `.pi/` directory is now empty but still exists — can be cleaned up later or left
+
+---

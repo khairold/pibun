@@ -17,6 +17,9 @@
 | 7 | Not merging top-level components | Sidebar (1053), Composer (575), ChatView (417) are feature-specific. Merging them would create unfocused God components. They're deep enough. | 2026-03-24 |
 | 8 | Consolidated CLAUDE.md absorbs AGENTS.md, CAPABILITY-MAP.md, SOUL.md, HUMAN.md | Audit found 25 unique concepts restated 50+ times across 12 files. "Thin bridge" alone appeared in 7 files. Single CLAUDE.md eliminates all redundancy. | 2026-03-24 |
 | 9 | Audit artifact at `.plan/audit-1.1-redundancy-map.md` | Detailed redundancy map showing every cross-reference. Use as reference for items 1.3-1.4 to know what's been consolidated and what remains. | 2026-03-24 |
+| 10 | CONVENTIONS.md trimmed from ~200 to ~95 lines | Removed: Thin Bridge section (in CLAUDE.md), WebSocket Protocol section (in types), File Organization (stale after refactoring), Quick Checklist (skills handle), TypeScript contracts section (in CLAUDE.md). Kept only rules not expressed in code. | 2026-03-24 |
+| 11 | `.pi/` directory is now empty — AGENTS.md and CAPABILITY-MAP.md deleted | Content merged into CLAUDE.md. `.pi/` dir remains but has no files. `.agents/` has CONVENTIONS.md, TENSIONS.md, and skills/. | 2026-03-24 |
+| 12 | Mandatory context files reduced from 7 to 3 | CLAUDE.md + CONVENTIONS.md + TENSIONS.md. Down from CLAUDE.md + AGENTS.md + CAPABILITY-MAP.md + SOUL.md + HUMAN.md + CONVENTIONS.md + TENSIONS.md. | 2026-03-24 |
 
 ## Architecture Notes
 
