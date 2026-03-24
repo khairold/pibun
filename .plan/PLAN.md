@@ -2,9 +2,9 @@
 
 > **Spec:** Audit of T3Code, Pi-mono RPC, Electrobun reference repos (2026-03-24)
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
-> **Status:** Phase 2C in progress
-> **Current Phase:** Phase 2C — Terminal Context & Image Improvements
-> **Last Session:** Session 23 — 2026-03-24
+> **Status:** Phase 2C complete
+> **Current Phase:** Phase 3 — Activity Timeline & Diff
+> **Last Session:** Session 24 — 2026-03-24
 
 ---
 
@@ -95,8 +95,8 @@
 - [x] 2C.1 — Add terminal content selection API: select text in terminal → "Add to composer" button → attaches terminal output as context
 - [x] 2C.2 — Render terminal context attachments as inline chips in composer (like file mentions but for terminal output)
 - [x] 2C.3 — On send, append terminal context content to prompt text with formatting
-- [ ] 2C.4 — Add drag-and-drop image support to composer (currently only clipboard paste)
-- [ ] 2C.5 — Improve image preview strip: larger thumbnails, file size indicator, click to expand
+- [x] 2C.4 — Add drag-and-drop image support to composer (currently only clipboard paste)
+- [x] 2C.5 — Improve image preview strip: larger thumbnails, file size indicator, click to expand
 
 **Exit criteria:** Users can attach terminal output and drag images into composer.
 

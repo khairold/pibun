@@ -695,6 +695,8 @@ export interface PersistedImageAttachment {
 	data: string;
 	mimeType: string;
 	previewUrl: string;
+	/** File size in bytes. */
+	fileSize: number;
 }
 
 /** Persisted file mention shape (matches Composer's FileMention). */

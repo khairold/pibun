@@ -714,3 +714,33 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 24 — Drag-and-drop images + image preview improvements (2026-03-24)
+
+**What happened:**
+- Verified 2C.4 (drag-and-drop image support) was already fully implemented — `handleDragOver`, `handleDragLeave`, `handleDrop` handlers + `isDragOver` visual overlay existed since the original clipboard paste implementation. Marked complete.
+- Implemented 2C.5 (improved image preview strip):
+  - **Larger thumbnails**: Changed from `h-16 w-16` (64px) to `h-20 w-20` (80px) for both image tiles and the "add more" placeholder.
+  - **File size tracking**: Added `fileSize: number` to `ImageAttachment` type and `PersistedImageAttachment` interface. Captured from `File.size` during `addImagesFromFiles`.
+  - **File size display**: `formatFileSize()` helper formats bytes as "X B", "X KB", or "X.X MB". Displayed as semi-transparent black badge at bottom-left of each thumbnail (`bg-black/60 text-white text-[10px]`).
+  - **Backward compatibility**: Draft restore uses `img.fileSize ?? 0` for old persisted drafts without the field. Badge only shown when `fileSize > 0`.
+  - **Click to expand**: Already implemented (via `setImagePreview` onClick handler) — no changes needed.
+  - Updated placeholder text from "paste images with Ctrl+V" to "paste or drop images" since both are now supported.
+- Phase 2C is now COMPLETE — all 5 items checked off.
+- Exit criteria verified: ✅ Users can attach terminal output. ✅ Users can drag images into composer. ✅ Image preview shows larger thumbnails with file size.
+
+**Items completed:**
+- [x] 2C.4 — Add drag-and-drop image support (verified already implemented)
+- [x] 2C.5 — Improve image preview strip: larger thumbnails, file size indicator, click to expand
+
+**Issues encountered:**
+- None. 2C.4 was already done. 2C.5 was a clean enhancement.
+
+**Handoff to next session:**
+- **Phase 2C is COMPLETE.** Next: Phase 3 — Activity Timeline & Diff
+- Start with 3.1 — Refactor ChatView to use `TimelineEntry` union type
+- `formatFileSize()` lives in Composer.tsx — if needed elsewhere (e.g., file attachment display), extract to `utils.ts`.
+- `PersistedImageAttachment.fileSize` is backward compatible (old drafts won't have it — use `?? 0`).
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

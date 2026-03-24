@@ -66,6 +66,8 @@ interface ImageAttachment {
 	mimeType: string;
 	/** Data URL for preview rendering (data:mimeType;base64,data). */
 	previewUrl: string;
+	/** File size in bytes. */
+	fileSize: number;
 }
 
 /** A file mention chip in the composer. */
@@ -99,6 +101,13 @@ function errorMessage(err: unknown): string {
 
 /** Maximum textarea height in pixels before scrolling. */
 const MAX_TEXTAREA_HEIGHT = 200;
+
+/** Format file size as human-readable string. */
+function formatFileSize(bytes: number): string {
+	if (bytes < 1024) return `${String(bytes)} B`;
+	if (bytes < 1024 * 1024) return `${String(Math.round(bytes / 1024))} KB`;
+	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 /** Auto-incrementing counter for image attachment IDs. */
 let imageIdCounter = 0;
@@ -576,6 +585,7 @@ export function Composer() {
 				data: img.data,
 				mimeType: img.mimeType,
 				previewUrl: img.previewUrl,
+				fileSize: img.fileSize,
 			}));
 			const currentMentions: PersistedFileMention[] = mentionsRef.current.map((m) => ({
 				id: m.id,
@@ -600,6 +610,7 @@ export function Composer() {
 						data: img.data,
 						mimeType: img.mimeType,
 						previewUrl: img.previewUrl,
+						fileSize: img.fileSize ?? 0,
 					})),
 				);
 				setMentions(
@@ -627,6 +638,7 @@ export function Composer() {
 			data: img.data,
 			mimeType: img.mimeType,
 			previewUrl: img.previewUrl,
+			fileSize: img.fileSize,
 		}));
 		const currentMentions: PersistedFileMention[] = mentions.map((m) => ({
 			id: m.id,
@@ -685,6 +697,7 @@ export function Composer() {
 							data,
 							mimeType,
 							previewUrl: `data:${mimeType};base64,${data}`,
+							fileSize: file.size,
 						};
 					}),
 				);
@@ -1055,7 +1068,7 @@ export function Composer() {
 		? "Connecting…"
 		: isStreaming
 			? "Enter to steer · Ctrl+Enter for follow-up…"
-			: "Send a message… (paste images with Ctrl+V)";
+			: "Send a message… (paste or drop images)";
 
 	return (
 		<div
@@ -1112,7 +1125,7 @@ export function Composer() {
 						{images.map((img) => (
 							<div
 								key={img.id}
-								className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border-primary bg-surface-primary"
+								className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-border-primary bg-surface-primary"
 							>
 								<img
 									src={img.previewUrl}
@@ -1124,6 +1137,12 @@ export function Composer() {
 									}}
 									onKeyDown={undefined}
 								/>
+								{/* File size badge */}
+								{img.fileSize > 0 && (
+									<span className="pointer-events-none absolute bottom-0.5 left-0.5 rounded bg-black/60 px-1 py-0.5 text-[10px] leading-tight text-white">
+										{formatFileSize(img.fileSize)}
+									</span>
+								)}
 								{/* Remove button */}
 								<button
 									type="button"
@@ -1152,7 +1171,7 @@ export function Composer() {
 
 						{/* Add more indicator (when under max) */}
 						{images.length < MAX_IMAGES && (
-							<div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-border-primary text-text-muted">
+							<div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-dashed border-border-primary text-text-muted">
 								<span className="text-xs">+</span>
 							</div>
 						)}
