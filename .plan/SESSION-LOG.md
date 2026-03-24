@@ -457,3 +457,26 @@
 - `consumeDeferredActiveTabId()` still not consumed
 
 ---
+
+## Session 16 — Pi RPC `get_commands` support (2026-03-24)
+
+**What happened:**
+- Implemented `session.getCommands` WS method end-to-end (2A.1):
+  - **Contracts piProtocol.ts**: Updated `PiSlashCommand` to match actual Pi wire format — replaced `location`/`path` fields with `sourceInfo: PiSourceInfo`. Added `PiSourceInfo`, `PiSourceScope` ("user" | "project" | "temporary"), `PiSourceOrigin` ("package" | "top-level") types. This matches Pi's actual `rpc-types.ts` (rpc.md docs were outdated).
+  - **Contracts wsProtocol.ts**: Added `session.getCommands` to `WS_METHODS`, `WsMethodParamsMap` (no params), `WsMethodResultMap` (→ `WsSessionGetCommandsResult`). Added `WsSessionGetCommandsResult` type with `commands: PiSlashCommand[]`. Added `PiSlashCommand` to piProtocol imports.
+  - **Server session.ts**: Added `handleSessionGetCommands` handler — follows `getModels` pattern: `process.sendCommand({ type: "get_commands" })` → `assertSuccess` → extract `commands` from response data.
+  - **Server index.ts**: Registered `handleSessionGetCommands` in handler registry at `"session.getCommands"`.
+
+**Items completed:**
+- [x] 2A.1 — Add Pi RPC `get_commands` support: new WS method `session.getCommands` + server handler + contracts types
+
+**Issues encountered:**
+- Pi's rpc.md docs showed an older format for `PiSlashCommand` with `location`/`path` fields, but the actual Pi source (`rpc-types.ts`) uses `sourceInfo: SourceInfo`. Updated to match the actual wire format. Logged in MEMORY.md #28.
+
+**Handoff to next session:**
+- Next: 2A.2 — Build ComposerCommandMenu component: floating menu above composer, keyboard navigable
+- `session.getCommands` is ready to be called from the UI. Will need a Zustand action or React hook to fetch commands and store them.
+- `PiSlashCommand` has `sourceInfo.path` (absolute file path), `sourceInfo.scope` (user/project/temporary), `sourceInfo.source` (human-readable name). Use `source` field for display grouping (extension/prompt/skill).
+- `consumeDeferredActiveTabId()` still not consumed
+
+---

@@ -39,6 +39,7 @@ import type {
 	PiResponse,
 	PiSessionState,
 	PiSessionStats,
+	PiSlashCommand,
 	PiSteeringMode,
 	PiThinkingLevel,
 } from "./piProtocol.js";
@@ -77,6 +78,7 @@ export const WS_METHODS = {
 	sessionFork: "session.fork",
 	sessionSetName: "session.setName",
 	sessionGetForkMessages: "session.getForkMessages",
+	sessionGetCommands: "session.getCommands",
 
 	// Extension UI
 	sessionExtensionUiResponse: "session.extensionUiResponse",
@@ -489,6 +491,7 @@ export interface WsMethodParamsMap {
 	"session.fork": WsSessionForkParams;
 	"session.setName": WsSessionSetNameParams;
 	"session.getForkMessages": undefined;
+	"session.getCommands": undefined;
 	"session.extensionUiResponse": WsSessionExtensionUiResponseParams;
 	"session.listSessions": undefined;
 	"session.switchSession": WsSessionSwitchSessionParams;
@@ -571,6 +574,11 @@ export interface WsForkableMessage {
 /** Result for `session.getForkMessages`. */
 export interface WsSessionGetForkMessagesResult {
 	messages: WsForkableMessage[];
+}
+
+/** Result for `session.getCommands` — available slash commands. */
+export interface WsSessionGetCommandsResult {
+	commands: PiSlashCommand[];
 }
 
 /** Summary info for a session file in the session list. */
@@ -729,6 +737,7 @@ export interface WsMethodResultMap {
 	"session.fork": WsSessionForkResult;
 	"session.setName": WsOkResult;
 	"session.getForkMessages": WsSessionGetForkMessagesResult;
+	"session.getCommands": WsSessionGetCommandsResult;
 	"session.extensionUiResponse": WsOkResult;
 	"session.exportHtml": WsSessionExportHtmlResult;
 	"session.listSessions": WsSessionListSessionsResult;

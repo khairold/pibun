@@ -269,13 +269,36 @@ export interface PiSessionState {
 // SLASH COMMANDS
 // ============================================================================
 
+/** Where a resource was loaded from (user-level, project-level, or temporary). */
+export type PiSourceScope = "user" | "project" | "temporary";
+
+/** Whether a resource comes from a package or is a top-level file. */
+export type PiSourceOrigin = "package" | "top-level";
+
+/** Metadata about the source of a Pi resource (extension, prompt, skill). */
+export interface PiSourceInfo {
+	/** Absolute file path to the resource. */
+	path: string;
+	/** Human-readable source identifier (package name or directory). */
+	source: string;
+	/** Where it was loaded from. */
+	scope: PiSourceScope;
+	/** Whether from a package or top-level. */
+	origin: PiSourceOrigin;
+	/** Base directory of the source, if applicable. */
+	baseDir?: string;
+}
+
 /** A command available for invocation via prompt (prefixed with `/`). */
 export interface PiSlashCommand {
+	/** Command name (without leading slash). */
 	name: string;
+	/** Human-readable description. */
 	description?: string;
+	/** What kind of command this is. */
 	source: "extension" | "prompt" | "skill";
-	location?: "user" | "project" | "path";
-	path?: string;
+	/** Source metadata for the owning resource. */
+	sourceInfo: PiSourceInfo;
 }
 
 // ============================================================================

@@ -2,9 +2,9 @@
 
 > **Spec:** Audit of T3Code, Pi-mono RPC, Electrobun reference repos (2026-03-24)
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
-> **Status:** Phase 1C complete — Phase 2A next
+> **Status:** Phase 2A in progress
 > **Current Phase:** Phase 2A — Slash Commands & Command Palette
-> **Last Session:** Session 15 — 2026-03-24
+> **Last Session:** Session 16 — 2026-03-24
 
 ---
 
@@ -73,7 +73,7 @@
 
 ### 2A — Slash Commands & Command Palette
 
-- [ ] 2A.1 — Add Pi RPC `get_commands` support: new WS method `session.getCommands` + server handler + contracts types
+- [x] 2A.1 — Add Pi RPC `get_commands` support: new WS method `session.getCommands` + server handler + contracts types
 - [ ] 2A.2 — Build ComposerCommandMenu component: floating menu above composer, keyboard navigable (↑↓ + Enter + Escape), filtered by typed text
 - [ ] 2A.3 — Implement `/` trigger detection: typing `/` at line start opens command menu with available Pi commands (extensions, skills, prompts)
 - [ ] 2A.4 — Implement `/model` slash command: opens inline model picker, selecting a model calls `session.setModel`

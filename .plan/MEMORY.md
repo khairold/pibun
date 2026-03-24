@@ -36,6 +36,8 @@
 | 25 | Auto-compaction and auto-retry wired end-to-end: UI toggle → `updateSetting()` → server persistence + Pi RPC | `session.setAutoCompaction` and `session.setAutoRetry` WS methods added (contracts + server handlers + handler registry). `updateSetting()` in `appActions.ts` now calls `applySettingToPiSession()` which sends Pi RPC to active session (fire-and-forget). `applySettingsToNewSession()` in `sessionActions.ts` sends saved settings to newly started Pi processes (called after `ensureSession()` and `startSessionInFolder()`). Settings with `null` value mean "use Pi default" and are not sent. | 2026-03-24 |
 | 26 | Steering mode and follow-up mode wired end-to-end, same pattern as auto-compaction/retry | `session.setSteeringMode` and `session.setFollowUpMode` WS methods added (contracts + server handlers). `PiBunSettings` extended with `steeringMode: PiSteeringMode \| null` and `followUpMode: PiFollowUpMode \| null`. Server `settingsStore.ts` handles load/save with validation. `applySettingToPiSession()` sends Pi RPC on live toggle. `applySettingsToNewSession()` sends on session start. UI uses `ModeSelector` segmented control component in SettingsDialog Agent section. Default is `null` (Pi default = "one-at-a-time"). | 2026-03-24 |
 | 27 | Timestamp format applied via shared `formatTimestamp()` in `utils.ts` + `timestampFormat` in Zustand UiSlice | Shared function accepts `(ts, format)` — format comes from Zustand store so components re-render when user changes setting. `timestampFormat` field added to `UiSlice` + `setTimestampFormat` action. Synced from settings cache on: init (`restorePersistedUiState`), server fetch (`fetchAndApplySettings`), and user change (`updateSetting`). TurnDivider reads from store via `useStore(s => s.timestampFormat)`. Old local `formatTimestamp` in ChatMessages.tsx deleted. | 2026-03-24 |
+| 28 | `PiSlashCommand` updated to use `sourceInfo: PiSourceInfo` matching actual Pi wire format | Pi's rpc.md docs show older `location`/`path` fields, but the actual Pi source (rpc-types.ts) uses `sourceInfo: SourceInfo` with `{ path, source, scope, origin, baseDir }`. Updated PiBun contracts to match actual wire format. Added `PiSourceInfo`, `PiSourceScope`, `PiSourceOrigin` types. | 2026-03-24 |
+| 29 | `session.getCommands` WS method follows `getModels` handler pattern (sendCommand → assertSuccess → extract data) | Returns `{ commands: PiSlashCommand[] }`. No params needed. Handler uses `process.sendCommand({ type: "get_commands" })`. Result type is `WsSessionGetCommandsResult`. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -49,7 +51,7 @@ apps/desktop/         — Electrobun main process, menu, notifications, updater,
 ```
 
 ### Key Missing Server Methods (for v3)
-- `session.getCommands` → Pi `get_commands` (for command palette)
+- ~~`session.getCommands` → Pi `get_commands` (for command palette)~~ ✅ Done (Session 16)
 - `session.bash` → Pi `bash` + `abort_bash` (server-side execution)
 - ~~`session.setAutoCompaction` → Pi `set_auto_compaction`~~ ✅ Done (Session 13)
 - ~~`session.setAutoRetry` → Pi `set_auto_retry`~~ ✅ Done (Session 13)

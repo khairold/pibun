@@ -439,6 +439,26 @@ export const handleSessionSetName: WsHandler<"session.setName"> = async (
 	return sendAndAck(process, { type: "set_session_name", name: params.name });
 };
 
+/**
+ * session.getCommands — Get available slash commands (extensions, prompts, skills).
+ *
+ * Returns the list of commands that can be invoked via `/name` in a prompt.
+ */
+export const handleSessionGetCommands: WsHandler<"session.getCommands"> = async (
+	_params: undefined,
+	ctx: HandlerContext,
+): Promise<WsMethodResultMap["session.getCommands"]> => {
+	const process = getProcess(ctx);
+	const response = await process.sendCommand({ type: "get_commands" });
+	assertSuccess(response);
+
+	if (response.command === "get_commands" && response.success) {
+		return { commands: response.data.commands };
+	}
+
+	throw new Error("Unexpected response from get_commands");
+};
+
 // ============================================================================
 // Extension UI
 // ============================================================================

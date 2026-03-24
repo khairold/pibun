@@ -37,6 +37,7 @@ import {
 	handleSessionExportHtml,
 	handleSessionFollowUp,
 	handleSessionFork,
+	handleSessionGetCommands,
 	handleSessionGetForkMessages,
 	handleSessionGetMessages,
 	handleSessionGetModels,
@@ -98,6 +99,7 @@ export const handlers: HandlerRegistry = {
 	"session.fork": handleSessionFork,
 	"session.setName": handleSessionSetName,
 	"session.getForkMessages": handleSessionGetForkMessages,
+	"session.getCommands": handleSessionGetCommands,
 
 	// Extension UI
 	"session.extensionUiResponse": handleExtensionUiResponse,
