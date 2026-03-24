@@ -338,6 +338,12 @@ export interface UiSlice {
 	/** Whether the settings dialog is open. */
 	settingsOpen: boolean;
 	/**
+	 * Whether the browser/webview window currently has focus.
+	 * Tracked via standard browser focus/blur events and document visibility API.
+	 * Used for visual dimming (status bar opacity) and notification suppression.
+	 */
+	isWindowFocused: boolean;
+	/**
 	 * Text to insert into the Composer. Set by plugin `sendPrompt` (sendImmediately=false).
 	 * Composer watches this field and picks up the text, then clears it.
 	 * Null when no pending text.
@@ -389,6 +395,8 @@ export interface UiSlice {
 	setSidebarOpen: (open: boolean) => void;
 	/** Set the settings dialog open state. */
 	setSettingsOpen: (open: boolean) => void;
+	/** Set the window focus state. */
+	setWindowFocused: (focused: boolean) => void;
 	/** Set pending text to insert into the Composer. Null to clear. */
 	setPendingComposerText: (text: string | null) => void;
 	/** Open the image preview modal with the given URL. Null to close. */

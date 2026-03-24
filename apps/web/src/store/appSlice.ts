@@ -61,6 +61,7 @@ export const createAppSlice: StateCreator<AppStore, [], [], AppSlice> = (set, ge
 	// ---- UI state ----
 	sidebarOpen: isDesktopWidth(),
 	settingsOpen: false,
+	isWindowFocused: typeof document !== "undefined" ? document.hasFocus() : true,
 	pendingComposerText: null,
 	imagePreviewUrl: null,
 	imagePreviewAlt: "",
@@ -70,6 +71,7 @@ export const createAppSlice: StateCreator<AppStore, [], [], AppSlice> = (set, ge
 	toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 	setSidebarOpen: (open) => set({ sidebarOpen: open }),
 	setSettingsOpen: (open) => set({ settingsOpen: open }),
+	setWindowFocused: (focused) => set({ isWindowFocused: focused }),
 	setPendingComposerText: (text) => set({ pendingComposerText: text }),
 	setImagePreview: (url, alt) => set({ imagePreviewUrl: url, imagePreviewAlt: alt ?? "" }),
 	setTimestampFormat: (format) => set({ timestampFormat: format }),

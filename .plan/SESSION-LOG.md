@@ -1209,3 +1209,26 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 41 — Window focus/blur tracking + toolbar dimming (2026-03-24)
+
+**What happened:**
+- Implemented window focus/blur tracking and visual dimming (4B.4):
+  - **Store**: Added `isWindowFocused: boolean` to `UiSlice` + `setWindowFocused` action. Initialized from `document.hasFocus()` for correct initial state.
+  - **wireTransport.ts**: Added 3 browser event listeners: `window.focus`, `window.blur`, and `document.visibilitychange`. All update `setWindowFocused` in Zustand. Cleanup functions properly registered.
+  - **AppShell.tsx**: Toolbar div gets `opacity-50` class when `!isWindowFocused` with `transition-opacity duration-200` for smooth dimming. Uses `cn()` conditional class pattern (imported from `@/lib/utils`).
+- **Design decision**: Used browser-native focus/blur events instead of adding a new `app.windowFocus` WS push channel. Browser events work in both Electrobun webview and browser mode. The desktop `notifications.ts` already has its own independent focus tracking via `mainWindow.on("focus"/"blur")` for native notification suppression — no need to merge the two systems.
+- Only 4 files modified: `types.ts` (store type), `appSlice.ts` (state + action), `wireTransport.ts` (event listeners), `AppShell.tsx` (visual dimming).
+
+**Items completed:**
+- [x] 4B.4 — Add Electrobun window focus/blur events: dim status bar when unfocused, track focus for notification suppression
+
+**Issues encountered:**
+- None. Clean implementation using standard browser APIs.
+
+**Handoff to next session:**
+- Next: 4B.5 — Enhance auto-update: show download progress in sidebar footer, prompt for restart when ready, use Electrobun's bsdiff patches
+- `isWindowFocused` is in Zustand (`useStore(s => s.isWindowFocused)`) — any component can use it for focus-aware behavior (e.g., suppress toasts when unfocused, pause animations, etc.).
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

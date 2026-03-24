@@ -37,6 +37,7 @@ import { UpdateBanner } from "@/components/UpdateBanner";
 import { ExtensionDialog } from "@/components/extension";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useWindowTitle } from "@/hooks/useWindowTitle";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 
 function SettingsButton() {
@@ -72,6 +73,7 @@ export function AppShell() {
 
 	const sidebarOpen = useStore((s) => s.sidebarOpen);
 	const toggleSidebar = useStore((s) => s.toggleSidebar);
+	const isWindowFocused = useStore((s) => s.isWindowFocused);
 
 	return (
 		<div className="flex h-screen bg-surface-base text-text-primary">
@@ -102,7 +104,12 @@ export function AppShell() {
 					<UpdateBanner />
 
 					{/* Toolbar — sidebar toggle + model/thinking selectors + session management */}
-					<div className="flex items-center gap-2 border-b border-border-secondary px-4 py-2">
+					<div
+						className={cn(
+							"flex items-center gap-2 border-b border-border-secondary px-4 py-2 transition-opacity duration-200",
+							!isWindowFocused && "opacity-50",
+						)}
+					>
 						{/* Sidebar toggle button — hamburger when closed, panel icon when open */}
 						<button
 							type="button"

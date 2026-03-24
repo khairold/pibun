@@ -912,6 +912,25 @@ export function initTransport(): () => void {
 		}),
 	);
 
+	// Window focus/blur tracking — used for visual dimming and notification suppression.
+	// Uses both window focus/blur events (reliable for Electrobun webview and browser tabs)
+	// and document visibilitychange (fires when tab is hidden/shown or window minimized).
+	const handleWindowFocus = () => useStore.getState().setWindowFocused(true);
+	const handleWindowBlur = () => useStore.getState().setWindowFocused(false);
+	const handleVisibilityChange = () => {
+		useStore.getState().setWindowFocused(!document.hidden);
+	};
+
+	window.addEventListener("focus", handleWindowFocus);
+	window.addEventListener("blur", handleWindowBlur);
+	document.addEventListener("visibilitychange", handleVisibilityChange);
+
+	cleanups.push(() => {
+		window.removeEventListener("focus", handleWindowFocus);
+		window.removeEventListener("blur", handleWindowBlur);
+		document.removeEventListener("visibilitychange", handleVisibilityChange);
+	});
+
 	return () => {
 		for (const cleanup of cleanups) {
 			cleanup();
