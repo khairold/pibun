@@ -224,3 +224,31 @@
 - `TabBar.tsx` is dead code (noted in MEMORY.md #15) — removal covered by Phase 3 cleanup
 
 ---
+
+## Session 9 — Phase 3.1–3.5: Type cleanup + dead tab code removal (2026-03-24)
+
+**What happened:**
+- Verified 3.1: all listed `TabsSlice` fields (`tabMessages`, `tabStatuses`, `tabWidgets`, `tabTerminalActiveIds`, `reorderTabs`, `setBackgroundTabStatus`, `setBackgroundTabWidget`, `saveActiveTabMessages`) were already removed in Phase 1. Zero references remain. Marked done.
+- Removed `hasUnread` from `SessionTab` type in contracts (3.2). Updated `addTab` (no longer initializes) and `switchTab` (no longer clears on switch). Removed unread indicator rendering from TabBar.tsx (dead code but needed for type safety). Updated `SessionTab` TSDoc to reflect single-session model.
+- Verified 3.3: `wireTransport.ts` has zero `bgTab` or `hasUnread` references — cleaned in Session 2. Marked done.
+- Removed 5 dead tab keyboard shortcuts from `useKeyboardShortcuts.ts` (3.4): `newTab`, `closeTab`, `nextTab`, `prevTab`, `jumpToTab1-9`. Removed unused `startSession` and `closeTab` imports. Only `newSession` (Ctrl+N) remains for session creation.
+- Removed `file.new-tab` and `file.close-tab` menu action handlers from `wireTransport.ts` (3.5). Removed unused `closeTab` and `startSession` imports.
+- All changes confined to 5 files: `domain.ts`, `workspaceSlice.ts`, `TabBar.tsx`, `useKeyboardShortcuts.ts`, `wireTransport.ts`.
+
+**Items completed:**
+- [x] 3.1 — Remove unused TabsSlice fields (verified — already done in Phase 1)
+- [x] 3.2 — Simplify SessionTab type: removed `hasUnread`
+- [x] 3.3 — Clean up wireTransport.ts: bgTab/hasUnread (verified — already done in Session 2)
+- [x] 3.4 — Clean up useKeyboardShortcuts: removed 5 dead tab shortcuts
+- [x] 3.5 — Clean up menu handler: removed `file.new-tab`, `file.close-tab` actions
+
+**Issues encountered:**
+- None. Items 3.1 and 3.3 were pure verification — the work was done in earlier phases. 3.2, 3.4, 3.5 were mechanical deletions with clean builds.
+
+**Handoff to next session:**
+- Next: 3.6 — Remove `closeTab` from `tabActions.ts`
+- `closeTab` is still exported from `tabActions.ts` (~60 lines) but has no callers after 3.4/3.5 removed its last consumers. Only TabBar.tsx imports it (dead code).
+- After 3.6: 3.7 removes dead `KeybindingCommand` types + default bindings, 3.8 is final verify.
+- Default keybindings in `keybindings.ts` still reference `newTab`, `closeTab`, `nextTab`, `prevTab`, `jumpToTab1-9` — these are type-safe (KeybindingCommand union) and will fail to compile after 3.7 removes the union members.
+
+---

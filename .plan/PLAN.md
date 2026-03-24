@@ -3,7 +3,7 @@
 > **Spec:** Simplify from multi-tab-session to single-active-session model
 > **Status:** In Progress — Phase 2 complete
 > **Current Phase:** Phase 3 — Cleanup & Simplify Types
-> **Last Session:** Session 8 — 2026-03-24
+> **Last Session:** Session 9 — 2026-03-24
 
 ---
 
@@ -87,11 +87,11 @@ status tracking (`tabStatuses`, `tabWidgets`), `keepExisting` flag,
 
 **Goal:** Remove dead code paths, simplify types, reduce surface area.
 
-- [ ] 3.1 — Remove `TabsSlice` fields that are now unused: `tabMessages`, `tabStatuses`, `tabWidgets`, `tabTerminalActiveIds`, `reorderTabs`, `setBackgroundTabStatus`, `setBackgroundTabWidget`, `saveActiveTabMessages`.
-- [ ] 3.2 — Simplify `SessionTab` type: remove `hasUnread` (no background tabs to go unread). Keep `piSessionId`, `sessionId`, `cwd`, `model`, `thinkingLevel`, `status`, `name`, `firstMessage`, `messageCount`, `createdAt`.
-- [ ] 3.3 — Clean up `wireTransport.ts`: remove `bgTab` references, simplify `pi.event` handler. Remove `hasUnread` update logic.
-- [ ] 3.4 — Clean up `useKeyboardShortcuts`: remove `newTab`/`closeTab`/`nextTab`/`prevTab`/`jumpToTab` shortcuts — these are multi-tab concepts. Keep `newSession` (creates session in active project).
-- [ ] 3.5 — Clean up menu handler in `wireTransport.ts`: remove `file.new-tab`, `file.close-tab`, `file.next-tab`, `file.prev-tab` menu actions.
+- [x] 3.1 — Remove `TabsSlice` fields that are now unused: `tabMessages`, `tabStatuses`, `tabWidgets`, `tabTerminalActiveIds`, `reorderTabs`, `setBackgroundTabStatus`, `setBackgroundTabWidget`, `saveActiveTabMessages`.
+- [x] 3.2 — Simplify `SessionTab` type: remove `hasUnread` (no background tabs to go unread). Keep `piSessionId`, `sessionId`, `cwd`, `model`, `thinkingLevel`, `status`, `name`, `firstMessage`, `messageCount`, `createdAt`.
+- [x] 3.3 — Clean up `wireTransport.ts`: remove `bgTab` references, simplify `pi.event` handler. Remove `hasUnread` update logic.
+- [x] 3.4 — Clean up `useKeyboardShortcuts`: remove `newTab`/`closeTab`/`nextTab`/`prevTab`/`jumpToTab` shortcuts — these are multi-tab concepts. Keep `newSession` (creates session in active project).
+- [x] 3.5 — Clean up menu handler in `wireTransport.ts`: remove `file.new-tab`, `file.close-tab`, `file.next-tab`, `file.prev-tab` menu actions.
 - [ ] 3.6 — Remove `closeTab` from `tabActions.ts` — replaced by session switching (old session auto-stops). Keep the function if terminal close needs it, or inline the cleanup.
 - [ ] 3.7 — Delete dead keybinding commands from `domain.ts` `KeybindingCommand` type: `closeTab`, `newTab`, `nextTab`, `prevTab`, `jumpToTab1-9`.
 - [ ] 3.8 — Final verify: `bun run typecheck && bun run build && bun run lint`.

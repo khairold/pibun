@@ -32,7 +32,7 @@ import {
 	startNewSession,
 	startSessionInFolder,
 } from "@/lib/sessionActions";
-import { closeTab, startSession, switchTabAction } from "@/lib/tabActions";
+import { switchTabAction } from "@/lib/tabActions";
 import { emitShortcut, formatDuration } from "@/lib/utils";
 import { addLoadedSession, fetchLoadedSessionPaths } from "@/lib/workspaceActions";
 import { useStore } from "@/store";
@@ -576,24 +576,6 @@ function handleMenuAction(data: WsMenuActionData): void {
 					console.error("[Menu] Failed to create new session:", err);
 				});
 			break;
-
-		case "file.new-tab": {
-			// Start new session in the active tab's CWD (project-scoped)
-			const activeTab = store.tabs.find((t) => t.id === store.activeTabId);
-			startSession(activeTab?.cwd ? { cwd: activeTab.cwd } : undefined).catch((err: unknown) => {
-				console.error("[Menu] Failed to start session:", err);
-			});
-			break;
-		}
-
-		case "file.close-tab": {
-			if (store.tabs.length > 1 && store.activeTabId) {
-				closeTab(store.activeTabId).catch((err: unknown) => {
-					console.error("[Menu] Failed to close tab:", err);
-				});
-			}
-			break;
-		}
 
 		case "file.open-folder": {
 			// Extract the folder path from the data payload.

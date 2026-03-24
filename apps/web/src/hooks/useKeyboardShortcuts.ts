@@ -14,7 +14,6 @@ import { createTerminal, splitTerminal } from "@/lib/appActions";
 import type { WhenContext } from "@/lib/keybindings";
 import { getActiveBindings, resolveCommand } from "@/lib/keybindings";
 import { compactSession, fetchSessionList, startNewSession } from "@/lib/sessionActions";
-import { closeTab, startSession, switchTabAction } from "@/lib/tabActions";
 import { emitShortcut } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
@@ -158,81 +157,6 @@ export function useKeyboardShortcuts(): void {
 							.catch((err: unknown) => {
 								console.error("[Shortcut] Failed to create new session:", err);
 							});
-					}
-					break;
-				}
-				case "newTab": {
-					if (isConnected) {
-						e.preventDefault();
-						emitShortcut("newTab");
-						// Start new session in the active tab's CWD (project-scoped)
-						const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
-						startSession(activeTab?.cwd ? { cwd: activeTab.cwd } : undefined).catch(
-							(err: unknown) => {
-								console.error("[Shortcut] Failed to start session:", err);
-							},
-						);
-					}
-					break;
-				}
-				case "closeTab": {
-					if (state.tabs.length > 1 && state.activeTabId) {
-						e.preventDefault();
-						emitShortcut("closeTab");
-						closeTab(state.activeTabId).catch((err: unknown) => {
-							console.error("[Shortcut] Failed to close tab:", err);
-						});
-					}
-					break;
-				}
-				case "nextTab": {
-					if (state.tabs.length > 1 && state.activeTabId) {
-						e.preventDefault();
-						emitShortcut("nextTab");
-						const idx = state.tabs.findIndex((t) => t.id === state.activeTabId);
-						const nextIdx = idx >= state.tabs.length - 1 ? 0 : idx + 1;
-						const nextTab = state.tabs[nextIdx];
-						if (nextTab) {
-							switchTabAction(nextTab.id).catch((err: unknown) => {
-								console.error("[Shortcut] Failed to switch tab:", err);
-							});
-						}
-					}
-					break;
-				}
-				case "prevTab": {
-					if (state.tabs.length > 1 && state.activeTabId) {
-						e.preventDefault();
-						emitShortcut("prevTab");
-						const idx = state.tabs.findIndex((t) => t.id === state.activeTabId);
-						const prevIdx = idx <= 0 ? state.tabs.length - 1 : idx - 1;
-						const prevTab = state.tabs[prevIdx];
-						if (prevTab) {
-							switchTabAction(prevTab.id).catch((err: unknown) => {
-								console.error("[Shortcut] Failed to switch tab:", err);
-							});
-						}
-					}
-					break;
-				}
-				case "jumpToTab1":
-				case "jumpToTab2":
-				case "jumpToTab3":
-				case "jumpToTab4":
-				case "jumpToTab5":
-				case "jumpToTab6":
-				case "jumpToTab7":
-				case "jumpToTab8":
-				case "jumpToTab9": {
-					if (state.tabs.length > 1) {
-						const tabIndex = Number.parseInt(command.replace("jumpToTab", ""), 10) - 1;
-						const targetTab = state.tabs[tabIndex];
-						if (targetTab && targetTab.id !== state.activeTabId) {
-							e.preventDefault();
-							switchTabAction(targetTab.id).catch((err: unknown) => {
-								console.error("[Shortcut] Failed to jump to tab:", err);
-							});
-						}
 					}
 					break;
 				}

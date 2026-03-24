@@ -24,9 +24,11 @@ import type { PiFollowUpMode, PiModel, PiSteeringMode, PiThinkingLevel } from ".
 export type TabStatus = "idle" | "running" | "waiting" | "error";
 
 /**
- * A session tab in the multi-session UI.
+ * A session tab — client-side container for a Pi session.
  *
- * Each tab is an independent Pi RPC session. Tabs are managed by the
+ * Only one session is active at a time (single-session model).
+ * The sidebar lists sessions under projects; switching sessions stops
+ * the old Pi process and starts a new one. Tabs are managed by the
  * web app's tabsSlice — the server doesn't know about tabs.
  */
 export interface SessionTab {
@@ -61,8 +63,6 @@ export interface SessionTab {
 	firstMessage: string | null;
 	/** Unix timestamp when this tab was created. */
 	createdAt: number;
-	/** True when the tab has new content since the user last viewed it. */
-	hasUnread: boolean;
 	/**
 	 * Session file path (from Pi's get_state response).
 	 * Stored per-tab so we can resume the session when switching back.

@@ -30,6 +30,9 @@
 | 20 | Running indicator removed from `SessionItem` | Single-session model: only one session runs and it's always the active one. The `isRunning` pulse dot added no information. Active tab is distinguished by `border-l-2 border-accent-primary bg-surface-secondary`. Past sessions get a muted dot. | 2026-03-24 |
 | 21 | "New session" reuses empty active tab in same project | `handleNewSessionInProject` checks if active tab has same CWD and 0 messages. If so, no-ops instead of creating another empty session. Prevents orphan empty sessions when user clicks "+" repeatedly. | 2026-03-24 |
 | 22 | Session count badge excludes empty sessions | Project header badge counts `activeSessions.filter(s => s.messageCount > 0).length + pastSessions.length`. Empty "New session" placeholders don't inflate the count. | 2026-03-24 |
+| 23 | `hasUnread` removed from `SessionTab` | Single-session: no background tabs to go unread. Removed from contracts type, workspaceSlice addTab/switchTab, and TabBar. | 2026-03-24 |
+| 24 | Tab keyboard shortcuts removed | `newTab`, `closeTab`, `nextTab`, `prevTab`, `jumpToTab1-9` removed from useKeyboardShortcuts. Only `newSession` (Ctrl+N) remains for creating sessions. Tab navigation is done via sidebar. | 2026-03-24 |
+| 25 | Tab menu actions removed from wireTransport | `file.new-tab` and `file.close-tab` handlers removed. `file.new-session` remains. `closeTab` and `startSession` imports removed from wireTransport. | 2026-03-24 |
 
 ## Architecture Notes
 

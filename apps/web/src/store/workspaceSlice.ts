@@ -144,7 +144,6 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			messageCount: 0,
 			firstMessage: null,
 			createdAt: Date.now(),
-			hasUnread: false,
 			sessionFile: null,
 		};
 
@@ -252,9 +251,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 								name: s.sessionName ?? t.name,
 								sessionFile: s.sessionFile,
 							}
-						: t.id === tabId
-							? { ...t, hasUnread: false }
-							: t,
+						: t,
 				);
 			}
 
