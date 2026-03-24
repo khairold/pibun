@@ -2,8 +2,8 @@
 
 > **Spec:** Audit findings from 2026-03-24 session + "deep modules" principle
 > **Status:** In Progress
-> **Current Phase:** Phase 4 — Deep Server Handlers
-> **Last Session:** Session 12 — 2026-03-24
+> **Current Phase:** Phase 5 — Deep Chat Components
+> **Last Session:** Session 13 — 2026-03-24
 
 ---
 
@@ -94,12 +94,12 @@ With a 1M token context window, the entire codebase (~532K tokens) fits in one s
 
 **Goal:** Consolidate 8 handler files into 3. Add piPassthrough helper to eliminate boilerplate.
 
-- [ ] 4.1 — Add `piPassthrough` helper to types.ts (or a new helpers.ts): generic function that handles the getProcess → sendCommand → assertSuccess → extract pattern
-- [ ] 4.2 — Keep session.ts as-is (541 lines, has real logic beyond passthrough)
-- [ ] 4.3 — Merge app.ts + git.ts + plugin.ts + project.ts + settings.ts + terminal.ts → `appHandlers.ts`. Most are 5-20 line pass-throughs.
-- [ ] 4.4 — Rewrite handlers/index.ts to import from 2 handler files instead of 8
-- [ ] 4.5 — Convert trivial handlers to use piPassthrough where applicable
-- [ ] 4.6 — Verify: `bun run typecheck && bun run lint && bun run build` all pass
+- [x] 4.1 — Add `piPassthrough` helper to types.ts: `getProcess`, `assertSuccess`, `piPassthrough` functions for Pi RPC command forwarding
+- [x] 4.2 — Keep session.ts as-is (541 lines, has real logic beyond passthrough)
+- [x] 4.3 — Merge app.ts + git.ts + plugin.ts + project.ts + settings.ts + terminal.ts → `appHandlers.ts` (~370 lines). Server-side service handlers, not Pi RPC.
+- [x] 4.4 — Rewrite handlers/index.ts to import from 2 handler files (appHandlers + session) instead of 8
+- [x] 4.5 — Convert trivial handlers to use piPassthrough where applicable — N/A: non-session handlers call server-side services, not Pi RPC. Helper exported for future use.
+- [x] 4.6 — Verify: `bun run typecheck && bun run lint && bun run build` all pass ✅
 
 **Exit criteria:** handlers/ has 4 files (session + appHandlers + types + index). piPassthrough eliminates repeated boilerplate.
 

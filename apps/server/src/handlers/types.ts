@@ -5,8 +5,17 @@
  * and a context object, then returns a result or throws.
  */
 
-import type { WsChannel, WsMethod, WsMethodParamsMap, WsMethodResultMap } from "@pibun/contracts";
+import type {
+	PiCommand,
+	PiResponse,
+	WsChannel,
+	WsMethod,
+	WsMethodParamsMap,
+	WsMethodResultMap,
+	WsOkResult,
+} from "@pibun/contracts";
 import type { ServerWebSocket } from "bun";
+import type { PiProcess } from "../piProcess.js";
 import type { PiRpcManager } from "../piRpcManager.js";
 import type { ServerHooks, WsConnectionData } from "../server.js";
 import type { TerminalManager } from "../terminalManager.js";
@@ -75,3 +84,62 @@ export type AnyWsHandler = (params: any, ctx: HandlerContext) => Promise<unknown
  * Registry mapping method strings to handler functions.
  */
 export type HandlerRegistry = Partial<Record<WsMethod, AnyWsHandler>>;
+
+// ============================================================================
+// Pi RPC Passthrough Helper
+// ============================================================================
+
+/**
+ * Get the Pi process for the target session from handler context.
+ *
+ * Multi-session: uses `ctx.targetSessionId` which is resolved from
+ * the request-level `sessionId` or the connection's primary session.
+ *
+ * @returns The PiProcess for the session.
+ * @throws If no session is bound or the session doesn't exist.
+ */
+export function getProcess(ctx: HandlerContext): PiProcess {
+	const { targetSessionId } = ctx;
+	if (!targetSessionId) {
+		throw new Error("No active session. Call session.start first.");
+	}
+
+	const session = ctx.rpcManager.getSession(targetSessionId);
+	if (!session) {
+		throw new Error(`Session '${targetSessionId}' not found. It may have been stopped or crashed.`);
+	}
+
+	return session.process;
+}
+
+/**
+ * Assert a Pi RPC response was successful.
+ * Throws with the Pi error message if not.
+ */
+export function assertSuccess(response: PiResponse): void {
+	if (!response.success) {
+		const errorResp = response as { error?: string };
+		throw new Error(errorResp.error ?? "Pi command failed");
+	}
+}
+
+/**
+ * Send a Pi RPC command and return a simple `{ ok: true }` result.
+ *
+ * The most common passthrough pattern: get process → send command → assert success → ack.
+ * Use for handlers that translate a WS method 1:1 to a Pi RPC command with no
+ * result extraction needed.
+ *
+ * @example
+ * ```ts
+ * export const handleSessionAbort: WsHandler<"session.abort"> = async (_params, ctx) => {
+ *   return piPassthrough(ctx, { type: "abort" });
+ * };
+ * ```
+ */
+export async function piPassthrough(ctx: HandlerContext, command: PiCommand): Promise<WsOkResult> {
+	const process = getProcess(ctx);
+	const response = await process.sendCommand(command);
+	assertSuccess(response);
+	return { ok: true };
+}

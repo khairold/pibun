@@ -36,13 +36,16 @@
 | 26 | appActions.ts merges 5 action files (git + project + plugin + settings + terminal) | ~480 lines. All follow the same pattern: getTransport → request → update store. `errorMessage()` helper shared across project/git/terminal sections. Imports tabActions for `createNewTab`/`switchTabAction` (project open). Imports themes for settings. | 2026-03-24 |
 | 27 | utils.ts merges 3 utility files (cn + fileUtils + shortcuts) | ~200 lines. `cn()` className helper, file extension→language maps, shortcut event bus. All small, always needed together. |
 | 28 | Phase 3 complete — store/ has 5 files, lib/ has 7 files | store: appSlice, sessionSlice, workspaceSlice, types, index. lib: appActions, sessionActions, tabActions, themes, highlighter, pluginMessageBridge, utils. Down from 15 store files and 13 lib files. | 2026-03-24 |
+| 29 | piPassthrough helper added to handlers/types.ts | `getProcess(ctx)`, `assertSuccess(response)`, `piPassthrough(ctx, command)` — reusable helpers for Pi RPC forwarding. Exported from handlers/index.ts. session.ts has its own local copies (could be migrated later). | 2026-03-24 |
+| 30 | Non-session handlers are NOT Pi RPC pass-throughs | app/git/plugin/project/settings/terminal handlers call server-side services (gitService, pluginStore, projectStore, settingsStore, TerminalManager, desktop hooks). None call `process.sendCommand`. The `piPassthrough` helper applies only to session.ts patterns. | 2026-03-24 |
+| 31 | Phase 4 complete — handlers/ has 4 non-test files | session.ts (541), appHandlers.ts (~370), types.ts (~100), index.ts (~120). Down from 10 files (8 handler + types + index). dispatch.test.ts unchanged. | 2026-03-24 |
 
 ## Architecture Notes
 
 ### Current file counts (in progress)
 - contracts/: 4 files ✅ DONE (was 12 → 9 after piProtocol merge → 4 after domain merge. index.ts: 15 lines)
 - server src (non-test): 19 files, 4460 lines
-- server handlers/: 8 files + types + index = 10 files
+- server handlers/: 4 files ✅ DONE (was 10 → 4. session + appHandlers + types + index. dispatch.test.ts separate)
 - web store/: 5 files ✅ DONE (was 15 → 5. appSlice + sessionSlice + workspaceSlice + types + index)
 - web lib/: 7 files ✅ DONE (was 13 → 7. appActions + sessionActions + tabActions + themes + highlighter + pluginMessageBridge + utils)
 - web components/: 45 files, 9361 lines

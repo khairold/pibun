@@ -350,3 +350,42 @@
 - session.ts stays as-is (541 lines, real logic). Everything else merges into appHandlers.ts.
 
 ---
+
+## Session 13 — Complete Phase 4: Deep Server Handlers (2026-03-24)
+
+**What happened:**
+- Added `piPassthrough` helper to types.ts: `getProcess(ctx)`, `assertSuccess(response)`, `piPassthrough(ctx, command)` — reusable functions for Pi RPC command forwarding pattern
+- Verified session.ts stays as-is (541 lines, real logic with event forwarding, session lifecycle, multi-session management)
+- Created `appHandlers.ts` (~370 lines) by merging 6 handler files: app.ts, git.ts, plugin.ts, project.ts, settings.ts, terminal.ts
+- Organized with section headers: App (desktop), Git, Plugin, Project, Settings, Terminal
+- Merged two `resolveCwd` helpers into `resolveGitCwd` and `resolveTerminalCwd` (same logic, different param types)
+- Rewrote index.ts to import from 2 handler files (appHandlers + session) instead of 8
+- Exported `piPassthrough`, `getProcess`, `assertSuccess` from index.ts for external use
+- Deleted 6 old files: app.ts, git.ts, plugin.ts, project.ts, settings.ts, terminal.ts
+- handlers/ now has 4 non-test files (session + appHandlers + types + index) — matching the target
+
+**Key discovery:** Non-session handlers are NOT Pi RPC pass-throughs. They call server-side services (gitService, pluginStore, projectStore, settingsStore, TerminalManager, desktop hooks). The `piPassthrough` helper applies only to the session.ts pattern. Logged in DRIFT.md.
+
+**Items completed:**
+- [x] 4.1 — Add `piPassthrough` helper to types.ts
+- [x] 4.2 — Keep session.ts as-is (verified)
+- [x] 4.3 — Merge 6 handler files → appHandlers.ts
+- [x] 4.4 — Rewrite index.ts (2 handler imports instead of 8)
+- [x] 4.5 — Convert handlers to piPassthrough (N/A — non-session handlers don't call Pi RPC)
+- [x] 4.6 — Verify: `bun run typecheck && bun run lint && bun run build` all pass ✅
+
+**Phase 4 complete.** Exit criteria met:
+- handlers/ has 4 non-test files (session + appHandlers + types + index) ✅
+- `piPassthrough` eliminates repeated boilerplate (available for session.ts migration) ✅
+- `bun run typecheck && bun run lint && bun run build` passes ✅
+
+**Issues encountered:**
+- Plan assumed non-session handlers were Pi RPC pass-throughs. They're not — they call server-side services. Noted in DRIFT.md.
+
+**Handoff to next session:**
+- Next: Phase 5 — Deep Chat Components
+- Start with 5.1: Merge UserMessage.tsx + AssistantMessage.tsx + SystemMessage.tsx → ChatMessages.tsx
+- Read the chat component files before merging — understand the import/prop patterns
+- These are stable rendering components that rarely change
+
+---

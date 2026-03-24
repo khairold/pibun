@@ -11,20 +11,25 @@ import {
 	handleAppOpenFolderDialog,
 	handleAppSaveExportFile,
 	handleAppSetWindowTitle,
-} from "./app.js";
-import { handleGitBranch, handleGitDiff, handleGitLog, handleGitStatus } from "./git.js";
-import {
+	handleGitBranch,
+	handleGitDiff,
+	handleGitLog,
+	handleGitStatus,
 	handlePluginInstall,
 	handlePluginList,
 	handlePluginSetEnabled,
 	handlePluginUninstall,
-} from "./plugin.js";
-import {
 	handleProjectAdd,
 	handleProjectList,
 	handleProjectRemove,
 	handleProjectUpdate,
-} from "./project.js";
+	handleSettingsGet,
+	handleSettingsUpdate,
+	handleTerminalClose,
+	handleTerminalCreate,
+	handleTerminalResize,
+	handleTerminalWrite,
+} from "./appHandlers.js";
 import {
 	handleExtensionUiResponse,
 	handleSessionAbort,
@@ -48,16 +53,10 @@ import {
 	handleSessionStop,
 	handleSessionSwitchSession,
 } from "./session.js";
-import { handleSettingsGet, handleSettingsUpdate } from "./settings.js";
-import {
-	handleTerminalClose,
-	handleTerminalCreate,
-	handleTerminalResize,
-	handleTerminalWrite,
-} from "./terminal.js";
 import type { HandlerRegistry } from "./types.js";
 
 export type { AnyWsHandler, HandlerContext, HandlerRegistry, WsHandler } from "./types.js";
+export { assertSuccess, getProcess, piPassthrough } from "./types.js";
 
 // ============================================================================
 // Handler Registry
