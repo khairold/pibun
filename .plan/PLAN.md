@@ -1,34 +1,31 @@
-# Single-Session Simplification — Build Plan
+# Project-Scoped Tabbed UI — Build Plan
 
-> **Spec:** Simplify from multi-tab-session to single-active-session model
-> **Status:** ✅ COMPLETE — All 3 phases done
-> **Current Phase:** All phases complete
-> **Last Session:** Session 10 — 2026-03-24
+> **Spec:** Main content area with tab bar: session chat + project-scoped terminals
+> **Status:** Not Started
+> **Current Phase:** —
+> **Last Session:** —
 
 ---
 
 ## Context
 
-The UI moved to a sidebar-based session navigator (sessions listed under projects),
-but the internal data model still treats every session as a "tab" with full
-multi-session machinery — separate Pi processes, message caching, tab switching
-with save/restore, background event routing. This complexity causes UX gaps:
-two sessions appearing "active", empty session cleanup confusion, naming issues.
+The single-session simplification is complete. One Pi session runs at a time,
+sidebar handles session navigation, empty sessions auto-cleanup.
 
-**Target model:**
-- ONE Pi session active at a time
-- Sidebar lists sessions under projects; clicking switches
-- Switching away from an empty session auto-removes it
-- Switching to a past session stops the current one, starts the new one
-- Terminal tabs exist WITHIN a session (kept, but scoped to the single session)
-- No background tab event routing — events always go to the active session
+Currently, terminals are scoped to sessions (`ownerTabId`) and render in a
+resizable bottom panel (VS Code-style). This plan changes both:
 
-**What stays:** `SessionTab` as a data type (it's a fine session container).
-`tabActions.ts` as the coordinator. Terminal tabs within a session.
+1. **Terminals scoped to project** — keyed by project path, not session tab.
+   Switching sessions within the same project keeps terminal tabs intact.
+   Switching projects swaps to that project's terminal set (kept alive in background).
 
-**What goes:** Multi-session message caching (`tabMessages`), background tab
-status tracking (`tabStatuses`, `tabWidgets`), `keepExisting` flag,
-`bgTab` event routing branch, tab reorder, tab close (replaced by session switch).
+2. **Tabbed main content** — tab bar above content area. First tab is always
+   the session chat. Remaining tabs are terminals. Full-height rendering
+   (no bottom panel, no resize handle). Minimum: 1 chat tab + 1 terminal tab
+   when a project is active.
+
+**Mental model:** Sessions are conversations. Terminals are workspaces.
+Workspaces map to projects.
 
 ---
 
@@ -52,73 +49,63 @@ status tracking (`tabStatuses`, `tabWidgets`), `keepExisting` flag,
 
 ---
 
-## Phase 1 — Single-Session Enforcement
+## Phase 1 — Rekey Terminal State (Session → Project)
 
-**Goal:** Only one Pi process runs at a time. Switching sessions stops the old, starts the new.
+**Goal:** Terminals owned by project path, not session tab. Terminal set survives session switches within the same project.
 
-- [x] 1.1 — `createNewTab` → `startSession`: stop any existing session before starting a new one. Remove `keepExisting` param. The server's `session.start` handler already supports this (it stops old session when `keepExisting` is false).
-- [x] 1.2 — Remove background event routing in `wireTransport.ts`: delete the `else` branch in the `pi.event` handler that routes to `bgTab`. All events go to `handlePiEvent` (single session = always active).
-- [x] 1.3 — Remove `tabMessages`, `tabStatuses`, `tabWidgets` caches from `workspaceSlice`. No save/restore on switch — messages live in the store directly. On switch, clear messages and load from Pi via `session.getMessages`.
-- [x] 1.4 — Simplify `switchTab` in workspaceSlice: no message save/restore. Just update `activeTabId`, set session metadata. The async load happens in the action layer.
-- [x] 1.5 — Simplify `switchTabAction` in tabActions: stop current session → switch tab → start new session (or resume existing) → load messages + refresh state.
-- [x] 1.6 — Remove `reorderTabs`, `setBackgroundTabStatus`, `setBackgroundTabWidget`, `tabTerminalActiveIds` — all multi-session-only features.
-- [x] 1.7 — Verify: `bun run typecheck && bun run build`. Fix any broken references.
+- [ ] 1.1 — Change `TerminalTab.ownerTabId` to `TerminalTab.projectPath` in contracts type and all references. Use normalized project path (the `cwd` from the active session tab).
+- [ ] 1.2 — Update `addTerminalTab` in workspaceSlice: assign `projectPath` from active tab's CWD instead of `ownerTabId` from `activeTabId`.
+- [ ] 1.3 — Update all terminal filtering: replace `t.ownerTabId === activeTabId` with `t.projectPath === activeProjectPath` throughout workspaceSlice, TerminalPane, AppShell, and any other consumers.
+- [ ] 1.4 — Update `removeTab` in workspaceSlice: don't delete terminals when a session tab is removed (terminals belong to the project, not the tab). Only clean up terminal selection if the active terminal belongs to a different project.
+- [ ] 1.5 — Update `switchTab` in workspaceSlice: when switching to a session in the same project, preserve active terminal selection. When switching to a different project, select that project's first terminal (or null).
+- [ ] 1.6 — Add `activeContentTab` state to workspaceSlice: `"chat" | string` (string = terminal tab ID). Defaults to `"chat"`. This tracks which content tab is displayed in the main area.
+- [ ] 1.7 — Add `projectContentTabs: Record<string, string>` to workspaceSlice: maps project path → last active content tab. On project switch, save current, restore target's. On session switch within same project, preserve.
+- [ ] 1.8 — Verify: `bun run typecheck && bun run build`. Existing terminal functionality still works (bottom panel, same project filtering).
 
-**Exit criteria:** Only one Pi process runs. Switching sessions stops the old one. No background event routing. All type checks pass.
-
----
-
-## Phase 2 — Session Lifecycle UX
-
-**Goal:** Empty sessions auto-cleanup, proper naming, clean sidebar states.
-
-- [x] 2.1 — Auto-remove empty sessions: when switching away from a session with zero messages, stop its Pi process and remove the tab. Implement in `switchTabAction` before switching.
-- [x] 2.2 — Default name empty string, sidebar shows "New session" as fallback (already partially done — finish wiring).
-- [x] 2.3 — Auto-name from first user message: `syncActiveTabState` already syncs `firstMessage`. Verify display priority: Pi session name > first message > "New session".
-- [x] 2.4 — Single active highlight: only the `activeTabId` tab gets the accent border/bg. Running indicator removed (only one session runs, and it's always the active one).
-- [x] 2.5 — "New session" button on project: if active tab is same project and empty (0 messages), reuse it instead of creating another empty session.
-- [x] 2.6 — Session count badge on projects: count should only include sessions with messages (exclude the empty "new session" placeholder).
-
-**Exit criteria:** No orphan empty sessions. Names update automatically. One visual "active" state. Clean UX flow for new session → type → switch → return.
+**Exit criteria:** Terminals keyed by project path. Switching sessions within same project keeps terminals. Switching projects swaps terminal set. Type checks pass.
 
 ---
 
-## Phase 3 — Cleanup & Simplify Types
+## Phase 2 — Content Tab Bar + Full-Size Terminals
 
-**Goal:** Remove dead code paths, simplify types, reduce surface area.
+**Goal:** Tab bar in main area. Chat and terminals are peer tabs. Terminals are full-height.
 
-- [x] 3.1 — Remove `TabsSlice` fields that are now unused: `tabMessages`, `tabStatuses`, `tabWidgets`, `tabTerminalActiveIds`, `reorderTabs`, `setBackgroundTabStatus`, `setBackgroundTabWidget`, `saveActiveTabMessages`.
-- [x] 3.2 — Simplify `SessionTab` type: remove `hasUnread` (no background tabs to go unread). Keep `piSessionId`, `sessionId`, `cwd`, `model`, `thinkingLevel`, `status`, `name`, `firstMessage`, `messageCount`, `createdAt`.
-- [x] 3.3 — Clean up `wireTransport.ts`: remove `bgTab` references, simplify `pi.event` handler. Remove `hasUnread` update logic.
-- [x] 3.4 — Clean up `useKeyboardShortcuts`: remove `newTab`/`closeTab`/`nextTab`/`prevTab`/`jumpToTab` shortcuts — these are multi-tab concepts. Keep `newSession` (creates session in active project).
-- [x] 3.5 — Clean up menu handler in `wireTransport.ts`: remove `file.new-tab`, `file.close-tab`, `file.next-tab`, `file.prev-tab` menu actions.
-- [x] 3.6 — Remove `closeTab` from `tabActions.ts` — replaced by session switching (old session auto-stops). Also deleted dead `TabBar.tsx`.
-- [x] 3.7 — Delete dead keybinding commands from `domain.ts` `KeybindingCommand` type: `closeTab`, `newTab`, `nextTab`, `prevTab`, `jumpToTab1-9`. Also cleaned: `keybindings.ts`, `utils.ts`, `SettingsDialog.tsx`, `wireTransport.ts`, `menu.ts`.
-- [x] 3.8 — Final verify: `bun run typecheck && bun run build` pass. Lint has only pre-existing warnings (not from our changes).
+- [ ] 2.1 — Create `ContentTabBar` component: renders `[Chat] [Terminal 1] ... [+]`. Chat tab always first, terminal tabs from current project, plus button at end. Active tab highlighted. Close button on terminal tabs (disabled when last terminal for project).
+- [ ] 2.2 — Restructure `AppShell`: insert `ContentTabBar` between toolbar and content. Content area conditionally renders ChatView+Composer (when `activeContentTab === "chat"`) or full-height terminal (when active content tab is a terminal ID).
+- [ ] 2.3 — Create `TerminalView` component (or adapt `TerminalInstance`): full-height terminal rendering without resize handles or panel chrome. Takes a terminal tab ID, renders the xterm instance at 100% height.
+- [ ] 2.4 — Auto-create default terminal: when a project becomes active (session started or switched to) and no terminals exist for that project path, auto-create one. This ensures the minimum "chat + 1 terminal" constraint.
+- [ ] 2.5 — Wire [+] button: clicking adds a new terminal for the current project, switches to it. Wire close button: removes terminal tab (server-side `terminal.close` + store removal), selects adjacent tab, falls back to chat if last terminal closed and re-creates one.
+- [ ] 2.6 — Remove `terminalPanelOpen` state, `toggleTerminalPanel`, `setTerminalPanelOpen` from TerminalSlice. Remove `TerminalButton` from AppShell toolbar. Terminal visibility is now controlled by `activeContentTab`, not a panel toggle.
+- [ ] 2.7 — Update `createTerminal` in appActions: after creating server-side terminal, set `activeContentTab` to the new terminal tab ID (auto-switch to it).
+- [ ] 2.8 — Verify: `bun run typecheck && bun run build`. Tab bar visible, chat and terminal tabs switch correctly, terminals are full-height.
 
-**Exit criteria:** No dead tab-switching code. Types reflect single-session model. Clean build with no warnings from our code.
+**Exit criteria:** Tab bar renders above content. Chat tab shows session. Terminal tabs show full-height terminals. [+] adds terminals, close removes them. No bottom panel. Auto-created default terminal per project.
+
+---
+
+## Phase 3 — Polish & Cleanup
+
+**Goal:** Renameable terminal tabs, keyboard shortcuts, dead code removal.
+
+- [ ] 3.1 — Rename terminal tabs: double-click tab label → inline edit input. Update `TerminalTab.name` in store. Default name: "Terminal 1", "Terminal 2", auto-incrementing per project.
+- [ ] 3.2 — Keyboard shortcuts: `Ctrl+1` = chat tab, `Ctrl+2-9` = terminal tabs by position. `Ctrl+J` = toggle between chat and last active terminal (replaces old terminal panel toggle). Add to `useKeyboardShortcuts`, `KeybindingCommand` type, default bindings.
+- [ ] 3.3 — Context menu on terminal tabs: Rename, Close. Reuse existing context menu patterns from Sidebar.
+- [ ] 3.4 — Delete dead `TerminalPane.tsx` (bottom panel with resize handle, tab strip, split groups — all replaced by ContentTabBar + TerminalView). Remove all imports.
+- [ ] 3.5 — Clean up terminal split infrastructure: remove `groupId` from `TerminalTab`, remove `splitTerminalTab` from TerminalSlice, remove `MAX_TERMINALS_PER_GROUP`. Splits are parked — each tab is one terminal.
+- [ ] 3.6 — Desktop menu updates: add content tab navigation commands. Remove old terminal panel toggle menu item if present.
+- [ ] 3.7 — Final verify: `bun run typecheck && bun run build && bun run lint`.
+
+**Exit criteria:** Terminals renameable. Keyboard navigation works. No dead terminal panel code. Clean build.
 
 ---
 
 ## Parking Lot
 
-- [ ] Session resume from sidebar "past sessions" — currently uses `session.switchSession` which is an in-process Pi command. With single-session (stop old, start new), this may need to become: stop old process → start new process with CWD → switch to session file. Assess during Phase 1.5.
+Carried from previous plan + new items:
+
+- [ ] Session resume from sidebar "past sessions" — `switchSession()` approach works but may need refinement for edge cases (session file not found, CWD moved).
 - [ ] Desktop menu rebuild — `file.new-tab` etc. should become `file.new-session`. Electrobun menu config is in `apps/desktop/`.
-- [ ] Consider renaming `SessionTab` to `Session` or `SessionInstance` after the refactor stabilizes.
-
----
-
-## What Comes Next
-
-After Phase 3 completes, a **new plan** will be created for the **Project-Scoped Tabbed UI**:
-
-- Main content area gets a tab bar: `[Session Chat] [Terminal 1] [Terminal 2] [+]`
-- First tab (leftmost) = active Pi session content, changes when sidebar selection changes
-- Remaining tabs = terminals, **keyed by project path**, not session
-- Switching sessions within the same project keeps terminal tabs intact
-- Switching to a different project swaps to that project's terminal set (kept alive in background)
-- Minimum 2 tabs always visible: 1 session content + 1 terminal
-- Terminal tabs are renameable (e.g., "dev server", "logs")
-- Full-sized terminals (no bottom panel — tab switching replaces vertical split)
-
-This replaces the old model where terminals were scoped to sessions. The mental model: **sessions are conversations, terminals are workspaces. Workspaces map to projects.**
+- [ ] Consider renaming `SessionTab` to `Session` or `SessionInstance`.
+- [ ] Terminal splits within a tab — currently parked (removed in 3.5). Could return as a feature: split a terminal tab into side-by-side panes. But tabs-first is the right default.
+- [ ] Terminal drag-to-reorder — reorder terminal tabs in the tab bar. Low priority.
+- [ ] Terminal persistence across app restarts — save project→terminal mapping, reconnect on restart.

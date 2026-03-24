@@ -6,91 +6,87 @@
 
 ## Key Decisions
 
+### Carried from Single-Session Simplification (completed 2026-03-24)
+
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | Single active session, not multi-tab | One Pi process at a time. Sidebar handles session navigation. No background event routing. |
+| 2 | Two session ID domains: PiBun manager ID vs Pi UUID | `sessionId` = PiBun manager ID (`session_{N}_{timestamp}`, routing). `piSessionId` = Pi internal UUID (session list matching). NEVER conflate. |
+| 3 | `sessionFile` on `SessionTab` | Tabs track their Pi session file path for resume. Required for `switchSession()` when switching back to previously active sessions. |
+| 4 | Empty sessions auto-removed in `switchTabAction` only | On switch, if leaving tab has 0 messages: stop process → switch → cleanup. NOT in `startSession` (avoids edge cases if start fails). |
+| 5 | Session naming priority | `tab.name || tab.firstMessage || "New session"`. `tab.name` from Pi, `firstMessage` truncated to 100 chars single-line. |
+| 6 | New session reuses empty active tab in same project | `handleNewSessionInProject` checks CWD match + 0 messages → no-op instead of creating another empty session. |
+
+### New for This Plan
+
 | # | Decision | Rationale | Date |
 |---|----------|-----------|------|
-| 1 | Single active session, not multi-tab | UI moved to sidebar-based navigation. Multi-session adds complexity without UX benefit. Terminals stay within the single session. | 2026-03-24 |
-| 2 | `SessionTab` type stays, behavior changes | The type is a fine session container (sessionId, cwd, model, etc.). We change the lifecycle, not the data structure. | 2026-03-24 |
-| 3 | Two session ID domains: PiBun manager ID vs Pi UUID | `sessionId` = PiBun manager ID (routing). `piSessionId` = Pi internal UUID (session list matching). Never conflate. Fixed in commit `059d862`. | 2026-03-24 |
-| 4 | Empty sessions auto-removed on switch | When user switches away from a session with 0 messages, it gets stopped and removed. Prevents orphan "New session" entries. | 2026-03-24 |
-| 5 | Terminals scoped to project, not session | Terminals are workspaces (dev servers, file browsing, bash). They map to projects, not conversations. Switching sessions within a project keeps terminals. Switching projects swaps terminal set (kept alive in background). Old per-session terminal model is dead. | 2026-03-24 |
-| 6 | Tabbed main content area (post-simplification) | After single-session simplification, main area gets tab bar: [Session Chat] + [Terminal 1..N]. Min 2 tabs always visible. Terminals renameable. Full-sized (no bottom panel). This is a separate plan after Phase 3. | 2026-03-24 |
-| 7 | `keepExisting` removed from WsSessionStartParams | Single-session model means server always stops existing session on `session.start`. No need for a flag. Removed from contracts, server handler, and all client callers. | 2026-03-24 |
-| 8 | `createNewTab` renamed to `startSession` in tabActions | Better reflects single-session semantics. All callers updated: Sidebar, TabBar, wireTransport, useKeyboardShortcuts, appActions. | 2026-03-24 |
-| 9 | Background event routing removed from `wireTransport.ts` | Single-session model: only one Pi process runs, so all events go to `handlePiEvent`. Stale events from old session during switch are silently skipped with `console.debug`. The `bgTab` branch with `hasUnread`, `setBackgroundTabStatus`, `setBackgroundTabWidget` calls is gone. | 2026-03-24 |
-| 10 | Per-tab message/status/widget caches removed | `tabMessages`, `tabStatuses`, `tabWidgets` removed from state. `saveActiveTabMessages` removed. `switchTab` now clears messages and relies on async action layer to load from Pi via `session.getMessages`. `setBackgroundTabStatus`/`setBackgroundTabWidget` are no-ops pending removal in 1.6. | 2026-03-24 |
-| 11 | `sessionFile` added to `SessionTab` | Tabs now track their Pi session file path. Saved during `switchTab` snapshot and `syncActiveTabState`. Required for session resume when switching back to a previously active tab. | 2026-03-24 |
-| 12 | `switchTabAction` uses `switchSession()` for resume | When switching to a tab with a `sessionFile`, clears `store.sessionId` (so `ensureSession` starts a fresh Pi process), then calls `switchSession(sessionFile)` which handles: start process → switch to file → load messages → refresh state. No manual stop/start orchestration. | 2026-03-24 |
-| 13 | `tabTerminalActiveIds` removed — terminal selection uses first-match | Was a per-tab cache for active terminal ID. Removed because terminals are going project-scoped (DRIFT #1). Now `switchTab`/`removeTab` select the first terminal owned by the target tab via `terminalTabs.find(t => t.ownerTabId === tabId)`. | 2026-03-24 |
-| 14 | `reorderTabs`, `setBackgroundTabStatus`, `setBackgroundTabWidget` removed | Dead code. `reorderTabs` was only used by `TabBar` (not imported anywhere). Background tab methods were no-ops since 1.3. All removed from type + implementation. | 2026-03-24 |
-| 15 | `TabBar` component is dead code | Not imported or rendered anywhere. Sidebar handles session navigation. Drag-to-reorder stripped out. Full removal deferred to Phase 3. | 2026-03-24 |
-| 16 | Empty sessions auto-removed in `switchTabAction` only | Auto-remove on switch is in `switchTabAction`. `startSession` does NOT auto-remove the leaving tab — `session.start` on the server handles stopping the old process, and the old empty tab stays in the list until the user switches away from it. Keeps `startSession` simple and avoids edge cases if `session.start` fails (no orphan removal). | 2026-03-24 |
-| 17 | `cleanupEmptyTab` helper in tabActions | Shared helper for post-switch cleanup of empty tabs: closes terminals, deletes composer draft, removes tab from store. Pi process stop must happen BEFORE the switch (while transport still routes to it). The helper only handles UI cleanup. |
-| 18 | Session naming priority: Pi name > firstMessage > "New session" | `unifiedSessionName()` in Sidebar.tsx uses `tab.name \|\| tab.firstMessage \|\| "New session"`. `tab.name` is synced from `store.sessionName` (Pi-set name) via `syncActiveTabState`. `firstMessage` is auto-extracted from first user message (truncated to 100 chars, single-line). `defaultTabName()` returns `""` so it falls through. Past sessions use same priority with `formatSessionId` as last resort. | 2026-03-24 |
-| 19 | `firstMessage` truncated to 100 chars, single-line | `getFirstUserMessage()` collapses whitespace/newlines to single spaces and caps at 100 chars with `…` suffix. Prevents storing huge strings in tab state for sidebar display. CSS `truncate` also handles visual overflow. | 2026-03-24 |
-| 20 | Running indicator removed from `SessionItem` | Single-session model: only one session runs and it's always the active one. The `isRunning` pulse dot added no information. Active tab is distinguished by `border-l-2 border-accent-primary bg-surface-secondary`. Past sessions get a muted dot. | 2026-03-24 |
-| 21 | "New session" reuses empty active tab in same project | `handleNewSessionInProject` checks if active tab has same CWD and 0 messages. If so, no-ops instead of creating another empty session. Prevents orphan empty sessions when user clicks "+" repeatedly. | 2026-03-24 |
-| 22 | Session count badge excludes empty sessions | Project header badge counts `activeSessions.filter(s => s.messageCount > 0).length + pastSessions.length`. Empty "New session" placeholders don't inflate the count. | 2026-03-24 |
-| 23 | `hasUnread` removed from `SessionTab` | Single-session: no background tabs to go unread. Removed from contracts type, workspaceSlice addTab/switchTab, and TabBar. | 2026-03-24 |
-| 24 | Tab keyboard shortcuts removed | `newTab`, `closeTab`, `nextTab`, `prevTab`, `jumpToTab1-9` removed from useKeyboardShortcuts. Only `newSession` (Ctrl+N) remains for creating sessions. Tab navigation is done via sidebar. | 2026-03-24 |
-| 25 | Tab menu actions removed from wireTransport | `file.new-tab` and `file.close-tab` handlers removed. `file.new-session` remains. `closeTab` and `startSession` imports removed from wireTransport. | 2026-03-24 |
-| 26 | `closeTab` removed from tabActions, `TabBar.tsx` deleted | `closeTab` had no callers after 3.4/3.5 removed tab shortcuts. `TabBar.tsx` was dead code (not imported anywhere since sidebar handles navigation). Both removed. | 2026-03-24 |
-| 27 | 14 dead `KeybindingCommand` members removed | `closeTab`, `newTab`, `nextTab`, `prevTab`, `jumpToTab1-9` removed from domain type, default bindings, ShortcutAction, SettingsDialog, and desktop menu. Single-session model uses sidebar, not tab keyboard shortcuts. | 2026-03-24 |
-| 28 | Single-session simplification plan COMPLETE | All 3 phases done across 10 sessions. Codebase now enforces single active Pi process, auto-removes empty sessions, auto-names from first message, and has zero dead multi-tab code paths. Next work: project-scoped tabbed UI (see PLAN.md "What Comes Next"). | 2026-03-24 |
+| 7 | Terminals scoped to project, not session | Terminals are workspaces (dev servers, file browsing, bash). They map to projects, not conversations. Multiple Pi sessions share the same terminal set. | 2026-03-24 |
+| 8 | Tabbed main content area | Tab bar: [Chat] + [Terminal 1..N]. Chat tab = active session. Terminal tabs = project-scoped. Full-height terminals (no bottom panel). | 2026-03-24 |
+| 9 | Minimum tabs: 1 chat + 1 terminal (when project active) | Auto-create one terminal when project first activates. Can't close the last terminal (disabled close button, or re-create immediately). Before any project: just the chat tab. | 2026-03-24 |
+| 10 | Terminal tabs are renameable | Default "Terminal 1", "Terminal 2" auto-increment. Double-click label to rename (e.g., "dev server", "logs"). | 2026-03-24 |
+| 11 | Terminals kept alive on project switch | `Map<projectPath, TerminalTab[]>` conceptually. Switching projects swaps which terminals are visible, doesn't kill processes. | 2026-03-24 |
+| 12 | Terminal splits parked | Old `groupId`/`splitTerminalTab`/`MAX_TERMINALS_PER_GROUP` removed. Each tab = one full-size terminal. Splits can return later. | 2026-03-24 |
 
 ## Architecture Notes
 
-### Session ID Domains (CRITICAL)
+### Current Terminal Infrastructure (Pre-Change)
 
-Two IDs exist for every session — they are NEVER the same value:
+| Field/Concept | Current | Target |
+|---|---|---|
+| `TerminalTab.ownerTabId` | Session tab ID | → `TerminalTab.projectPath` |
+| `terminalPanelOpen` | Boolean toggle | → Removed (content tab controls visibility) |
+| `TerminalPane` | Bottom panel with resize | → Deleted. Replaced by `ContentTabBar` + full-height `TerminalView` |
+| `TerminalButton` (toolbar) | Opens/closes bottom panel | → Removed |
+| `activeTerminalTabId` | One global active terminal | → Stays, but filtered by project |
+| `groupId` / `splitTerminalTab` | Split pane grouping | → Removed (parked) |
 
-| Field | Source | Format | Used For |
-|-------|--------|--------|----------|
-| `sessionId` | `PiRpcManager.createSession()` | `session_{N}_{timestamp}` | Event routing, transport routing, server lookup |
-| `piSessionId` | Pi's `get_state` response | UUID v4 | Session list matching, "Running" badge, past session highlight |
-
-`store.sessionId` and `tab.sessionId` MUST always hold the PiBun manager ID.
-`store.piSessionId` and `tab.piSessionId` hold the Pi UUID.
-
-### Event Flow (Current)
+### Content Tab State Model
 
 ```
-Pi process → JSONL events → PiProcess.onEvent → server pushes pi.event(sessionId, event) → 
-WebSocket → wireTransport pi.event subscriber → 
-  if event.sessionId matches active (or no session context) → handlePiEvent(event) → store updates
-  else → skip stale event with console.debug log (single-session: no background routing)
+activeContentTab: "chat" | terminalTabId    // which tab is displayed
+projectContentTabs: Record<string, string>  // project path → last active content tab
+
+On session switch (same project):
+  → activeContentTab preserved
+  → terminal tabs preserved
+  → chat content changes (different session messages)
+
+On session switch (different project):
+  → save projectContentTabs[oldProject] = activeContentTab
+  → restore activeContentTab = projectContentTabs[newProject] ?? "chat"
+  → terminal tabs swap to new project's set
 ```
 
-### Session Switching (Implemented)
+### Session Switching Flow (Implemented — from prior plan)
 
-**Flow:** `switchTab()` snapshots leaving tab → clears messages → sets target metadata →
-`switchTabAction` clears `store.sessionId` → calls `switchSession(targetTab.sessionFile)` →
-`ensureSession()` starts a fresh Pi process (stops old via server) →
-`session.switchSession` loads the session file → refreshes state → loads messages.
-
-Tabs without a `sessionFile` (never started) just route transport to null. User starts by typing (triggers `ensureSession`).
-
-**Key detail:** `ensureSession()` uses `getActiveTab().cwd` for the new process CWD, so switching to a tab with a different project CWD starts the process in the right directory.
+```
+switchTabAction → snapshots leaving tab → clears store.sessionId →
+  calls switchSession(targetTab.sessionFile) →
+  ensureSession() starts fresh Pi process (stops old via server) →
+  session.switchSession loads session file → refreshes state → loads messages
+```
 
 ### Files Involved
 
 | File | Lines | Role |
 |------|-------|------|
-| `store/workspaceSlice.ts` | 725 | Tabs, terminal, git, plugins, projects state |
-| `lib/tabActions.ts` | ~160 | Tab lifecycle coordinator (start session, switch, cleanup) |
-| `lib/sessionActions.ts` | 668 | Session lifecycle (start, new, fork, switch, bash) |
-| `wireTransport.ts` | 1002 | Event routing, menu handling, push subscriptions |
-| `components/Sidebar.tsx` | 1583 | Project tree, session list, context menus |
-| `store/types.ts` | ~600 | All Zustand slice types |
+| `store/workspaceSlice.ts` | ~614 | Tabs, terminal, git, plugins, projects state |
+| `store/types.ts` | ~670 | All Zustand slice types — `TerminalTab`, `TerminalSlice` |
+| `lib/tabActions.ts` | ~200 | Tab lifecycle (start session, switch, cleanup) |
+| `lib/appActions.ts` | — | `createTerminal()`, `closeTerminal()` |
+| `components/AppShell.tsx` | ~250 | Top-level layout (toolbar + chat + terminal panel) |
+| `components/TerminalPane.tsx` | ~605 | Bottom panel terminal (TO BE REPLACED) |
+| `components/TerminalInstance.tsx` | ~664 | xterm.js wrapper (KEEP — core rendering) |
 
 ## Gotchas & Warnings
 
-- `syncActiveTabState` must NOT overwrite `tab.sessionId` — fixed in commit `059d862`
-- `switchTab` no longer saves/restores messages — clears them and async layer loads from Pi
-- Terminal tabs use `ownerTabId` to scope to a session tab — this still works
-- `startNewSession()` in sessionActions calls `session.new` (in-process) not `session.start` (new process). These are different Pi commands.
-- `session.switchSession` is a Pi command that switches session files within the same process. Different from stopping one process and starting another.
-- Keyboard shortcuts `Ctrl+N` calls `startNewSession()`, `Ctrl+T` calls `createNewTab()` — both need updating
-- `switchSession()` from sessionActions must have `store.sessionId` cleared to null BEFORE calling — otherwise `ensureSession()` thinks a session exists and skips starting a new process
+- `TerminalInstance.tsx` (664 lines) is the xterm.js wrapper — keep it, adapt it for full-height rendering
+- `TerminalPane.tsx` (605 lines) is the bottom panel with resize handle, tab strip, split groups — this gets DELETED and replaced by `ContentTabBar` + inline rendering
+- `createTerminal()` in appActions calls `terminal.create` on the server, then `addTerminalTab` in the store. The server side doesn't need to change — only the client ownership model changes.
+- `closeTerminal()` in appActions calls `terminal.close` on the server + `removeTerminalTab` in store. Same — server unchanged.
+- `syncActiveTabState` must NOT overwrite terminal state on session switch within same project
+- Terminal processes are server-side PTY sessions. They survive client-side state changes. "Keeping alive on project switch" means keeping the store entries and not calling `terminal.close`.
 
 ## Technical Context
 
@@ -98,7 +94,7 @@ Tabs without a `sessionFile` (never started) just route transport to null. User 
 bun run typecheck    # tsc --noEmit across all packages
 bun run build        # full production build
 bun run lint         # biome check
-bun run format       # biome format
+bun run format       # biome format (tabs, double quotes, semicolons)
 
 # Dev mode (3 terminals):
 bun run dev:server   # port 24242
