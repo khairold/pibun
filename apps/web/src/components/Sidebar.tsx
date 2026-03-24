@@ -356,8 +356,8 @@ const SessionItem = memo(function SessionItem({
 			className={cn(
 				"flex w-full items-start gap-2 rounded-lg px-3 py-1.5 text-left transition-colors",
 				isActive
-					? "bg-surface-secondary text-text-primary"
-					: "text-text-tertiary hover:bg-surface-secondary/50 hover:text-text-secondary",
+					? "border-l-2 border-accent-primary bg-surface-secondary text-text-primary"
+					: "border-l-2 border-transparent text-text-tertiary hover:bg-surface-secondary/50 hover:text-text-secondary",
 				isSwitching && "cursor-wait opacity-60",
 			)}
 		>
