@@ -15,13 +15,7 @@
  */
 
 import { PluginSidebarPanels } from "@/components/PluginPanel";
-import {
-	addProject,
-	createTerminal,
-	fetchProjects,
-	openProject,
-	removeProject,
-} from "@/lib/appActions";
+import { addProject, createTerminal, openProject, removeProject } from "@/lib/appActions";
 import { fetchSessionList, switchSession } from "@/lib/sessionActions";
 import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
 import { cn, onShortcut } from "@/lib/utils";
@@ -959,91 +953,6 @@ const SidebarTabItem = memo(function SidebarTabItem({
 });
 
 // ============================================================================
-// CWD Group Header
-// ============================================================================
-
-interface CwdGroupProps {
-	cwd: string;
-	tabs: SessionTab[];
-	activeTabId: string | null;
-	selectedTabIds: ReadonlySet<string>;
-	onSwitchTab: (tabId: string) => void;
-	onTabClick: (tabId: string, e: ReactMouseEvent) => void;
-	onCloseTab: (tabId: string) => void;
-	canClose: boolean;
-	onContextMenu: (tabId: string, x: number, y: number) => void;
-	renamingTabId: string | null;
-	onRenameStart: (tabId: string) => void;
-	onRenameComplete: (tabId: string, newName: string) => void;
-	onRenameCancel: () => void;
-	draggingTabId: string | null;
-	dropTargetTabId: string | null;
-	dropPosition: DropPosition | null;
-	onDragStart: (tabId: string) => void;
-	onDragOver: (tabId: string, e: React.DragEvent) => void;
-	onDragEnd: () => void;
-}
-
-const CwdGroup = memo(function CwdGroup({
-	cwd,
-	tabs,
-	activeTabId,
-	selectedTabIds,
-	onSwitchTab,
-	onTabClick,
-	onCloseTab,
-	canClose,
-	onContextMenu,
-	renamingTabId,
-	onRenameStart,
-	onRenameComplete,
-	onRenameCancel,
-	draggingTabId,
-	dropTargetTabId,
-	dropPosition,
-	onDragStart,
-	onDragOver,
-	onDragEnd,
-}: CwdGroupProps) {
-	return (
-		<div className="mb-1">
-			{/* CWD label with favicon */}
-			<div className="flex items-center gap-1.5 px-3 pb-1">
-				<ProjectFavicon cwd={cwd} isActive={false} className="h-3 w-3" />
-				<span className="truncate text-[10px] font-medium uppercase tracking-wider text-text-muted">
-					{shortPath(cwd)}
-				</span>
-			</div>
-			{/* Tabs in this CWD */}
-			<div className="flex flex-col gap-0.5">
-				{tabs.map((tab) => (
-					<SidebarTabItem
-						key={tab.id}
-						tab={tab}
-						isActive={tab.id === activeTabId}
-						isSelected={selectedTabIds.has(tab.id)}
-						onSwitch={onSwitchTab}
-						onClick={onTabClick}
-						onClose={onCloseTab}
-						canClose={canClose}
-						onContextMenu={onContextMenu}
-						isRenaming={renamingTabId === tab.id}
-						onRenameStart={() => onRenameStart(tab.id)}
-						onRenameComplete={(newName) => onRenameComplete(tab.id, newName)}
-						onRenameCancel={onRenameCancel}
-						isDragging={draggingTabId === tab.id}
-						dropIndicator={dropTargetTabId === tab.id ? dropPosition : null}
-						onDragStart={onDragStart}
-						onDragOver={onDragOver}
-						onDragEnd={onDragEnd}
-					/>
-				))}
-			</div>
-		</div>
-	);
-});
-
-// ============================================================================
 // Past Session Item
 // ============================================================================
 
@@ -1080,107 +989,6 @@ const PastSessionItem = memo(function PastSessionItem({
 				{session.messageCount > 0 ? ` · ${String(session.messageCount)} msgs` : ""}
 			</span>
 		</button>
-	);
-});
-
-// ============================================================================
-// Project Item
-// ============================================================================
-
-interface ProjectItemProps {
-	project: Project;
-	isActive: boolean;
-	onOpen: (project: Project) => void;
-	onRemove: (projectId: string) => void;
-	onContextMenu: (projectId: string, x: number, y: number) => void;
-}
-
-const ProjectItem = memo(function ProjectItem({
-	project,
-	isActive,
-	onOpen,
-	onRemove,
-	onContextMenu,
-}: ProjectItemProps) {
-	const lastOpenedStr = formatRelativeTime(project.lastOpened);
-
-	const handleContextMenu = useCallback(
-		(e: ReactMouseEvent) => {
-			e.preventDefault();
-			e.stopPropagation();
-			onContextMenu(project.id, e.clientX, e.clientY);
-		},
-		[project.id, onContextMenu],
-	);
-
-	return (
-		<div
-			role="tab"
-			tabIndex={0}
-			onClick={() => onOpen(project)}
-			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					onOpen(project);
-				}
-			}}
-			onContextMenu={handleContextMenu}
-			className={cn(
-				"group flex w-full cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-left transition-colors",
-				isActive
-					? "bg-surface-secondary text-text-primary"
-					: "text-text-secondary hover:bg-surface-secondary/50 hover:text-text-primary",
-			)}
-			aria-selected={isActive}
-			aria-label={project.name}
-		>
-			{/* Project favicon (falls back to folder icon) */}
-			<span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center">
-				<ProjectFavicon cwd={project.cwd} isActive={isActive} className="h-4 w-4" />
-			</span>
-
-			{/* Project info */}
-			<div className="min-w-0 flex-1">
-				<div className="flex items-center gap-1.5">
-					<span className="truncate text-sm font-medium">{project.name}</span>
-					{/* Session count badge */}
-					{project.sessionCount > 0 && (
-						<span className="shrink-0 rounded-full bg-surface-tertiary/50 px-1.5 py-0.5 text-[10px] leading-none text-text-tertiary">
-							{String(project.sessionCount)}
-						</span>
-					)}
-				</div>
-				<span className="text-[10px] text-text-tertiary">{lastOpenedStr}</span>
-			</div>
-
-			{/* Remove button — visible on hover */}
-			<button
-				type="button"
-				tabIndex={-1}
-				onClick={(e) => {
-					e.stopPropagation();
-					onRemove(project.id);
-				}}
-				className={cn(
-					"mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm transition-colors",
-					isActive
-						? "text-text-tertiary hover:bg-surface-tertiary hover:text-text-secondary"
-						: "text-transparent group-hover:text-text-tertiary group-hover:hover:bg-surface-tertiary group-hover:hover:text-text-secondary",
-				)}
-				aria-label={`Remove ${project.name}`}
-			>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					viewBox="0 0 16 16"
-					fill="currentColor"
-					className="h-3 w-3"
-					aria-label="Remove project"
-					role="img"
-				>
-					<path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22z" />
-				</svg>
-			</button>
-		</div>
 	);
 });
 
@@ -1265,25 +1073,6 @@ const AddProjectInput = memo(function AddProjectInput({ onAdd, onCancel }: AddPr
 // Helpers
 // ============================================================================
 
-/** Format a unix timestamp (ms) to a human-readable relative time. */
-function formatRelativeTime(timestampMs: number): string {
-	const now = Date.now();
-	const diffMs = now - timestampMs;
-	const diffMin = Math.floor(diffMs / 60000);
-	const diffHr = Math.floor(diffMs / 3600000);
-	const diffDays = Math.floor(diffMs / 86400000);
-
-	if (diffMin < 1) return "just now";
-	if (diffMin < 60) return `${String(diffMin)}m ago`;
-	if (diffHr < 24) return `${String(diffHr)}h ago`;
-	if (diffDays < 7) return `${String(diffDays)}d ago`;
-
-	return new Date(timestampMs).toLocaleDateString(undefined, {
-		month: "short",
-		day: "numeric",
-	});
-}
-
 /** Format a session ID to a short display string. */
 function formatSessionId(id: string): string {
 	return id.slice(0, 8);
@@ -1309,13 +1098,6 @@ function formatDate(isoString: string): string {
 	});
 }
 
-/** Shorten a CWD path for display (last 2 segments). */
-function shortPath(fullPath: string): string {
-	const parts = fullPath.replace(/\/$/, "").split("/");
-	if (parts.length <= 2) return fullPath;
-	return `…/${parts.slice(-2).join("/")}`;
-}
-
 /** Shorten a model name for display in a badge. */
 function shortModelName(name: string): string {
 	const stripped = name
@@ -1331,23 +1113,103 @@ function isMobileWidth(): boolean {
 	return typeof window !== "undefined" && window.innerWidth < MD_BREAKPOINT;
 }
 
+/** Normalize a CWD string for comparison (strip trailing slash, lowercase). */
+function normalizeCwd(cwd: string): string {
+	return cwd.replace(/\/$/, "");
+}
+
 /**
- * Group tabs by their CWD.
- * Returns an array of [cwd, tabs[]] pairs, sorted by CWD.
- * Tabs with null CWD are grouped under a "(no project)" key.
+ * A project group in the sidebar — unifies active sessions (tabs),
+ * past sessions, and the project metadata under one collapsible node.
  */
-function groupTabsByCwd(tabs: SessionTab[]): Array<[string, SessionTab[]]> {
-	const groups = new Map<string, SessionTab[]>();
+interface ProjectGroup {
+	/** The project, or null for the "(no project)" catch-all. */
+	project: Project | null;
+	/** CWD for display / matching. Null only for the orphan group. */
+	cwd: string | null;
+	/** Display name: project name, or short CWD, or "(no project)". */
+	displayName: string;
+	/** Active sessions (open tabs) belonging to this project. */
+	activeSessions: SessionTab[];
+	/** Past sessions (from Pi filesystem) belonging to this project. */
+	pastSessions: WsSessionSummary[];
+}
+
+/**
+ * Build a unified project tree from tabs, projects, and past sessions.
+ *
+ * Matching: tabs and past sessions are matched to projects by CWD.
+ * Unmatched items go into an "(no project)" catch-all group.
+ * Projects with no sessions still appear (so users can click to create one).
+ */
+function buildProjectGroups(
+	projects: Project[],
+	tabs: SessionTab[],
+	pastSessions: WsSessionSummary[],
+	openSessionIds: Set<string>,
+): ProjectGroup[] {
+	// Build CWD → project lookup
+	const cwdToProject = new Map<string, Project>();
+	for (const p of projects) {
+		cwdToProject.set(normalizeCwd(p.cwd), p);
+	}
+
+	// Group active sessions by project
+	const projectActiveSessions = new Map<string, SessionTab[]>();
+	const orphanActiveSessions: SessionTab[] = [];
 	for (const tab of tabs) {
-		const key = tab.cwd ?? "(no project)";
-		const existing = groups.get(key);
-		if (existing) {
-			existing.push(tab);
+		if (!tab.cwd) {
+			orphanActiveSessions.push(tab);
+			continue;
+		}
+		const normalized = normalizeCwd(tab.cwd);
+		const project = cwdToProject.get(normalized);
+		if (project) {
+			const list = projectActiveSessions.get(project.id) ?? [];
+			list.push(tab);
+			projectActiveSessions.set(project.id, list);
 		} else {
-			groups.set(key, [tab]);
+			orphanActiveSessions.push(tab);
 		}
 	}
-	return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
+	// Group past sessions by project (exclude already-open ones)
+	const projectPastSessions = new Map<string, WsSessionSummary[]>();
+	const orphanPastSessions: WsSessionSummary[] = [];
+	for (const session of pastSessions) {
+		if (openSessionIds.has(session.sessionId)) continue;
+		const normalized = normalizeCwd(session.cwd);
+		const project = cwdToProject.get(normalized);
+		if (project) {
+			const list = projectPastSessions.get(project.id) ?? [];
+			list.push(session);
+			projectPastSessions.set(project.id, list);
+		} else {
+			orphanPastSessions.push(session);
+		}
+	}
+
+	// Build groups: one per project
+	const groups: ProjectGroup[] = projects.map((p) => ({
+		project: p,
+		cwd: p.cwd,
+		displayName: p.name,
+		activeSessions: projectActiveSessions.get(p.id) ?? [],
+		pastSessions: projectPastSessions.get(p.id) ?? [],
+	}));
+
+	// Add orphan group if there are unmatched sessions
+	if (orphanActiveSessions.length > 0 || orphanPastSessions.length > 0) {
+		groups.push({
+			project: null,
+			cwd: null,
+			displayName: "(no project)",
+			activeSessions: orphanActiveSessions,
+			pastSessions: orphanPastSessions,
+		});
+	}
+
+	return groups;
 }
 
 // ============================================================================
@@ -1558,8 +1420,6 @@ export function Sidebar() {
 
 	const [isCreating, setIsCreating] = useState(false);
 	const [switchingPath, setSwitchingPath] = useState<string | null>(null);
-	const [pastSessionsExpanded, setPastSessionsExpanded] = useState(false);
-	const [projectsExpanded, setProjectsExpanded] = useState(true);
 	const [showAddProjectInput, setShowAddProjectInput] = useState(false);
 	const [isAddingProject, setIsAddingProject] = useState(false);
 	const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -1631,11 +1491,7 @@ export function Sidebar() {
 
 	const isConnected = connectionStatus === "open";
 
-	// Group tabs by CWD — only show groups when there are multiple CWDs
-	const tabGroups = useMemo(() => groupTabsByCwd(tabs), [tabs]);
-	const hasMultipleCwds = tabGroups.length > 1;
-
-	// Filter past sessions to exclude those already open as tabs
+	// Set of session IDs that are currently open as tabs (for filtering past sessions)
 	const openSessionIds = useMemo(() => {
 		const ids = new Set<string>();
 		for (const tab of tabs) {
@@ -1644,10 +1500,51 @@ export function Sidebar() {
 		return ids;
 	}, [tabs]);
 
+	// Past sessions (exclude already-open ones)
 	const pastSessions = useMemo(
 		() => sessionList.filter((s) => !openSessionIds.has(s.sessionId)),
 		[sessionList, openSessionIds],
 	);
+
+	// Unified project tree: projects with their active + past sessions
+	const projectGroups = useMemo(
+		() => buildProjectGroups(projects, tabs, pastSessions, openSessionIds),
+		[projects, tabs, pastSessions, openSessionIds],
+	);
+
+	// Track which project groups are expanded (by project ID, "orphan" for no-project)
+	const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set());
+
+	const toggleGroupExpanded = useCallback((groupKey: string) => {
+		setExpandedGroups((prev) => {
+			const next = new Set(prev);
+			if (next.has(groupKey)) {
+				next.delete(groupKey);
+			} else {
+				next.add(groupKey);
+			}
+			return next;
+		});
+	}, []);
+
+	// Auto-expand groups that contain the active tab
+	useEffect(() => {
+		if (!activeTabId) return;
+		const activeTab = tabs.find((t) => t.id === activeTabId);
+		if (!activeTab) return;
+		for (const group of projectGroups) {
+			if (group.activeSessions.some((s) => s.id === activeTabId)) {
+				const key = group.project?.id ?? "orphan";
+				setExpandedGroups((prev) => {
+					if (prev.has(key)) return prev;
+					const next = new Set(prev);
+					next.add(key);
+					return next;
+				});
+				break;
+			}
+		}
+	}, [activeTabId, tabs, projectGroups]);
 
 	// Subscribe to toggle sidebar shortcut (Ctrl/Cmd+B)
 	useEffect(() => {
@@ -1709,14 +1606,11 @@ export function Sidebar() {
 			const result = await getTransport().request("app.openFolderDialog");
 			if (result.folderPath) {
 				await addProject(result.folderPath);
-				// Ensure projects section is visible
-				setProjectsExpanded(true);
 			}
 			// null means user cancelled — do nothing
 		} catch {
 			// Native dialog not available (browser mode) — show text input
 			setShowAddProjectInput(true);
-			setProjectsExpanded(true);
 		} finally {
 			setIsAddingProject(false);
 		}
@@ -1727,7 +1621,6 @@ export function Sidebar() {
 			setShowAddProjectInput(false);
 			if (!isConnected) return;
 			await addProject(cwd);
-			setProjectsExpanded(true);
 		},
 		[isConnected],
 	);
@@ -2163,7 +2056,7 @@ export function Sidebar() {
 						type="button"
 						onClick={handleNewTab}
 						disabled={!isConnected || isCreating}
-						title="New Tab (Ctrl+T)"
+						title="New Session (Ctrl+T)"
 						className={cn(
 							"flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors",
 							!isConnected || isCreating
@@ -2171,20 +2064,19 @@ export function Sidebar() {
 								: "text-text-secondary hover:bg-surface-tertiary hover:text-text-primary",
 						)}
 					>
-						{/* Plus icon */}
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
 							viewBox="0 0 16 16"
 							fill="currentColor"
 							className="h-3.5 w-3.5"
-							aria-label="New tab"
+							aria-label="New session"
 							role="img"
 						>
 							<path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2z" />
 						</svg>
-						{isCreating ? "Creating…" : "New Tab"}
+						{isCreating ? "Creating…" : "New Session"}
 					</button>
-					{/* Close sidebar button — visible on mobile, hidden on desktop */}
+					{/* Close sidebar button — visible on mobile */}
 					<button
 						type="button"
 						onClick={() => setSidebarOpen(false)}
@@ -2205,303 +2097,274 @@ export function Sidebar() {
 				</div>
 			</div>
 
-			{/* ── Active Tabs Section ──────────────────────────────────── */}
+			{/* ── Projects header + Add button ─────────────────────────── */}
 			<div className="flex items-center justify-between px-4 pt-3 pb-1">
-				<span className="text-xs font-medium uppercase tracking-wider text-text-tertiary">
-					Open Tabs
-				</span>
-				{selectedTabIds.size > 0 ? (
-					<button
-						type="button"
-						onClick={() => setSelectedTabIds(new Set())}
-						className="text-[10px] text-accent-text transition-colors hover:text-accent-primary"
-					>
-						{String(selectedTabIds.size)} selected · Clear
-					</button>
-				) : (
-					<span className="text-[10px] text-text-muted">
-						{String(tabs.length)} tab{tabs.length !== 1 ? "s" : ""}
+				<div className="flex items-center gap-1.5">
+					<span className="text-xs font-medium uppercase tracking-wider text-text-tertiary">
+						Projects
 					</span>
-				)}
-			</div>
-
-			<div className="flex-1 overflow-y-auto px-2 py-1">
-				{tabs.length === 0 ? (
-					<div className="flex flex-col items-center justify-center gap-2 py-8">
-						<span className="text-xs text-text-muted">No open tabs</span>
+					{selectedTabIds.size > 0 && (
 						<button
 							type="button"
-							onClick={handleNewTab}
-							disabled={!isConnected}
+							onClick={() => setSelectedTabIds(new Set())}
+							className="text-[10px] text-accent-text transition-colors hover:text-accent-primary"
+						>
+							{String(selectedTabIds.size)} selected · Clear
+						</button>
+					)}
+				</div>
+				<div className="flex items-center gap-1">
+					{/* Add Project */}
+					<button
+						type="button"
+						onClick={handleAddProject}
+						disabled={!isConnected || isAddingProject}
+						className={cn(
+							"rounded p-0.5 transition-colors",
+							!isConnected || isAddingProject
+								? "cursor-not-allowed text-text-muted"
+								: "text-text-muted hover:text-text-secondary",
+						)}
+						title="Add Project"
+						aria-label="Add project"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="h-3.5 w-3.5"
+							aria-label="Add"
+							role="img"
+						>
+							<path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2z" />
+						</svg>
+					</button>
+					{/* Refresh */}
+					<button
+						type="button"
+						onClick={handleRefresh}
+						disabled={sessionListLoading}
+						className={cn(
+							"rounded p-0.5 transition-colors",
+							sessionListLoading
+								? "animate-spin text-text-tertiary"
+								: "text-text-muted hover:text-text-secondary",
+						)}
+						aria-label="Refresh sessions"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="h-3 w-3"
+							aria-label="Refresh"
+							role="img"
+						>
+							<path
+								fillRule="evenodd"
+								d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37A5.508 5.508 0 0 0 8 3.5a5.5 5.5 0 1 0 5.215 3.772.75.75 0 1 1 1.423-.474A7 7 0 1 1 12.12 3.16l1.716.005z"
+								clipRule="evenodd"
+							/>
+						</svg>
+					</button>
+				</div>
+			</div>
+
+			{/* ── Unified project tree ─────────────────────────────────── */}
+			<div className="flex-1 overflow-y-auto px-2 py-1">
+				{/* Add project input (browser fallback) */}
+				{showAddProjectInput && (
+					<AddProjectInput onAdd={handleAddProjectFromInput} onCancel={handleCancelAddProject} />
+				)}
+
+				{projectGroups.length === 0 && !showAddProjectInput ? (
+					<div className="flex flex-col items-center justify-center gap-2 py-8">
+						<span className="text-xs text-text-muted">No projects yet</span>
+						<button
+							type="button"
+							onClick={handleAddProject}
+							disabled={!isConnected || isAddingProject}
 							className={cn(
 								"rounded-md px-3 py-1 text-xs font-medium transition-colors",
-								isConnected
+								isConnected && !isAddingProject
 									? "bg-surface-secondary text-text-secondary hover:bg-surface-tertiary"
 									: "cursor-not-allowed text-text-muted",
 							)}
 						>
-							Open a new tab
+							{isAddingProject ? "Opening…" : "Add a project"}
 						</button>
 					</div>
-				) : hasMultipleCwds ? (
-					/* Grouped by CWD */
-					tabGroups.map(([cwd, groupTabs]) => (
-						<CwdGroup
-							key={cwd}
-							cwd={cwd}
-							tabs={groupTabs}
-							activeTabId={activeTabId}
-							selectedTabIds={selectedTabIds}
-							onSwitchTab={handleSwitchTab}
-							onTabClick={handleTabClick}
-							onCloseTab={handleCloseTab}
-							canClose={tabs.length > 1}
-							onContextMenu={handleTabContextMenu}
-							renamingTabId={renamingTabId}
-							onRenameStart={(tabId) => setRenamingTabId(tabId)}
-							onRenameComplete={handleRenameComplete}
-							onRenameCancel={handleRenameCancel}
-							draggingTabId={draggingTabId}
-							dropTargetTabId={dropTargetTabId}
-							dropPosition={dropPosition}
-							onDragStart={handleDragStart}
-							onDragOver={handleDragOver}
-							onDragEnd={handleDragEnd}
-						/>
-					))
 				) : (
-					/* Flat list — all tabs share same CWD */
-					<div className="flex flex-col gap-0.5">
-						{tabs.map((tab) => (
-							<SidebarTabItem
-								key={tab.id}
-								tab={tab}
-								isActive={tab.id === activeTabId}
-								isSelected={selectedTabIds.has(tab.id)}
-								onSwitch={handleSwitchTab}
-								onClick={handleTabClick}
-								onClose={handleCloseTab}
-								canClose={tabs.length > 1}
-								onContextMenu={handleTabContextMenu}
-								isRenaming={renamingTabId === tab.id}
-								onRenameStart={() => setRenamingTabId(tab.id)}
-								onRenameComplete={(newName) => handleRenameComplete(tab.id, newName)}
-								onRenameCancel={handleRenameCancel}
-								isDragging={draggingTabId === tab.id}
-								dropIndicator={dropTargetTabId === tab.id ? dropPosition : null}
-								onDragStart={handleDragStart}
-								onDragOver={handleDragOver}
-								onDragEnd={handleDragEnd}
-							/>
-						))}
-					</div>
-				)}
+					<div className="flex flex-col gap-1">
+						{projectGroups.map((group) => {
+							const groupKey = group.project?.id ?? "orphan";
+							const isExpanded = expandedGroups.has(groupKey);
+							const totalSessions = group.activeSessions.length + group.pastSessions.length;
+							const hasActiveSessions = group.activeSessions.length > 0;
+							const isActiveProject = group.project?.id === activeProjectId;
 
-				{/* ── Projects Section ─────────────────────────────────── */}
-				<div className="mt-3 border-t border-border-secondary pt-2">
-					<div className="flex w-full items-center justify-between px-2 py-1">
-						<button
-							type="button"
-							onClick={() => setProjectsExpanded(!projectsExpanded)}
-							className="flex flex-1 items-center gap-1.5 text-left"
-						>
-							<span className="text-xs font-medium uppercase tracking-wider text-text-tertiary">
-								Projects
-							</span>
-							{projects.length > 0 && (
-								<span className="text-[10px] text-text-muted">{String(projects.length)}</span>
-							)}
-							{/* Chevron */}
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 16 16"
-								fill="currentColor"
-								className={cn(
-									"h-3 w-3 text-text-muted transition-transform",
-									projectsExpanded && "rotate-180",
-								)}
-								aria-label="Toggle projects"
-								role="img"
-							>
-								<path
-									fillRule="evenodd"
-									d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z"
-									clipRule="evenodd"
-								/>
-							</svg>
-						</button>
-						<div className="flex items-center gap-1">
-							{/* Add Project button */}
-							<button
-								type="button"
-								onClick={handleAddProject}
-								disabled={!isConnected || isAddingProject}
-								className={cn(
-									"rounded p-0.5 transition-colors",
-									!isConnected || isAddingProject
-										? "cursor-not-allowed text-text-muted"
-										: "text-text-muted hover:text-text-secondary",
-								)}
-								title="Add Project"
-								aria-label="Add project"
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									viewBox="0 0 16 16"
-									fill="currentColor"
-									className="h-3.5 w-3.5"
-									aria-label="Add"
-									role="img"
-								>
-									<path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2z" />
-								</svg>
-							</button>
-							{/* Refresh button */}
-							{projects.length > 0 && (
-								<button
-									type="button"
-									onClick={() => {
-										if (isConnected) fetchProjects();
-									}}
-									className="rounded p-0.5 text-text-muted transition-colors hover:text-text-secondary"
-									aria-label="Refresh projects"
-								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										viewBox="0 0 16 16"
-										fill="currentColor"
-										className="h-3 w-3"
-										aria-label="Refresh"
-										role="img"
-									>
-										<path
-											fillRule="evenodd"
-											d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37A5.508 5.508 0 0 0 8 3.5a5.5 5.5 0 1 0 5.215 3.772.75.75 0 1 1 1.423-.474A7 7 0 1 1 12.12 3.16l1.716.005z"
-											clipRule="evenodd"
-										/>
-									</svg>
-								</button>
-							)}
-						</div>
-					</div>
-
-					{projectsExpanded && (
-						<div className="mt-1 flex flex-col gap-0.5">
-							{/* Inline text input for adding a project (browser fallback) */}
-							{showAddProjectInput && (
-								<AddProjectInput
-									onAdd={handleAddProjectFromInput}
-									onCancel={handleCancelAddProject}
-								/>
-							)}
-
-							{projects.length > 0 ? (
-								projects.map((project) => (
-									<ProjectItem
-										key={project.id}
-										project={project}
-										isActive={project.id === activeProjectId}
-										onOpen={handleOpenProject}
-										onRemove={handleRemoveProject}
-										onContextMenu={handleProjectContextMenu}
-									/>
-								))
-							) : !showAddProjectInput ? (
-								<div className="flex flex-col items-center gap-2 py-4 px-3">
-									<span className="text-xs text-text-muted">No projects yet</span>
-									<button
-										type="button"
-										onClick={handleAddProject}
-										disabled={!isConnected || isAddingProject}
+							return (
+								<div key={groupKey}>
+									{/* ── Project header row ─────────────── */}
+									<div
 										className={cn(
-											"rounded-md px-3 py-1 text-xs font-medium transition-colors",
-											isConnected && !isAddingProject
-												? "bg-surface-secondary text-text-secondary hover:bg-surface-tertiary"
-												: "cursor-not-allowed text-text-muted",
+											"group/project flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors",
+											isActiveProject ? "bg-surface-secondary/50" : "hover:bg-surface-secondary/30",
 										)}
 									>
-										{isAddingProject ? "Opening…" : "Add a project"}
-									</button>
-								</div>
-							) : null}
-						</div>
-					)}
-				</div>
+										{/* Expand/collapse chevron */}
+										<button
+											type="button"
+											onClick={() => toggleGroupExpanded(groupKey)}
+											className="flex h-4 w-4 shrink-0 items-center justify-center text-text-muted"
+											aria-label={isExpanded ? "Collapse" : "Expand"}
+										>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												viewBox="0 0 16 16"
+												fill="currentColor"
+												className={cn("h-3 w-3 transition-transform", isExpanded && "rotate-90")}
+												aria-hidden="true"
+											>
+												<path
+													fillRule="evenodd"
+													d="M6.22 4.22a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06l-3.25 3.25a.75.75 0 0 1-1.06-1.06L8.94 8 6.22 5.28a.75.75 0 0 1 0-1.06z"
+													clipRule="evenodd"
+												/>
+											</svg>
+										</button>
 
-				{/* ── Past Sessions Section ────────────────────────────── */}
-				{pastSessions.length > 0 && (
-					<div className="mt-3 border-t border-border-secondary pt-2">
-						<div className="flex w-full items-center justify-between px-2 py-1">
-							<button
-								type="button"
-								onClick={() => setPastSessionsExpanded(!pastSessionsExpanded)}
-								className="flex flex-1 items-center gap-1.5 text-left"
-							>
-								<span className="text-xs font-medium uppercase tracking-wider text-text-tertiary">
-									Past Sessions
-								</span>
-								<span className="text-[10px] text-text-muted">{String(pastSessions.length)}</span>
-								{/* Chevron */}
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									viewBox="0 0 16 16"
-									fill="currentColor"
-									className={cn(
-										"h-3 w-3 text-text-muted transition-transform",
-										pastSessionsExpanded && "rotate-180",
+										{/* Favicon / folder icon */}
+										{group.cwd ? (
+											<ProjectFavicon
+												cwd={group.cwd}
+												isActive={isActiveProject}
+												className="h-3.5 w-3.5"
+											/>
+										) : (
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												viewBox="0 0 16 16"
+												fill="currentColor"
+												className="h-3.5 w-3.5 text-text-muted"
+												aria-hidden="true"
+											>
+												<path d={FOLDER_ICON_PATH} />
+											</svg>
+										)}
+
+										{/* Project name — clickable to open/focus */}
+										{/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled by expand button */}
+										<div
+											className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5"
+											onClick={() => {
+												if (group.project) {
+													handleOpenProject(group.project);
+												}
+												if (!isExpanded) {
+													toggleGroupExpanded(groupKey);
+												}
+											}}
+											onContextMenu={(e) => {
+												if (group.project) {
+													e.preventDefault();
+													e.stopPropagation();
+													handleProjectContextMenu(group.project.id, e.clientX, e.clientY);
+												}
+											}}
+										>
+											<span className="truncate text-xs font-medium text-text-primary">
+												{group.displayName}
+											</span>
+											{totalSessions > 0 && (
+												<span className="shrink-0 text-[10px] text-text-muted">
+													{String(totalSessions)}
+												</span>
+											)}
+										</div>
+
+										{/* New session in this project */}
+										{group.project && (
+											<button
+												type="button"
+												onClick={() => {
+													if (group.project) {
+														handleOpenProject(group.project);
+													}
+												}}
+												className="flex h-4 w-4 shrink-0 items-center justify-center rounded-sm text-transparent transition-colors group-hover/project:text-text-muted group-hover/project:hover:text-text-secondary"
+												title="New session in this project"
+												aria-label="New session"
+											>
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													viewBox="0 0 16 16"
+													fill="currentColor"
+													className="h-3 w-3"
+													aria-hidden="true"
+												>
+													<path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2z" />
+												</svg>
+											</button>
+										)}
+									</div>
+
+									{/* ── Expanded children: active + past sessions ── */}
+									{isExpanded && (
+										<div className="ml-3 flex flex-col gap-0.5 border-l border-border-secondary pl-2 pt-0.5">
+											{/* Active sessions (tabs) */}
+											{group.activeSessions.map((tab) => (
+												<SidebarTabItem
+													key={tab.id}
+													tab={tab}
+													isActive={tab.id === activeTabId}
+													isSelected={selectedTabIds.has(tab.id)}
+													onSwitch={handleSwitchTab}
+													onClick={handleTabClick}
+													onClose={handleCloseTab}
+													canClose={tabs.length > 1}
+													onContextMenu={handleTabContextMenu}
+													isRenaming={renamingTabId === tab.id}
+													onRenameStart={() => setRenamingTabId(tab.id)}
+													onRenameComplete={(newName) => handleRenameComplete(tab.id, newName)}
+													onRenameCancel={handleRenameCancel}
+													isDragging={draggingTabId === tab.id}
+													dropIndicator={dropTargetTabId === tab.id ? dropPosition : null}
+													onDragStart={handleDragStart}
+													onDragOver={handleDragOver}
+													onDragEnd={handleDragEnd}
+												/>
+											))}
+
+											{/* Past sessions */}
+											{group.pastSessions.map((session) => (
+												<PastSessionItem
+													key={session.sessionPath}
+													session={session}
+													onSwitch={handleSwitchSession}
+													isSwitching={switchingPath === session.sessionPath}
+												/>
+											))}
+
+											{/* Empty state for project with no sessions */}
+											{!hasActiveSessions && group.pastSessions.length === 0 && group.project && (
+												<button
+													type="button"
+													onClick={() => {
+														if (group.project) {
+															handleOpenProject(group.project);
+														}
+													}}
+													className="px-3 py-1.5 text-left text-[11px] text-text-muted transition-colors hover:text-text-secondary"
+												>
+													Start a session…
+												</button>
+											)}
+										</div>
 									)}
-									aria-label="Toggle past sessions"
-									role="img"
-								>
-									<path
-										fillRule="evenodd"
-										d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z"
-										clipRule="evenodd"
-									/>
-								</svg>
-							</button>
-							{/* Refresh button — separate from toggle */}
-							<button
-								type="button"
-								onClick={handleRefresh}
-								disabled={sessionListLoading}
-								className={cn(
-									"rounded p-0.5 transition-colors",
-									sessionListLoading
-										? "animate-spin text-text-tertiary"
-										: "text-text-muted hover:text-text-secondary",
-								)}
-								aria-label="Refresh past sessions"
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									viewBox="0 0 16 16"
-									fill="currentColor"
-									className="h-3 w-3"
-									aria-label="Refresh"
-									role="img"
-								>
-									<path
-										fillRule="evenodd"
-										d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37A5.508 5.508 0 0 0 8 3.5a5.5 5.5 0 1 0 5.215 3.772.75.75 0 1 1 1.423-.474A7 7 0 1 1 12.12 3.16l1.716.005z"
-										clipRule="evenodd"
-									/>
-								</svg>
-							</button>
-						</div>
-
-						{pastSessionsExpanded && (
-							<div className="mt-1 flex flex-col gap-0.5">
-								{pastSessions.map((session) => (
-									<PastSessionItem
-										key={session.sessionPath}
-										session={session}
-										onSwitch={handleSwitchSession}
-										isSwitching={switchingPath === session.sessionPath}
-									/>
-								))}
-							</div>
-						)}
+								</div>
+							);
+						})}
 					</div>
 				)}
 
