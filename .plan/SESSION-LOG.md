@@ -31,3 +31,30 @@
 - Read `reference/t3code/apps/web/src/composerDraftStore.ts` before implementing 1A.4
 - The existing `useAutoScroll` hook (MEMORY-v2 #79) will be replaced, not modified
 - `react-virtuoso` is already installed and active — work with it for scroll improvements
+
+---
+
+## Session 1 — Pointer-aware scroll system (2026-03-24)
+
+**What happened:**
+- Read T3Code's `chat-scroll.ts` and `MessagesTimeline.tsx` for scroll patterns
+- T3Code uses `@tanstack/react-virtual` with `shouldAdjustScrollPositionOnItemSizeChange`; PiBun uses `react-virtuoso` with `followOutput`/`atBottomStateChange` — different approach needed
+- Discovered `useAutoScroll.ts` was dead code (defined but never imported in ChatView). ChatView already used Virtuoso's built-in scroll APIs directly
+- Created new `useChatScroll` hook with pointer-aware scroll intent detection:
+  - Tracks `isInteractingRef` (pointer/wheel/touch active) and `userScrolledAwayRef` (user intentionally scrolled up)
+  - `followOutput` consults both flags: suppresses auto-scroll during interaction or after user scrolls away
+  - `handleAtBottom` only sets "scrolled away" when user is interacting AND not at bottom (prevents content-growth from triggering false positives)
+  - Interaction cooldown (150ms) prevents micro-gaps between wheel events from falsely clearing state
+  - `containerProps` spread onto parent div for event delegation (no need for Virtuoso scroller ref)
+- Wired hook into ChatView, replacing inline `useState`/`useCallback` scroll logic
+- Deleted old unused `useAutoScroll.ts`
+
+**Items completed:**
+- [x] 1A.1 — Replace `useAutoScroll` with pointer-aware scroll system
+
+**Issues encountered:**
+- None
+
+**Handoff to next session:**
+- Next: 1A.2 — Audit all Zustand selectors for referential stability
+- The `useChatScroll` hook returns `containerProps` that must be spread on the scroll container's parent — this pattern is established, follow it if adding more scroll containers

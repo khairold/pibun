@@ -19,6 +19,7 @@
 | 8 | Context menus forwarded via WS push, same as menu actions | Desktop shows native context menu → user clicks → desktop sends WS push with action. Web app handles. Same pattern as native menu bar (MEMORY-v2 #163). | 2026-03-24 |
 | 9 | Thread renaming uses Pi's `set_session_name` RPC | Already have `session.setName` WS method and handler. Just needs sidebar inline edit UI. | 2026-03-24 |
 | 10 | Electrobun's `showContextMenu()` + `ContextMenu.on("context-menu-clicked")` for native menus | Returns selected item action. Desktop forwards via WS push. Web app subscribes. | 2026-03-24 |
+| 11 | Pointer-aware scroll via `useChatScroll` hook, not distance-only detection | Tracks pointer/wheel/touch interaction state to distinguish user scroll intent from content-growth shifts. Uses `isInteractingRef` + `userScrolledAwayRef` dual-flag approach. Old `useAutoScroll` hook deleted (was dead code). | 2026-03-24 |
 
 ## Architecture Notes
 

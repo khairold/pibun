@@ -2,9 +2,9 @@
 
 > **Spec:** Audit of T3Code, Pi-mono RPC, Electrobun reference repos (2026-03-24)
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
-> **Status:** Not Started
-> **Current Phase:** —
-> **Last Session:** —
+> **Status:** In Progress
+> **Current Phase:** Phase 1A — Scroll, Performance & Persistence
+> **Last Session:** Session 1 — 2026-03-24
 
 ---
 
@@ -34,7 +34,7 @@
 
 ### 1A — Scroll, Performance & Persistence
 
-- [ ] 1A.1 — Replace `useAutoScroll` with pointer-aware scroll system (detect mouse/touch scroll-up intent vs programmatic scroll, preserve anchor during content insertion)
+- [x] 1A.1 — Replace `useAutoScroll` with pointer-aware scroll system (detect mouse/touch scroll-up intent vs programmatic scroll, preserve anchor during content insertion)
 - [ ] 1A.2 — Audit all Zustand selectors for referential stability (no new objects/arrays from selectors — use `useShallow` or split selectors)
 - [ ] 1A.3 — Add debounced localStorage persistence for key UI state (sidebar open, active tab, theme preference) with `beforeunload` flush
 - [ ] 1A.4 — Add composer draft persistence per tab (text + images survive tab switch and page reload, stored in localStorage keyed by tab ID)

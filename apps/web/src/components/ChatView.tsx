@@ -15,19 +15,21 @@
  * Tool calls and their results are automatically grouped into ToolExecutionCard
  * when they appear as adjacent messages (tool_call followed by tool_result).
  *
- * Auto-scrolls to bottom on new content when user is at/near bottom (via
- * Virtuoso's `followOutput`). Shows a floating "↓ New messages" button when
- * user has scrolled up.
+ * Auto-scrolls to bottom on new content using pointer-aware scroll detection
+ * (via `useChatScroll` hook). Tracks mouse/wheel/touch interactions to
+ * distinguish user scroll intent from content-growth shifts. Shows a floating
+ * "↓ New messages" button when user has intentionally scrolled up.
  */
 
 import { AssistantMessage, SystemMessage, UserMessage } from "@/components/chat/ChatMessages";
 import { ToolCallMessage, ToolExecutionCard, ToolResultMessage } from "@/components/chat/ToolCards";
+import { useChatScroll } from "@/hooks/useChatScroll";
 import { openProject } from "@/lib/appActions";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import type { Project } from "@pibun/contracts";
-import { type ReactElement, memo, useCallback, useMemo, useRef, useState } from "react";
+import { type ReactElement, memo, useCallback, useMemo, useRef } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 
 // ============================================================================
@@ -253,28 +255,13 @@ export function ChatView() {
 	const retryMaxAttempts = useStore((s) => s.retryMaxAttempts);
 
 	const virtuosoRef = useRef<VirtuosoHandle>(null);
-	const [showScrollButton, setShowScrollButton] = useState(false);
+	const { followOutput, handleAtBottom, showScrollButton, scrollToBottom, containerProps } =
+		useChatScroll(virtuosoRef);
 
 	// Group messages into renderable items (memoize to avoid re-grouping on every render)
 	const items = useMemo(() => groupMessages(messages), [messages]);
 
 	// ── Virtuoso callbacks (stable refs) ─────────────────────────────
-
-	/** Track whether user is at the bottom — controls scroll button visibility. */
-	const handleAtBottomStateChange = useCallback((atBottom: boolean) => {
-		setShowScrollButton(!atBottom);
-	}, []);
-
-	/**
-	 * followOutput — tells Virtuoso whether to auto-scroll when new items
-	 * appear or existing items grow. Returns "smooth" when at bottom so
-	 * streaming text scrolls naturally.
-	 */
-	const followOutput = useCallback((isAtBottom: boolean): false | "smooth" | "auto" => {
-		if (isAtBottom) return "smooth";
-		// When streaming and not at bottom, don't force scroll
-		return false;
-	}, []);
 
 	/** Render a single item by index. */
 	const itemContent = useCallback(
@@ -295,15 +282,6 @@ export function ChatView() {
 		},
 		[items],
 	);
-
-	/** Scroll to bottom on button click. */
-	const scrollToBottom = useCallback(() => {
-		virtuosoRef.current?.scrollToIndex({
-			index: "LAST",
-			behavior: "smooth",
-		});
-		setShowScrollButton(false);
-	}, []);
 
 	// ── Footer: status indicators below the message list ─────────────
 	const footer = useCallback(() => {
@@ -353,14 +331,14 @@ export function ChatView() {
 	// ── Virtualized message list ─────────────────────────────────────
 
 	return (
-		<div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+		<div className="relative flex min-h-0 flex-1 flex-col overflow-hidden" {...containerProps}>
 			<Virtuoso
 				ref={virtuosoRef}
 				totalCount={items.length}
 				itemContent={itemContent}
 				computeItemKey={computeItemKey}
 				followOutput={followOutput}
-				atBottomStateChange={handleAtBottomStateChange}
+				atBottomStateChange={handleAtBottom}
 				atBottomThreshold={50}
 				increaseViewportBy={{ top: 400, bottom: 400 }}
 				defaultItemHeight={80}
