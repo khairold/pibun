@@ -1,9 +1,10 @@
 /**
- * ChatMessages — renderers for the three non-tool message types.
+ * ChatMessages — renderers for the non-tool message types + turn dividers.
  *
  * - UserMessage — user prompts (right-aligned bubble)
  * - AssistantMessage — streaming text with thinking section + markdown + copy button
  * - SystemMessage — compaction/retry notices (centered dividers)
+ * - TurnDivider — visual separator between user→assistant turns with timestamp and tool count
  *
  * These are stable rendering components consumed by ChatView.tsx.
  */
@@ -320,6 +321,70 @@ export const SystemMessage = memo(function SystemMessage({ message }: SystemMess
 			<div className={cn("h-px flex-1", style.dividerClass)} />
 			<span className={cn("shrink-0 text-xs", style.textClass)}>{message.content}</span>
 			<div className={cn("h-px flex-1", style.dividerClass)} />
+		</div>
+	);
+});
+
+// ==== TurnDivider ====
+
+interface TurnDividerProps {
+	/** Unix timestamp (ms) of the next user message in this turn boundary. */
+	timestamp: number;
+	/** Number of tool calls in the preceding assistant turn. */
+	toolCount: number;
+}
+
+/**
+ * Format a timestamp into a short locale-aware time string.
+ * Uses 12-hour format with AM/PM (e.g., "2:34 PM").
+ */
+function formatTimestamp(ts: number): string {
+	const date = new Date(ts);
+	return date.toLocaleTimeString(undefined, {
+		hour: "numeric",
+		minute: "2-digit",
+	});
+}
+
+/**
+ * Visual separator between user→assistant turns.
+ *
+ * Shows a subtle divider line with:
+ * - Timestamp of the turn boundary
+ * - Tool call count badge from the preceding assistant turn (if any)
+ *
+ * Designed to be a low-contrast, non-intrusive visual break that helps
+ * users orient in long conversations without competing with the
+ * completion summary ("✓ Worked for Xm Ys") which appears just above.
+ */
+export const TurnDivider = memo(function TurnDivider({ timestamp, toolCount }: TurnDividerProps) {
+	return (
+		<div className="flex items-center gap-2 py-1">
+			<div className="h-px flex-1 bg-border-primary/30" />
+			<div className="flex shrink-0 items-center gap-1.5">
+				{toolCount > 0 && (
+					<span className="flex items-center gap-1 rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] text-text-muted">
+						{/* Wrench icon */}
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="h-2.5 w-2.5"
+							aria-label="Tool calls"
+							role="img"
+						>
+							<path
+								fillRule="evenodd"
+								d="M11.5 1a3.5 3.5 0 0 0-3.29 4.708L3.5 10.42l-.22.22a.75.75 0 0 0 0 1.06l1.06 1.06a.75.75 0 0 0 1.06 0l.22-.22 4.71-4.71A3.5 3.5 0 1 0 11.5 1ZM10 4.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z"
+								clipRule="evenodd"
+							/>
+						</svg>
+						{toolCount} {toolCount === 1 ? "tool call" : "tool calls"}
+					</span>
+				)}
+				<span className="text-[10px] text-text-muted/60">{formatTimestamp(timestamp)}</span>
+			</div>
+			<div className="h-px flex-1 bg-border-primary/30" />
 		</div>
 	);
 });

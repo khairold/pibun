@@ -2,9 +2,9 @@
 
 > **Spec:** Audit of T3Code, Pi-mono RPC, Electrobun reference repos (2026-03-24)
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
-> **Status:** Phase 1B in progress
-> **Current Phase:** Phase 1B — Thread Status & Activity Indicators
-> **Last Session:** Session 10 — 2026-03-24
+> **Status:** Phase 1B complete — starting Phase 1C
+> **Current Phase:** Phase 1C — Settings & Preferences
+> **Last Session:** Session 11 — 2026-03-24
 
 ---
 
@@ -50,7 +50,7 @@
 - [x] 1B.3 — Surface `extension_error` events as dismissible warning toasts (not just console.log)
 - [x] 1B.4 — Add provider health indicator: show banner when Pi process exits unexpectedly, session start fails, or model errors occur repeatedly
 - [x] 1B.5 — Add completion summary after agent finishes: "Worked for Xm Ys" divider between turns (derive from `agent_start`/`agent_end` timestamps)
-- [ ] 1B.6 — Improve turn boundaries: visual separator between user→assistant turns with timestamp, collapsed tool activity count
+- [x] 1B.6 — Improve turn boundaries: visual separator between user→assistant turns with timestamp, collapsed tool activity count
 
 **Exit criteria:** Users can see at a glance which sessions are active, errored, or waiting. Retry and error states are visible.
 

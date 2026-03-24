@@ -21,7 +21,12 @@
  * "↓ New messages" button when user has intentionally scrolled up.
  */
 
-import { AssistantMessage, SystemMessage, UserMessage } from "@/components/chat/ChatMessages";
+import {
+	AssistantMessage,
+	SystemMessage,
+	TurnDivider,
+	UserMessage,
+} from "@/components/chat/ChatMessages";
 import { ToolCallMessage, ToolExecutionCard, ToolResultMessage } from "@/components/chat/ToolCards";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { openProject } from "@/lib/appActions";
@@ -36,18 +41,27 @@ import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 // Message grouping — combine tool_call + tool_result into unified items
 // ============================================================================
 
-/** A renderable item in the chat — either a single message or a tool group. */
+/** A renderable item in the chat — either a single message, tool group, or turn divider. */
 type ChatItem =
 	| { kind: "message"; message: ChatMessage }
-	| { kind: "tool_group"; toolCall: ChatMessage; toolResult: ChatMessage | null };
+	| { kind: "tool_group"; toolCall: ChatMessage; toolResult: ChatMessage | null }
+	| { kind: "turn_divider"; id: string; timestamp: number; toolCount: number };
 
 /**
  * Group messages into renderable items.
  * Adjacent tool_call + tool_result pairs become tool_group items.
+ * Turn dividers are inserted before each user message (except the first)
+ * to show the timestamp and tool call count from the preceding turn.
  */
 function groupMessages(messages: readonly ChatMessage[]): ChatItem[] {
 	const items: ChatItem[] = [];
 	let i = 0;
+	/** Whether we've seen the first user message (no divider before it). */
+	let seenFirstUser = false;
+	/** Tool call count accumulated in the current turn. */
+	let turnToolCount = 0;
+	/** Counter for generating unique divider IDs. */
+	let dividerCounter = 0;
 
 	while (i < messages.length) {
 		const msg = messages[i];
@@ -56,7 +70,22 @@ function groupMessages(messages: readonly ChatMessage[]): ChatItem[] {
 			continue;
 		}
 
+		// Insert turn divider before each user message (except the first)
+		if (msg.type === "user") {
+			if (seenFirstUser) {
+				items.push({
+					kind: "turn_divider",
+					id: `turn-divider-${String(++dividerCounter)}`,
+					timestamp: msg.timestamp,
+					toolCount: turnToolCount,
+				});
+			}
+			seenFirstUser = true;
+			turnToolCount = 0;
+		}
+
 		if (msg.type === "tool_call") {
+			turnToolCount++;
 			// Look ahead for matching tool_result
 			const next = i + 1 < messages.length ? messages[i + 1] : undefined;
 			if (next?.type === "tool_result") {
@@ -107,10 +136,13 @@ const MessageItem = memo(function MessageItem({ message }: { message: ChatMessag
 	}
 });
 
-/** Render a chat item (message or tool group). */
+/** Render a chat item (message, tool group, or turn divider). */
 const ChatItemRenderer = memo(function ChatItemRenderer({ item }: { item: ChatItem }) {
 	if (item.kind === "tool_group") {
 		return <ToolExecutionCard toolCall={item.toolCall} toolResult={item.toolResult} />;
+	}
+	if (item.kind === "turn_divider") {
+		return <TurnDivider timestamp={item.timestamp} toolCount={item.toolCount} />;
 	}
 	return <MessageItem message={item.message} />;
 });
@@ -119,6 +151,9 @@ const ChatItemRenderer = memo(function ChatItemRenderer({ item }: { item: ChatIt
 function chatItemKey(item: ChatItem): string {
 	if (item.kind === "tool_group") {
 		return `tool-group-${item.toolCall.id}`;
+	}
+	if (item.kind === "turn_divider") {
+		return item.id;
 	}
 	return item.message.id;
 }

@@ -310,3 +310,33 @@
 - Next: 1B.6 — Improve turn boundaries: visual separator between user→assistant turns with timestamp, collapsed tool activity count
 - This is the LAST item in Phase 1B. After completing it, verify exit criteria and mark phase complete.
 - `consumeDeferredActiveTabId()` still not consumed
+
+---
+
+## Session 11 — Turn boundaries with timestamp and tool count (2026-03-24)
+
+**What happened:**
+- Implemented turn boundary visual separators (1B.6):
+  - Extended `ChatItem` union type with `turn_divider` kind carrying `id`, `timestamp`, and `toolCount`
+  - Modified `groupMessages()` to track tool call count per turn and insert `turn_divider` items before each user message (except the first)
+  - Created `TurnDivider` component in `ChatMessages.tsx` — subtle divider line with:
+    - Locale-aware timestamp via `formatTimestamp()` using `toLocaleTimeString()`
+    - Tool call count badge with wrench icon (only shown when `toolCount > 0`)
+    - Low-contrast `bg-border-primary/30` divider lines that don't compete with completion summary
+  - Updated `ChatItemRenderer` to handle `turn_divider` kind
+  - Updated `chatItemKey` to return divider's unique ID
+- Phase 1B is now COMPLETE — all 6 items checked off
+- Exit criteria verified: ✅ Users can see at a glance which sessions are active, errored, or waiting. ✅ Retry and error states are visible. ✅ Turn boundaries are clearly marked.
+
+**Items completed:**
+- [x] 1B.6 — Improve turn boundaries: visual separator between user→assistant turns with timestamp, collapsed tool activity count
+
+**Issues encountered:**
+- Biome formatting: initial `return ( <TurnDivider ... /> )` was reformatted to single-line `return <TurnDivider ... />;`. Fixed with `bun run format`.
+
+**Handoff to next session:**
+- Phase 1B is COMPLETE. Next phase: 1C — Settings & Preferences
+- Start with 1C.1 — Create settings page/dialog
+- `TurnDivider` lives in `ChatMessages.tsx` alongside other message renderers
+- `formatTimestamp()` is a module-level helper in `ChatMessages.tsx` — if timestamp formatting is needed elsewhere (e.g., settings timestamp format selector from 1C.6), extract to `utils.ts`
+- `consumeDeferredActiveTabId()` still not consumed
