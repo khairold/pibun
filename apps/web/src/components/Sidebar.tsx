@@ -785,6 +785,7 @@ export function Sidebar() {
 	const connectionStatus = useStore((s) => s.connectionStatus);
 	const tabs = useStore((s) => s.tabs);
 	const activeTabId = useStore((s) => s.activeTabId);
+	const sessionId = useStore((s) => s.sessionId);
 	const sessionList = useStore((s) => s.sessionList);
 	const sessionListLoading = useStore((s) => s.sessionListLoading);
 	const projects = useStore((s) => s.projects);
@@ -1375,7 +1376,12 @@ export function Sidebar() {
 													<SessionItem
 														key={unifiedSessionKey(entry)}
 														entry={entry}
-														isActive={entry.kind === "active" && entry.tab.id === activeTabId}
+														isActive={
+															(entry.kind === "active" && entry.tab.id === activeTabId) ||
+															(entry.kind === "past" &&
+																!!sessionId &&
+																entry.session.sessionId === sessionId)
+														}
 														isSwitching={
 															entry.kind === "past" && switchingPath === entry.session.sessionPath
 														}
