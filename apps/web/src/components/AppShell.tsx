@@ -38,6 +38,7 @@ import { UpdateBanner } from "@/components/UpdateBanner";
 import { ExtensionDialog } from "@/components/extension";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useWindowTitle } from "@/hooks/useWindowTitle";
+import { createTerminal } from "@/lib/appActions";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { useCallback } from "react";
@@ -47,7 +48,7 @@ function TerminalButton() {
 	const connectionStatus = useStore((s) => s.connectionStatus);
 	const isConnected = connectionStatus === "open";
 
-	const handleClick = useCallback(async () => {
+	const handleClick = useCallback(() => {
 		const store = useStore.getState();
 		if (store.terminalPanelOpen) {
 			store.setTerminalPanelOpen(false);
@@ -56,8 +57,9 @@ function TerminalButton() {
 			if (hasTerminals) {
 				store.setTerminalPanelOpen(true);
 			} else if (isConnected) {
-				const { createTerminal } = await import("@/lib/appActions");
-				await createTerminal();
+				createTerminal().catch((err: unknown) => {
+					console.error("[TerminalButton] Failed to create terminal:", err);
+				});
 			}
 		}
 	}, [isConnected]);
