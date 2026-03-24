@@ -5,6 +5,41 @@
 
 ---
 
+## Session 83 — Phase 6 Theme type + built-in themes (2026-03-24)
+
+**What happened:**
+- Defined `Theme`, `ThemeColors`, and `ThemeId` types in `packages/contracts/src/theme.ts`:
+  - `ThemeColors` interface with 40 semantic color tokens organized by role (surface, text, border, accent, status-error, status-success, status-warning, status-info, thinking, code, user-bubble, scrollbar)
+  - Each token maps to a `--color-{token}` CSS custom property
+  - `Theme` includes `id`, `name`, `isDark`, `colors: ThemeColors`, `shikiTheme: string`
+  - `ThemeId` is a union type of the 5 built-in theme IDs
+  - Exported from `packages/contracts/src/index.ts`
+- Created 5 built-in theme definitions in `apps/web/src/lib/themes.ts`:
+  - **Dark** (default): matches current hardcoded neutral palette exactly — `github-dark-default` Shiki theme
+  - **Light**: clean white/gray palette — `github-light-default` Shiki theme
+  - **Dimmed**: softer blue-gray dark theme (GitHub Dimmed palette) — `github-dark-dimmed` Shiki theme
+  - **High Contrast Dark**: pure black base, vivid colors, strong borders — `github-dark-high-contrast` Shiki theme
+  - **High Contrast Light**: pure white base, deep colors, strong borders — `github-light-high-contrast` Shiki theme
+- All 5 Shiki themes verified to exist in the `shiki/bundle/web` package
+- Utility functions: `BUILTIN_THEMES` (Map), `THEME_LIST` (ordered array), `getThemeById()`, `getSystemPreferredThemeId()`, `applyTheme()` (sets CSS custom properties + data-theme attribute)
+- Audited all existing color usage across 45 component files to ensure token coverage
+
+**Items completed:**
+- [x] 6.1 — Define `Theme` type: `{ id, name, isDark, colors: Record<string, string> }` with semantic color tokens
+- [x] 6.2 — Built-in themes: light (default), dark, dimmed, high-contrast dark, high-contrast light
+
+**Issues encountered:**
+- None — straightforward type definition and theme creation. Dark theme colors matched 1:1 to existing hardcoded palette.
+
+**Handoff to next session:**
+- Next: 6.3 — Theme CSS: convert hardcoded Tailwind colors to CSS custom properties, apply via `data-theme` attribute on `<html>`
+- This is the big migration item — ~45 component files need hardcoded `bg-neutral-800`, `text-neutral-300`, etc. replaced with `bg-[var(--color-surface-secondary)]`, `text-[var(--color-text-secondary)]`, etc.
+- Theme type and all 5 themes are ready. `applyTheme()` utility injects CSS custom properties.
+- Consider: Tailwind v4 `@theme` directive could define custom property references more cleanly, or use arbitrary value syntax `bg-[var(--color-X)]`.
+- Also consider: xterm.js terminal theme (`TERMINAL_THEME` in TerminalInstance.tsx) needs to switch with app theme too.
+
+---
+
 ## Session 82 — Phase 5 export verification (2026-03-24)
 
 **What happened:**

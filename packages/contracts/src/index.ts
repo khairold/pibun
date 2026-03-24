@@ -142,6 +142,9 @@ export type { SessionTab } from "./sessionTab.js";
 // Project types (project management)
 export type { Project, ProjectModelPreference } from "./project.js";
 
+// Theme types (custom theming system)
+export type { Theme, ThemeColors, ThemeId } from "./theme.js";
+
 // Git types (git integration)
 export type {
 	GitChangedFile,
