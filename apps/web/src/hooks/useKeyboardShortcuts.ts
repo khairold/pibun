@@ -75,6 +75,14 @@ export function useKeyboardShortcuts(): void {
 						}
 						break;
 					}
+					case "e": {
+						// Ctrl/Cmd+Shift+E — toggle export dialog
+						if (isConnected && state.sessionId) {
+							e.preventDefault();
+							emitShortcut("toggleExportDialog");
+						}
+						break;
+					}
 					case "tab": {
 						// Ctrl/Cmd+Shift+Tab — previous tab
 						if (state.tabs.length > 1 && state.activeTabId) {

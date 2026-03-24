@@ -43,6 +43,7 @@ export const MENU_ACTIONS = {
 	// Session
 	abort: "session.abort",
 	compact: "session.compact",
+	exportSession: "session.export",
 	switchModel: "session.switch-model",
 	setThinking: "session.set-thinking",
 } as const;
@@ -123,6 +124,12 @@ export function buildMenuConfig(recentProjects?: RecentProject[]): ApplicationMe
 				{
 					label: "Open Recent",
 					submenu: buildOpenRecentSubmenu(recentProjects),
+				},
+				{ type: "separator" },
+				{
+					label: "Export Session…",
+					action: MENU_ACTIONS.exportSession,
+					accelerator: "CommandOrControl+Shift+E",
 				},
 				{ type: "separator" },
 				{

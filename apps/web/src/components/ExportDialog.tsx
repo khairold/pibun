@@ -5,17 +5,21 @@
  * 1. User clicks "Export" button (or Ctrl+Shift+E) → opens dropdown
  * 2. User picks a format → triggers export
  * 3. HTML: calls session.exportHtml → receives content → downloads
- * 4. Markdown: fetches messages via session.getMessages → renders to markdown → downloads
- * 5. JSON: fetches messages via session.getMessages → serializes → downloads
+ * 4. Markdown: converts local messages to markdown with session metadata → downloads
+ * 5. JSON: fetches raw Pi messages + stats → serializes with full metadata → downloads
+ *
+ * Desktop: tries native "Save As" (folder picker + write) first, falls back to blob.
+ * Browser: always uses blob URL download.
  *
  * The dropdown closes on selection, Escape, or click-outside.
  */
 
 import { cn } from "@/lib/cn";
+import { onShortcut } from "@/lib/shortcuts";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { getTransport } from "@/wireTransport";
-import type { PiAgentMessage, PiModel } from "@pibun/contracts";
+import type { PiAgentMessage, PiModel, PiSessionStats } from "@pibun/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // ============================================================================
@@ -86,17 +90,53 @@ function downloadBlob(content: string, filename: string, mimeType: string): void
 }
 
 /**
- * Convert messages to Markdown format.
+ * Format a token count for display (e.g., 1234 → "1,234").
  */
-function messagesToMarkdown(messages: ChatMessage[]): string {
+function formatNumber(n: number): string {
+	return n.toLocaleString();
+}
+
+/**
+ * Convert messages to Markdown format with session metadata.
+ *
+ * Includes:
+ * - Session name, model, export timestamp
+ * - Token usage and cost (if stats available)
+ * - User blocks, assistant blocks (with thinking in <details>)
+ * - Tool calls as code blocks, tool results with error flagging
+ * - System messages as blockquotes
+ */
+function messagesToMarkdown(
+	messages: ChatMessage[],
+	sessionName: string | null,
+	model: PiModel | null,
+	stats: PiSessionStats | null,
+): string {
 	const lines: string[] = [];
-	lines.push("# Session Export");
+
+	// Header
+	lines.push(`# ${sessionName ?? "PiBun Session"}`);
 	lines.push("");
-	lines.push(`Exported: ${new Date().toISOString()}`);
+	lines.push(`**Exported:** ${new Date().toISOString()}`);
+	if (model) {
+		lines.push(`**Model:** ${model.name} (${model.provider})`);
+	}
+	if (stats) {
+		lines.push(
+			`**Tokens:** ${formatNumber(stats.tokens.total)} (in: ${formatNumber(stats.tokens.input)}, out: ${formatNumber(stats.tokens.output)})`,
+		);
+		if (stats.cost > 0) {
+			lines.push(`**Cost:** $${stats.cost.toFixed(4)}`);
+		}
+		lines.push(
+			`**Messages:** ${stats.totalMessages} (${stats.userMessages} user, ${stats.assistantMessages} assistant, ${stats.toolCalls} tool calls)`,
+		);
+	}
 	lines.push("");
 	lines.push("---");
 	lines.push("");
 
+	// Messages
 	for (const msg of messages) {
 		switch (msg.type) {
 			case "user":
@@ -111,15 +151,17 @@ function messagesToMarkdown(messages: ChatMessage[]): string {
 				lines.push("");
 				if (msg.thinking) {
 					lines.push("<details>");
-					lines.push("<summary>Thinking</summary>");
+					lines.push("<summary>💭 Thinking</summary>");
 					lines.push("");
 					lines.push(msg.thinking);
 					lines.push("");
 					lines.push("</details>");
 					lines.push("");
 				}
-				lines.push(msg.content);
-				lines.push("");
+				if (msg.content) {
+					lines.push(msg.content);
+					lines.push("");
+				}
 				break;
 
 			case "tool_call":
@@ -135,12 +177,12 @@ function messagesToMarkdown(messages: ChatMessage[]): string {
 
 			case "tool_result":
 				if (msg.toolResult) {
-					lines.push("#### Result");
-					lines.push("");
 					if (msg.toolResult.isError) {
-						lines.push("**Error:**");
-						lines.push("");
+						lines.push("#### ❌ Error");
+					} else {
+						lines.push("#### Result");
 					}
+					lines.push("");
 					lines.push("```");
 					lines.push(msg.toolResult.content);
 					lines.push("```");
@@ -159,21 +201,61 @@ function messagesToMarkdown(messages: ChatMessage[]): string {
 }
 
 /**
- * Convert Pi agent messages to a JSON export with metadata.
+ * Convert Pi agent messages to a JSON export with full metadata.
+ *
+ * Includes model info, session stats (tokens, cost), and raw Pi messages.
  */
 function messagesToJson(
 	piMessages: PiAgentMessage[],
 	sessionName: string | null,
 	model: PiModel | null,
+	stats: PiSessionStats | null,
 ): string {
 	const payload = {
 		exportedAt: new Date().toISOString(),
 		sessionName,
-		model: model ? { provider: model.provider, id: model.id, name: model.name } : null,
+		model: model
+			? {
+					provider: model.provider,
+					id: model.id,
+					name: model.name,
+					reasoning: model.reasoning,
+					contextWindow: model.contextWindow,
+				}
+			: null,
+		stats: stats
+			? {
+					tokens: stats.tokens,
+					cost: stats.cost,
+					userMessages: stats.userMessages,
+					assistantMessages: stats.assistantMessages,
+					toolCalls: stats.toolCalls,
+					toolResults: stats.toolResults,
+					totalMessages: stats.totalMessages,
+				}
+			: null,
 		messageCount: piMessages.length,
 		messages: piMessages,
 	};
 	return JSON.stringify(payload, null, 2);
+}
+
+/**
+ * Try to save via native desktop dialog. Returns true if saved, false if unavailable.
+ */
+async function tryNativeSave(content: string, filename: string): Promise<boolean> {
+	try {
+		const transport = getTransport();
+		const result = await transport.request("app.saveExportFile", {
+			content,
+			defaultFilename: filename,
+		});
+		// null means user cancelled — still counts as "handled natively"
+		return result.filePath !== null;
+	} catch {
+		// Not available in browser mode — fall back to blob download
+		return false;
+	}
 }
 
 /** Extract a user-friendly error message from any thrown value. */
@@ -191,6 +273,7 @@ export function ExportDialog() {
 	const sessionId = useStore((s) => s.sessionId);
 	const sessionName = useStore((s) => s.sessionName);
 	const model = useStore((s) => s.model);
+	const stats = useStore((s) => s.stats);
 	const messages = useStore((s) => s.messages);
 	const setLastError = useStore((s) => s.setLastError);
 	const addToast = useStore((s) => s.addToast);
@@ -209,6 +292,15 @@ export function ExportDialog() {
 		setIsOpen((prev) => !prev);
 	}, [isDisabled]);
 
+	// Subscribe to Ctrl+Shift+E shortcut
+	useEffect(() => {
+		return onShortcut((action) => {
+			if (action === "toggleExportDialog" && !isDisabled) {
+				setIsOpen((prev) => !prev);
+			}
+		});
+	}, [isDisabled]);
+
 	// Export in the selected format
 	const handleExport = useCallback(
 		async (format: FormatOption) => {
@@ -218,33 +310,42 @@ export function ExportDialog() {
 			try {
 				const transport = getTransport();
 				let content: string;
-				let filename: string;
+				const filename = generateFilename(format, sessionName);
 
 				switch (format.id) {
 					case "html": {
 						const result = await transport.request("session.exportHtml", {});
 						content = result.html;
-						filename = generateFilename(format, sessionName);
 						break;
 					}
 
 					case "markdown": {
-						// Use local messages for markdown (already in the store)
-						content = messagesToMarkdown(messages);
-						filename = generateFilename(format, sessionName);
+						content = messagesToMarkdown(messages, sessionName, model, stats);
 						break;
 					}
 
 					case "json": {
 						// Fetch raw Pi messages for complete JSON export
-						const result = await transport.request("session.getMessages");
-						content = messagesToJson(result.messages, sessionName, model);
-						filename = generateFilename(format, sessionName);
+						const msgResult = await transport.request("session.getMessages");
+						// Fetch fresh stats for accurate token/cost data
+						let freshStats = stats;
+						try {
+							const statsResult = await transport.request("session.getStats");
+							freshStats = statsResult.stats;
+						} catch {
+							// Use cached stats if fetch fails
+						}
+						content = messagesToJson(msgResult.messages, sessionName, model, freshStats);
 						break;
 					}
 				}
 
-				downloadBlob(content, filename, format.mimeType);
+				// Desktop: try native save dialog first, fall back to blob download
+				const savedNatively = await tryNativeSave(content, filename);
+				if (!savedNatively) {
+					downloadBlob(content, filename, format.mimeType);
+				}
+
 				addToast(`Exported as ${format.label}`, "info");
 			} catch (err) {
 				setLastError(`Export failed: ${errorMessage(err)}`);
@@ -252,7 +353,7 @@ export function ExportDialog() {
 				setIsExporting(false);
 			}
 		},
-		[sessionName, model, messages, setLastError, addToast],
+		[sessionName, model, stats, messages, setLastError, addToast],
 	);
 
 	// Close on Escape

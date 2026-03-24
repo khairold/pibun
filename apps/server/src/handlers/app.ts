@@ -13,6 +13,8 @@
 
 import type {
 	WsAppOpenFolderDialogResult,
+	WsAppSaveExportFileParams,
+	WsAppSaveExportFileResult,
 	WsAppSetWindowTitleParams,
 	WsOkResult,
 } from "@pibun/contracts";
@@ -95,4 +97,25 @@ export const handleAppSetWindowTitle: WsHandler<"app.setWindowTitle"> = (
 	}
 	// Don't throw in browser mode — the web app also sets document.title as fallback
 	return { ok: true };
+};
+
+// ============================================================================
+// app.saveExportFile
+// ============================================================================
+
+/**
+ * Save exported content to disk via native folder picker.
+ *
+ * Desktop: opens native folder dialog → writes file to selectedFolder/defaultFilename.
+ * Browser: throws error — client falls back to blob URL download.
+ */
+export const handleAppSaveExportFile: WsHandler<"app.saveExportFile"> = async (
+	params: WsAppSaveExportFileParams,
+	ctx: HandlerContext,
+): Promise<WsAppSaveExportFileResult> => {
+	if (!ctx.hooks.onSaveExportFile) {
+		throw new Error("Native save dialog is not available in browser mode");
+	}
+	const filePath = await ctx.hooks.onSaveExportFile(params.content, params.defaultFilename);
+	return { filePath };
 };

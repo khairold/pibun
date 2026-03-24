@@ -9,6 +9,7 @@ import {
 	handleAppApplyUpdate,
 	handleAppCheckForUpdates,
 	handleAppOpenFolderDialog,
+	handleAppSaveExportFile,
 	handleAppSetWindowTitle,
 } from "./app.js";
 import { handleGitBranch, handleGitDiff, handleGitLog, handleGitStatus } from "./git.js";
@@ -117,4 +118,5 @@ export const handlers: HandlerRegistry = {
 	"app.checkForUpdates": handleAppCheckForUpdates,
 	"app.openFolderDialog": handleAppOpenFolderDialog,
 	"app.setWindowTitle": handleAppSetWindowTitle,
+	"app.saveExportFile": handleAppSaveExportFile,
 };

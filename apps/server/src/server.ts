@@ -58,6 +58,8 @@ export interface ServerHooks {
 	onProjectsChanged?: () => void;
 	/** Called when the web app requests `app.setWindowTitle`. Sets the native window title. */
 	onSetWindowTitle?: (title: string) => void;
+	/** Called when the web app requests `app.saveExportFile`. Opens native folder picker, writes file. Returns saved path or null. */
+	onSaveExportFile?: (content: string, defaultFilename: string) => Promise<string | null>;
 }
 
 /** Options for creating the server. */

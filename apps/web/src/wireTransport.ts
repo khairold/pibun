@@ -588,6 +588,10 @@ function handleMenuAction(data: WsMenuActionData): void {
 			emitShortcut("toggleThinkingSelector");
 			break;
 
+		case "session.export":
+			emitShortcut("toggleExportDialog");
+			break;
+
 		default:
 			console.log(`[Menu] Unhandled menu action: ${action}`);
 			break;

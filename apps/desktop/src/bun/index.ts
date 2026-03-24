@@ -259,6 +259,8 @@ function startServer(): { server: PiBunServer; url: string } {
 			onApplyUpdate: () => handleApplyUpdate(),
 			onCheckForUpdates: () => handleCheckForUpdates(),
 			onOpenFolderDialog: () => openFolderDialogAsync(),
+			onSaveExportFile: (content: string, defaultFilename: string) =>
+				saveExportFileAsync(content, defaultFilename),
 			onProjectsChanged: () => {
 				refreshRecentMenu();
 			},
@@ -347,6 +349,37 @@ async function openFolderDialogAsync(): Promise<string | null> {
 
 	console.log(`[FileDialog] Folder selected: ${folderPath}`);
 	return folderPath;
+}
+
+/**
+ * Open a native folder picker to choose a save directory, then write the file.
+ *
+ * Used as a server hook (`onSaveExportFile`) for the `app.saveExportFile`
+ * WS method. Desktop opens a folder picker → writes file to selectedFolder/defaultFilename.
+ *
+ * @returns The full path of the saved file, or null if the user cancelled.
+ */
+async function saveExportFileAsync(
+	content: string,
+	defaultFilename: string,
+): Promise<string | null> {
+	const result = await Utils.openFileDialog({
+		startingFolder: "~/Desktop",
+		canChooseFiles: false,
+		canChooseDirectory: true,
+		allowsMultipleSelection: false,
+	});
+
+	const folderPath = result[0];
+	if (!folderPath || folderPath === "") {
+		console.log("[SaveExport] Save cancelled");
+		return null;
+	}
+
+	const filePath = resolve(folderPath, defaultFilename);
+	await Bun.write(filePath, content);
+	console.log(`[SaveExport] File saved to: ${filePath}`);
+	return filePath;
 }
 
 /**

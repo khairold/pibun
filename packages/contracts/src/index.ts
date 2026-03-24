@@ -199,6 +199,8 @@ export type {
 	WsSessionSwitchSessionParams,
 	WsSessionSwitchSessionResult,
 	WsAppOpenFolderDialogResult,
+	WsAppSaveExportFileParams,
+	WsAppSaveExportFileResult,
 	WsAppSetWindowTitleParams,
 	WsTerminalCloseParams,
 	WsTerminalCreateParams,

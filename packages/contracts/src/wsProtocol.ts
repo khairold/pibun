@@ -84,6 +84,7 @@ export const WS_METHODS = {
 	appCheckForUpdates: "app.checkForUpdates",
 	appOpenFolderDialog: "app.openFolderDialog",
 	appSetWindowTitle: "app.setWindowTitle",
+	appSaveExportFile: "app.saveExportFile",
 } as const;
 
 /** Union of all WebSocket method strings. */
@@ -329,6 +330,14 @@ export interface WsAppSetWindowTitleParams {
 	title: string;
 }
 
+/** Params for `app.saveExportFile` — save exported content to disk via native dialog. */
+export interface WsAppSaveExportFileParams {
+	/** The file content to save. */
+	content: string;
+	/** Suggested filename (e.g., "session_2026-03-23.md"). */
+	defaultFilename: string;
+}
+
 // ============================================================================
 // Method → Params Type Map
 // ============================================================================
@@ -383,6 +392,7 @@ export interface WsMethodParamsMap {
 	"app.checkForUpdates": undefined;
 	"app.openFolderDialog": undefined;
 	"app.setWindowTitle": WsAppSetWindowTitleParams;
+	"app.saveExportFile": WsAppSaveExportFileParams;
 }
 
 // ============================================================================
@@ -532,6 +542,12 @@ export interface WsAppOpenFolderDialogResult {
 	folderPath: string | null;
 }
 
+/** Result for `app.saveExportFile` — native save file dialog + write. */
+export interface WsAppSaveExportFileResult {
+	/** Full path of the saved file, or null if the user cancelled. */
+	filePath: string | null;
+}
+
 // ============================================================================
 // Method → Result Type Map
 // ============================================================================
@@ -578,6 +594,7 @@ export interface WsMethodResultMap {
 	"app.checkForUpdates": WsOkResult;
 	"app.openFolderDialog": WsAppOpenFolderDialogResult;
 	"app.setWindowTitle": WsOkResult;
+	"app.saveExportFile": WsAppSaveExportFileResult;
 }
 
 // ============================================================================

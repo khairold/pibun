@@ -3,7 +3,7 @@
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
 > **Status:** Phase 5 in progress
 > **Current Phase:** Phase 5 — Session Export & Sharing
-> **Last Session:** Session 80 — 2026-03-23
+> **Last Session:** Session 81 — 2026-03-23
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -114,11 +114,11 @@
 
 - [x] 5.1 — Pi's `export_html` RPC command already exists — wire it through: `session.exportHtml` WS method
 - [x] 5.2 — Build `ExportDialog` component: format picker (HTML, Markdown, JSON), filename, download button
-- [ ] 5.3 — Markdown export: render messages to markdown (user blocks, assistant blocks, tool calls as code blocks)
-- [ ] 5.4 — JSON export: raw message array dump with metadata (model, tokens, timestamps)
-- [ ] 5.5 — Desktop: native "Save As…" dialog for export destination
-- [ ] 5.6 — Browser: trigger download via blob URL
-- [ ] 5.7 — Keyboard shortcut: Ctrl+Shift+E export dialog
+- [x] 5.3 — Markdown export: render messages to markdown (user blocks, assistant blocks, tool calls as code blocks)
+- [x] 5.4 — JSON export: raw message array dump with metadata (model, tokens, timestamps)
+- [x] 5.5 — Desktop: native "Save As…" dialog for export destination
+- [x] 5.6 — Browser: trigger download via blob URL
+- [x] 5.7 — Keyboard shortcut: Ctrl+Shift+E export dialog
 - [ ] 5.8 — Verify: export a conversation in all 3 formats, verify content is complete and readable
 
 **Exit criteria:** All 3 export formats work. HTML is self-contained and styled. Markdown is clean. JSON is complete.

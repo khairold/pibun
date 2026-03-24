@@ -864,3 +864,34 @@
 - Read `reference/pi-mono/packages/coding-agent/docs/rpc.md` for `export_html` command details
 
 ---
+
+## Session 81 — Phase 5 items 5.3–5.7: Markdown/JSON enhancements + Desktop Save As + Keyboard shortcut (2026-03-23)
+
+**What happened:**
+- Enhanced `messagesToMarkdown()` with session metadata header: model name/provider, token stats, cost, message breakdown. Thinking blocks use 💭 emoji. Error tool results flagged with ❌.
+- Enhanced `messagesToJson()` with full stats (tokens, cost, message counts) and expanded model info (reasoning, contextWindow). Now fetches fresh stats from Pi before export.
+- Added `app.saveExportFile` WS method end-to-end: contracts types (`WsAppSaveExportFileParams/Result`) → server handler (`handleAppSaveExportFile`) → server hook (`onSaveExportFile`) → desktop implementation (`saveExportFileAsync` — folder picker + `Bun.write()`).
+- Updated ExportDialog to try native save first, fall back to blob download in browser mode.
+- Added `toggleExportDialog` to `ShortcutAction`, wired Ctrl+Shift+E in `useKeyboardShortcuts`.
+- ExportDialog subscribes to shortcut event via `onShortcut()`.
+- Added "Export Session…" menu item to desktop File menu with Cmd+Shift+E accelerator.
+- Added `session.export` menu action handling in `wireTransport.ts`.
+- Browser blob download already existed from session 80 (`downloadBlob()` function) — verified still works as fallback.
+
+**Items completed:**
+- [x] 5.3 — Markdown export: render messages to markdown (user blocks, assistant blocks, tool calls as code blocks)
+- [x] 5.4 — JSON export: raw message array dump with metadata (model, tokens, timestamps)
+- [x] 5.5 — Desktop: native "Save As…" dialog for export destination
+- [x] 5.6 — Browser: trigger download via blob URL
+- [x] 5.7 — Keyboard shortcut: Ctrl+Shift+E export dialog
+
+**Issues encountered:**
+- Electrobun has no native "Save As" dialog — only `openFileDialog`. Used folder picker + `Bun.write()` as workaround. User picks destination folder, file is written with generated filename.
+- `session.getStats` returns `{ stats: PiSessionStats }`, not `PiSessionStats` directly — needed to unwrap in ExportDialog.
+
+**Handoff to next session:**
+- Next: 5.8 — Verify: export a conversation in all 3 formats, verify content is complete and readable
+- This is the last item in Phase 5. Complete it, verify exit criteria, then mark phase complete.
+- Key files: `apps/web/src/components/ExportDialog.tsx`, `apps/server/src/handlers/app.ts`, `apps/desktop/src/bun/index.ts`
+
+---
