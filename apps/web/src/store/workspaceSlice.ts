@@ -52,9 +52,13 @@ function nextTabId(): string {
 	return `tab-${String(++tabIdCounter)}`;
 }
 
-/** Generate a default tab name based on tab count. */
-function defaultTabName(index: number): string {
-	return `Session ${String(index + 1)}`;
+/**
+ * Default tab name — empty string so display logic falls through
+ * to firstMessage (auto-named from first user prompt).
+ * The sidebar shows "New session" as the final fallback.
+ */
+function defaultTabName(): string {
+	return "";
 }
 
 /** Extract the first user message text from a messages array. */
@@ -123,7 +127,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 		const id = nextTabId();
 		const tab: SessionTab = {
 			id,
-			name: partial?.name ?? defaultTabName(state.tabs.length),
+			name: partial?.name ?? defaultTabName(),
 			sessionId: partial?.sessionId ?? null,
 			piSessionId: null,
 			cwd: partial?.cwd ?? null,

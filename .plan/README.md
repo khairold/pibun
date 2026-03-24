@@ -1,6 +1,6 @@
 # .plan/
 
-No active plan. Future work tracked in `/TODO.md`.
+**Active plan:** Single-session simplification (v4)
 
 ## Archive
 
