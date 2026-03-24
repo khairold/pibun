@@ -342,6 +342,18 @@ export const CompletionSummary = memo(function CompletionSummary({
 	);
 });
 
+// ==== Helpers ====
+
+/**
+ * Shorten an absolute file path to just the last 2 segments for compact display.
+ * e.g., `/Users/foo/project/src/components/App.tsx` → `components/App.tsx`
+ */
+function shortenPath(filePath: string): string {
+	const segments = filePath.split("/").filter(Boolean);
+	if (segments.length <= 2) return filePath;
+	return segments.slice(-2).join("/");
+}
+
 // ==== TurnDivider ====
 
 interface TurnDividerProps {
@@ -351,6 +363,8 @@ interface TurnDividerProps {
 	toolCount: number;
 	/** Elapsed wall-clock time (ms) since the previous user message, or null if not available. */
 	elapsedMs: number | null;
+	/** Unique file paths modified (edit/write) in the preceding assistant turn. */
+	changedFiles: string[];
 }
 
 /**
@@ -369,43 +383,101 @@ export const TurnDivider = memo(function TurnDivider({
 	timestamp,
 	toolCount,
 	elapsedMs,
+	changedFiles,
 }: TurnDividerProps) {
 	const timestampFormat = useStore((s) => s.timestampFormat);
+	const [filesExpanded, setFilesExpanded] = useState(false);
+	const fileCount = changedFiles.length;
 
 	return (
-		<div className="flex items-center gap-2 py-1">
-			<div className="h-px flex-1 bg-border-primary/30" />
-			<div className="flex shrink-0 items-center gap-1.5">
-				{toolCount > 0 && (
-					<span className="flex items-center gap-1 rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] text-text-muted">
-						{/* Wrench icon */}
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 16 16"
-							fill="currentColor"
-							className="h-2.5 w-2.5"
-							aria-label="Tool calls"
-							role="img"
+		<div className="flex flex-col items-center gap-0.5 py-1">
+			<div className="flex w-full items-center gap-2">
+				<div className="h-px flex-1 bg-border-primary/30" />
+				<div className="flex shrink-0 items-center gap-1.5">
+					{toolCount > 0 && (
+						<span className="flex items-center gap-1 rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] text-text-muted">
+							{/* Wrench icon */}
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 16 16"
+								fill="currentColor"
+								className="h-2.5 w-2.5"
+								aria-label="Tool calls"
+								role="img"
+							>
+								<path
+									fillRule="evenodd"
+									d="M11.5 1a3.5 3.5 0 0 0-3.29 4.708L3.5 10.42l-.22.22a.75.75 0 0 0 0 1.06l1.06 1.06a.75.75 0 0 0 1.06 0l.22-.22 4.71-4.71A3.5 3.5 0 1 0 11.5 1ZM10 4.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z"
+									clipRule="evenodd"
+								/>
+							</svg>
+							{toolCount} {toolCount === 1 ? "tool call" : "tool calls"}
+						</span>
+					)}
+					{fileCount > 0 && (
+						<button
+							type="button"
+							onClick={() => setFilesExpanded((p) => !p)}
+							className="flex items-center gap-1 rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-secondary"
+							title={changedFiles.join("\n")}
 						>
-							<path
-								fillRule="evenodd"
-								d="M11.5 1a3.5 3.5 0 0 0-3.29 4.708L3.5 10.42l-.22.22a.75.75 0 0 0 0 1.06l1.06 1.06a.75.75 0 0 0 1.06 0l.22-.22 4.71-4.71A3.5 3.5 0 1 0 11.5 1ZM10 4.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z"
-								clipRule="evenodd"
-							/>
-						</svg>
-						{toolCount} {toolCount === 1 ? "tool call" : "tool calls"}
+							{/* File icon */}
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 16 16"
+								fill="currentColor"
+								className="h-2.5 w-2.5"
+								aria-label="Changed files"
+								role="img"
+							>
+								<path d="M4 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6.414A2 2 0 0 0 13.414 5L11 2.586A2 2 0 0 0 9.586 2H4Zm7 7a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1 0-1.5h4.5A.75.75 0 0 1 11 9Zm0 2.5a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1 0-1.5h4.5a.75.75 0 0 1 .75.75Z" />
+							</svg>
+							{fileCount} {fileCount === 1 ? "file" : "files"} changed
+							{/* Chevron */}
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 16 16"
+								fill="currentColor"
+								className={cn(
+									"h-2.5 w-2.5 transition-transform duration-150",
+									filesExpanded && "rotate-180",
+								)}
+								aria-label="Toggle file list"
+								role="img"
+							>
+								<path
+									fillRule="evenodd"
+									d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z"
+									clipRule="evenodd"
+								/>
+							</svg>
+						</button>
+					)}
+					{elapsedMs !== null && (
+						<span className="rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] text-text-muted">
+							{formatDuration(elapsedMs)}
+						</span>
+					)}
+					<span className="text-[10px] text-text-muted/60">
+						{formatTimestamp(timestamp, timestampFormat)}
 					</span>
-				)}
-				{elapsedMs !== null && (
-					<span className="rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] text-text-muted">
-						{formatDuration(elapsedMs)}
-					</span>
-				)}
-				<span className="text-[10px] text-text-muted/60">
-					{formatTimestamp(timestamp, timestampFormat)}
-				</span>
+				</div>
+				<div className="h-px flex-1 bg-border-primary/30" />
 			</div>
-			<div className="h-px flex-1 bg-border-primary/30" />
+			{/* Expanded file list */}
+			{filesExpanded && fileCount > 0 && (
+				<div className="flex flex-col items-center gap-0.5 py-0.5">
+					{changedFiles.map((filePath) => (
+						<span
+							key={filePath}
+							className="max-w-md truncate text-[10px] text-text-muted/70"
+							title={filePath}
+						>
+							{shortenPath(filePath)}
+						</span>
+					))}
+				</div>
+			)}
 		</div>
 	);
 });

@@ -828,3 +828,29 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 28 — Per-turn changed files tracking (2026-03-24)
+
+**What happened:**
+- Implemented per-turn file change tracking (3.4):
+  - **`collectChangedFile()` helper**: Extracts file paths from `edit` and `write` tool calls (the two file-modifying tools). `read`, `bash`, `glob`, `grep` are excluded as they don't modify files. Uses `FILE_MODIFYING_TOOLS` Set constant for O(1) lookup.
+  - **`groupMessages()` extended**: Added `turnChangedFiles: Set<string>` accumulator. Calls `collectChangedFile()` for each tool_call encountered. Set ensures deduplication (same file edited multiple times in a turn = counted once). `changedFiles: string[]` (converted from Set) added to each `turn-divider` entry. Reset on each new user message (new turn boundary).
+  - **`TimelineEntry` type extended**: `turn-divider` kind now includes `changedFiles: string[]`.
+  - **`TurnDivider` component enhanced**: New "N files changed" clickable badge with file icon + chevron toggle. Clicking expands a compact file list below the divider line showing shortened paths (last 2 segments). Full path shown on hover (`title` attribute). Badge uses same pill style as tool count/elapsed time badges. `shortenPath()` helper extracts last 2 path segments for compact display.
+  - **`TimelineEntryRenderer` updated**: Passes `changedFiles` prop to `TurnDivider`.
+- Only 2 files modified: `ChatView.tsx` (grouping logic + type), `ChatMessages.tsx` (rendering).
+
+**Items completed:**
+- [x] 3.4 — Track per-turn file changes: collect file paths from Edit/Write tool calls, display as "Changed files" badge on turn divider
+
+**Issues encountered:**
+- None. Clean implementation — all data was already available in `ChatMessage.toolCall.args.path`.
+
+**Handoff to next session:**
+- Next: 3.5 — Add diff data pipeline: server handler to read Pi session file + git diff between turns, new WS method `session.getTurnDiff`
+- `changedFiles` is populated from tool_call args only (not from tool_result content). This means if a tool call is still running (no result yet), the file path is still tracked.
+- Turn dividers now show: [tool count badge] [files changed badge (expandable)] [elapsed time badge] [timestamp]. All optional.
+- `shortenPath()` lives in `ChatMessages.tsx` — if needed elsewhere, extract to `utils.ts`.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

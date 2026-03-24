@@ -71,11 +71,29 @@ export type TimelineEntry =
 			timestamp: number;
 			toolCount: number;
 			elapsedMs: number | null;
+			/** Unique file paths modified by Edit/Write tool calls in the preceding turn. */
+			changedFiles: string[];
 	  }
 	| { kind: "completion-summary"; id: string; timestamp: number; content: string };
 
 /** Prefix used to identify completion summary system messages. */
 const COMPLETION_PREFIX = "✓ Worked for";
+
+/** Tool names whose `path` arg represents a file modification. */
+const FILE_MODIFYING_TOOLS = new Set(["edit", "write"]);
+
+/**
+ * Extract the file path from a tool_call message if it's a file-modifying tool
+ * (edit or write) and add it to the changed files set.
+ */
+function collectChangedFile(msg: ChatMessage, changedFiles: Set<string>): void {
+	const tc = msg.toolCall;
+	if (!tc || !FILE_MODIFYING_TOOLS.has(tc.name)) return;
+	const path = tc.args.path;
+	if (typeof path === "string" && path.length > 0) {
+		changedFiles.add(path);
+	}
+}
 
 /**
  * Group messages into timeline entries.
@@ -96,6 +114,8 @@ function groupMessages(messages: readonly ChatMessage[]): TimelineEntry[] {
 	let turnToolCount = 0;
 	/** Timestamp of the previous user message (to compute elapsed time between turns). */
 	let prevUserTimestamp: number | null = null;
+	/** Unique file paths modified by Edit/Write tool calls in the current turn. */
+	let turnChangedFiles: Set<string> = new Set();
 	/** Counter for generating unique IDs. */
 	let dividerCounter = 0;
 	let workGroupCounter = 0;
@@ -117,10 +137,12 @@ function groupMessages(messages: readonly ChatMessage[]): TimelineEntry[] {
 					timestamp: msg.timestamp,
 					toolCount: turnToolCount,
 					elapsedMs: elapsedMs !== null && elapsedMs > 0 ? elapsedMs : null,
+					changedFiles: Array.from(turnChangedFiles),
 				});
 			}
 			seenFirstUser = true;
 			turnToolCount = 0;
+			turnChangedFiles = new Set();
 			prevUserTimestamp = msg.timestamp;
 		}
 
@@ -130,6 +152,8 @@ function groupMessages(messages: readonly ChatMessage[]): TimelineEntry[] {
 			while (i < messages.length && messages[i]?.type === "tool_call") {
 				const tc = messages[i] as ChatMessage;
 				turnToolCount++;
+				// Track file paths from file-modifying tools (edit, write)
+				collectChangedFile(tc, turnChangedFiles);
 				const next = i + 1 < messages.length ? messages[i + 1] : undefined;
 				if (next?.type === "tool_result") {
 					toolEntries.push({ toolCall: tc, toolResult: next });
@@ -213,6 +237,7 @@ const TimelineEntryRenderer = memo(function TimelineEntryRenderer({
 					timestamp={entry.timestamp}
 					toolCount={entry.toolCount}
 					elapsedMs={entry.elapsedMs}
+					changedFiles={entry.changedFiles}
 				/>
 			);
 		case "completion-summary":
