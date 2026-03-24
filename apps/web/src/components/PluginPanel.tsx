@@ -16,7 +16,38 @@ import { resolvePluginComponentUrl } from "@/lib/pluginActions";
 import { registerPluginFrame, unregisterPluginFrame } from "@/lib/pluginMessageBridge";
 import { useStore } from "@/store";
 import type { ActivePluginPanel } from "@/store/types";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import type { Plugin, PluginPanelPosition } from "@pibun/contracts";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+// ============================================================================
+// Helper — pure function for deriving active panels (used with useMemo)
+// ============================================================================
+
+function getActivePanelsByPosition(
+	plugins: Plugin[],
+	activePanels: Set<string>,
+	position: PluginPanelPosition,
+): ActivePluginPanel[] {
+	const result: ActivePluginPanel[] = [];
+	for (const plugin of plugins) {
+		if (!plugin.enabled || plugin.error) continue;
+		for (const panel of plugin.manifest.panels) {
+			if (panel.position !== position) continue;
+			const panelKey = `${plugin.manifest.id}:${panel.id}`;
+			if (activePanels.has(panelKey)) {
+				result.push({
+					pluginId: plugin.manifest.id,
+					panelId: panel.id,
+					title: panel.title,
+					icon: panel.icon,
+					component: panel.component,
+					defaultSize: panel.defaultSize,
+				});
+			}
+		}
+	}
+	return result;
+}
 
 // ============================================================================
 // Plugin Panel Frame
@@ -135,7 +166,12 @@ const PluginPanelFrame = memo(function PluginPanelFrame({
  * Similar to TerminalPane — appears below the chat area.
  */
 export function PluginBottomPanels() {
-	const panels = useStore((s) => s.getActivePluginPanelsByPosition("bottom"));
+	const plugins = useStore((s) => s.plugins);
+	const activePluginPanels = useStore((s) => s.activePluginPanels);
+	const panels = useMemo(
+		() => getActivePanelsByPosition(plugins, activePluginPanels, "bottom"),
+		[plugins, activePluginPanels],
+	);
 
 	if (panels.length === 0) return null;
 
@@ -160,7 +196,12 @@ export function PluginBottomPanels() {
  * Appears in the sidebar, below projects and past sessions.
  */
 export function PluginSidebarPanels() {
-	const panels = useStore((s) => s.getActivePluginPanelsByPosition("sidebar"));
+	const plugins = useStore((s) => s.plugins);
+	const activePluginPanels = useStore((s) => s.activePluginPanels);
+	const panels = useMemo(
+		() => getActivePanelsByPosition(plugins, activePluginPanels, "sidebar"),
+		[plugins, activePluginPanels],
+	);
 
 	if (panels.length === 0) return null;
 
@@ -182,7 +223,12 @@ export function PluginSidebarPanels() {
  * Appears as a right panel adjacent to the main area.
  */
 export function PluginRightPanels() {
-	const panels = useStore((s) => s.getActivePluginPanelsByPosition("right"));
+	const plugins = useStore((s) => s.plugins);
+	const activePluginPanels = useStore((s) => s.activePluginPanels);
+	const panels = useMemo(
+		() => getActivePanelsByPosition(plugins, activePluginPanels, "right"),
+		[plugins, activePluginPanels],
+	);
 
 	if (panels.length === 0) return null;
 

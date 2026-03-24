@@ -6,159 +6,43 @@ Ship incrementally. Each phase produces a usable artifact. Don't build the deskt
 
 ---
 
-## Phase 0 — Scaffold ✍️ (current)
+## Completed
 
-**Goal:** Documentation and project setup.
+### v1 Plan — Core Application (97 items, 51 sessions)
 
-- [x] Pick a name
-- [x] Document architecture
-- [x] Document Pi RPC integration
-- [x] Document WebSocket protocol
-- [x] Document web UI design
-- [x] Document desktop plan
-- [x] Document roadmap
-- [ ] Initialize Bun monorepo with Turbo
-- [ ] Set up TypeScript configs
-- [ ] Set up linting (Biome or oxlint)
-- [ ] Set up formatting
-- [ ] Create package scaffolds (empty src/ dirs with package.json)
-- [ ] Verify `pi --mode rpc` works locally (manual test)
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 0 | Scaffold — monorepo, TypeScript, Biome, package scaffolds | ✅ Complete |
+| Phase 1A | Server + Pi RPC Bridge — PiRpcManager, JSONL parser, process lifecycle | ✅ Complete |
+| Phase 1B | WebSocket Server — HTTP/WS server, request routing, Pi event forwarding | ✅ Complete |
+| Phase 1C | Web UI (Minimal) — chat, streaming text, tool output, auto-scroll | ✅ Complete |
+| Phase 1D | Web UI (Full) — thinking blocks, syntax highlighting, model/thinking selectors, session management, extension UI, image paste, sidebar, responsive layout | ✅ Complete |
+| Phase 2A | Electrobun Scaffold — desktop app, embedded server, window persistence | ✅ Complete |
+| Phase 2B | Native Integration — menus, file dialogs, notifications, keyboard shortcuts, app icon | ✅ Complete |
+| Phase 2C | Distribution — macOS/Linux/Windows builds, code signing, auto-update, CI/CD | ✅ Complete |
 
-**Deliverable:** Empty monorepo that builds and lints.
+### v2 Plan — Extended Features (69 items, 44 sessions)
 
----
-
-## Phase 1A — Server + Pi RPC Bridge
-
-**Goal:** The server can spawn Pi, send prompts, and receive streaming events.
-
-- [ ] Implement `PiRpcManager` — spawn, send, receive, stop
-- [ ] JSONL parser with strict LF splitting
-- [ ] Unit tests for JSONL parsing edge cases
-- [ ] Manual test: spawn Pi, send a prompt, log events to console
-- [ ] Handle Pi process crash/exit gracefully
-
-**Deliverable:** A script that talks to Pi via RPC and prints streaming output.
+| Phase | Description | Verification |
+|-------|-------------|-------------|
+| Phase 1 | Multi-Session & Tabs — concurrent Pi processes, tabbed UI, drag-to-reorder | 40/40 checks ✅ |
+| Phase 2 | Project Management — sidebar, CRUD, persistence, Open Recent, Cmd+O | 28/28 + 20/20 checks ✅ |
+| Phase 3 | Git Integration — status, branch, changed files, diff viewer with Shiki | 39/39 checks ✅ |
+| Phase 4 | Terminal Integration — PTY via bun-pty, xterm.js, multiple tabs, resizable | 43/43 checks ✅ |
+| Phase 5 | Session Export — HTML/Markdown/JSON export, native Save As dialog | 89/89 checks ✅ |
+| Phase 6 | Custom Themes — 5 built-in themes, CSS custom properties, system preference | 104/104 checks ✅ |
+| Phase 7 | Plugin System — manifest, sandboxed iframes, postMessage bridge, example plugin | 116/116 checks ✅ |
 
 ---
 
-## Phase 1B — WebSocket Server
+## Parking Lot
 
-**Goal:** Browser can connect and interact with Pi through the server.
+Ideas for future consideration:
 
-- [ ] HTTP server (serves static files in prod, redirects to Vite in dev)
-- [ ] WebSocket upgrade handling
-- [ ] Request routing (method dispatch)
-- [ ] `session.start` → spawns Pi RPC
-- [ ] `session.prompt` → forwards to Pi
-- [ ] `session.abort` → forwards abort
-- [ ] Pi events → WebSocket push on `pi.event` channel
-- [ ] Pi responses → WebSocket push on `pi.response` channel
-- [ ] Connection auth (optional token)
-- [ ] Welcome message on connect
-
-**Deliverable:** A WebSocket server you can test with `wscat` or a simple HTML page.
-
----
-
-## Phase 1C — Web UI (Minimal)
-
-**Goal:** Usable chat interface in the browser.
-
-- [ ] Vite + React + Tailwind setup
-- [ ] `WsTransport` class (connect, request, subscribe, reconnect)
-- [ ] Zustand store with session + messages state
-- [ ] Composer — text input, send on Enter, abort button
-- [ ] Chat view — render user messages and assistant text
-- [ ] Streaming text — append `text_delta` events in real-time
-- [ ] Auto-scroll with "new messages" button
-- [ ] Basic tool output rendering (bash output, file reads)
-- [ ] Loading/connecting state indicators
-
-**Deliverable:** Working chat with Pi in the browser.
-
----
-
-## Phase 1D — Web UI (Full)
-
-**Goal:** Feature-complete web experience.
-
-- [ ] Thinking blocks (collapsible, streaming)
-- [ ] Tool call cards (name, args, expandable output)
-- [ ] Syntax highlighting for code blocks (Shiki)
-- [ ] Markdown rendering for assistant output
-- [ ] Model selector (list from `get_available_models`)
-- [ ] Thinking level selector
-- [ ] Session management (new, switch, fork)
-- [ ] Session stats display (tokens, cost)
-- [ ] Compaction control (manual trigger, auto-compaction indicator)
-- [ ] Extension UI dialogs (select, confirm, input)
-- [ ] Extension notifications and status
-- [ ] Message steering and follow-up support
-- [ ] Image paste in composer
-- [ ] Keyboard shortcuts
-- [ ] Sidebar with session list
-- [ ] Error handling and retry indicators
-- [ ] Responsive layout
-
-**Deliverable:** Complete web app, ready for desktop wrapping.
-
----
-
-## Phase 2A — Electrobun Scaffold
-
-**Goal:** Desktop app opens and loads the web app.
-
-- [ ] Electrobun project setup
-- [ ] Main process starts PiBun server
-- [ ] Native webview loads localhost URL
-- [ ] Window lifecycle (open, close, remember size/position)
-- [ ] Dev mode with Vite hot reload
-
-**Deliverable:** Desktop app that works, even if it's just a webview wrapper.
-
----
-
-## Phase 2B — Native Integration
-
-**Goal:** Desktop app feels native.
-
-- [ ] Native menu bar (File, Edit, View, Session menus)
-- [ ] Menu actions → WebSocket commands
-- [ ] Native file dialogs for project folder selection
-- [ ] System notifications for long-running operations
-- [ ] Keyboard shortcuts mapped to native accelerators
-- [ ] App icon and branding
-
-**Deliverable:** Desktop app that feels like a real app, not a wrapped webpage.
-
----
-
-## Phase 2C — Distribution
-
-**Goal:** Users can install PiBun.
-
-- [ ] macOS: .dmg build with code signing
-- [ ] Linux: AppImage build
-- [ ] Windows: NSIS installer
-- [ ] Auto-update mechanism
-- [ ] GitHub Releases pipeline
-- [ ] Smoke tests for each platform
-
-**Deliverable:** Downloadable installers on GitHub Releases.
-
----
-
-## Future (Unscheduled)
-
-These are ideas, not commitments:
-
-- [ ] Multi-session — multiple Pi processes, tabbed interface
-- [ ] Project management — sidebar with multiple project directories
-- [ ] Git integration — branch status, diff view
-- [ ] Terminal integration — embedded terminal pane
-- [ ] Pi extension marketplace — browse and install extensions from the UI
-- [ ] Session export — HTML export of conversations
-- [ ] Collaborative sessions — multiple users watching the same Pi session
-- [ ] Custom themes — light/dark mode, custom colors
-- [ ] Plugin system — extend PiBun's UI with custom panels
+- **Pi extension marketplace** — browse and install Pi extensions from the UI (depends on Pi having a registry)
+- **Collaborative sessions** — multiple users watching the same Pi session (WebSocket fan-out already exists, needs auth + multi-user state)
+- **Voice input** — microphone → STT → prompt
+- **Session search** — full-text search across all conversations
+- **Prompt templates UI** — browse and use Pi's prompt templates from a panel
+- **Diff review mode** — after agent makes changes, show all diffs in a review panel before committing
+- **Split view** — two conversations side by side

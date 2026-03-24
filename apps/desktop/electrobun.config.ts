@@ -29,6 +29,9 @@ export default {
 		// Destination paths are relative to Resources/app/ in the bundle.
 		copy: {
 			"../web/dist": "web-dist",
+			// bun-pty native library — required for terminal integration.
+			// The bundled code (bun/index.js) resolves the dylib relative to itself.
+			"../../node_modules/bun-pty/rust-pty": "bun/rust-pty",
 		},
 		mac: {
 			bundleCEF: false,
