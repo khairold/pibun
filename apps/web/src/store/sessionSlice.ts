@@ -124,6 +124,8 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
 			sessionName: null,
 			sessionFile: null,
 			statuses: new Map<string, string>(),
+			extensionWidgets: new Map(),
+			extensionTitle: null,
 			// Keep sessionList — it's independent of the current session
 		}),
 

@@ -17,6 +17,7 @@ import { ConnectionBanner } from "@/components/ConnectionBanner";
 import { DiffPanel } from "@/components/DiffPanel";
 import { ErrorBanner, HealthBanner } from "@/components/ErrorBanner";
 import { ExportDialog } from "@/components/ExportDialog";
+import { ExtensionWidgetBar } from "@/components/ExtensionWidgets";
 import { ForkDialog } from "@/components/ForkDialog";
 import { GitPanel } from "@/components/GitPanel";
 import { GitStatusBar } from "@/components/GitStatusBar";
@@ -195,7 +196,13 @@ export function AppShell() {
 					{/* Extension status indicators — shown above composer when active */}
 					<StatusBar />
 
+					{/* Extension widgets above composer */}
+					<ExtensionWidgetBar placement="aboveEditor" />
+
 					<Composer />
+
+					{/* Extension widgets below composer */}
+					<ExtensionWidgetBar placement="belowEditor" />
 				</main>
 
 				{/* Diff panel — beside main area (toggled via Ctrl/Cmd+D) */}

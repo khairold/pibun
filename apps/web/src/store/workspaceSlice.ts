@@ -18,6 +18,7 @@ import type { StateCreator } from "zustand";
 import type {
 	AppStore,
 	ChatMessage,
+	ExtensionWidget,
 	GitSlice,
 	PluginsSlice,
 	ProjectsSlice,
@@ -101,6 +102,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	activeTabId: null,
 	tabMessages: new Map<string, ChatMessage[]>(),
 	tabStatuses: new Map<string, Map<string, string>>(),
+	tabWidgets: new Map<string, Map<string, ExtensionWidget>>(),
 
 	addTab: (partial) => {
 		const state = get();
@@ -134,11 +136,14 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			newTabMessages.delete(tabId);
 			const newTabStatuses = new Map(s.tabStatuses);
 			newTabStatuses.delete(tabId);
+			const newTabWidgets = new Map(s.tabWidgets);
+			newTabWidgets.delete(tabId);
 
 			const updates: Partial<AppStore> = {
 				tabs: newTabs,
 				tabMessages: newTabMessages,
 				tabStatuses: newTabStatuses,
+				tabWidgets: newTabWidgets,
 			};
 
 			// If removing the active tab, switch to adjacent
@@ -152,6 +157,8 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				if (nextTab) {
 					updates.messages = newTabMessages.get(nextTab.id) ?? [];
 					updates.statuses = newTabStatuses.get(nextTab.id) ?? new Map<string, string>();
+					updates.extensionWidgets =
+						newTabWidgets.get(nextTab.id) ?? new Map<string, ExtensionWidget>();
 					updates.sessionId = nextTab.sessionId;
 					updates.model = nextTab.model;
 					updates.thinkingLevel = nextTab.thinkingLevel;
@@ -161,6 +168,8 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					// No tabs left — clear everything
 					updates.messages = [];
 					updates.statuses = new Map<string, string>();
+					updates.extensionWidgets = new Map<string, ExtensionWidget>();
+					updates.extensionTitle = null;
 					updates.sessionId = null;
 					updates.model = null;
 					updates.thinkingLevel = "medium";
@@ -183,8 +192,9 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 		set((s) => {
 			const newTabMessages = new Map(s.tabMessages);
 			const newTabStatuses = new Map(s.tabStatuses);
+			const newTabWidgets = new Map(s.tabWidgets);
 
-			// Save current tab's messages, statuses, and state
+			// Save current tab's messages, statuses, widgets, and state
 			if (s.activeTabId) {
 				newTabMessages.set(s.activeTabId, [...s.messages]);
 				// Save current statuses for the leaving tab
@@ -192,6 +202,12 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					newTabStatuses.set(s.activeTabId, new Map(s.statuses));
 				} else {
 					newTabStatuses.delete(s.activeTabId);
+				}
+				// Save current widgets for the leaving tab
+				if (s.extensionWidgets.size > 0) {
+					newTabWidgets.set(s.activeTabId, new Map(s.extensionWidgets));
+				} else {
+					newTabWidgets.delete(s.activeTabId);
 				}
 
 				// Update the current tab's snapshot with current session state
@@ -218,9 +234,12 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					activeTabId: tabId,
 					tabMessages: newTabMessages,
 					tabStatuses: newTabStatuses,
+					tabWidgets: newTabWidgets,
 					// Restore target tab's cached state
 					messages: newTabMessages.get(tabId) ?? [],
 					statuses: newTabStatuses.get(tabId) ?? new Map<string, string>(),
+					extensionWidgets: newTabWidgets.get(tabId) ?? new Map<string, ExtensionWidget>(),
+					extensionTitle: null, // Extension title is per-session, clear on switch
 					sessionId: targetTab.sessionId,
 					model: targetTab.model,
 					thinkingLevel: targetTab.thinkingLevel,
@@ -249,6 +268,8 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				activeTabId: tabId,
 				messages: newTabMessages.get(tabId) ?? [],
 				statuses: newTabStatuses.get(tabId) ?? new Map<string, string>(),
+				extensionWidgets: newTabWidgets.get(tabId) ?? new Map<string, ExtensionWidget>(),
+				extensionTitle: null,
 				sessionId: targetTab.sessionId,
 				model: targetTab.model,
 				thinkingLevel: targetTab.thinkingLevel,
@@ -338,6 +359,24 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				newTabStatuses.delete(tabId);
 			}
 			return { tabStatuses: newTabStatuses };
+		});
+	},
+
+	setBackgroundTabWidget: (tabId, key, lines, placement) => {
+		set((s) => {
+			const newTabWidgets = new Map(s.tabWidgets);
+			const tabMap = new Map(newTabWidgets.get(tabId) ?? []);
+			if (lines && lines.length > 0) {
+				tabMap.set(key, { lines, placement });
+			} else {
+				tabMap.delete(key);
+			}
+			if (tabMap.size > 0) {
+				newTabWidgets.set(tabId, tabMap);
+			} else {
+				newTabWidgets.delete(tabId);
+			}
+			return { tabWidgets: newTabWidgets };
 		});
 	},
 

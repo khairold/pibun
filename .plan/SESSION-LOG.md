@@ -1391,3 +1391,47 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 47 — Extension setWidget + setTitle + set_editor_text (2026-03-24)
+
+**What happened:**
+- Implemented the remaining 3 extension fire-and-forget UI methods, completing section 5A:
+- **5A.5 — `setWidget` rendering**:
+  - Added `ExtensionWidget` type to store types: `{ lines: string[], placement: "aboveEditor" | "belowEditor" }`
+  - Added `extensionWidgets: Map<string, ExtensionWidget>` to `UiSlice` with `setExtensionWidget` and `clearExtensionWidgets` actions
+  - Added per-tab widget cache `tabWidgets: Map<string, Map<string, ExtensionWidget>>` to `TabsSlice` (same pattern as `tabStatuses`)
+  - Full tab lifecycle: save/restore on `switchTab`, cleanup on `removeTab`, clear on `resetSession`
+  - Background tab support: `setBackgroundTabWidget()` action + wireTransport handler
+  - Created `ExtensionWidgetBar` component in `ExtensionWidgets.tsx` — renders filtered widgets by placement
+  - Wired into AppShell: `<ExtensionWidgetBar placement="aboveEditor" />` above Composer, `<ExtensionWidgetBar placement="belowEditor" />` below Composer
+  - Widget UI: extension icon + mono text lines + hover-reveal dismiss button using `group/widget` pattern
+- **5A.6 — `setTitle` handling**:
+  - Added `extensionTitle: string | null` to `UiSlice` with `setExtensionTitle` action
+  - wireTransport handler sets `extensionTitle`, `document.title`, and calls `app.setWindowTitle` WS method
+  - Updated `useWindowTitle` hook to use `extensionTitle` as override when non-null
+  - Title cleared on tab switch and session reset
+- **5A.7 — `set_editor_text` handling**:
+  - wireTransport handler calls `store.setPendingComposerText(event.text)` — reuses existing mechanism
+  - Composer already watches `pendingComposerText` via useEffect, inserts text, focuses, auto-resizes
+  - Zero new infrastructure needed
+- 8 files modified: `types.ts`, `appSlice.ts`, `sessionSlice.ts`, `workspaceSlice.ts`, `wireTransport.ts`, `useWindowTitle.ts`, `AppShell.tsx`, + new `ExtensionWidgets.tsx`
+
+**Items completed:**
+- [x] 5A.5 — Add `extension_ui_request` `setWidget` rendering: widget blocks above/below composer
+- [x] 5A.6 — Add `extension_ui_request` `setTitle` handling: update window title from extension
+- [x] 5A.7 — Add `extension_ui_request` `set_editor_text` handling: prefill composer text from extension
+
+**Issues encountered:**
+- Biome import ordering: `ExtensionWidgetBar` import sorted after `ExportDialog` alphabetically (not before).
+- Biome SVG accessibility: dismiss button SVG needed `aria-label` + `role="img"`.
+- Biome formatting: long function signatures and multi-line expressions reformatted. Fixed with `bun run format`.
+
+**Handoff to next session:**
+- **Section 5A is COMPLETE** (all 7 items checked off). Next: 5B.1 — Terminal split panes
+- `ExtensionWidgetBar` is in a separate file (`ExtensionWidgets.tsx`) because it's a standalone component not tightly coupled to any existing deep module.
+- `tabWidgets` follows the exact same pattern as `tabStatuses` — per-tab cache, saved/restored on tab switch.
+- `extensionTitle` is cleared on tab switch and session reset — each session has its own title context.
+- `set_editor_text` reuses `pendingComposerText` — if future extensions need more control (e.g., append vs replace), extend the mechanism.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

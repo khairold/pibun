@@ -65,13 +65,13 @@ export function useWindowTitle(): void {
 	const activeTabId = useStore((s) => s.activeTabId);
 	const tabs = useStore((s) => s.tabs);
 	const connectionStatus = useStore((s) => s.connectionStatus);
+	const extensionTitle = useStore((s) => s.extensionTitle);
 
 	useEffect(() => {
-		// Find the active tab's CWD
+		// Extension title override takes precedence over computed title
 		const activeTab = tabs.find((t) => t.id === activeTabId);
 		const activeTabCwd = activeTab?.cwd ?? null;
-
-		const title = computeTitle(activeProjectId, projects, activeTabCwd);
+		const title = extensionTitle ?? computeTitle(activeProjectId, projects, activeTabCwd);
 
 		// Always set document.title (works in browser and webview)
 		document.title = title;
@@ -89,5 +89,5 @@ export function useWindowTitle(): void {
 				// Transport not initialized — ignore
 			}
 		}
-	}, [activeProjectId, projects, activeTabId, tabs, connectionStatus]);
+	}, [activeProjectId, projects, activeTabId, tabs, connectionStatus, extensionTitle]);
 }

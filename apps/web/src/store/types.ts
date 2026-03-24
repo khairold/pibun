@@ -313,6 +313,18 @@ export interface ProjectsSlice {
 }
 
 /**
+ * An extension widget — multi-line text block displayed above or below the Composer.
+ * Set by extensions via `setWidget` fire-and-forget method. Keyed by `widgetKey` —
+ * setting `widgetLines` to empty/undefined removes the widget.
+ */
+export interface ExtensionWidget {
+	/** Lines of text to display. */
+	lines: string[];
+	/** Where to display the widget relative to the Composer. */
+	placement: "aboveEditor" | "belowEditor";
+}
+
+/**
  * A terminal context attachment — selected text from a terminal to include in a prompt.
  * Added via the "Add to composer" button in the terminal pane.
  */
@@ -395,6 +407,19 @@ export interface UiSlice {
 	 */
 	bashInputOpen: boolean;
 
+	/**
+	 * Extension widgets keyed by widgetKey.
+	 * Displayed above or below the Composer depending on their `placement`.
+	 * Set by extensions via `setWidget` fire-and-forget method.
+	 */
+	extensionWidgets: Map<string, ExtensionWidget>;
+
+	/**
+	 * Extension-set title override. When non-null, overrides the computed window title.
+	 * Set by extensions via `setTitle` fire-and-forget method. Null to clear (restore default).
+	 */
+	extensionTitle: string | null;
+
 	/** Toggle the sidebar open/closed. */
 	toggleSidebar: () => void;
 	/** Set the sidebar open state explicitly. */
@@ -417,6 +442,16 @@ export interface UiSlice {
 	clearTerminalContexts: () => void;
 	/** Set the bash input visibility. */
 	setBashInputOpen: (open: boolean) => void;
+	/** Set or remove an extension widget. Empty/undefined lines removes it. */
+	setExtensionWidget: (
+		key: string,
+		lines: string[] | undefined,
+		placement: "aboveEditor" | "belowEditor",
+	) => void;
+	/** Clear all extension widgets (e.g., on session reset). */
+	clearExtensionWidgets: () => void;
+	/** Set extension title override. Null to clear (restore default). */
+	setExtensionTitle: (title: string | null) => void;
 	/** Toggle the diff panel open/closed. */
 	toggleDiffPanel: () => void;
 	/** Set the diff panel open state explicitly. */
@@ -492,6 +527,8 @@ export interface TabsSlice {
 	tabMessages: Map<string, ChatMessage[]>;
 	/** Per-tab extension status cache. Inactive tabs' statuses are stored here. */
 	tabStatuses: Map<string, Map<string, string>>;
+	/** Per-tab extension widget cache. Inactive tabs' widgets are stored here. */
+	tabWidgets: Map<string, Map<string, ExtensionWidget>>;
 
 	/**
 	 * Create a new tab with optional initial values.
@@ -516,6 +553,13 @@ export interface TabsSlice {
 	reorderTabs: (fromIndex: number, toIndex: number) => void;
 	/** Set or clear an extension status for a background (inactive) tab. */
 	setBackgroundTabStatus: (tabId: string, key: string, text: string | undefined) => void;
+	/** Set or clear an extension widget for a background (inactive) tab. */
+	setBackgroundTabWidget: (
+		tabId: string,
+		key: string,
+		lines: string[] | undefined,
+		placement: "aboveEditor" | "belowEditor",
+	) => void;
 }
 
 /** A terminal tab — represents one PTY session. */

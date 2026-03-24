@@ -466,11 +466,33 @@ function handleExtensionUiRequest(event: PiExtensionUIRequest): void {
 			store.setExtensionStatus(event.statusKey, event.statusText);
 			break;
 
-		// Fire-and-forget: other types — log only (no UI for these yet)
+		// Fire-and-forget: setWidget → extension widget blocks near composer
 		case "setWidget":
-		case "setTitle":
+			store.setExtensionWidget(
+				event.widgetKey,
+				event.widgetLines,
+				event.widgetPlacement ?? "aboveEditor",
+			);
+			break;
+
+		// Fire-and-forget: setTitle → override window title
+		case "setTitle": {
+			store.setExtensionTitle(event.title);
+			document.title = event.title;
+			// Also update native window title (fire-and-forget)
+			try {
+				getTransport()
+					.request("app.setWindowTitle", { title: event.title })
+					.catch(() => {});
+			} catch {
+				// Transport not initialized — ignore
+			}
+			break;
+		}
+
+		// Fire-and-forget: set_editor_text → prefill composer text
 		case "set_editor_text":
-			console.log(`[PiBun] Extension ${event.method}:`, event);
+			store.setPendingComposerText(event.text);
 			break;
 	}
 }
@@ -793,6 +815,15 @@ export function initTransport(): () => void {
 							// Fire-and-forget: setStatus → cache for when tab becomes active
 							if (extEvent.method === "setStatus") {
 								store.setBackgroundTabStatus(bgTab.id, extEvent.statusKey, extEvent.statusText);
+							}
+							// Fire-and-forget: setWidget → cache for when tab becomes active
+							if (extEvent.method === "setWidget") {
+								store.setBackgroundTabWidget(
+									bgTab.id,
+									extEvent.widgetKey,
+									extEvent.widgetLines,
+									extEvent.widgetPlacement ?? "aboveEditor",
+								);
 							}
 							break;
 						}

@@ -15,6 +15,7 @@ import type { StateCreator } from "zustand";
 import type {
 	AppStore,
 	ConnectionSlice,
+	ExtensionWidget,
 	NotificationsSlice,
 	Toast,
 	UiSlice,
@@ -96,6 +97,22 @@ export const createAppSlice: StateCreator<AppStore, [], [], AppSlice> = (set, ge
 	// ---- Bash input state ----
 	bashInputOpen: false,
 	setBashInputOpen: (open) => set({ bashInputOpen: open }),
+
+	// ---- Extension widgets state ----
+	extensionWidgets: new Map<string, ExtensionWidget>(),
+	extensionTitle: null,
+
+	setExtensionWidget: (key, lines, placement) => {
+		const next = new Map(get().extensionWidgets);
+		if (lines && lines.length > 0) {
+			next.set(key, { lines, placement });
+		} else {
+			next.delete(key);
+		}
+		set({ extensionWidgets: next });
+	},
+	clearExtensionWidgets: () => set({ extensionWidgets: new Map<string, ExtensionWidget>() }),
+	setExtensionTitle: (title) => set({ extensionTitle: title }),
 
 	// ---- Diff panel state ----
 	diffPanelOpen: false,
