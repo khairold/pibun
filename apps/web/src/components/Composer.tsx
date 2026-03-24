@@ -13,6 +13,7 @@
  * - Draft persistence per tab (text + images + mentions survive tab switch and page reload)
  * - Slash command menu: type `/` at line start to see available commands
  * - File mention chips: type `@` to search files, selected files show as removable chips
+ * - Terminal context chips: selected terminal text attached as context, formatted as <terminal_context> blocks on send
  */
 
 import {
@@ -24,6 +25,7 @@ import {
 } from "@/lib/appActions";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
+import type { TerminalContext } from "@/store/types";
 import { getTransport } from "@/wireTransport";
 import type { PiModel, PiSlashCommand } from "@pibun/contracts";
 import {
@@ -126,6 +128,42 @@ function readFileAsBase64(file: File): Promise<{ data: string; mimeType: string 
 	});
 }
 
+/**
+ * Format a terminal context label like "Terminal 1 lines 5-12" or "Terminal 1 line 5".
+ */
+function formatTerminalContextLabel(ctx: TerminalContext): string {
+	const range =
+		ctx.lineStart === ctx.lineEnd
+			? `line ${String(ctx.lineStart)}`
+			: `lines ${String(ctx.lineStart)}-${String(ctx.lineEnd)}`;
+	return `${ctx.terminalLabel} ${range}`;
+}
+
+/**
+ * Build a `<terminal_context>` block from terminal contexts, following T3Code's format.
+ * Each context is listed with a header and line-numbered body.
+ * Returns empty string if no contexts.
+ */
+function buildTerminalContextBlock(contexts: TerminalContext[]): string {
+	if (contexts.length === 0) return "";
+
+	const lines: string[] = [];
+	for (let i = 0; i < contexts.length; i++) {
+		const ctx = contexts[i];
+		if (!ctx) continue;
+		lines.push(`- ${formatTerminalContextLabel(ctx)}:`);
+		const textLines = ctx.text.split("\n");
+		for (let j = 0; j < textLines.length; j++) {
+			lines.push(`  ${String(ctx.lineStart + j)} | ${textLines[j]}`);
+		}
+		if (i < contexts.length - 1) {
+			lines.push("");
+		}
+	}
+
+	return ["<terminal_context>", ...lines, "</terminal_context>"].join("\n");
+}
+
 // ============================================================================
 // Component
 // ============================================================================
@@ -138,6 +176,9 @@ export function Composer() {
 	const setLastError = useStore((s) => s.setLastError);
 	const addToast = useStore((s) => s.addToast);
 	const activeTabId = useStore((s) => s.activeTabId);
+	const pendingTerminalContexts = useStore((s) => s.pendingTerminalContexts);
+	const removeTerminalContext = useStore((s) => s.removeTerminalContext);
+	const clearTerminalContexts = useStore((s) => s.clearTerminalContexts);
 
 	const [value, setValue] = useState("");
 	const [isSending, setIsSending] = useState(false);
@@ -501,7 +542,11 @@ export function Composer() {
 	);
 
 	const isConnected = connectionStatus === "open";
-	const hasContent = value.trim().length > 0 || images.length > 0 || mentions.length > 0;
+	const hasContent =
+		value.trim().length > 0 ||
+		images.length > 0 ||
+		mentions.length > 0 ||
+		pendingTerminalContexts.length > 0;
 	const canSend = isConnected && hasContent && !isSending;
 
 	// Watch for pending text from plugins — insert into textarea and clear.
@@ -595,11 +640,12 @@ export function Composer() {
 		});
 	}, [activeTabId, value, images, mentions]);
 
-	/** Reset textarea, images, and mentions after sending. Also clears the persisted draft. */
+	/** Reset textarea, images, mentions, and terminal contexts after sending. Also clears the persisted draft. */
 	const clearInput = useCallback(() => {
 		setValue("");
 		setImages([]);
 		setMentions([]);
+		clearTerminalContexts();
 		if (activeTabId) {
 			clearComposerDraft(activeTabId);
 		}
@@ -609,7 +655,7 @@ export function Composer() {
 				textarea.style.height = "auto";
 			}
 		});
-	}, [activeTabId]);
+	}, [activeTabId, clearTerminalContexts]);
 
 	/** Add images from a FileList (paste or drop). */
 	const addImagesFromFiles = useCallback(
@@ -695,15 +741,27 @@ export function Composer() {
 		return images.map((img) => ({ data: img.data, mimeType: img.mimeType }));
 	}, [images]);
 
-	/** Build the prompt message with file mentions expanded as @path references. */
+	/** Build the prompt message with file mentions expanded as @path references and terminal context appended. */
 	const buildPromptMessage = useCallback((): string => {
 		const text = value.trim();
-		if (mentions.length === 0) return text || " ";
 
-		// Prepend @path references so Pi sees them as file context
-		const mentionRefs = mentions.map((m) => `@${m.path}`).join(" ");
-		return text ? `${mentionRefs} ${text}` : mentionRefs;
-	}, [value, mentions]);
+		// Build base prompt with file mention @path references prepended
+		let prompt: string;
+		if (mentions.length > 0) {
+			const mentionRefs = mentions.map((m) => `@${m.path}`).join(" ");
+			prompt = text ? `${mentionRefs} ${text}` : mentionRefs;
+		} else {
+			prompt = text;
+		}
+
+		// Append terminal context block if any contexts are pending
+		const contextBlock = buildTerminalContextBlock(pendingTerminalContexts);
+		if (contextBlock.length > 0) {
+			return prompt.length > 0 ? `${prompt}\n\n${contextBlock}` : contextBlock;
+		}
+
+		return prompt || " ";
+	}, [value, mentions, pendingTerminalContexts]);
 
 	/** Send the current message as a prompt (when not streaming). */
 	const handleSend = useCallback(async () => {
@@ -1154,6 +1212,63 @@ export function Composer() {
 											"group-hover/chip:opacity-100",
 										)}
 										aria-label={`Remove ${filename}`}
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											viewBox="0 0 16 16"
+											fill="currentColor"
+											className="h-2.5 w-2.5"
+											aria-label="Remove"
+											role="img"
+										>
+											<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+										</svg>
+									</button>
+								</span>
+							);
+						})}
+					</div>
+				)}
+
+				{/* Terminal context chips */}
+				{pendingTerminalContexts.length > 0 && (
+					<div className="mb-2 flex flex-wrap gap-1.5">
+						{pendingTerminalContexts.map((ctx) => {
+							const label = formatTerminalContextLabel(ctx);
+							return (
+								<span
+									key={ctx.id}
+									className={cn(
+										"group/chip inline-flex items-center gap-1 rounded-md border px-2 py-1",
+										"border-border-primary bg-surface-primary text-xs text-text-secondary",
+										"transition-colors hover:border-accent-primary hover:bg-accent-soft",
+									)}
+									title={ctx.text.length > 200 ? `${ctx.text.slice(0, 200)}…` : ctx.text}
+								>
+									{/* Terminal icon */}
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										viewBox="0 0 16 16"
+										fill="currentColor"
+										className="h-3 w-3 shrink-0 text-accent-text"
+										aria-label="Terminal"
+										role="img"
+									>
+										<path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h9A1.5 1.5 0 0 1 14 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12.5v-9zM5.354 5.646a.5.5 0 1 0-.708.708L6.293 8 4.646 9.646a.5.5 0 0 0 .708.708l2-2a.5.5 0 0 0 0-.708l-2-2zM8 10.5a.5.5 0 0 0 0 1h2.5a.5.5 0 0 0 0-1H8z" />
+									</svg>
+									{/* Label: e.g., "Terminal 1 lines 5-12" */}
+									<span className="max-w-[200px] truncate">{label}</span>
+									{/* Remove button */}
+									<button
+										type="button"
+										onClick={() => removeTerminalContext(ctx.id)}
+										className={cn(
+											"ml-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-sm",
+											"text-text-tertiary opacity-0 transition-opacity",
+											"hover:bg-status-error hover:text-text-on-accent",
+											"group-hover/chip:opacity-100",
+										)}
+										aria-label={`Remove ${label}`}
 									>
 										<svg
 											xmlns="http://www.w3.org/2000/svg"

@@ -687,3 +687,30 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 23 — Terminal context chips + prompt expansion (2026-03-24)
+
+**What happened:**
+- Implemented terminal context chip rendering in the Composer (2C.2) and prompt expansion on send (2C.3):
+  - **Terminal context chips**: Read `pendingTerminalContexts` from Zustand store. Rendered as a chip strip between file mention chips and the drag overlay, using the same `group/chip` hover pattern. Each chip shows: terminal icon (accent color) + label (e.g., "Terminal 1 lines 5-12") + hover tooltip with text preview (truncated to 200 chars) + × remove button. `removeTerminalContext(id)` called on click.
+  - **`formatTerminalContextLabel(ctx)`**: Helper formats "Terminal 1 line 5" or "Terminal 1 lines 5-12" depending on whether lineStart === lineEnd.
+  - **`buildTerminalContextBlock(contexts)`**: Formats terminal contexts into T3Code-compatible `<terminal_context>` XML blocks with line-numbered body (e.g., `  5 | command output`). Each context is a `- {label}:` header with indented body lines.
+  - **`buildPromptMessage()`**: Extended to append `buildTerminalContextBlock(pendingTerminalContexts)` after user text and file mentions, separated by `\n\n`.
+  - **`hasContent`**: Updated to include `pendingTerminalContexts.length > 0` — can send with just terminal contexts and no text.
+  - **`clearInput()`**: Now calls `clearTerminalContexts()` alongside clearing text, images, mentions, and drafts.
+- Only 1 file modified: `Composer.tsx` — all changes are self-contained within the composer.
+
+**Items completed:**
+- [x] 2C.2 — Render terminal context attachments as inline chips in composer
+- [x] 2C.3 — On send, append terminal context content to prompt text with formatting
+
+**Issues encountered:**
+- Biome import ordering: `TerminalContext` type import needed to be sorted before `getTransport` (by path `@/store/types` < `@/wireTransport`). Fixed.
+
+**Handoff to next session:**
+- Next: 2C.4 — Add drag-and-drop image support to composer
+- Terminal context chips follow the exact same visual pattern as file mention chips — `group/chip`, removable, hover effects. Consistent UX.
+- Terminal contexts are NOT persisted in drafts (they're in Zustand store, not module-level draft map). This is intentional — terminal contexts are transient (the terminal content may change between sessions). If persistence is desired, extend `ComposerDraft` with `terminalContexts` field.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---
