@@ -80,6 +80,8 @@
 | 69 | Sidebar update footer via `SidebarUpdateFooter` component in `Sidebar.tsx` — compact, always-visible | Complements the top-level `UpdateBanner` (in main area above chat). Shows: thin progress bar during download (full-width, 4px), status icon + text + action button for each state. States: downloading (spinning icon + progress %), update-ready (green check + "Restart" button), applying (spinner), error (red × + "Retry" button), update-available (warning icon + message). Only visible when update activity exists — hidden for `no-update` and `checking`. Lives in `Sidebar.tsx` (deep modules). Placed at the bottom of sidebar after scrollable content area, before close. Bsdiff patches already handled by Electrobun's `Updater.downloadUpdate()` — no PiBun code needed. | 2026-03-24 |
 | 70 | Multi-select sidebar via `selectedTabIds` Set state + `lastClickedTabIdRef` + `handleTabClick` | Ctrl/Cmd+click toggles individual tab in selection. Shift+click range-selects from last-clicked to current (using flat `tabs` array indices). Plain click clears selection and switches tab. Selection shown with `bg-accent-primary/15 ring-1 ring-accent-primary/30` styling on `SidebarTabItem`. "N selected · Clear" link in Open Tabs header when selection active. Escape key clears selection. `selectedTabIds` pruned on tab array changes (closed tabs removed from selection). `isSelected` prop added to `SidebarTabItem` and `CwdGroup`. Multi-select context menu shows "Delete Selected (N)" and "Mark All Unread" when right-clicking a tab in an active multi-selection. `DeleteMultiConfirmDialog` for bulk delete confirmation. Multi-delete runs sequentially to avoid race conditions. Both native and HTML fallback context menus support multi-select mode via `multiSelectCount` prop. | 2026-03-24 |
 | 71 | Sidebar drag-to-reorder via native HTML5 Drag and Drop, no library | Uses `draggable="true"` on `SidebarTabItem` + `onDragStart`/`onDragOver`/`onDrop`/`onDragEnd` event handlers. State tracked at `Sidebar` level: `draggingTabId`, `dropTargetTabId`, `dropPosition` ("before"/"after"). Drop position determined by cursor Y relative to element midpoint. On drop, computes `fromIndex`/`toIndex` in the flat `tabs` array and calls `reorderTabs(fromIndex, toIndex)` (already existed in workspaceSlice). Visual indicators: dragged item gets `opacity-40`, drop target shows a 2px accent-colored line above ("before") or below ("after"). Works in both flat list and CwdGroup modes since the flat `tabs` array is the source of truth. No `@dnd-kit` dependency needed — native DnD is sufficient for simple vertical reordering. | 2026-03-24 |
+| 72 | `session.bash` and `session.abortBash` WS methods for Pi's bash RPC command | Thin bridge to Pi `bash` / `abort_bash` RPC. `bash` returns `WsSessionBashResult` with output, exitCode, cancelled, truncated, fullOutputPath. Three UI entry points: (1) BashInput strip above Composer (toggled via Ctrl+Shift+B), (2) `/bash <command>` in Composer — intercepted in `handleSend()` before prompt, (3) `executeBash()`/`abortBash()` session actions. Output shown as system messages in chat. BashInput component lives in `Composer.tsx` (deep modules — tightly coupled). `bashInputOpen` state in UiSlice. Dynamic import used for `sessionActions` in BashInput to avoid circular deps. | 2026-03-24 |
+| 73 | `session.getLastAssistantText` WS method + Ctrl+Shift+C "Copy Last Response" shortcut | Thin bridge to Pi `get_last_assistant_text` RPC. Returns `{ text: string \| null }`. Keyboard shortcut Ctrl/Cmd+Shift+C copies the text to clipboard (only when no text is selected, to preserve Ctrl+C for copy). Shows toast confirmation "Last response copied" or warning "No assistant response to copy". `copyLastResponse` added to `ShortcutAction` union. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -94,14 +96,14 @@ apps/desktop/         — Electrobun main process, menu, notifications, updater,
 
 ### Key Missing Server Methods (for v3)
 - ~~`session.getCommands` → Pi `get_commands` (for command palette)~~ ✅ Done (Session 16)
-- `session.bash` → Pi `bash` + `abort_bash` (server-side execution)
+- ~~`session.bash` → Pi `bash` + `abort_bash` (server-side execution)~~ ✅ Done (Session 45)
 - ~~`session.setAutoCompaction` → Pi `set_auto_compaction`~~ ✅ Done (Session 13)
 - ~~`session.setAutoRetry` → Pi `set_auto_retry`~~ ✅ Done (Session 13)
 - ~~`session.setSteeringMode` → Pi `set_steering_mode`~~ ✅ Done (Session 14)
 - ~~`session.setFollowUpMode` → Pi `set_follow_up_mode`~~ ✅ Done (Session 14)
 - ~~`session.cycleModel` → Pi `cycle_model`~~ ✅ Done (Session 18)
 - ~~`session.cycleThinking` → Pi `cycle_thinking_level`~~ ✅ Done (Session 18)
-- `session.getLastAssistantText` → Pi `get_last_assistant_text`
+- ~~`session.getLastAssistantText` → Pi `get_last_assistant_text`~~ ✅ Done (Session 45)
 - ~~`project.searchFiles` → server-side file search (fd/find)~~ ✅ Done (Session 19)
 - ~~`session.getTurnDiff` → server-side git diff between turns~~ ✅ Done (Session 29)
 

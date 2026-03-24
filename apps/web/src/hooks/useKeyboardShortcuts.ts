@@ -91,6 +91,39 @@ export function useKeyboardShortcuts(): void {
 						}
 						break;
 					}
+					case "b": {
+						// Ctrl/Cmd+Shift+B — toggle bash command input
+						if (isConnected) {
+							e.preventDefault();
+							emitShortcut("toggleBashInput");
+							const s = useStore.getState();
+							s.setBashInputOpen(!s.bashInputOpen);
+						}
+						break;
+					}
+					case "c": {
+						// Ctrl/Cmd+Shift+C — copy last assistant response
+						if (isConnected && state.sessionId && !hasTextSelection()) {
+							e.preventDefault();
+							emitShortcut("copyLastResponse");
+							getTransport()
+								.request("session.getLastAssistantText")
+								.then((result) => {
+									if (result.text) {
+										navigator.clipboard.writeText(result.text).then(() => {
+											useStore.getState().addToast("Last response copied", "info");
+										});
+									} else {
+										useStore.getState().addToast("No assistant response to copy", "warning");
+									}
+								})
+								.catch((err: unknown) => {
+									const msg = err instanceof Error ? err.message : String(err);
+									useStore.getState().setLastError(`Failed to copy last response: ${msg}`);
+								});
+						}
+						break;
+					}
 					case "t": {
 						// Ctrl/Cmd+Shift+T — toggle thinking selector
 						if (isConnected) {

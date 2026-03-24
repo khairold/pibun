@@ -414,6 +414,8 @@ const SHORTCUTS: { keys: string; description: string }[] = [
 	{ keys: "⌘/Ctrl+`", description: "Toggle terminal" },
 	{ keys: "⌘/Ctrl+D", description: "Toggle diff panel" },
 	{ keys: "⌘/Ctrl+G", description: "Toggle git panel" },
+	{ keys: "⌘/Ctrl+Shift+B", description: "Toggle bash input" },
+	{ keys: "⌘/Ctrl+Shift+C", description: "Copy last response" },
 	{ keys: "⌘/Ctrl+Shift+K", description: "Compact context" },
 	{ keys: "⌘/Ctrl+Shift+M", description: "Cycle thinking level" },
 	{ keys: "⌘/Ctrl+Shift+T", description: "Toggle thinking selector" },

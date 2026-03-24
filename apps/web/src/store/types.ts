@@ -389,6 +389,12 @@ export interface UiSlice {
 	/** Currently selected file in the diff panel file tree, null for all files. */
 	diffPanelSelectedFile: string | null;
 
+	/**
+	 * Whether the bash command input is visible above the Composer.
+	 * Toggled via Ctrl+Shift+B or `/bash` slash command.
+	 */
+	bashInputOpen: boolean;
+
 	/** Toggle the sidebar open/closed. */
 	toggleSidebar: () => void;
 	/** Set the sidebar open state explicitly. */
@@ -409,6 +415,8 @@ export interface UiSlice {
 	removeTerminalContext: (id: string) => void;
 	/** Clear all pending terminal contexts. */
 	clearTerminalContexts: () => void;
+	/** Set the bash input visibility. */
+	setBashInputOpen: (open: boolean) => void;
 	/** Toggle the diff panel open/closed. */
 	toggleDiffPanel: () => void;
 	/** Set the diff panel open state explicitly. */

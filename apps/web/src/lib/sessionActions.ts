@@ -582,3 +582,80 @@ export async function switchSession(sessionPath: string): Promise<boolean> {
 		return false;
 	}
 }
+
+// ============================================================================
+// Bash Execution
+// ============================================================================
+
+let bashIdCounter = 0;
+
+/**
+ * Execute a shell command via Pi's `bash` RPC and add output to conversation context.
+ *
+ * The output is stored as a BashExecutionMessage in Pi's message state and will
+ * be included in the next prompt. A system message is appended to the chat to
+ * show the output to the user.
+ *
+ * Returns the bash result on success, null on failure.
+ */
+export async function executeBash(
+	command: string,
+): Promise<{ output: string; exitCode: number | undefined; cancelled: boolean } | null> {
+	const store = useStore.getState();
+	const ready = await ensureSession();
+	if (!ready) return null;
+
+	// Append a system message showing the command being run
+	const cmdMsgId = `bash-cmd-${String(++bashIdCounter)}`;
+	store.appendMessage({
+		id: cmdMsgId,
+		timestamp: Date.now(),
+		type: "system",
+		content: `\`$ ${command}\``,
+		thinking: "",
+		toolCall: null,
+		toolResult: null,
+		streaming: false,
+	});
+
+	try {
+		const result = await getTransport().request("session.bash", { command });
+
+		// Append output as a system message
+		const outputMsgId = `bash-out-${String(bashIdCounter)}`;
+		const exitInfo =
+			result.exitCode !== undefined && result.exitCode !== 0
+				? ` (exit code ${String(result.exitCode)})`
+				: "";
+		const truncateNote = result.truncated ? "\n\n_(output truncated)_" : "";
+		const cancelNote = result.cancelled ? "\n\n_(command cancelled)_" : "";
+		const output = result.output.trim() || "(no output)";
+
+		store.appendMessage({
+			id: outputMsgId,
+			timestamp: Date.now(),
+			type: "system",
+			content: `\`\`\`\n${output}\n\`\`\`${exitInfo}${truncateNote}${cancelNote}`,
+			thinking: "",
+			toolCall: null,
+			toolResult: null,
+			streaming: false,
+		});
+
+		return { output: result.output, exitCode: result.exitCode, cancelled: result.cancelled };
+	} catch (err) {
+		store.setLastError(`Bash command failed: ${errorMessage(err)}`);
+		return null;
+	}
+}
+
+/**
+ * Abort a running bash command.
+ */
+export async function abortBash(): Promise<void> {
+	try {
+		await getTransport().request("session.abortBash");
+	} catch (err) {
+		useStore.getState().setLastError(`Failed to abort bash: ${errorMessage(err)}`);
+	}
+}

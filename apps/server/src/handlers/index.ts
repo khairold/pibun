@@ -37,6 +37,8 @@ import {
 import {
 	handleExtensionUiResponse,
 	handleSessionAbort,
+	handleSessionAbortBash,
+	handleSessionBash,
 	handleSessionCompact,
 	handleSessionCycleModel,
 	handleSessionCycleThinking,
@@ -45,6 +47,7 @@ import {
 	handleSessionFork,
 	handleSessionGetCommands,
 	handleSessionGetForkMessages,
+	handleSessionGetLastAssistantText,
 	handleSessionGetMessages,
 	handleSessionGetModels,
 	handleSessionGetState,
@@ -89,6 +92,8 @@ export const handlers: HandlerRegistry = {
 	"session.steer": handleSessionSteer,
 	"session.followUp": handleSessionFollowUp,
 	"session.abort": handleSessionAbort,
+	"session.bash": handleSessionBash,
+	"session.abortBash": handleSessionAbortBash,
 
 	// Model / Settings
 	"session.setModel": handleSessionSetModel,
@@ -108,6 +113,7 @@ export const handlers: HandlerRegistry = {
 	"session.getCommands": handleSessionGetCommands,
 	"session.cycleModel": handleSessionCycleModel,
 	"session.cycleThinking": handleSessionCycleThinking,
+	"session.getLastAssistantText": handleSessionGetLastAssistantText,
 
 	// Extension UI
 	"session.extensionUiResponse": handleExtensionUiResponse,

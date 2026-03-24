@@ -1330,3 +1330,35 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 45 — Bash RPC + Copy Last Response (2026-03-24)
+
+**What happened:**
+- Implemented `session.bash` and `session.abortBash` WS methods end-to-end (5A.1, 5A.2):
+  - **Contracts**: Added `session.bash` and `session.abortBash` to `WS_METHODS`. Added `WsSessionBashParams` (command) and `WsSessionBashResult` (output, exitCode, cancelled, truncated, fullOutputPath). Wired into `WsMethodParamsMap` and `WsMethodResultMap`.
+  - **Server**: Added `handleSessionBash` and `handleSessionAbortBash` handlers in `session.ts`. `bash` handler extracts all fields from Pi's `BashResult`. `abortBash` uses `sendAndAck`. Registered both in handler index.
+  - **Session actions**: Added `executeBash(command)` and `abortBash()` in `sessionActions.ts`. `executeBash` appends a system message showing the command (`$ command`), runs it, then appends a system message with the output in a code fence + exit code/truncation/cancel info.
+  - **BashInput component**: New component in `Composer.tsx` — inline command strip above the composer textarea. Toggled via `bashInputOpen` state in UiSlice (Ctrl+Shift+B shortcut). Features: terminal icon + `$` prompt + text input + Run/Stop button + close button. Auto-focuses on open. Escape to close. Enter to execute. Ctrl+C to abort during execution.
+  - **`/bash` interception in Composer**: `handleSend()` now detects text starting with `/bash ` and executes as a bash command instead of sending as a prompt (only when no file mentions or images attached).
+  - **Keyboard shortcut**: Ctrl/Cmd+Shift+B toggles bash input. Added to `useKeyboardShortcuts` and `ShortcutAction` union.
+- Implemented `session.getLastAssistantText` WS method end-to-end (5A.3):
+  - **Contracts**: Added `session.getLastAssistantText` to `WS_METHODS`. Added `WsSessionGetLastAssistantTextResult` (text: string | null). Wired into maps.
+  - **Server**: Added `handleSessionGetLastAssistantText` handler — bridge to Pi `get_last_assistant_text` RPC. Returns `{ text }`.
+  - **Keyboard shortcut**: Ctrl/Cmd+Shift+C copies last assistant response to clipboard (only when no text selected, to preserve Ctrl+C for copy). Shows toast confirmation.
+
+**Items completed:**
+- [x] 5A.1 — Add `bash` RPC command support
+- [x] 5A.2 — Add `abort_bash` support for cancelling running bash commands
+- [x] 5A.3 — Wire `get_last_assistant_text` to "Copy Last Response" action
+
+**Issues encountered:**
+- JSX nesting mismatch when wrapping Composer return with outer `<div className="flex flex-col">` for BashInput — missed one closing `</div>` tag. Fixed by adding the missing closing tag after the streaming mode hint section.
+- Biome formatting: indentation shifted by one level for all children of the new wrapper div. Fixed with `bun run format`.
+
+**Handoff to next session:**
+- Next: 5A.4 — Add `extension_ui_request` `setStatus` rendering: persistent status entries in status bar
+- BashInput lives in `Composer.tsx` (deep modules). `executeBash`/`abortBash` are in `sessionActions.ts`.
+- Bash output shows as system messages in the chat timeline. Pi includes the output in its context for the next prompt.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

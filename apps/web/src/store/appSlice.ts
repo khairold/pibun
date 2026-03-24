@@ -93,6 +93,10 @@ export const createAppSlice: StateCreator<AppStore, [], [], AppSlice> = (set, ge
 		})),
 	clearTerminalContexts: () => set({ pendingTerminalContexts: [] }),
 
+	// ---- Bash input state ----
+	bashInputOpen: false,
+	setBashInputOpen: (open) => set({ bashInputOpen: open }),
+
 	// ---- Diff panel state ----
 	diffPanelOpen: false,
 	diffPanelFiles: [],

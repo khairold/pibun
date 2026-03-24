@@ -286,6 +286,8 @@ export type ShortcutAction =
 	| "abort"
 	| "closeTab"
 	| "compact"
+	| "copyLastResponse"
+	| "toggleBashInput"
 	| "cycleModel"
 	| "cycleThinking"
 	| "newSession"

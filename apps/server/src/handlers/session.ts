@@ -12,6 +12,7 @@ import type {
 	WsForkableMessage,
 	WsMethodResultMap,
 	WsOkResult,
+	WsSessionBashParams,
 	WsSessionCompactParams,
 	WsSessionExportHtmlParams,
 	WsSessionExtensionUiResponseParams,
@@ -267,6 +268,48 @@ export const handleSessionAbort: WsHandler<"session.abort"> = async (
 };
 
 // ============================================================================
+// Bash Execution
+// ============================================================================
+
+/**
+ * session.bash — Execute a shell command and add output to Pi context.
+ *
+ * The command runs immediately and returns a BashResult. Internally, Pi creates
+ * a BashExecutionMessage that will be included in the next prompt to the LLM.
+ */
+export const handleSessionBash: WsHandler<"session.bash"> = async (
+	params: WsSessionBashParams,
+	ctx: HandlerContext,
+): Promise<WsMethodResultMap["session.bash"]> => {
+	const process = getProcess(ctx);
+	const response = await process.sendCommand({ type: "bash", command: params.command });
+	assertSuccess(response);
+
+	if (response.command === "bash" && response.success) {
+		return {
+			output: response.data.output,
+			exitCode: response.data.exitCode,
+			cancelled: response.data.cancelled,
+			truncated: response.data.truncated,
+			...(response.data.fullOutputPath && { fullOutputPath: response.data.fullOutputPath }),
+		};
+	}
+
+	throw new Error("Unexpected response from bash");
+};
+
+/**
+ * session.abortBash — Abort a running bash command.
+ */
+export const handleSessionAbortBash: WsHandler<"session.abortBash"> = async (
+	_params: undefined,
+	ctx: HandlerContext,
+): Promise<WsOkResult> => {
+	const process = getProcess(ctx);
+	return sendAndAck(process, { type: "abort_bash" });
+};
+
+// ============================================================================
 // Model / Settings
 // ============================================================================
 
@@ -502,6 +545,26 @@ export const handleSessionCycleThinking: WsHandler<"session.cycleThinking"> = as
 
 	// null data means model doesn't support thinking
 	return { level: null };
+};
+
+/**
+ * session.getLastAssistantText — Get text of the last assistant message.
+ *
+ * Returns null if no assistant messages exist. Used for "Copy Last Response" action.
+ */
+export const handleSessionGetLastAssistantText: WsHandler<"session.getLastAssistantText"> = async (
+	_params: undefined,
+	ctx: HandlerContext,
+): Promise<WsMethodResultMap["session.getLastAssistantText"]> => {
+	const process = getProcess(ctx);
+	const response = await process.sendCommand({ type: "get_last_assistant_text" });
+	assertSuccess(response);
+
+	if (response.command === "get_last_assistant_text" && response.success) {
+		return { text: response.data.text };
+	}
+
+	throw new Error("Unexpected response from get_last_assistant_text");
 };
 
 // ============================================================================

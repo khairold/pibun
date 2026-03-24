@@ -63,6 +63,8 @@ export const WS_METHODS = {
 	sessionSteer: "session.steer",
 	sessionFollowUp: "session.followUp",
 	sessionAbort: "session.abort",
+	sessionBash: "session.bash",
+	sessionAbortBash: "session.abortBash",
 
 	// Model / Settings
 	sessionSetModel: "session.setModel",
@@ -82,6 +84,7 @@ export const WS_METHODS = {
 	sessionGetCommands: "session.getCommands",
 	sessionCycleModel: "session.cycleModel",
 	sessionCycleThinking: "session.cycleThinking",
+	sessionGetLastAssistantText: "session.getLastAssistantText",
 
 	// Extension UI
 	sessionExtensionUiResponse: "session.extensionUiResponse",
@@ -209,6 +212,17 @@ export interface WsSessionSteerParams {
 /** Params for `session.followUp` — queue a follow-up message. */
 export interface WsSessionFollowUpParams {
 	message: string;
+}
+
+/**
+ * Params for `session.bash` — execute a shell command and add output to Pi context.
+ *
+ * The output is stored as a `BashExecutionMessage` and included in the next prompt.
+ * Multiple bash commands can be executed before prompting — all outputs are included.
+ */
+export interface WsSessionBashParams {
+	/** Shell command to execute. */
+	command: string;
 }
 
 /** Params for `session.setModel` — switch model. */
@@ -604,6 +618,8 @@ export interface WsMethodParamsMap {
 	"session.steer": WsSessionSteerParams;
 	"session.followUp": WsSessionFollowUpParams;
 	"session.abort": undefined;
+	"session.bash": WsSessionBashParams;
+	"session.abortBash": undefined;
 	"session.setModel": WsSessionSetModelParams;
 	"session.setThinking": WsSessionSetThinkingParams;
 	"session.getModels": undefined;
@@ -619,6 +635,7 @@ export interface WsMethodParamsMap {
 	"session.getCommands": undefined;
 	"session.cycleModel": undefined;
 	"session.cycleThinking": undefined;
+	"session.getLastAssistantText": undefined;
 	"session.extensionUiResponse": WsSessionExtensionUiResponseParams;
 	"session.listSessions": undefined;
 	"session.switchSession": WsSessionSwitchSessionParams;
@@ -686,6 +703,25 @@ export interface WsSessionGetModelsResult {
 	models: PiModel[];
 }
 
+/**
+ * Result for `session.bash` — executed shell command output.
+ *
+ * The output has been added to Pi's context and will be included in the next prompt.
+ * If `truncated` is true, `fullOutputPath` points to a temp file with the full output.
+ */
+export interface WsSessionBashResult {
+	/** Combined stdout + stderr output (possibly truncated). */
+	output: string;
+	/** Process exit code (undefined if killed/cancelled). */
+	exitCode: number | undefined;
+	/** Whether the command was cancelled via abort. */
+	cancelled: boolean;
+	/** Whether the output was truncated. */
+	truncated: boolean;
+	/** Path to temp file with full output (if truncated). */
+	fullOutputPath?: string;
+}
+
 /** Result for `session.new`. */
 export interface WsSessionNewResult {
 	sessionId: string;
@@ -727,6 +763,14 @@ export interface WsSessionCycleModelResult {
  */
 export interface WsSessionCycleThinkingResult {
 	level: PiThinkingLevel | null;
+}
+
+/**
+ * Result for `session.getLastAssistantText` — text of the last assistant message.
+ * Returns `null` if no assistant messages exist.
+ */
+export interface WsSessionGetLastAssistantTextResult {
+	text: string | null;
 }
 
 /** Summary info for a session file in the session list. */
@@ -883,6 +927,8 @@ export interface WsMethodResultMap {
 	"session.steer": WsOkResult;
 	"session.followUp": WsOkResult;
 	"session.abort": WsOkResult;
+	"session.bash": WsSessionBashResult;
+	"session.abortBash": WsOkResult;
 	"session.setModel": WsOkResult;
 	"session.setThinking": WsOkResult;
 	"session.getModels": WsSessionGetModelsResult;
@@ -898,6 +944,7 @@ export interface WsMethodResultMap {
 	"session.getCommands": WsSessionGetCommandsResult;
 	"session.cycleModel": WsSessionCycleModelResult;
 	"session.cycleThinking": WsSessionCycleThinkingResult;
+	"session.getLastAssistantText": WsSessionGetLastAssistantTextResult;
 	"session.extensionUiResponse": WsOkResult;
 	"session.exportHtml": WsSessionExportHtmlResult;
 	"session.listSessions": WsSessionListSessionsResult;

@@ -174,6 +174,177 @@ function buildTerminalContextBlock(contexts: TerminalContext[]): string {
 }
 
 // ============================================================================
+// BashInput — inline command execution strip above the Composer
+// ============================================================================
+
+/**
+ * BashInput — a command input strip for executing shell commands via Pi's `bash` RPC.
+ *
+ * Shows when `bashInputOpen` is true (toggled via Ctrl+Shift+B or `/bash` slash command).
+ * Commands run via Pi's bash RPC — output is added to Pi's context and shown as system messages.
+ * The output will be included in the next prompt to the LLM.
+ */
+function BashInput() {
+	const bashInputOpen = useStore((s) => s.bashInputOpen);
+	const setBashInputOpen = useStore((s) => s.setBashInputOpen);
+	const sessionId = useStore((s) => s.sessionId);
+
+	const [command, setCommand] = useState("");
+	const [isRunning, setIsRunning] = useState(false);
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	// Auto-focus the input when it opens
+	useEffect(() => {
+		if (bashInputOpen) {
+			requestAnimationFrame(() => {
+				inputRef.current?.focus();
+			});
+		}
+	}, [bashInputOpen]);
+
+	const handleSubmit = useCallback(async () => {
+		const cmd = command.trim();
+		if (!cmd || isRunning) return;
+
+		setIsRunning(true);
+		try {
+			const { executeBash } = await import("@/lib/sessionActions");
+			await executeBash(cmd);
+			setCommand("");
+		} finally {
+			setIsRunning(false);
+			// Re-focus the input after execution
+			requestAnimationFrame(() => {
+				inputRef.current?.focus();
+			});
+		}
+	}, [command, isRunning]);
+
+	const handleAbort = useCallback(async () => {
+		try {
+			const { abortBash } = await import("@/lib/sessionActions");
+			await abortBash();
+		} catch {
+			// Silently ignore abort errors
+		}
+	}, []);
+
+	const handleKeyDown = useCallback(
+		(e: KeyboardEvent<HTMLInputElement>) => {
+			if (e.key === "Enter" && !e.shiftKey) {
+				e.preventDefault();
+				handleSubmit();
+			} else if (e.key === "Escape") {
+				e.preventDefault();
+				setBashInputOpen(false);
+			} else if (e.key === "c" && (e.metaKey || e.ctrlKey) && isRunning) {
+				e.preventDefault();
+				handleAbort();
+			}
+		},
+		[handleSubmit, setBashInputOpen, isRunning, handleAbort],
+	);
+
+	if (!bashInputOpen) return null;
+
+	return (
+		<div className="flex items-center gap-2 border-b border-border-primary bg-surface-secondary px-4 py-2">
+			{/* Terminal icon */}
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 16 16"
+				fill="currentColor"
+				className="h-4 w-4 shrink-0 text-text-tertiary"
+				aria-label="Bash command"
+				role="img"
+			>
+				<path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h9A1.5 1.5 0 0 1 14 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12.5v-9zM5.22 5.22a.75.75 0 0 1 1.06 0l2 2a.75.75 0 0 1 0 1.06l-2 2a.75.75 0 0 1-1.06-1.06L6.72 7.75 5.22 6.28a.75.75 0 0 1 0-1.06zM8.5 10.25a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1-.75-.75z" />
+			</svg>
+
+			{/* Command label */}
+			<span className="shrink-0 font-mono text-xs text-text-secondary">$</span>
+
+			{/* Command input */}
+			<input
+				ref={inputRef}
+				type="text"
+				value={command}
+				onChange={(e) => setCommand(e.target.value)}
+				onKeyDown={handleKeyDown}
+				placeholder={sessionId ? "Enter a shell command…" : "Start a session first"}
+				disabled={!sessionId}
+				className={cn(
+					"flex-1 bg-transparent font-mono text-sm text-text-primary",
+					"placeholder-text-tertiary outline-none",
+					"disabled:cursor-not-allowed disabled:opacity-50",
+				)}
+			/>
+
+			{/* Execute / Abort button */}
+			{isRunning ? (
+				<button
+					type="button"
+					onClick={handleAbort}
+					className={cn(
+						"flex h-7 shrink-0 items-center gap-1 rounded px-2",
+						"text-xs font-medium transition-colors",
+						"bg-status-error text-text-on-accent hover:bg-status-error/80",
+					)}
+					title="Abort (Ctrl+C)"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 16 16"
+						fill="currentColor"
+						className="h-3 w-3"
+						aria-label="Stop"
+						role="img"
+					>
+						<rect x="3" y="3" width="10" height="10" rx="1" />
+					</svg>
+					Stop
+				</button>
+			) : (
+				<button
+					type="button"
+					onClick={handleSubmit}
+					disabled={!command.trim() || !sessionId}
+					className={cn(
+						"flex h-7 shrink-0 items-center gap-1 rounded px-2",
+						"text-xs font-medium transition-colors",
+						command.trim() && sessionId
+							? "bg-accent-primary text-text-on-accent hover:bg-accent-primary-hover"
+							: "cursor-not-allowed bg-surface-tertiary text-text-tertiary",
+					)}
+					title="Run (Enter)"
+				>
+					Run
+				</button>
+			)}
+
+			{/* Close button */}
+			<button
+				type="button"
+				onClick={() => setBashInputOpen(false)}
+				className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-text-secondary"
+				title="Close (Escape)"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+					className="h-3.5 w-3.5"
+					aria-label="Close"
+					role="img"
+				>
+					<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+				</svg>
+			</button>
+		</div>
+	);
+}
+
+// ============================================================================
 // Component
 // ============================================================================
 
@@ -780,6 +951,26 @@ export function Composer() {
 	const handleSend = useCallback(async () => {
 		if (!hasContent || isSending) return;
 
+		// Intercept `/bash <command>` — execute as bash command instead of prompt
+		const bashMatch = value.match(/^\/bash\s+(.+)/s);
+		if (bashMatch?.[1] && mentions.length === 0 && images.length === 0) {
+			const bashCommand = bashMatch[1].trim();
+			if (bashCommand) {
+				setIsSending(true);
+				try {
+					const { executeBash } = await import("@/lib/sessionActions");
+					await executeBash(bashCommand);
+					clearInput();
+				} catch (err) {
+					console.error("[Composer] Failed to run bash:", err);
+					setLastError(`Bash failed: ${errorMessage(err)}`);
+				} finally {
+					setIsSending(false);
+				}
+				return;
+			}
+		}
+
 		setIsSending(true);
 		try {
 			const ready = await ensureSession();
@@ -806,6 +997,9 @@ export function Composer() {
 		clearInput,
 		buildImagesParam,
 		buildPromptMessage,
+		value,
+		mentions.length,
+		images.length,
 	]);
 
 	/** Send a steering message (redirects Pi during streaming). */
@@ -1071,379 +1265,384 @@ export function Composer() {
 			: "Send a message… (paste or drop images)";
 
 	return (
-		<div
-			className={cn(
-				"relative border-t bg-surface-base px-4 py-3",
-				isDragOver ? "border-accent-primary" : "border-border-secondary",
-			)}
-			onDragOver={handleDragOver}
-			onDragLeave={handleDragLeave}
-			onDrop={handleDrop}
-		>
-			{/* Model picker — positioned absolutely above composer */}
-			{modelPickerOpen && (
-				<ComposerModelPicker
-					models={availableModels}
-					isLoading={modelsLoading}
-					currentModel={currentModel}
-					activeIndex={modelPickerIndex}
-					onSelect={handleModelSelect}
-					onDismiss={() => {
-						setModelPickerOpen(false);
-						setModelPickerIndex(0);
-					}}
-					onHighlightChange={setModelPickerIndex}
-				/>
-			)}
+		<div className="flex flex-col">
+			{/* Bash command input strip */}
+			<BashInput />
 
-			{/* File mention menu — positioned absolutely above composer */}
-			{fileMentionMenuOpen && (
-				<FileMentionMenu
-					items={fileMentionItems}
-					activeItemId={activeFileMentionId}
-					isLoading={fileMentionLoading}
-					onSelect={handleFileMentionSelect}
-					onHighlightChange={setActiveFileMentionId}
-				/>
-			)}
-
-			{/* Slash command menu — positioned absolutely above composer */}
-			{commandMenuOpen && !modelPickerOpen && (
-				<ComposerCommandMenu
-					items={filteredCommandItems}
-					activeItemId={activeCommandItemId}
-					isLoading={commandsLoading}
-					onSelect={handleCommandSelect}
-					onHighlightChange={setActiveCommandItemId}
-				/>
-			)}
-
-			<div className="mx-auto max-w-3xl">
-				{/* Image preview strip */}
-				{images.length > 0 && (
-					<div className="mb-2 flex flex-wrap gap-2">
-						{images.map((img) => (
-							<div
-								key={img.id}
-								className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-border-primary bg-surface-primary"
-							>
-								<img
-									src={img.previewUrl}
-									alt="Attachment preview"
-									className="h-full w-full cursor-pointer object-cover transition-opacity hover:opacity-80"
-									onClick={(e: MouseEvent<HTMLImageElement>) => {
-										e.stopPropagation();
-										setImagePreview(img.previewUrl, "Attachment preview");
-									}}
-									onKeyDown={undefined}
-								/>
-								{/* File size badge */}
-								{img.fileSize > 0 && (
-									<span className="pointer-events-none absolute bottom-0.5 left-0.5 rounded bg-black/60 px-1 py-0.5 text-[10px] leading-tight text-white">
-										{formatFileSize(img.fileSize)}
-									</span>
-								)}
-								{/* Remove button */}
-								<button
-									type="button"
-									onClick={() => removeImage(img.id)}
-									className={cn(
-										"absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center",
-										"rounded-full bg-surface-secondary text-text-secondary shadow-sm",
-										"opacity-0 transition-opacity group-hover:opacity-100",
-										"hover:bg-status-error hover:text-text-on-accent",
-									)}
-									aria-label={`Remove image ${img.id}`}
-								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										viewBox="0 0 16 16"
-										fill="currentColor"
-										className="h-3 w-3"
-										aria-label="Remove"
-										role="img"
-									>
-										<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-									</svg>
-								</button>
-							</div>
-						))}
-
-						{/* Add more indicator (when under max) */}
-						{images.length < MAX_IMAGES && (
-							<div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-dashed border-border-primary text-text-muted">
-								<span className="text-xs">+</span>
-							</div>
-						)}
-					</div>
+			<div
+				className={cn(
+					"relative border-t bg-surface-base px-4 py-3",
+					isDragOver ? "border-accent-primary" : "border-border-secondary",
+				)}
+				onDragOver={handleDragOver}
+				onDragLeave={handleDragLeave}
+				onDrop={handleDrop}
+			>
+				{/* Model picker — positioned absolutely above composer */}
+				{modelPickerOpen && (
+					<ComposerModelPicker
+						models={availableModels}
+						isLoading={modelsLoading}
+						currentModel={currentModel}
+						activeIndex={modelPickerIndex}
+						onSelect={handleModelSelect}
+						onDismiss={() => {
+							setModelPickerOpen(false);
+							setModelPickerIndex(0);
+						}}
+						onHighlightChange={setModelPickerIndex}
+					/>
 				)}
 
-				{/* File mention chips */}
-				{mentions.length > 0 && (
-					<div className="mb-2 flex flex-wrap gap-1.5">
-						{mentions.map((mention) => {
-							const segments = mention.path.split("/");
-							const filename = segments[segments.length - 1] ?? mention.path;
-							return (
-								<span
-									key={mention.id}
-									className={cn(
-										"group/chip inline-flex items-center gap-1 rounded-md border px-2 py-1",
-										"border-border-primary bg-surface-primary text-xs text-text-secondary",
-										"transition-colors hover:border-accent-primary hover:bg-accent-soft",
-									)}
-									title={mention.path}
+				{/* File mention menu — positioned absolutely above composer */}
+				{fileMentionMenuOpen && (
+					<FileMentionMenu
+						items={fileMentionItems}
+						activeItemId={activeFileMentionId}
+						isLoading={fileMentionLoading}
+						onSelect={handleFileMentionSelect}
+						onHighlightChange={setActiveFileMentionId}
+					/>
+				)}
+
+				{/* Slash command menu — positioned absolutely above composer */}
+				{commandMenuOpen && !modelPickerOpen && (
+					<ComposerCommandMenu
+						items={filteredCommandItems}
+						activeItemId={activeCommandItemId}
+						isLoading={commandsLoading}
+						onSelect={handleCommandSelect}
+						onHighlightChange={setActiveCommandItemId}
+					/>
+				)}
+
+				<div className="mx-auto max-w-3xl">
+					{/* Image preview strip */}
+					{images.length > 0 && (
+						<div className="mb-2 flex flex-wrap gap-2">
+							{images.map((img) => (
+								<div
+									key={img.id}
+									className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-border-primary bg-surface-primary"
 								>
-									{/* File/directory icon */}
-									{mention.kind === "directory" ? (
+									<img
+										src={img.previewUrl}
+										alt="Attachment preview"
+										className="h-full w-full cursor-pointer object-cover transition-opacity hover:opacity-80"
+										onClick={(e: MouseEvent<HTMLImageElement>) => {
+											e.stopPropagation();
+											setImagePreview(img.previewUrl, "Attachment preview");
+										}}
+										onKeyDown={undefined}
+									/>
+									{/* File size badge */}
+									{img.fileSize > 0 && (
+										<span className="pointer-events-none absolute bottom-0.5 left-0.5 rounded bg-black/60 px-1 py-0.5 text-[10px] leading-tight text-white">
+											{formatFileSize(img.fileSize)}
+										</span>
+									)}
+									{/* Remove button */}
+									<button
+										type="button"
+										onClick={() => removeImage(img.id)}
+										className={cn(
+											"absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center",
+											"rounded-full bg-surface-secondary text-text-secondary shadow-sm",
+											"opacity-0 transition-opacity group-hover:opacity-100",
+											"hover:bg-status-error hover:text-text-on-accent",
+										)}
+										aria-label={`Remove image ${img.id}`}
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											viewBox="0 0 16 16"
+											fill="currentColor"
+											className="h-3 w-3"
+											aria-label="Remove"
+											role="img"
+										>
+											<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+										</svg>
+									</button>
+								</div>
+							))}
+
+							{/* Add more indicator (when under max) */}
+							{images.length < MAX_IMAGES && (
+								<div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-dashed border-border-primary text-text-muted">
+									<span className="text-xs">+</span>
+								</div>
+							)}
+						</div>
+					)}
+
+					{/* File mention chips */}
+					{mentions.length > 0 && (
+						<div className="mb-2 flex flex-wrap gap-1.5">
+							{mentions.map((mention) => {
+								const segments = mention.path.split("/");
+								const filename = segments[segments.length - 1] ?? mention.path;
+								return (
+									<span
+										key={mention.id}
+										className={cn(
+											"group/chip inline-flex items-center gap-1 rounded-md border px-2 py-1",
+											"border-border-primary bg-surface-primary text-xs text-text-secondary",
+											"transition-colors hover:border-accent-primary hover:bg-accent-soft",
+										)}
+										title={mention.path}
+									>
+										{/* File/directory icon */}
+										{mention.kind === "directory" ? (
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												viewBox="0 0 16 16"
+												fill="currentColor"
+												className="h-3 w-3 shrink-0 text-accent-text"
+												aria-label="Directory"
+												role="img"
+											>
+												<path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h3.879a1.5 1.5 0 0 1 1.06.44l1.122 1.12A1.5 1.5 0 0 0 9.62 4H13.5A1.5 1.5 0 0 1 15 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5v-9z" />
+											</svg>
+										) : (
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												viewBox="0 0 16 16"
+												fill="currentColor"
+												className="h-3 w-3 shrink-0 text-text-muted"
+												aria-label="File"
+												role="img"
+											>
+												<path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0H4zm5.5 1.5v2a1 1 0 0 0 1 1h2l-3-3z" />
+											</svg>
+										)}
+										{/* Filename */}
+										<span className="max-w-[200px] truncate">{filename}</span>
+										{/* Remove button */}
+										<button
+											type="button"
+											onClick={() => removeMention(mention.id)}
+											className={cn(
+												"ml-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-sm",
+												"text-text-tertiary opacity-0 transition-opacity",
+												"hover:bg-status-error hover:text-text-on-accent",
+												"group-hover/chip:opacity-100",
+											)}
+											aria-label={`Remove ${filename}`}
+										>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												viewBox="0 0 16 16"
+												fill="currentColor"
+												className="h-2.5 w-2.5"
+												aria-label="Remove"
+												role="img"
+											>
+												<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+											</svg>
+										</button>
+									</span>
+								);
+							})}
+						</div>
+					)}
+
+					{/* Terminal context chips */}
+					{pendingTerminalContexts.length > 0 && (
+						<div className="mb-2 flex flex-wrap gap-1.5">
+							{pendingTerminalContexts.map((ctx) => {
+								const label = formatTerminalContextLabel(ctx);
+								return (
+									<span
+										key={ctx.id}
+										className={cn(
+											"group/chip inline-flex items-center gap-1 rounded-md border px-2 py-1",
+											"border-border-primary bg-surface-primary text-xs text-text-secondary",
+											"transition-colors hover:border-accent-primary hover:bg-accent-soft",
+										)}
+										title={ctx.text.length > 200 ? `${ctx.text.slice(0, 200)}…` : ctx.text}
+									>
+										{/* Terminal icon */}
 										<svg
 											xmlns="http://www.w3.org/2000/svg"
 											viewBox="0 0 16 16"
 											fill="currentColor"
 											className="h-3 w-3 shrink-0 text-accent-text"
-											aria-label="Directory"
+											aria-label="Terminal"
 											role="img"
 										>
-											<path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h3.879a1.5 1.5 0 0 1 1.06.44l1.122 1.12A1.5 1.5 0 0 0 9.62 4H13.5A1.5 1.5 0 0 1 15 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5v-9z" />
+											<path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h9A1.5 1.5 0 0 1 14 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12.5v-9zM5.354 5.646a.5.5 0 1 0-.708.708L6.293 8 4.646 9.646a.5.5 0 0 0 .708.708l2-2a.5.5 0 0 0 0-.708l-2-2zM8 10.5a.5.5 0 0 0 0 1h2.5a.5.5 0 0 0 0-1H8z" />
 										</svg>
-									) : (
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											viewBox="0 0 16 16"
-											fill="currentColor"
-											className="h-3 w-3 shrink-0 text-text-muted"
-											aria-label="File"
-											role="img"
+										{/* Label: e.g., "Terminal 1 lines 5-12" */}
+										<span className="max-w-[200px] truncate">{label}</span>
+										{/* Remove button */}
+										<button
+											type="button"
+											onClick={() => removeTerminalContext(ctx.id)}
+											className={cn(
+												"ml-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-sm",
+												"text-text-tertiary opacity-0 transition-opacity",
+												"hover:bg-status-error hover:text-text-on-accent",
+												"group-hover/chip:opacity-100",
+											)}
+											aria-label={`Remove ${label}`}
 										>
-											<path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0H4zm5.5 1.5v2a1 1 0 0 0 1 1h2l-3-3z" />
-										</svg>
-									)}
-									{/* Filename */}
-									<span className="max-w-[200px] truncate">{filename}</span>
-									{/* Remove button */}
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												viewBox="0 0 16 16"
+												fill="currentColor"
+												className="h-2.5 w-2.5"
+												aria-label="Remove"
+												role="img"
+											>
+												<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+											</svg>
+										</button>
+									</span>
+								);
+							})}
+						</div>
+					)}
+
+					{/* Drag overlay hint */}
+					{isDragOver && (
+						<div className="mb-2 flex items-center justify-center rounded-lg border-2 border-dashed border-accent-primary bg-accent-soft py-4">
+							<p className="text-sm text-accent-text">Drop images here</p>
+						</div>
+					)}
+
+					{/* Input row */}
+					<div className="flex items-end gap-2">
+						{/* Textarea */}
+						<textarea
+							ref={textareaRef}
+							value={value}
+							onChange={(e) => {
+								const newValue = e.target.value;
+								const cursorPos = e.target.selectionStart ?? newValue.length;
+								setValue(newValue);
+								resizeTextarea();
+								updateSlashTrigger(newValue, cursorPos);
+								updateAtTrigger(newValue, cursorPos);
+							}}
+							onKeyDown={handleKeyDown}
+							onPaste={handlePaste}
+							onSelect={(e) => {
+								// Re-check triggers when cursor position changes (click, arrow keys)
+								const textarea = e.target as HTMLTextAreaElement;
+								updateSlashTrigger(textarea.value, textarea.selectionStart);
+								updateAtTrigger(textarea.value, textarea.selectionStart);
+							}}
+							placeholder={placeholder}
+							disabled={!isConnected}
+							rows={1}
+							className={cn(
+								"flex-1 resize-none rounded-lg border bg-surface-primary px-4 py-3",
+								"text-sm text-text-primary placeholder-text-tertiary",
+								"outline-none transition-colors",
+								"focus:border-text-tertiary",
+								"disabled:cursor-not-allowed disabled:opacity-50",
+								isStreaming ? "border-accent-primary/50" : "border-border-primary",
+							)}
+							style={{ maxHeight: MAX_TEXTAREA_HEIGHT }}
+						/>
+
+						{/* Action buttons */}
+						{isStreaming ? (
+							<div className="flex items-end gap-1.5">
+								{/* Steer / Follow-up send button (shown when there's text) */}
+								{value.trim().length > 0 && (
 									<button
 										type="button"
-										onClick={() => removeMention(mention.id)}
+										onClick={handleSteer}
+										disabled={!canSend}
 										className={cn(
-											"ml-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-sm",
-											"text-text-tertiary opacity-0 transition-opacity",
-											"hover:bg-status-error hover:text-text-on-accent",
-											"group-hover/chip:opacity-100",
+											"flex h-10 shrink-0 items-center gap-1.5 rounded-lg px-3",
+											"text-xs font-medium transition-colors",
+											canSend
+												? "bg-accent-primary text-text-on-accent hover:bg-accent-primary-hover"
+												: "cursor-not-allowed bg-surface-secondary text-text-tertiary",
 										)}
-										aria-label={`Remove ${filename}`}
+										title="Steer (Enter) — redirect Pi during streaming"
 									>
+										{/* Steer icon — curved arrow */}
 										<svg
 											xmlns="http://www.w3.org/2000/svg"
 											viewBox="0 0 16 16"
 											fill="currentColor"
-											className="h-2.5 w-2.5"
-											aria-label="Remove"
+											className="h-3.5 w-3.5"
+											aria-label="Steer"
 											role="img"
 										>
-											<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+											<path d="M2.5 8a5.5 5.5 0 0 1 9.3-4l-1.65.95a.5.5 0 0 0 .25.93H14a.5.5 0 0 0 .5-.5V1.8a.5.5 0 0 0-.93-.25l-.95 1.65A6.5 6.5 0 1 0 14.5 8a.5.5 0 0 0-1 0A5.5 5.5 0 0 1 2.5 8z" />
 										</svg>
+										Steer
 									</button>
-								</span>
-							);
-						})}
-					</div>
-				)}
+								)}
 
-				{/* Terminal context chips */}
-				{pendingTerminalContexts.length > 0 && (
-					<div className="mb-2 flex flex-wrap gap-1.5">
-						{pendingTerminalContexts.map((ctx) => {
-							const label = formatTerminalContextLabel(ctx);
-							return (
-								<span
-									key={ctx.id}
-									className={cn(
-										"group/chip inline-flex items-center gap-1 rounded-md border px-2 py-1",
-										"border-border-primary bg-surface-primary text-xs text-text-secondary",
-										"transition-colors hover:border-accent-primary hover:bg-accent-soft",
-									)}
-									title={ctx.text.length > 200 ? `${ctx.text.slice(0, 200)}…` : ctx.text}
-								>
-									{/* Terminal icon */}
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										viewBox="0 0 16 16"
-										fill="currentColor"
-										className="h-3 w-3 shrink-0 text-accent-text"
-										aria-label="Terminal"
-										role="img"
-									>
-										<path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h9A1.5 1.5 0 0 1 14 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12.5v-9zM5.354 5.646a.5.5 0 1 0-.708.708L6.293 8 4.646 9.646a.5.5 0 0 0 .708.708l2-2a.5.5 0 0 0 0-.708l-2-2zM8 10.5a.5.5 0 0 0 0 1h2.5a.5.5 0 0 0 0-1H8z" />
-									</svg>
-									{/* Label: e.g., "Terminal 1 lines 5-12" */}
-									<span className="max-w-[200px] truncate">{label}</span>
-									{/* Remove button */}
-									<button
-										type="button"
-										onClick={() => removeTerminalContext(ctx.id)}
-										className={cn(
-											"ml-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-sm",
-											"text-text-tertiary opacity-0 transition-opacity",
-											"hover:bg-status-error hover:text-text-on-accent",
-											"group-hover/chip:opacity-100",
-										)}
-										aria-label={`Remove ${label}`}
-									>
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											viewBox="0 0 16 16"
-											fill="currentColor"
-											className="h-2.5 w-2.5"
-											aria-label="Remove"
-											role="img"
-										>
-											<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-										</svg>
-									</button>
-								</span>
-							);
-						})}
-					</div>
-				)}
-
-				{/* Drag overlay hint */}
-				{isDragOver && (
-					<div className="mb-2 flex items-center justify-center rounded-lg border-2 border-dashed border-accent-primary bg-accent-soft py-4">
-						<p className="text-sm text-accent-text">Drop images here</p>
-					</div>
-				)}
-
-				{/* Input row */}
-				<div className="flex items-end gap-2">
-					{/* Textarea */}
-					<textarea
-						ref={textareaRef}
-						value={value}
-						onChange={(e) => {
-							const newValue = e.target.value;
-							const cursorPos = e.target.selectionStart ?? newValue.length;
-							setValue(newValue);
-							resizeTextarea();
-							updateSlashTrigger(newValue, cursorPos);
-							updateAtTrigger(newValue, cursorPos);
-						}}
-						onKeyDown={handleKeyDown}
-						onPaste={handlePaste}
-						onSelect={(e) => {
-							// Re-check triggers when cursor position changes (click, arrow keys)
-							const textarea = e.target as HTMLTextAreaElement;
-							updateSlashTrigger(textarea.value, textarea.selectionStart);
-							updateAtTrigger(textarea.value, textarea.selectionStart);
-						}}
-						placeholder={placeholder}
-						disabled={!isConnected}
-						rows={1}
-						className={cn(
-							"flex-1 resize-none rounded-lg border bg-surface-primary px-4 py-3",
-							"text-sm text-text-primary placeholder-text-tertiary",
-							"outline-none transition-colors",
-							"focus:border-text-tertiary",
-							"disabled:cursor-not-allowed disabled:opacity-50",
-							isStreaming ? "border-accent-primary/50" : "border-border-primary",
-						)}
-						style={{ maxHeight: MAX_TEXTAREA_HEIGHT }}
-					/>
-
-					{/* Action buttons */}
-					{isStreaming ? (
-						<div className="flex items-end gap-1.5">
-							{/* Steer / Follow-up send button (shown when there's text) */}
-							{value.trim().length > 0 && (
+								{/* Abort button */}
 								<button
 									type="button"
-									onClick={handleSteer}
-									disabled={!canSend}
+									onClick={handleAbort}
 									className={cn(
-										"flex h-10 shrink-0 items-center gap-1.5 rounded-lg px-3",
-										"text-xs font-medium transition-colors",
-										canSend
-											? "bg-accent-primary text-text-on-accent hover:bg-accent-primary-hover"
-											: "cursor-not-allowed bg-surface-secondary text-text-tertiary",
+										"flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+										"bg-status-error text-text-on-accent transition-colors hover:bg-status-error",
 									)}
-									title="Steer (Enter) — redirect Pi during streaming"
+									title="Abort (Ctrl+C)"
 								>
-									{/* Steer icon — curved arrow */}
+									{/* Stop icon — square */}
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
 										viewBox="0 0 16 16"
 										fill="currentColor"
-										className="h-3.5 w-3.5"
-										aria-label="Steer"
+										className="h-4 w-4"
+										aria-label="Abort"
 										role="img"
 									>
-										<path d="M2.5 8a5.5 5.5 0 0 1 9.3-4l-1.65.95a.5.5 0 0 0 .25.93H14a.5.5 0 0 0 .5-.5V1.8a.5.5 0 0 0-.93-.25l-.95 1.65A6.5 6.5 0 1 0 14.5 8a.5.5 0 0 0-1 0A5.5 5.5 0 0 1 2.5 8z" />
+										<rect x="3" y="3" width="10" height="10" rx="1" />
 									</svg>
-									Steer
 								</button>
-							)}
-
-							{/* Abort button */}
+							</div>
+						) : (
 							<button
 								type="button"
-								onClick={handleAbort}
+								onClick={handleSend}
+								disabled={!canSend}
 								className={cn(
 									"flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-									"bg-status-error text-text-on-accent transition-colors hover:bg-status-error",
+									"transition-colors",
+									canSend
+										? "bg-accent-primary text-text-on-accent hover:bg-accent-primary-hover"
+										: "cursor-not-allowed bg-surface-secondary text-text-tertiary",
 								)}
-								title="Abort (Ctrl+C)"
+								title="Send (Enter)"
 							>
-								{/* Stop icon — square */}
+								{/* Send icon — arrow up */}
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									viewBox="0 0 16 16"
 									fill="currentColor"
 									className="h-4 w-4"
-									aria-label="Abort"
+									aria-label="Send"
 									role="img"
 								>
-									<rect x="3" y="3" width="10" height="10" rx="1" />
+									<path d="M8 2.5a.5.5 0 0 1 .354.146l4 4a.5.5 0 0 1-.708.708L8.5 4.207V13a.5.5 0 0 1-1 0V4.207L4.354 7.354a.5.5 0 1 1-.708-.708l4-4A.5.5 0 0 1 8 2.5z" />
 								</svg>
 							</button>
+						)}
+					</div>
+
+					{/* Streaming mode hint */}
+					{isStreaming && (
+						<div className="mt-1.5">
+							<p className="text-xs text-text-tertiary">
+								<span className="text-accent-text">Enter</span> to steer ·{" "}
+								<span className="text-accent-text">Ctrl+Enter</span> for follow-up ·{" "}
+								<span className="text-status-error-text">Ctrl+C</span> to abort
+							</p>
 						</div>
-					) : (
-						<button
-							type="button"
-							onClick={handleSend}
-							disabled={!canSend}
-							className={cn(
-								"flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-								"transition-colors",
-								canSend
-									? "bg-accent-primary text-text-on-accent hover:bg-accent-primary-hover"
-									: "cursor-not-allowed bg-surface-secondary text-text-tertiary",
-							)}
-							title="Send (Enter)"
-						>
-							{/* Send icon — arrow up */}
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 16 16"
-								fill="currentColor"
-								className="h-4 w-4"
-								aria-label="Send"
-								role="img"
-							>
-								<path d="M8 2.5a.5.5 0 0 1 .354.146l4 4a.5.5 0 0 1-.708.708L8.5 4.207V13a.5.5 0 0 1-1 0V4.207L4.354 7.354a.5.5 0 1 1-.708-.708l4-4A.5.5 0 0 1 8 2.5z" />
-							</svg>
-						</button>
 					)}
 				</div>
-
-				{/* Streaming mode hint */}
-				{isStreaming && (
-					<div className="mt-1.5">
-						<p className="text-xs text-text-tertiary">
-							<span className="text-accent-text">Enter</span> to steer ·{" "}
-							<span className="text-accent-text">Ctrl+Enter</span> for follow-up ·{" "}
-							<span className="text-status-error-text">Ctrl+C</span> to abort
-						</p>
-					</div>
-				)}
 			</div>
 		</div>
 	);
