@@ -249,12 +249,10 @@ type SystemCategory =
 	| "retry-progress"
 	| "retry-success"
 	| "retry-failed"
-	| "completion"
 	| "default";
 
 /** Detect message category for styling. */
 function getCategory(content: string): SystemCategory {
-	if (content.startsWith("✓ Worked for")) return "completion";
 	if (content.includes("compaction")) return "compaction";
 	if (content.startsWith("✅ Retry succeeded")) return "retry-success";
 	if (content.startsWith("❌ Retry failed")) return "retry-failed";
@@ -266,44 +264,32 @@ function getCategory(content: string): SystemCategory {
 function getCategoryStyle(category: SystemCategory): {
 	textClass: string;
 	dividerClass: string;
-	iconClass: string;
 } {
 	switch (category) {
-		case "completion":
-			return {
-				textClass: "text-text-muted",
-				dividerClass: "bg-border-secondary",
-				iconClass: "",
-			};
 		case "compaction":
 			return {
 				textClass: "text-status-warning/70",
 				dividerClass: "bg-status-warning/20",
-				iconClass: "",
 			};
 		case "retry-progress":
 			return {
 				textClass: "text-status-warning-text/80",
 				dividerClass: "bg-status-warning/20",
-				iconClass: "animate-spin-slow",
 			};
 		case "retry-success":
 			return {
 				textClass: "text-status-success-text/70",
 				dividerClass: "bg-status-success/20",
-				iconClass: "",
 			};
 		case "retry-failed":
 			return {
 				textClass: "text-status-error-text/80",
 				dividerClass: "bg-status-error/20",
-				iconClass: "",
 			};
 		default:
 			return {
 				textClass: "text-text-tertiary",
 				dividerClass: "bg-surface-secondary",
-				iconClass: "",
 			};
 	}
 }
@@ -311,6 +297,10 @@ function getCategoryStyle(category: SystemCategory): {
 /**
  * Renders system notices (compaction, retry, errors) as subtle centered
  * text with divider-like appearance and category-specific colors.
+ *
+ * NOTE: Completion summaries ("✓ Worked for Xm Ys") are no longer rendered
+ * by SystemMessage — they are promoted to first-class `"completion-summary"`
+ * timeline entries and rendered by `CompletionSummary`.
  */
 export const SystemMessage = memo(function SystemMessage({ message }: SystemMessageProps) {
 	const category = getCategory(message.content);
@@ -321,6 +311,33 @@ export const SystemMessage = memo(function SystemMessage({ message }: SystemMess
 			<div className={cn("h-px flex-1", style.dividerClass)} />
 			<span className={cn("shrink-0 text-xs", style.textClass)}>{message.content}</span>
 			<div className={cn("h-px flex-1", style.dividerClass)} />
+		</div>
+	);
+});
+
+// ==== CompletionSummary ====
+
+interface CompletionSummaryProps {
+	/** The completion text, e.g. "✓ Worked for 2m 15s". */
+	content: string;
+}
+
+/**
+ * Renders a completion summary divider — the "✓ Worked for Xm Ys" line
+ * that appears after an agent turn completes.
+ *
+ * Previously rendered as a SystemMessage with string-matching, now a
+ * first-class timeline entry with dedicated styling: muted text with
+ * subtle divider lines.
+ */
+export const CompletionSummary = memo(function CompletionSummary({
+	content,
+}: CompletionSummaryProps) {
+	return (
+		<div className="flex items-center gap-3 py-1">
+			<div className="h-px flex-1 bg-border-secondary" />
+			<span className="shrink-0 text-xs text-text-muted">{content}</span>
+			<div className="h-px flex-1 bg-border-secondary" />
 		</div>
 	);
 });

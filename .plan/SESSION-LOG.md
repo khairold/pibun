@@ -744,3 +744,31 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 25 — TimelineEntry union type refactor (2026-03-24)
+
+**What happened:**
+- Refactored ChatView to use `TimelineEntry` union type (3.1):
+  - **Renamed `ChatItem` → `TimelineEntry`**: Exported union type with 4 kinds: `"message" | "tool-group" | "turn-divider" | "completion-summary"`. Changed kind names from underscored to hyphenated (`tool_group` → `tool-group`, `turn_divider` → `turn-divider`) for consistency.
+  - **Promoted completion summaries**: System messages starting with `"✓ Worked for"` are now detected by `groupMessages()` via `COMPLETION_PREFIX` constant and emitted as `{ kind: "completion-summary", id, timestamp, content }` entries instead of generic `{ kind: "message" }` entries. This eliminates the string-matching in `SystemMessage`'s `getCategory()`.
+  - **New `CompletionSummary` component**: Added to `ChatMessages.tsx` — dedicated renderer for completion summary dividers with `bg-border-secondary` divider lines and `text-text-muted` text. Visually identical to the old `"completion"` category in `SystemMessage`.
+  - **Simplified `SystemMessage`**: Removed `"completion"` from `SystemCategory` union and its style mapping. `SystemMessage` now only handles: compaction, retry-progress, retry-success, retry-failed, default.
+  - **Renamed supporting functions**: `ChatItemRenderer` → `TimelineEntryRenderer`, `chatItemKey` → `timelineEntryKey`. Both now use exhaustive `switch` statements instead of `if` chains.
+  - **Internal variable naming**: `items` → `entries` in ChatView component body.
+  - **Type exported**: `TimelineEntry` is exported from `ChatView.tsx` for use by future Phase 3 items.
+- Only 2 files modified: `ChatView.tsx`, `ChatMessages.tsx`. Zero changes to store, contracts, or server.
+
+**Items completed:**
+- [x] 3.1 — Refactor ChatView to use `TimelineEntry` union type
+
+**Issues encountered:**
+- Biome formatting: `SystemCategory` union type was on one line — Biome wants multi-line when it exceeds width. Fixed with `bun run format`.
+
+**Handoff to next session:**
+- Next: 3.2 — Group tool calls into collapsible work groups per turn
+- `TimelineEntry` is exported from `ChatView.tsx` — import it in components that need to know about entry kinds.
+- The `"tool-group"` kind already groups adjacent tool_call + tool_result pairs. Item 3.2 is about grouping ALL tool calls in a turn into one collapsible visual unit (similar to T3Code's `"work"` row kind with `groupedEntries[]`).
+- The `groupMessages()` function currently creates individual `"tool-group"` entries. 3.2 will need to either: (a) add a new `"tool-group-collapsed"` kind that wraps multiple tool-groups, or (b) modify the existing `"tool-group"` to carry an array of tool pairs. Study T3Code's `TimelineRow.kind === "work"` with `groupedEntries[]` for the pattern.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

@@ -6,14 +6,15 @@
  * (100+ messages) performant by avoiding rendering hundreds of off-screen
  * React subtrees.
  *
- * Renders all ChatMessage types using dedicated sub-components:
- * - UserMessage — user prompts (right-aligned bubbles)
- * - AssistantMessage — streaming assistant text with streaming cursor + thinking
- * - ToolExecutionCard — unified tool call + result card (status, expandable output)
- * - SystemMessage — compaction/retry notices (centered dividers)
+ * Renders all ChatMessage types via a `TimelineEntry` union type:
+ * - `"message"` — user/assistant/system messages (UserMessage, AssistantMessage, SystemMessage)
+ * - `"tool-group"` — grouped tool_call + tool_result (ToolExecutionCard)
+ * - `"turn-divider"` — visual separator between turns with timestamp + tool count
+ * - `"completion-summary"` — "✓ Worked for Xm Ys" divider after an agent turn
  *
- * Tool calls and their results are automatically grouped into ToolExecutionCard
- * when they appear as adjacent messages (tool_call followed by tool_result).
+ * The `groupMessages()` function transforms the flat `ChatMessage[]` array into
+ * a `TimelineEntry[]` by grouping adjacent tool messages, inserting turn dividers,
+ * and promoting completion system messages to first-class timeline entries.
  *
  * Auto-scrolls to bottom on new content using pointer-aware scroll detection
  * (via `useChatScroll` hook). Tracks mouse/wheel/touch interactions to
@@ -23,6 +24,7 @@
 
 import {
 	AssistantMessage,
+	CompletionSummary,
 	SystemMessage,
 	TurnDivider,
 	UserMessage,
@@ -38,23 +40,39 @@ import { type ReactElement, memo, useCallback, useEffect, useMemo, useRef, useSt
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 
 // ============================================================================
-// Message grouping — combine tool_call + tool_result into unified items
+// TimelineEntry — the renderable unit in the chat timeline
 // ============================================================================
 
-/** A renderable item in the chat — either a single message, tool group, or turn divider. */
-type ChatItem =
+/**
+ * A renderable entry in the chat timeline.
+ *
+ * The flat `ChatMessage[]` from the store is transformed into `TimelineEntry[]`
+ * by `groupMessages()`. Each variant maps to a dedicated renderer:
+ * - `"message"` → UserMessage / AssistantMessage / SystemMessage
+ * - `"tool-group"` → ToolExecutionCard (grouped tool_call + tool_result)
+ * - `"turn-divider"` → TurnDivider (timestamp + tool count badge)
+ * - `"completion-summary"` → CompletionSummary ("✓ Worked for Xm Ys")
+ */
+export type TimelineEntry =
 	| { kind: "message"; message: ChatMessage }
-	| { kind: "tool_group"; toolCall: ChatMessage; toolResult: ChatMessage | null }
-	| { kind: "turn_divider"; id: string; timestamp: number; toolCount: number };
+	| { kind: "tool-group"; toolCall: ChatMessage; toolResult: ChatMessage | null }
+	| { kind: "turn-divider"; id: string; timestamp: number; toolCount: number }
+	| { kind: "completion-summary"; id: string; timestamp: number; content: string };
+
+/** Prefix used to identify completion summary system messages. */
+const COMPLETION_PREFIX = "✓ Worked for";
 
 /**
- * Group messages into renderable items.
- * Adjacent tool_call + tool_result pairs become tool_group items.
- * Turn dividers are inserted before each user message (except the first)
- * to show the timestamp and tool call count from the preceding turn.
+ * Group messages into timeline entries.
+ *
+ * Transformations applied:
+ * 1. Adjacent tool_call + tool_result pairs → `"tool-group"` entries
+ * 2. Turn dividers inserted before each user message (except the first)
+ *    with the preceding turn's tool call count
+ * 3. System messages starting with "✓ Worked for" → `"completion-summary"` entries
  */
-function groupMessages(messages: readonly ChatMessage[]): ChatItem[] {
-	const items: ChatItem[] = [];
+function groupMessages(messages: readonly ChatMessage[]): TimelineEntry[] {
+	const items: TimelineEntry[] = [];
 	let i = 0;
 	/** Whether we've seen the first user message (no divider before it). */
 	let seenFirstUser = false;
@@ -74,7 +92,7 @@ function groupMessages(messages: readonly ChatMessage[]): ChatItem[] {
 		if (msg.type === "user") {
 			if (seenFirstUser) {
 				items.push({
-					kind: "turn_divider",
+					kind: "turn-divider",
 					id: `turn-divider-${String(++dividerCounter)}`,
 					timestamp: msg.timestamp,
 					toolCount: turnToolCount,
@@ -89,12 +107,12 @@ function groupMessages(messages: readonly ChatMessage[]): ChatItem[] {
 			// Look ahead for matching tool_result
 			const next = i + 1 < messages.length ? messages[i + 1] : undefined;
 			if (next?.type === "tool_result") {
-				items.push({ kind: "tool_group", toolCall: msg, toolResult: next });
+				items.push({ kind: "tool-group", toolCall: msg, toolResult: next });
 				i += 2; // Skip both messages
 				continue;
 			}
 			// tool_call without immediate result — render as group with null result
-			items.push({ kind: "tool_group", toolCall: msg, toolResult: null });
+			items.push({ kind: "tool-group", toolCall: msg, toolResult: null });
 			i++;
 			continue;
 		}
@@ -103,6 +121,18 @@ function groupMessages(messages: readonly ChatMessage[]): ChatItem[] {
 		if (msg.type === "tool_result") {
 			// Orphan result — render as standalone
 			items.push({ kind: "message", message: msg });
+			i++;
+			continue;
+		}
+
+		// Promote completion system messages to first-class timeline entries
+		if (msg.type === "system" && msg.content.startsWith(COMPLETION_PREFIX)) {
+			items.push({
+				kind: "completion-summary",
+				id: msg.id,
+				timestamp: msg.timestamp,
+				content: msg.content,
+			});
 			i++;
 			continue;
 		}
@@ -136,26 +166,34 @@ const MessageItem = memo(function MessageItem({ message }: { message: ChatMessag
 	}
 });
 
-/** Render a chat item (message, tool group, or turn divider). */
-const ChatItemRenderer = memo(function ChatItemRenderer({ item }: { item: ChatItem }) {
-	if (item.kind === "tool_group") {
-		return <ToolExecutionCard toolCall={item.toolCall} toolResult={item.toolResult} />;
+/** Render a timeline entry (message, tool group, turn divider, or completion summary). */
+const TimelineEntryRenderer = memo(function TimelineEntryRenderer({
+	entry,
+}: { entry: TimelineEntry }) {
+	switch (entry.kind) {
+		case "tool-group":
+			return <ToolExecutionCard toolCall={entry.toolCall} toolResult={entry.toolResult} />;
+		case "turn-divider":
+			return <TurnDivider timestamp={entry.timestamp} toolCount={entry.toolCount} />;
+		case "completion-summary":
+			return <CompletionSummary content={entry.content} />;
+		case "message":
+			return <MessageItem message={entry.message} />;
 	}
-	if (item.kind === "turn_divider") {
-		return <TurnDivider timestamp={item.timestamp} toolCount={item.toolCount} />;
-	}
-	return <MessageItem message={item.message} />;
 });
 
-/** Unique key for a chat item. */
-function chatItemKey(item: ChatItem): string {
-	if (item.kind === "tool_group") {
-		return `tool-group-${item.toolCall.id}`;
+/** Unique key for a timeline entry. */
+function timelineEntryKey(entry: TimelineEntry): string {
+	switch (entry.kind) {
+		case "tool-group":
+			return `tool-group-${entry.toolCall.id}`;
+		case "turn-divider":
+			return entry.id;
+		case "completion-summary":
+			return entry.id;
+		case "message":
+			return entry.message.id;
 	}
-	if (item.kind === "turn_divider") {
-		return item.id;
-	}
-	return item.message.id;
 }
 
 // ============================================================================
@@ -359,8 +397,8 @@ export function ChatView() {
 	const { followOutput, handleAtBottom, showScrollButton, scrollToBottom, containerProps } =
 		useChatScroll(virtuosoRef);
 
-	// Group messages into renderable items (memoize to avoid re-grouping on every render)
-	const items = useMemo(() => groupMessages(messages), [messages]);
+	// Group messages into timeline entries (memoize to avoid re-grouping on every render)
+	const entries = useMemo(() => groupMessages(messages), [messages]);
 
 	// Derive whether any message is actively streaming (boolean, cheap to compare).
 	// This avoids passing the full `messages` array into the footer callback.
@@ -368,24 +406,24 @@ export function ChatView() {
 
 	// ── Virtuoso callbacks (stable refs) ─────────────────────────────
 
-	/** Render a single item by index. */
+	/** Render a single entry by index. */
 	const itemContent = useCallback(
 		(index: number) => {
-			const item = items[index];
-			if (!item) return null;
-			return <ChatItemRenderer item={item} />;
+			const entry = entries[index];
+			if (!entry) return null;
+			return <TimelineEntryRenderer entry={entry} />;
 		},
-		[items],
+		[entries],
 	);
 
-	/** Compute stable key per item for reconciliation. */
+	/** Compute stable key per entry for reconciliation. */
 	const computeItemKey = useCallback(
 		(index: number) => {
-			const item = items[index];
-			if (!item) return `item-${index}`;
-			return chatItemKey(item);
+			const entry = entries[index];
+			if (!entry) return `entry-${index}`;
+			return timelineEntryKey(entry);
 		},
-		[items],
+		[entries],
 	);
 
 	// ── Footer: status indicators below the message list ─────────────
@@ -438,7 +476,7 @@ export function ChatView() {
 
 	// ── Empty state ──────────────────────────────────────────────────
 
-	if (items.length === 0) {
+	if (entries.length === 0) {
 		return <EmptyState />;
 	}
 
@@ -448,7 +486,7 @@ export function ChatView() {
 		<div className="relative flex min-h-0 flex-1 flex-col overflow-hidden" {...containerProps}>
 			<Virtuoso
 				ref={virtuosoRef}
-				totalCount={items.length}
+				totalCount={entries.length}
 				itemContent={itemContent}
 				computeItemKey={computeItemKey}
 				followOutput={followOutput}
@@ -462,7 +500,7 @@ export function ChatView() {
 					Footer: footer,
 				}}
 				className="flex-1"
-				initialTopMostItemIndex={items.length - 1}
+				initialTopMostItemIndex={entries.length - 1}
 			/>
 
 			{/* Floating "New messages" button when scrolled up */}

@@ -57,6 +57,7 @@
 | 46 | Terminal context appended to prompt as `<terminal_context>` block following T3Code's format | `buildTerminalContextBlock()` in Composer.tsx formats each context as `- {label}:` header + line-numbered body (`  {lineNum} \| {text}`). Block appended after user text + file mentions with `\n\n` separator. Pi receives terminal output as structured context in the prompt. | 2026-03-24 |
 | 47 | Drag-and-drop image support was already implemented — just never checked off | Composer already had `handleDragOver`, `handleDragLeave`, `handleDrop` handlers calling `addImagesFromFiles`, with `isDragOver` state driving a visual drop overlay. Implemented alongside clipboard paste in an earlier session. | 2026-03-24 |
 | 48 | Image preview strip improved: 80px thumbnails (was 64px), file size badge overlay | `ImageAttachment` and `PersistedImageAttachment` extended with `fileSize: number`. File size captured from `File.size` during `addImagesFromFiles`. `formatFileSize()` helper formats bytes to human-readable (B/KB/MB). Badge rendered as semi-transparent black overlay at bottom-left of thumbnail. Backward compatible — `fileSize ?? 0` for old persisted drafts. | 2026-03-24 |
+| 49 | `ChatItem` renamed to `TimelineEntry` — exported union type with 4 kinds | `"message" \| "tool-group" \| "turn-divider" \| "completion-summary"`. Hyphenated kind names (not underscored) for consistency. `ChatItemRenderer` → `TimelineEntryRenderer`, `chatItemKey` → `timelineEntryKey`. Completion summaries promoted from string-matched system messages to first-class `"completion-summary"` entries — detected by `COMPLETION_PREFIX = "✓ Worked for"` in `groupMessages()`. `CompletionSummary` component in `ChatMessages.tsx` replaces the old `"completion"` case in `SystemMessage`'s `getCategory()`. `SystemCategory` type simplified (no more `"completion"` variant). `TimelineEntry` is exported from `ChatView.tsx` for use by future items (3.2-3.4). | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -87,7 +88,8 @@ apps/desktop/         — Electrobun main process, menu, notifications, updater,
 - ComposerMentionChip — inline file/terminal reference pill
 - SettingsPage — full settings panel
 - DiffPanel — side panel with per-turn diffs
-- TurnDivider — visual separator between conversation turns
+- ~~TurnDivider — visual separator between conversation turns~~ ✅ Done (Session 11)
+- ~~TimelineEntry union type~~ ✅ Done (Session 25): `"message" | "tool-group" | "turn-divider" | "completion-summary"`
 - ThreadContextMenu — right-click actions for sidebar items
 
 ### T3Code Patterns to Study (read before implementing)
