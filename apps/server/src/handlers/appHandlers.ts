@@ -18,6 +18,7 @@ import type {
 	WsAppSaveExportFileParams,
 	WsAppSaveExportFileResult,
 	WsAppSetWindowTitleParams,
+	WsAppShowContextMenuParams,
 	WsGitBranchParams,
 	WsGitBranchResult,
 	WsGitDiffParams,
@@ -135,6 +136,25 @@ export const handleAppSaveExportFile: WsHandler<"app.saveExportFile"> = async (
 	}
 	const filePath = await ctx.hooks.onSaveExportFile(params.content, params.defaultFilename);
 	return { filePath };
+};
+
+/**
+ * Show a native context menu.
+ * Desktop-only. In browser mode, throws an error so the web app can fall
+ * back to a custom HTML context menu.
+ *
+ * The result of the user's selection is delivered asynchronously via
+ * the `context-menu.action` push channel (handled by the desktop main process).
+ */
+export const handleAppShowContextMenu: WsHandler<"app.showContextMenu"> = (
+	params: WsAppShowContextMenuParams,
+	ctx: HandlerContext,
+): WsOkResult => {
+	if (!ctx.hooks.onShowContextMenu) {
+		throw new Error("Native context menu is not available in browser mode");
+	}
+	ctx.hooks.onShowContextMenu(params.items);
+	return { ok: true };
 };
 
 // ============================================================================

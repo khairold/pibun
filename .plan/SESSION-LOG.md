@@ -996,3 +996,29 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 34 — Electrobun context menu support (2026-03-24)
+
+**What happened:**
+- Implemented native context menu support end-to-end (4A.1):
+  - **Contracts wsProtocol.ts**: Added `app.showContextMenu` WS method with `WsAppShowContextMenuParams` (items: `ContextMenuItem[]`). Added `context-menu.action` push channel with `WsContextMenuActionData` (action, data). Added `ContextMenuItem` type matching Electrobun's `ApplicationMenuItemConfig` format (label, action, type, enabled, data, submenu). Wired into `WS_METHODS`, `WS_CHANNELS`, `WsMethodParamsMap`, `WsMethodResultMap`, `WsChannelDataMap`.
+  - **Server server.ts**: Added `onShowContextMenu` hook to `ServerHooks` interface. Desktop provides the hook, browser mode throws.
+  - **Server appHandlers.ts**: Added `handleAppShowContextMenu` handler — fire-and-forget call to hook (result comes back via push). Throws "Native context menu is not available in browser mode" when no hook.
+  - **Server index.ts**: Registered `handleAppShowContextMenu` in handler registry.
+  - **Desktop index.ts**: Imported `ContextMenu` from `electrobun/bun`. Added `onShowContextMenu` hook implementation that calls `ContextMenu.showContextMenu()`. Added `ContextMenu.on("context-menu-clicked")` event listener that forwards clicked item's action+data via `context-menu.action` push channel using `broadcastPush`.
+  - **Web wireTransport.ts**: Added `contextMenuActionHandler` module-level callback slot (one-shot). Added `showNativeContextMenu(items, onAction)` exported function — registers callback, sends `app.showContextMenu` request. Added `context-menu.action` subscription that invokes and clears the registered handler.
+
+**Items completed:**
+- [x] 4A.1 — Add Electrobun context menu support
+
+**Issues encountered:**
+- None. Clean implementation across all layers. The pattern follows the existing hook-based desktop integration (same as `onOpenFolderDialog`, `onSaveExportFile`).
+
+**Handoff to next session:**
+- Next: 4A.2 — Thread context menu (right-click in sidebar)
+- `showNativeContextMenu(items, onAction)` is exported from `wireTransport.ts` — use it from any component. Catch the error and fall back to HTML context menu for browser mode.
+- The `ContextMenuItem` type supports submenus, disabled items, separators, and custom data. All echoed back on click.
+- Context menu is one-shot per invocation — showing a new menu overwrites the previous callback. This is correct since only one native context menu can be visible at a time (OS limitation).
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

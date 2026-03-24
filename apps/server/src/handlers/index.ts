@@ -11,6 +11,7 @@ import {
 	handleAppOpenFolderDialog,
 	handleAppSaveExportFile,
 	handleAppSetWindowTitle,
+	handleAppShowContextMenu,
 	handleGitBranch,
 	handleGitDiff,
 	handleGitLog,
@@ -145,6 +146,7 @@ export const handlers: HandlerRegistry = {
 	"app.openFolderDialog": handleAppOpenFolderDialog,
 	"app.setWindowTitle": handleAppSetWindowTitle,
 	"app.saveExportFile": handleAppSaveExportFile,
+	"app.showContextMenu": handleAppShowContextMenu,
 
 	// Settings (server-side persistence)
 	"settings.get": handleSettingsGet,

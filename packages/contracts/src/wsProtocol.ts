@@ -121,6 +121,7 @@ export const WS_METHODS = {
 	appOpenFolderDialog: "app.openFolderDialog",
 	appSetWindowTitle: "app.setWindowTitle",
 	appSaveExportFile: "app.saveExportFile",
+	appShowContextMenu: "app.showContextMenu",
 
 	// Settings (server-side persistence)
 	settingsGet: "settings.get",
@@ -160,6 +161,8 @@ export const WS_CHANNELS = {
 	terminalExit: "terminal.exit",
 	/** Session lifecycle status (crashed, stopped unexpectedly). */
 	sessionStatus: "session.status",
+	/** Context menu item clicked — forwarded from desktop native context menu. */
+	contextMenuAction: "context-menu.action",
 } as const;
 
 /** Union of all push channel strings. */
@@ -471,6 +474,44 @@ export interface WsAppSaveExportFileParams {
 	defaultFilename: string;
 }
 
+/**
+ * A single item in a native context menu.
+ *
+ * Matches Electrobun's `ApplicationMenuItemConfig` format.
+ * Items can be normal (clickable), separators, or nested submenus.
+ */
+export interface ContextMenuItem {
+	/** Display label. Required for non-separator items. */
+	label?: string;
+	/**
+	 * Action identifier returned when item is clicked.
+	 * This string is sent back via the `context-menu.action` push channel.
+	 */
+	action?: string;
+	/** Menu item type. Defaults to "normal". */
+	type?: "normal" | "separator" | "divider";
+	/** Whether the item is enabled. Defaults to true. */
+	enabled?: boolean;
+	/** Arbitrary data associated with this item, echoed back on click. */
+	data?: unknown;
+	/** Nested submenu items. */
+	submenu?: ContextMenuItem[];
+}
+
+/**
+ * Params for `app.showContextMenu` — show a native context menu.
+ *
+ * Desktop-only. In browser mode, the server returns an error and the
+ * web app should fall back to a custom HTML context menu.
+ *
+ * The result of the user's selection is delivered asynchronously via
+ * the `context-menu.action` push channel.
+ */
+export interface WsAppShowContextMenuParams {
+	/** The menu items to display. */
+	items: ContextMenuItem[];
+}
+
 // ============================================================================
 // Settings Parameters
 // ============================================================================
@@ -589,6 +630,7 @@ export interface WsMethodParamsMap {
 	"app.openFolderDialog": undefined;
 	"app.setWindowTitle": WsAppSetWindowTitleParams;
 	"app.saveExportFile": WsAppSaveExportFileParams;
+	"app.showContextMenu": WsAppShowContextMenuParams;
 	"settings.get": undefined;
 	"settings.update": WsSettingsUpdateParams;
 	"plugin.list": undefined;
@@ -866,6 +908,7 @@ export interface WsMethodResultMap {
 	"app.openFolderDialog": WsAppOpenFolderDialogResult;
 	"app.setWindowTitle": WsOkResult;
 	"app.saveExportFile": WsAppSaveExportFileResult;
+	"app.showContextMenu": WsOkResult;
 	"settings.get": WsSettingsGetResult;
 	"settings.update": WsSettingsUpdateResult;
 	"plugin.list": WsPluginListResult;
@@ -989,6 +1032,20 @@ export interface WsSessionStatusData {
 	exitCode?: number;
 }
 
+/**
+ * Data for `context-menu.action` push — native context menu item clicked.
+ *
+ * Sent when the user clicks an item in a native context menu that was
+ * shown via `app.showContextMenu`. The `action` string and optional `data`
+ * come from the `ContextMenuItem` that was clicked.
+ */
+export interface WsContextMenuActionData {
+	/** Action string from the clicked menu item. */
+	action: string;
+	/** Optional data attached to the clicked menu item. */
+	data?: unknown;
+}
+
 // ============================================================================
 // Channel → Data Type Map
 // ============================================================================
@@ -1007,6 +1064,7 @@ export interface WsChannelDataMap {
 	"terminal.data": WsTerminalDataPush;
 	"terminal.exit": WsTerminalExitPush;
 	"session.status": WsSessionStatusData;
+	"context-menu.action": WsContextMenuActionData;
 }
 
 // ============================================================================

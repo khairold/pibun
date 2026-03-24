@@ -17,7 +17,7 @@ import { resolve } from "node:path";
 import { PiRpcManager } from "@pibun/server/piRpcManager";
 import { loadProjects } from "@pibun/server/projectStore";
 import { type PiBunServer, broadcastPush, createServer } from "@pibun/server/server";
-import Electrobun, { ApplicationMenu, BrowserWindow, Utils } from "electrobun/bun";
+import Electrobun, { ApplicationMenu, BrowserWindow, ContextMenu, Utils } from "electrobun/bun";
 import {
 	type MenuAction,
 	OPEN_RECENT_ACTION_PREFIX,
@@ -266,6 +266,9 @@ function startServer(): { server: PiBunServer; url: string } {
 			},
 			onSetWindowTitle: (title: string) => {
 				mainWindowRef?.setTitle(title);
+			},
+			onShowContextMenu: (items: unknown[]) => {
+				ContextMenu.showContextMenu(items as Parameters<typeof ContextMenu.showContextMenu>[0]);
 			},
 		},
 	});
@@ -630,6 +633,19 @@ async function bootstrap(): Promise<void> {
 	};
 
 	Electrobun.events.on("application-menu-clicked", createMenuClickHandler(handleMenuAction));
+
+	// Listen for context menu item clicks and forward to the React app.
+	// The web app calls `app.showContextMenu` → server hook → `ContextMenu.showContextMenu()`.
+	// When the user clicks an item, this event fires and we push the result back.
+	ContextMenu.on("context-menu-clicked", (event: unknown) => {
+		const { data } = event as { data: { action?: string; data?: unknown } };
+		if (data.action && pibunServer) {
+			broadcastPush(pibunServer.connections, "context-menu.action", {
+				action: data.action,
+				data: data.data,
+			});
+		}
+	});
 
 	console.log("[Menu] Application menu configured");
 

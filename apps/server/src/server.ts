@@ -61,6 +61,8 @@ export interface ServerHooks {
 	onSetWindowTitle?: (title: string) => void;
 	/** Called when the web app requests `app.saveExportFile`. Opens native folder picker, writes file. Returns saved path or null. */
 	onSaveExportFile?: (content: string, defaultFilename: string) => Promise<string | null>;
+	/** Called when the web app requests `app.showContextMenu`. Shows native context menu. Result delivered via `context-menu.action` push. */
+	onShowContextMenu?: (items: unknown[]) => void;
 }
 
 /** Options for creating the server. */

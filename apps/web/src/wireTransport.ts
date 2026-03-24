@@ -43,6 +43,7 @@ import type {
 	PiImageContent,
 	PiMessageUpdateEvent,
 	PiTextContent,
+	WsContextMenuActionData,
 	WsMenuActionData,
 	WsPiEventData,
 	WsSessionStatusData,
@@ -62,6 +63,35 @@ export function getTransport(): WsTransport {
 	return transport;
 }
 
+/**
+ * Show a native context menu via the desktop main process.
+ *
+ * Sends the menu items to the server (`app.showContextMenu`), which forwards
+ * to the Electrobun main process. When the user clicks an item, the result
+ * arrives via the `context-menu.action` push channel and is dispatched to
+ * the `onAction` callback.
+ *
+ * Only works in desktop mode. In browser mode, the server returns an error —
+ * callers should catch this and fall back to a custom HTML context menu.
+ *
+ * @param items - Context menu items to display.
+ * @param onAction - Callback invoked with the clicked item's action and data.
+ */
+export async function showNativeContextMenu(
+	items: import("@pibun/contracts").ContextMenuItem[],
+	onAction: (data: WsContextMenuActionData) => void,
+): Promise<void> {
+	const t = getTransport();
+	contextMenuActionHandler = onAction;
+	try {
+		await t.request("app.showContextMenu", { items });
+	} catch {
+		// Browser mode or desktop unavailable — clear handler, let caller handle fallback
+		contextMenuActionHandler = null;
+		throw new Error("Native context menu is not available");
+	}
+}
+
 // ============================================================================
 // Internal State
 // ============================================================================
@@ -71,6 +101,16 @@ let messageIdCounter = 0;
 
 /** ID of the currently streaming assistant message (for routing deltas). */
 let currentAssistantMessageId: string | null = null;
+
+/**
+ * Registered context menu action handler.
+ *
+ * When the web app calls `showNativeContextMenu()`, it passes an `onAction`
+ * callback. The callback is stored here and invoked when the `context-menu.action`
+ * push arrives from the desktop process. Only one context menu can be active
+ * at a time (native OS limitation), so a single callback slot is sufficient.
+ */
+let contextMenuActionHandler: ((data: WsContextMenuActionData) => void) | null = null;
 
 function nextId(prefix: string): string {
 	return `${prefix}-${String(++messageIdCounter)}`;
@@ -791,6 +831,17 @@ export function initTransport(): () => void {
 
 	// menu.action → dispatch native menu actions from desktop
 	cleanups.push(transport.subscribe("menu.action", handleMenuAction));
+
+	// context-menu.action → dispatch to registered context menu handler
+	cleanups.push(
+		transport.subscribe("context-menu.action", (data: WsContextMenuActionData) => {
+			if (contextMenuActionHandler) {
+				const handler = contextMenuActionHandler;
+				contextMenuActionHandler = null; // One-shot: clear after invocation
+				handler(data);
+			}
+		}),
+	);
 
 	// app.update → update slice (auto-updater status from desktop)
 	cleanups.push(
