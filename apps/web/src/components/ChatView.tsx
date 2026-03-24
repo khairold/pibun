@@ -261,6 +261,10 @@ export function ChatView() {
 	// Group messages into renderable items (memoize to avoid re-grouping on every render)
 	const items = useMemo(() => groupMessages(messages), [messages]);
 
+	// Derive whether any message is actively streaming (boolean, cheap to compare).
+	// This avoids passing the full `messages` array into the footer callback.
+	const anyMessageStreaming = useMemo(() => hasStreamingMessage(messages), [messages]);
+
 	// ── Virtuoso callbacks (stable refs) ─────────────────────────────
 
 	/** Render a single item by index. */
@@ -285,7 +289,7 @@ export function ChatView() {
 
 	// ── Footer: status indicators below the message list ─────────────
 	const footer = useCallback(() => {
-		const showThinking = isStreaming && !hasStreamingMessage(messages);
+		const showThinking = isStreaming && !anyMessageStreaming;
 		const showCompacting = isCompacting;
 		const showRetrying = isRetrying;
 
@@ -320,7 +324,7 @@ export function ChatView() {
 				)}
 			</div>
 		);
-	}, [isStreaming, messages, isCompacting, isRetrying, retryAttempt, retryMaxAttempts]);
+	}, [isStreaming, anyMessageStreaming, isCompacting, isRetrying, retryAttempt, retryMaxAttempts]);
 
 	// ── Empty state ──────────────────────────────────────────────────
 

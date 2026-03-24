@@ -58,3 +58,27 @@
 **Handoff to next session:**
 - Next: 1A.2 — Audit all Zustand selectors for referential stability
 - The `useChatScroll` hook returns `containerProps` that must be spread on the scroll container's parent — this pattern is established, follow it if adding more scroll containers
+
+---
+
+## Session 2 — Zustand selector stability audit (2026-03-24)
+
+**What happened:**
+- Audited all 121 `useStore()` selectors across 30+ components
+- All selectors use direct property access (`s => s.field`) — no derived selectors creating new objects/arrays
+- Confirmed individual scalar selectors are the optimal Zustand pattern — `useShallow` consolidation would be WORSE (more work per state change)
+- Found one real issue: `ChatView.footer` callback captured `messages` array, causing callback recreation on every streaming delta (text_delta, thinking_delta, tool_execution_update)
+- Fixed by extracting `anyMessageStreaming = useMemo(() => hasStreamingMessage(messages), [messages])` — a boolean that only changes when streaming starts/stops, keeping the footer callback stable during content streaming
+- Verified `statuses` (Map) and `activePluginPanels` (Set) selectors are fine — references only change on actual mutation
+- Verified `PluginPanel.tsx` already uses `useMemo` for derived panel lists — correct pattern
+
+**Items completed:**
+- [x] 1A.2 — Audit all Zustand selectors for referential stability
+
+**Issues encountered:**
+- None. The codebase was already well-structured — the original selector pattern was correct by design. Only the footer callback needed fixing.
+
+**Handoff to next session:**
+- Next: 1A.3 — Add debounced localStorage persistence for key UI state
+- The store pattern is validated: use individual `useStore(s => s.field)` selectors for scalars, `useMemo` for derived values
+- `useShallow` from `zustand/react/shallow` is available but not needed for current patterns

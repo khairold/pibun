@@ -20,6 +20,8 @@
 | 9 | Thread renaming uses Pi's `set_session_name` RPC | Already have `session.setName` WS method and handler. Just needs sidebar inline edit UI. | 2026-03-24 |
 | 10 | Electrobun's `showContextMenu()` + `ContextMenu.on("context-menu-clicked")` for native menus | Returns selected item action. Desktop forwards via WS push. Web app subscribes. | 2026-03-24 |
 | 11 | Pointer-aware scroll via `useChatScroll` hook, not distance-only detection | Tracks pointer/wheel/touch interaction state to distinguish user scroll intent from content-growth shifts. Uses `isInteractingRef` + `userScrolledAwayRef` dual-flag approach. Old `useAutoScroll` hook deleted (was dead code). | 2026-03-24 |
+| 12 | Individual scalar selectors are the optimal Zustand pattern — don't consolidate with `useShallow` | All 121 selectors use direct property access (`s => s.field`). `useShallow` is only needed for selectors returning new arrays/objects. Individual scalar selectors with `Object.is` comparison are cheaper than `useShallow` multi-field objects. | 2026-03-24 |
+| 13 | `ChatView.footer` uses `anyMessageStreaming` boolean instead of `messages` array | The footer callback's stability matters because it's passed as `components.Footer` to Virtuoso. Using a derived boolean prevents footer recreation on every streaming delta — it only changes when streaming starts/stops. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -75,6 +77,8 @@ apps/desktop/         — Electrobun main process, menu, notifications, updater,
 - **`react-virtuoso` is already installed** but currently active (MEMORY-v2 #139-140). Consider whether timeline refactor needs different virtualization.
 - **Pi `get_commands` returns extensions, prompts, and skills** — not just built-in commands. Command palette should show all three.
 - **Selector stability**: returning `state.messages.filter(...)` creates new array every render → infinite re-render. Use `useShallow` or memoize.
+- **Zustand selector pattern**: Individual `useStore(s => s.field)` selectors are OPTIMAL. Don't consolidate into `useShallow(s => ({ a: s.a, b: s.b }))` — the multi-field object creates more work per state change than individual `Object.is` checks. `useShallow` is only for selectors returning NEW arrays/objects.
+- **Virtuoso `components.Footer`**: Must be a stable function reference. If it captures arrays/objects that change on every render (like `messages`), derive a primitive (boolean/number) first via `useMemo`, then use the primitive in the callback deps.
 
 ## Technical Context
 
