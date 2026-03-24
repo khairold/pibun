@@ -19,40 +19,94 @@ import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import { FitAddon } from "@xterm/addon-fit";
-import type { ILink, ILinkProvider } from "@xterm/xterm";
+import type { ILink, ILinkProvider, ITheme } from "@xterm/xterm";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 // ============================================================================
-// Theme — matches PiBun's dark neutral palette
+// Terminal Theme — derived from PiBun theme CSS custom properties
 // ============================================================================
 
-const TERMINAL_THEME = {
-	background: "#0a0a0a", // neutral-950
-	foreground: "#e5e5e5", // neutral-200
-	cursor: "#e5e5e5",
-	cursorAccent: "#0a0a0a",
-	selectionBackground: "#404040", // neutral-700
-	selectionForeground: "#e5e5e5",
-	// ANSI colors (standard dark theme)
-	black: "#171717", // neutral-900
-	red: "#ef4444", // red-500
-	green: "#22c55e", // green-500
-	yellow: "#eab308", // yellow-500
-	blue: "#3b82f6", // blue-500
-	magenta: "#a855f7", // purple-500
-	cyan: "#06b6d4", // cyan-500
-	white: "#d4d4d4", // neutral-300
-	brightBlack: "#525252", // neutral-600
-	brightRed: "#f87171", // red-400
-	brightGreen: "#4ade80", // green-400
-	brightYellow: "#facc15", // yellow-400
-	brightBlue: "#60a5fa", // blue-400
-	brightMagenta: "#c084fc", // purple-400
-	brightCyan: "#22d3ee", // cyan-400
-	brightWhite: "#fafafa", // neutral-50
+/** ANSI color palette for dark themes. */
+const DARK_ANSI = {
+	black: "#171717",
+	red: "#ef4444",
+	green: "#22c55e",
+	yellow: "#eab308",
+	blue: "#3b82f6",
+	magenta: "#a855f7",
+	cyan: "#06b6d4",
+	white: "#d4d4d4",
+	brightBlack: "#525252",
+	brightRed: "#f87171",
+	brightGreen: "#4ade80",
+	brightYellow: "#facc15",
+	brightBlue: "#60a5fa",
+	brightMagenta: "#c084fc",
+	brightCyan: "#22d3ee",
+	brightWhite: "#fafafa",
 };
+
+/** ANSI color palette for light themes. */
+const LIGHT_ANSI = {
+	black: "#2c3542",
+	red: "#bf4657",
+	green: "#3c7e56",
+	yellow: "#927023",
+	blue: "#4866a3",
+	magenta: "#845695",
+	cyan: "#357f8d",
+	white: "#d2d7df",
+	brightBlack: "#707b8c",
+	brightRed: "#d45f70",
+	brightGreen: "#55946f",
+	brightYellow: "#ad852d",
+	brightBlue: "#5b7cc2",
+	brightMagenta: "#996bac",
+	brightCyan: "#4695a4",
+	brightWhite: "#ecf0f6",
+};
+
+/** Read a CSS custom property value from the document root. */
+function getCssVar(name: string): string {
+	return getComputedStyle(document.documentElement).getPropertyValue(`--color-${name}`).trim();
+}
+
+/**
+ * Build an xterm.js ITheme from the current PiBun theme's CSS custom properties.
+ *
+ * Maps semantic theme tokens to terminal roles:
+ * - `surface-base` → terminal background
+ * - `text-primary` → terminal foreground + cursor
+ * - `surface-tertiary` → selection background (semi-transparent)
+ * - `scrollbar-thumb` / `scrollbar-track` → scrollbar styling
+ * - ANSI colors → dark or light palette based on `data-theme` isDark
+ */
+function buildTerminalTheme(): ITheme {
+	const bg = getCssVar("surface-base") || "#0a0a0a";
+	const fg = getCssVar("text-primary") || "#e5e5e5";
+	const selection = getCssVar("surface-tertiary") || "#404040";
+	const scrollThumb = getCssVar("scrollbar-thumb") || "#404040";
+
+	// Determine if the current theme is dark by checking computed background luminance
+	// or falling back to the data-theme attribute
+	const dataTheme = document.documentElement.getAttribute("data-theme") ?? "dark";
+	const isDark = !dataTheme.includes("light");
+
+	const ansi = isDark ? DARK_ANSI : LIGHT_ANSI;
+
+	return {
+		background: bg,
+		foreground: fg,
+		cursor: fg,
+		cursorAccent: bg,
+		selectionBackground: selection,
+		selectionForeground: fg,
+		scrollbarSliderBackground: scrollThumb,
+		...ansi,
+	};
+}
 
 // ============================================================================
 // Selection action helpers
@@ -384,7 +438,7 @@ export const TerminalInstance = memo(function TerminalInstance({
 
 		// Create terminal
 		const terminal = new Terminal({
-			theme: TERMINAL_THEME,
+			theme: buildTerminalTheme(),
 			fontFamily:
 				"'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Menlo', 'Monaco', 'Courier New', monospace",
 			fontSize: 13,
@@ -505,9 +559,21 @@ export const TerminalInstance = memo(function TerminalInstance({
 		observer.observe(container);
 		resizeObserverRef.current = observer;
 
+		// Theme sync: watch for theme changes on <html> element and re-apply terminal theme.
+		// applyTheme() sets CSS custom properties + data-theme attribute on document.documentElement,
+		// so MutationObserver on style/attributes catches all theme switches.
+		const themeObserver = new MutationObserver(() => {
+			terminal.options.theme = buildTerminalTheme();
+		});
+		themeObserver.observe(document.documentElement, {
+			attributes: true,
+			attributeFilter: ["style", "data-theme"],
+		});
+
 		// Cleanup
 		return () => {
 			observer.disconnect();
+			themeObserver.disconnect();
 			resizeObserverRef.current = null;
 			dataDisposable.dispose();
 			selectionDisposable.dispose();

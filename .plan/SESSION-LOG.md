@@ -1532,3 +1532,32 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 51 — Terminal theme sync (2026-03-24)
+
+**What happened:**
+- Implemented terminal theme sync — xterm.js theme now derives from PiBun theme CSS custom properties (5B.4):
+  - **Replaced hardcoded `TERMINAL_THEME`** with `buildTerminalTheme()` function that reads CSS custom properties at call time:
+    - `--color-surface-base` → terminal background
+    - `--color-text-primary` → terminal foreground + cursor
+    - `--color-surface-tertiary` → selection background
+    - `--color-scrollbar-thumb` → scrollbar slider
+  - **ANSI color palettes**: Two static palettes — `DARK_ANSI` (existing colors, unchanged) and `LIGHT_ANSI` (adapted from T3Code's light terminal theme). Selected based on `data-theme` attribute on `<html>`: anything containing "light" uses light palette, otherwise dark.
+  - **Theme change detection**: `MutationObserver` on `document.documentElement` watches `style` and `data-theme` attribute changes. When `applyTheme()` sets CSS custom properties (on theme switch), the observer fires and sets `terminal.options.theme = buildTerminalTheme()`. xterm.js handles re-rendering automatically.
+  - **Observer cleanup**: `themeObserver.disconnect()` added to useEffect cleanup alongside other disposables.
+- Followed T3Code's `ThreadTerminalDrawer.tsx` pattern: they also use `MutationObserver` on `document.documentElement` to detect theme changes and update `activeTerminal.options.theme`.
+- Only 1 file modified: `TerminalInstance.tsx`. No contracts, server, or store changes.
+
+**Items completed:**
+- [x] 5B.4 — Terminal theme sync: derive xterm.js theme from current PiBun theme tokens
+
+**Issues encountered:**
+- None. Clean implementation — the CSS custom property reading and MutationObserver pattern worked on first attempt.
+
+**Handoff to next session:**
+- Next: 5C.1 — Design keybinding schema: `{ key, command, when? }` rules loaded from `~/.pibun/keybindings.json`
+- `buildTerminalTheme()` reads CSS vars via `getComputedStyle()` — this means the theme is always in sync with whatever the current CSS properties are, even for future custom themes.
+- ANSI colors are NOT derived from CSS custom properties — they're hardcoded per light/dark mode. This is intentional: ANSI colors have specific terminal semantics (red=error, green=success, etc.) that don't map cleanly to PiBun's semantic theme tokens. Custom ANSI palettes per theme could be added later by extending `Theme` with an optional `terminalAnsi` field.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---
