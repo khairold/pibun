@@ -65,6 +65,7 @@ export const createAppSlice: StateCreator<AppStore, [], [], AppSlice> = (set, ge
 	imagePreviewUrl: null,
 	imagePreviewAlt: "",
 	timestampFormat: "locale",
+	pendingTerminalContexts: [],
 
 	toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 	setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -72,6 +73,23 @@ export const createAppSlice: StateCreator<AppStore, [], [], AppSlice> = (set, ge
 	setPendingComposerText: (text) => set({ pendingComposerText: text }),
 	setImagePreview: (url, alt) => set({ imagePreviewUrl: url, imagePreviewAlt: alt ?? "" }),
 	setTimestampFormat: (format) => set({ timestampFormat: format }),
+	addTerminalContext: (context) =>
+		set((state) => {
+			// Deduplicate by terminal + line range
+			const dedupKey = `${context.terminalId}\0${String(context.lineStart)}\0${String(context.lineEnd)}`;
+			const exists = state.pendingTerminalContexts.some(
+				(c) => `${c.terminalId}\0${String(c.lineStart)}\0${String(c.lineEnd)}` === dedupKey,
+			);
+			if (exists) return state;
+			return {
+				pendingTerminalContexts: [...state.pendingTerminalContexts, context],
+			};
+		}),
+	removeTerminalContext: (id) =>
+		set((state) => ({
+			pendingTerminalContexts: state.pendingTerminalContexts.filter((c) => c.id !== id),
+		})),
+	clearTerminalContexts: () => set({ pendingTerminalContexts: [] }),
 
 	// ---- Update state ----
 	updateStatus: null,

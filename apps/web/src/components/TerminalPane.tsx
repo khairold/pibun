@@ -303,6 +303,7 @@ export function TerminalPane() {
 							<TerminalInstance
 								terminalId={tab.terminalId}
 								isActive={tab.id === activeTerminalTabId}
+								terminalLabel={tab.name}
 							/>
 						</div>
 					))

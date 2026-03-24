@@ -650,3 +650,40 @@
 - `consumeDeferredActiveTabId()` still not consumed
 
 ---
+
+## Session 22 — Terminal content selection API (2026-03-24)
+
+**What happened:**
+- Implemented terminal content selection → "Add to composer" API (2C.1):
+  - **Store types**: Added `TerminalContext` interface (`id`, `terminalLabel`, `terminalId`, `lineStart`, `lineEnd`, `text`). Added `pendingTerminalContexts: TerminalContext[]` to `UiSlice` with `addTerminalContext`, `removeTerminalContext`, `clearTerminalContexts` actions.
+  - **Store appSlice**: Implemented the 3 new actions. `addTerminalContext` deduplicates by `terminalId + lineStart + lineEnd` key. `removeTerminalContext` filters by ID. `clearTerminalContexts` resets to empty array.
+  - **TerminalInstance.tsx**: Major enhancement — now detects text selection and shows a floating "Add to composer" button:
+    - Uses xterm.js `hasSelection()`, `getSelection()`, `getSelectionPosition()` for selection detection
+    - `onSelectionChange` clears the action button when selection is cleared
+    - `pointerdown` on container clears the action button and tracks gesture state
+    - `mouseup` on window (to catch releases outside terminal) records pointer position and starts 250ms delayed show
+    - Delay (250ms) prevents interference with double/triple-click word/line selection gestures
+    - Button uses `onMouseDown` with `preventDefault` to keep xterm selection alive during button click
+    - `handleAddToComposer`: extracts selection text, normalizes it (remove `\r\n`, trim newlines), computes line range from `getSelectionPosition().start.y + 1`, adds `TerminalContext` to store, shows toast, clears selection, refocuses terminal
+    - Button positioned absolutely relative to container at mouse pointer position (offset up by 36px to sit above the selection)
+    - Button styled with accent color, plus icon, smooth entrance animation
+  - **TerminalPane.tsx**: Now passes `terminalLabel={tab.name}` prop to `TerminalInstance`
+- Studied T3Code's `ThreadTerminalDrawer.tsx` pattern for reference: T3Code uses native context menus via `api.contextMenu.show()` for "Add to chat". PiBun doesn't have native context menus yet (Phase 4), so used a floating button instead — simpler and works in both web and desktop modes.
+
+**Items completed:**
+- [x] 2C.1 — Add terminal content selection API: select text in terminal → "Add to composer" button → attaches terminal output as context
+
+**Issues encountered:**
+- Biome formatting: chained `.replace()` calls on one line were reformatted to multi-line. Fixed with `bun run format`.
+- `clearSelectionAction` needed to be stable for the useEffect deps — used `useCallback` with empty deps array (only reads from refs).
+
+**Handoff to next session:**
+- Next: 2C.2 — Render terminal context attachments as inline chips in composer (like file mentions but for terminal output)
+- `pendingTerminalContexts` is in Zustand (`useStore(s => s.pendingTerminalContexts)`). Composer should read this and render chips in the chip strip area (between image strip and textarea, alongside file mention chips).
+- Terminal context chips should show: terminal icon + label like "Terminal 1 lines 5-12" + remove button + hover tooltip with text preview.
+- On send (2C.3), terminal contexts need to be appended as `<terminal_context>` block after the user text (following T3Code's pattern in `terminalContext.ts`).
+- `clearTerminalContexts()` should be called in `clearInput()` alongside `clearComposerDraft()`.
+- Consider whether terminal contexts should be persisted in drafts (probably yes — same pattern as file mentions).
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

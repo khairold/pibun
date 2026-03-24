@@ -311,6 +311,25 @@ export interface ProjectsSlice {
 	setProjectsLoading: (loading: boolean) => void;
 }
 
+/**
+ * A terminal context attachment — selected text from a terminal to include in a prompt.
+ * Added via the "Add to composer" button in the terminal pane.
+ */
+export interface TerminalContext {
+	/** Unique ID for this context (for key and removal). */
+	id: string;
+	/** Terminal tab name (e.g., "Terminal 1"). */
+	terminalLabel: string;
+	/** Server-side terminal ID (e.g., "term-1"). */
+	terminalId: string;
+	/** First selected line number (1-based). */
+	lineStart: number;
+	/** Last selected line number (1-based). */
+	lineEnd: number;
+	/** The selected text content (normalized — no \r\n, no leading/trailing newlines). */
+	text: string;
+}
+
 /** UI state — layout toggles and transient UI state. */
 export interface UiSlice {
 	/** Whether the sidebar is visible. Defaults to true on desktop, false on mobile. */
@@ -336,6 +355,12 @@ export interface UiSlice {
 	 * Synced from settings cache by `updateSetting("timestampFormat", ...)`.
 	 */
 	timestampFormat: TimestampFormat;
+	/**
+	 * Terminal context attachments pending in the Composer.
+	 * Added by "Add to composer" in the terminal pane, consumed on send.
+	 * Managed by Composer component (like file mentions and images).
+	 */
+	pendingTerminalContexts: TerminalContext[];
 
 	/** Toggle the sidebar open/closed. */
 	toggleSidebar: () => void;
@@ -349,6 +374,12 @@ export interface UiSlice {
 	setImagePreview: (url: string | null, alt?: string) => void;
 	/** Update the timestamp format preference (triggers re-render of timestamp displays). */
 	setTimestampFormat: (format: TimestampFormat) => void;
+	/** Add a terminal context attachment to the pending list. Deduplicates by terminal+lines. */
+	addTerminalContext: (context: TerminalContext) => void;
+	/** Remove a terminal context by ID. */
+	removeTerminalContext: (id: string) => void;
+	/** Clear all pending terminal contexts. */
+	clearTerminalContexts: () => void;
 }
 
 /** Git state — repository status for the active session's CWD. */
