@@ -12,6 +12,7 @@
  */
 
 import { fetchGitStatus } from "@/lib/gitActions";
+import { fetchPlugins } from "@/lib/pluginActions";
 import { addProject, fetchProjects, openProject } from "@/lib/projectActions";
 import {
 	compactSession,
@@ -672,6 +673,8 @@ export function initTransport(): () => void {
 			fetchGitStatus();
 			// Fetch server-persisted settings (theme, etc.) and apply
 			fetchAndApplySettings();
+			// Fetch installed plugins
+			fetchPlugins();
 		}),
 	);
 

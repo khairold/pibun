@@ -18,6 +18,7 @@ import type { WsMethod, WsRequest, WsResponseError, WsResponseOk } from "@pibun/
 import type { Server, ServerWebSocket } from "bun";
 import { type HandlerContext, handlers } from "./handlers/index.js";
 import type { PiRpcManager } from "./piRpcManager.js";
+import { getPluginDir } from "./pluginStore.js";
 import { TerminalManager } from "./terminalManager.js";
 
 // ============================================================================
@@ -208,6 +209,11 @@ export function createServer(options: ServerOptions): PiBunServer {
 					return new Response(null); // Bun handles the upgrade response
 				}
 				return new Response("WebSocket upgrade failed", { status: 400 });
+			}
+
+			// Plugin asset serving: /plugin/{id}/{path}
+			if (url.pathname.startsWith("/plugin/")) {
+				return servePluginAsset(url.pathname);
 			}
 
 			// Static file serving (production only)
@@ -467,6 +473,59 @@ function serveStaticFile(staticDir: string, pathname: string): Response {
 	}
 
 	return new Response("Not Found", { status: 404 });
+}
+
+// ============================================================================
+// Plugin Asset Serving
+// ============================================================================
+
+/**
+ * Serve a plugin asset file from `~/.pibun/plugins/{id}/`.
+ *
+ * URL pattern: `/plugin/{pluginId}/{filePath}`
+ * e.g., `/plugin/prompt-library/panel.html` serves
+ * `~/.pibun/plugins/prompt-library/panel.html`
+ *
+ * Security: directory traversal prevented by stripping `..` from paths.
+ * CORS headers added to allow iframe loading from the app origin.
+ */
+function servePluginAsset(pathname: string): Response {
+	// Parse: /plugin/{id}/{...rest}
+	const parts = pathname.replace(/^\/plugin\//, "").split("/");
+	const pluginId = parts[0];
+	const rest = parts.slice(1).join("/");
+
+	if (!pluginId || !rest) {
+		return new Response("Not Found", { status: 404 });
+	}
+
+	// Prevent directory traversal
+	const safePath = rest.replace(/\.\./g, "");
+	const pluginDir = getPluginDir(pluginId);
+	const filePath = join(pluginDir, safePath);
+
+	// Verify the resolved path is still within the plugin directory
+	const resolvedPath = resolve(filePath);
+	const resolvedPluginDir = resolve(pluginDir);
+	if (!resolvedPath.startsWith(resolvedPluginDir)) {
+		return new Response("Forbidden", { status: 403 });
+	}
+
+	if (!existsSync(filePath)) {
+		return new Response("Not Found", { status: 404 });
+	}
+
+	const file = Bun.file(filePath);
+	const ext = extname(filePath);
+	const contentType = MIME_TYPES[ext] ?? "application/octet-stream";
+
+	return new Response(file, {
+		headers: {
+			"Content-Type": contentType,
+			// Allow iframe embedding from any origin (same-server in practice)
+			"X-Frame-Options": "SAMEORIGIN",
+		},
+	});
 }
 
 // ============================================================================

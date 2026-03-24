@@ -27,6 +27,14 @@ const PIBUN_CONFIG_DIR = join(homedir(), ".pibun");
 /** Directory where plugins are installed. */
 const PLUGINS_DIR = join(PIBUN_CONFIG_DIR, "plugins");
 
+/**
+ * Get the absolute path to a plugin's directory.
+ * Returns the path even if the directory doesn't exist — caller must check.
+ */
+export function getPluginDir(pluginId: string): string {
+	return join(PLUGINS_DIR, pluginId);
+}
+
 /** File tracking plugin enabled/disabled state. */
 const PLUGINS_STATE_FILE = join(PIBUN_CONFIG_DIR, "plugins-state.json");
 

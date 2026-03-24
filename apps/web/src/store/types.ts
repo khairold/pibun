@@ -14,6 +14,8 @@ import type {
 	PiModel,
 	PiSessionStats,
 	PiThinkingLevel,
+	Plugin,
+	PluginPanelPosition,
 	Project,
 	SessionTab,
 	WsSessionSummary,
@@ -399,6 +401,40 @@ export interface TerminalSlice {
 	getTerminalTabByTerminalId: (terminalId: string) => TerminalTab | null;
 }
 
+/** Active plugin panel info — resolved from Plugin + PanelConfig. */
+export interface ActivePluginPanel {
+	pluginId: string;
+	panelId: string;
+	title: string;
+	icon: string;
+	component: string;
+	defaultSize: number | null;
+}
+
+/** Plugins state — installed plugins and panel visibility. */
+export interface PluginsSlice {
+	/** List of installed plugins (enabled + disabled, including those with errors). */
+	plugins: Plugin[];
+	/** True while loading plugins from the server. */
+	pluginsLoading: boolean;
+	/**
+	 * Set of currently visible plugin panels.
+	 * Keys are `{pluginId}:{panelId}` (e.g., "prompt-library:main").
+	 */
+	activePluginPanels: Set<string>;
+
+	/** Set the full plugins list. */
+	setPlugins: (plugins: Plugin[]) => void;
+	/** Set the loading state. */
+	setPluginsLoading: (loading: boolean) => void;
+	/** Toggle a plugin panel's visibility. */
+	togglePluginPanel: (panelKey: string) => void;
+	/** Set a plugin panel's open state explicitly. */
+	setPluginPanelOpen: (panelKey: string, open: boolean) => void;
+	/** Get active panels filtered by layout position. */
+	getActivePluginPanelsByPosition: (position: PluginPanelPosition) => ActivePluginPanel[];
+}
+
 // ============================================================================
 // Combined AppStore
 // ============================================================================
@@ -415,4 +451,5 @@ export type AppStore = ConnectionSlice &
 	TabsSlice &
 	ProjectsSlice &
 	GitSlice &
-	TerminalSlice;
+	TerminalSlice &
+	PluginsSlice;

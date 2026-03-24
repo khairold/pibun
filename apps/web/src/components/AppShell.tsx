@@ -20,6 +20,7 @@ import { ForkDialog } from "@/components/ForkDialog";
 import { GitPanel } from "@/components/GitPanel";
 import { GitStatusBar } from "@/components/GitStatusBar";
 import { ModelSelector } from "@/components/ModelSelector";
+import { PluginBottomPanels, PluginRightPanels } from "@/components/PluginPanel";
 import { SessionStats } from "@/components/SessionStats";
 import { Sidebar } from "@/components/Sidebar";
 import { StatusBar } from "@/components/StatusBar";
@@ -52,99 +53,107 @@ export function AppShell() {
 			{/* Sidebar — session list and management */}
 			<Sidebar />
 
-			{/* Main chat area */}
-			<main className="flex min-w-0 flex-1 flex-col">
-				{/* Tab bar — shown when multiple tabs are open */}
-				<TabBar />
+			{/* Main chat area + right plugin panel */}
+			<div className="flex min-w-0 flex-1">
+				<main className="flex min-w-0 flex-1 flex-col">
+					{/* Tab bar — shown when multiple tabs are open */}
+					<TabBar />
 
-				<ConnectionBanner />
-				<ErrorBanner />
-				<UpdateBanner />
+					<ConnectionBanner />
+					<ErrorBanner />
+					<UpdateBanner />
 
-				{/* Toolbar — sidebar toggle + model/thinking selectors + session management */}
-				<div className="flex items-center gap-2 border-b border-border-secondary px-4 py-2">
-					{/* Sidebar toggle button — hamburger when closed, panel icon when open */}
-					<button
-						type="button"
-						onClick={toggleSidebar}
-						title={sidebarOpen ? "Hide sidebar (Ctrl+B)" : "Show sidebar (Ctrl+B)"}
-						className="rounded-md p-1.5 text-text-tertiary transition-colors hover:bg-surface-secondary hover:text-text-secondary"
-					>
-						{sidebarOpen ? (
-							/* Panel left icon (sidebar visible) */
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 16 16"
-								fill="currentColor"
-								className="h-4 w-4"
-								aria-label="Hide sidebar"
-								role="img"
-							>
-								<path
-									fillRule="evenodd"
-									d="M2 3.75A.75.75 0 0 1 2.75 3h10.5a.75.75 0 0 1 .75.75v8.5a.75.75 0 0 1-.75.75H2.75a.75.75 0 0 1-.75-.75v-8.5zm1.5.75v7h2.5v-7h-2.5zm4 0v7h5v-7h-5z"
-									clipRule="evenodd"
-								/>
-							</svg>
-						) : (
-							/* Hamburger icon (sidebar hidden) */
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 16 16"
-								fill="currentColor"
-								className="h-4 w-4"
-								aria-label="Show sidebar"
-								role="img"
-							>
-								<path
-									fillRule="evenodd"
-									d="M2 3.75A.75.75 0 0 1 2.75 3h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75zM2 8a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 8zm0 4.25a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75z"
-									clipRule="evenodd"
-								/>
-							</svg>
-						)}
-					</button>
+					{/* Toolbar — sidebar toggle + model/thinking selectors + session management */}
+					<div className="flex items-center gap-2 border-b border-border-secondary px-4 py-2">
+						{/* Sidebar toggle button — hamburger when closed, panel icon when open */}
+						<button
+							type="button"
+							onClick={toggleSidebar}
+							title={sidebarOpen ? "Hide sidebar (Ctrl+B)" : "Show sidebar (Ctrl+B)"}
+							className="rounded-md p-1.5 text-text-tertiary transition-colors hover:bg-surface-secondary hover:text-text-secondary"
+						>
+							{sidebarOpen ? (
+								/* Panel left icon (sidebar visible) */
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 16 16"
+									fill="currentColor"
+									className="h-4 w-4"
+									aria-label="Hide sidebar"
+									role="img"
+								>
+									<path
+										fillRule="evenodd"
+										d="M2 3.75A.75.75 0 0 1 2.75 3h10.5a.75.75 0 0 1 .75.75v8.5a.75.75 0 0 1-.75.75H2.75a.75.75 0 0 1-.75-.75v-8.5zm1.5.75v7h2.5v-7h-2.5zm4 0v7h5v-7h-5z"
+										clipRule="evenodd"
+									/>
+								</svg>
+							) : (
+								/* Hamburger icon (sidebar hidden) */
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 16 16"
+									fill="currentColor"
+									className="h-4 w-4"
+									aria-label="Show sidebar"
+									role="img"
+								>
+									<path
+										fillRule="evenodd"
+										d="M2 3.75A.75.75 0 0 1 2.75 3h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75zM2 8a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 8zm0 4.25a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75z"
+										clipRule="evenodd"
+									/>
+								</svg>
+							)}
+						</button>
 
-					{/* Divider between toggle and selectors */}
-					<div className="h-5 w-px bg-border-secondary" />
+						{/* Divider between toggle and selectors */}
+						<div className="h-5 w-px bg-border-secondary" />
 
-					<ModelSelector />
-					<ThinkingSelector />
+						<ModelSelector />
+						<ThinkingSelector />
 
-					{/* Spacer pushes session controls to the right */}
-					<div className="flex-1" />
+						{/* Spacer pushes session controls to the right */}
+						<div className="flex-1" />
 
-					{/* Git status — branch + changed files */}
-					<GitStatusBar />
+						{/* Git status — branch + changed files */}
+						<GitStatusBar />
 
-					{/* Divider between git and stats (when both visible) */}
-					<div className="h-5 w-px bg-border-secondary" />
+						{/* Divider between git and stats (when both visible) */}
+						<div className="h-5 w-px bg-border-secondary" />
 
-					{/* Session stats — tokens + cost */}
-					<SessionStats />
+						{/* Session stats — tokens + cost */}
+						<SessionStats />
 
-					{/* Session management controls */}
-					<div className="flex items-center gap-1 border-l border-border-secondary pl-2">
-						<CompactButton />
-						<ForkDialog />
-						<ExportDialog />
-						<ThemeSelector />
+						{/* Session management controls */}
+						<div className="flex items-center gap-1 border-l border-border-secondary pl-2">
+							<CompactButton />
+							<ForkDialog />
+							<ExportDialog />
+							<ThemeSelector />
+						</div>
 					</div>
-				</div>
 
-				{/* Git changed files panel — collapsible between toolbar and chat */}
-				<GitPanel />
+					{/* Git changed files panel — collapsible between toolbar and chat */}
+					<GitPanel />
 
-				<ChatView />
+					<ChatView />
 
-				{/* Terminal panel — resizable bottom pane */}
-				<TerminalPane />
+					{/* Terminal panel — resizable bottom pane */}
+					<TerminalPane />
 
-				{/* Extension status indicators — shown above composer when active */}
-				<StatusBar />
+					{/* Plugin bottom panels — below terminal */}
+					<PluginBottomPanels />
 
-				<Composer />
-			</main>
+					{/* Extension status indicators — shown above composer when active */}
+					<StatusBar />
+
+					<Composer />
+				</main>
+
+				{/* Plugin right panels — beside main area */}
+				<PluginRightPanels />
+			</div>
 		</div>
 	);
 }

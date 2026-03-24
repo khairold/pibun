@@ -14,6 +14,7 @@
  * - Clicking a tab or session on mobile auto-closes the sidebar
  */
 
+import { PluginSidebarPanels } from "@/components/PluginPanel";
 import { cn } from "@/lib/cn";
 import { addProject, fetchProjects, openProject, removeProject } from "@/lib/projectActions";
 import { fetchSessionList, switchSession } from "@/lib/sessionActions";
@@ -1011,6 +1012,9 @@ export function Sidebar() {
 						)}
 					</div>
 				)}
+
+				{/* ── Plugin Sidebar Panels ─────────────────────────────── */}
+				<PluginSidebarPanels />
 			</div>
 		</>
 	);

@@ -5,6 +5,46 @@
 
 ---
 
+## Session 91 — Plugin panel rendering: sandboxed iframes + store + layout (2026-03-24)
+
+**What happened:**
+- Implemented full plugin panel rendering pipeline (7.4)
+- **Server side:**
+  - Added `getPluginDir(pluginId)` export to `pluginStore.ts` for resolving plugin directory paths
+  - Added `/plugin/{id}/{path}` HTTP route to `server.ts` for serving plugin assets from `~/.pibun/plugins/` — includes directory traversal prevention and resolved-path verification
+  - Added `/plugin` proxy to Vite dev config for development
+- **Web side:**
+  - Created `PluginsSlice` in Zustand store (`pluginsSlice.ts`): tracks `plugins`, `pluginsLoading`, `activePluginPanels` Set, with `getActivePluginPanelsByPosition()` getter for layout integration
+  - Added `PluginsSlice` + `ActivePluginPanel` types to `store/types.ts`, registered in combined `AppStore`
+  - Created `pluginActions.ts`: `fetchPlugins()` (called on `server.welcome`), `resolvePluginComponentUrl()` (absolute URLs pass through, relative paths → `/plugin/{id}/{path}`)
+  - Created `PluginPanel.tsx` with 4 exports:
+    - `PluginPanelFrame` — sandboxed iframe (`allow-scripts allow-same-origin allow-forms`) with loading spinner, error state, puzzle-piece header
+    - `PluginBottomPanels` — renders bottom-position panels below terminal
+    - `PluginSidebarPanels` — renders sidebar-position panels below projects/sessions
+    - `PluginRightPanels` — renders right-position panels as a right panel
+  - Integrated into `AppShell.tsx`: wrapped main area in flex container for right panels, added bottom panels below terminal
+  - Integrated into `Sidebar.tsx`: added sidebar panels at bottom of sidebar content
+  - Wired `fetchPlugins()` into `wireTransport.ts` on `server.welcome`
+
+**Items completed:**
+- [x] 7.4 — Plugin panel rendering: sandboxed iframe (web) or Electrobun BrowserView (desktop) loading plugin URL
+
+**Issues encountered:**
+- Biome import ordering: `PiThinkingLevel` must sort before `Plugin`/`PluginPanelPosition` (alphabetical within scoped imports)
+- Biome formatting fixed via `bun run format` (indentation depth change from adding wrapper `<div>` in AppShell)
+
+**Handoff to next session:**
+- Next: 7.5 — Plugin ↔ PiBun messaging: `postMessage` bridge for reading session state, sending prompts, subscribing to events
+- The iframe rendering is complete but there's no communication yet. 7.5 needs:
+  - A `usePluginMessageBridge` hook (or module) that listens for `window.addEventListener("message")` events from plugin iframes
+  - Validate message origin against plugin iframe sources
+  - Handle `PluginToPiBunMessage` variants: `plugin:ready`, `plugin:getSessionState` (read Zustand), `plugin:sendPrompt` (call transport), `plugin:subscribeEvents` (forward Pi events), `plugin:unsubscribeEvents`
+  - Send `PiBunToPluginMessage` variants back to iframes: `pibun:sessionState`, `pibun:event`, `pibun:themeChanged`
+  - `PluginPanelFrame` needs a ref to its iframe's `contentWindow` for outbound `postMessage`
+  - Consider: track per-iframe event subscriptions in a Map keyed by iframe origin or plugin ID
+
+---
+
 ## Session 90 — Plugin loading: pluginStore + handlers (2026-03-24)
 
 **What happened:**
