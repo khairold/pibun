@@ -138,20 +138,21 @@ export type {
 	PiStdoutLine,
 } from "./piProtocol.js";
 
-// Session tab types (multi-session UI)
-export type { SessionTab } from "./sessionTab.js";
-
-// Project types (project management)
-export type { Project, ProjectModelPreference } from "./project.js";
-
-// Theme types (custom theming system)
-export type { Theme, ThemeColors, ThemeId, ThemePreference } from "./theme.js";
-
-// Settings types (application preferences)
-export type { PiBunSettings } from "./settings.js";
-
-// Plugin types (plugin system)
+// Domain types (session tabs, projects, themes, settings, plugins, git)
 export type {
+	// Session tabs
+	SessionTab,
+	// Projects
+	Project,
+	ProjectModelPreference,
+	// Themes
+	Theme,
+	ThemeColors,
+	ThemeId,
+	ThemePreference,
+	// Settings
+	PiBunSettings,
+	// Plugins
 	PiBunEventMessage,
 	PiBunSessionStateMessage,
 	PiBunThemeChangedMessage,
@@ -166,16 +167,13 @@ export type {
 	PluginSubscribeEventsMessage,
 	PluginToPiBunMessage,
 	PluginUnsubscribeEventsMessage,
-} from "./plugin.js";
-
-// Git types (git integration)
-export type {
+	// Git
 	GitChangedFile,
 	GitDiffResult,
 	GitLogEntry,
 	GitLogResult,
 	GitStatusResult,
-} from "./gitTypes.js";
+} from "./domain.js";
 
 // WebSocket protocol types (browser ↔ server)
 export { WS_CHANNELS, WS_METHODS } from "./wsProtocol.js";

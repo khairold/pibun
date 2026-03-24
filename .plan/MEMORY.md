@@ -25,11 +25,13 @@
 | 15 | Phase 1 complete — docs/ reduced from 8 to 4 files | Deleted: WS_PROTOCOL.md, PI_INTEGRATION.md, WEB_UI.md, DECISIONS.md. Kept: ARCHITECTURE.md (rewritten), DESKTOP.md, CODE_SIGNING.md, ROADMAP.md. TSDoc updated in wsProtocol.ts, piProcess.ts, piRpcManager.ts, server.ts, wireTransport.ts. | 2026-03-24 |
 | 16 | ARCHITECTURE.md rewritten as current-state doc | ~85 lines. Covers: overview diagram, monorepo layout, package roles (with key files), data flow, multi-session model. No aspirational content, no redundancy with CLAUDE.md decisions/gotchas. | 2026-03-24 |
 | 17 | piProtocol.ts created (1182 lines) — merged from piTypes + piEvents + piCommands + piResponses | All Pi RPC types in one file. No cross-imports needed. Organized with `// ==== SECTION ====` headers: Content Blocks → Messages → Model → Events → Commands → Responses → StdoutLine. | 2026-03-24 |
+| 18 | domain.ts created (497 lines) — merged from sessionTab + project + theme + settings + plugin + gitTypes | All app domain types in one file. Only import is PiModel/PiThinkingLevel from piProtocol.ts. settings→theme cross-reference resolved internally. | 2026-03-24 |
+| 19 | wsProtocol.ts now imports from domain.js and piProtocol.js directly | Previously imported from index.js (barrel) and 4 domain files. Updated to import from 2 canonical files. No more circular barrel import. | 2026-03-24 |
 
 ## Architecture Notes
 
 ### Current file counts (in progress)
-- contracts/: 9 files (was 12 — piTypes, piEvents, piCommands, piResponses merged into piProtocol)
+- contracts/: 4 files (was 12 → 9 after piProtocol merge → 4 after domain merge)
 - server src (non-test): 19 files, 4460 lines
 - server handlers/: 8 files + types + index = 10 files
 - web store/: 15 files, 1409 lines
@@ -63,7 +65,7 @@
 - **Store slice merging changes the `StateCreator` generic.** Each slice uses `StateCreator<AppStore, [], [], SliceType>`. When merging slices, the combined slice type changes.
 - **Handler registry in index.ts maps string literals.** When moving handlers between files, the string keys don't change — only the import paths.
 - **contracts index.ts exports `WS_METHODS` and `WS_CHANNELS` as values.** Everything else is type-only. Don't accidentally make domain.ts export runtime values unless needed.
-- **wsProtocol.ts imports Pi types from `./index.js`** (circular-ish via barrel). This works fine because all exports are type-only. When doing item 2.4 (rewrite index.ts), keep this import path working or update wsProtocol.ts to import from `./piProtocol.js` directly.
+- **wsProtocol.ts now imports from `./domain.js` and `./piProtocol.js` directly.** The old barrel import via `./index.js` is gone. Item 2.4 (rewrite index.ts) should be straightforward — index.ts is already just re-exports from 3 files.
 
 ## Technical Context
 

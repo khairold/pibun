@@ -157,3 +157,29 @@
 - wsProtocol.ts imports from ./index.js — note for 2.4 (rewrite index.ts)
 
 ---
+
+## Session 6 — Merge domain types into domain.ts (2026-03-24)
+
+**What happened:**
+- Created `domain.ts` (497 lines) by merging 6 files: sessionTab.ts, project.ts, theme.ts, settings.ts, plugin.ts, gitTypes.ts
+- Organized with section headers: Session Tab → Project → Theme → Settings → Plugin → Git
+- Only external import: PiModel and PiThinkingLevel from piProtocol.ts
+- settings→theme cross-reference (ThemePreference) resolved internally (both in same file)
+- Updated wsProtocol.ts imports: replaced 4 separate imports (gitTypes, plugin, project, settings + barrel index for Pi types) with 2 canonical imports (domain.js for app types, piProtocol.js for Pi types)
+- Updated index.ts to re-export all domain types from single `./domain.js` source
+- Deleted 6 old files: sessionTab.ts, project.ts, theme.ts, settings.ts, plugin.ts, gitTypes.ts
+- contracts/ now has exactly 4 files: piProtocol.ts, domain.ts, wsProtocol.ts, index.ts
+
+**Items completed:**
+- [x] 2.2 — Merge sessionTab.ts + project.ts + theme.ts + settings.ts + plugin.ts + gitTypes.ts → domain.ts
+
+**Issues encountered:**
+- None. All external consumers import through the barrel (`@pibun/contracts`), so no import changes needed outside the package. wsProtocol.ts was the only internal file with cross-references to domain files.
+
+**Handoff to next session:**
+- Next: 2.3 — Keep wsProtocol.ts as-is, add TSDoc from deleted WS_PROTOCOL.md
+- wsProtocol.ts already has a protocol overview TSDoc header (added in Session 4). Item 2.3 may be a quick check/enhancement rather than major work.
+- Then: 2.4 — Rewrite index.ts as slim re-export from 3 files (already nearly there)
+- Then: 2.5 — Update all imports across packages (may be a no-op since barrel exports unchanged)
+
+---

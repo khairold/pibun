@@ -22,7 +22,14 @@
  * are defined here with full TypeScript types. The compiler enforces correctness.
  */
 
-import type { GitDiffResult, GitLogResult, GitStatusResult } from "./gitTypes.js";
+import type {
+	GitDiffResult,
+	GitLogResult,
+	GitStatusResult,
+	PiBunSettings,
+	Plugin,
+	Project,
+} from "./domain.js";
 import type {
 	PiAgentMessage,
 	PiEvent,
@@ -31,10 +38,7 @@ import type {
 	PiSessionState,
 	PiSessionStats,
 	PiThinkingLevel,
-} from "./index.js";
-import type { Plugin } from "./plugin.js";
-import type { Project } from "./project.js";
-import type { PiBunSettings } from "./settings.js";
+} from "./piProtocol.js";
 
 // ============================================================================
 // Method Names
