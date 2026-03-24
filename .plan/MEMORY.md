@@ -15,6 +15,8 @@
 | 5 | Don't touch files that are already deep | piProcess.ts (570), wireTransport.ts (728), transport.ts (463), server.ts (560), piRpcManager.ts (319) — these are already good deep modules. Leave them alone. | 2026-03-24 |
 | 6 | Keep types.ts in store/ as-is | At 463 lines it holds ALL slice type definitions. It's the single source of truth for store shape. Deep and correct. | 2026-03-24 |
 | 7 | Not merging top-level components | Sidebar (1053), Composer (575), ChatView (417) are feature-specific. Merging them would create unfocused God components. They're deep enough. | 2026-03-24 |
+| 8 | Consolidated CLAUDE.md absorbs AGENTS.md, CAPABILITY-MAP.md, SOUL.md, HUMAN.md | Audit found 25 unique concepts restated 50+ times across 12 files. "Thin bridge" alone appeared in 7 files. Single CLAUDE.md eliminates all redundancy. | 2026-03-24 |
+| 9 | Audit artifact at `.plan/audit-1.1-redundancy-map.md` | Detailed redundancy map showing every cross-reference. Use as reference for items 1.3-1.4 to know what's been consolidated and what remains. | 2026-03-24 |
 
 ## Architecture Notes
 

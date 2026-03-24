@@ -1,9 +1,9 @@
 # PiBun Refactoring — Deep Modules for AI Agent Maintenance
 
 > **Spec:** Audit findings from 2026-03-24 session + "deep modules" principle
-> **Status:** Not Started
-> **Current Phase:** —
-> **Last Session:** —
+> **Status:** In Progress
+> **Current Phase:** Phase 1 — Context Document Consolidation
+> **Last Session:** Session 1 — 2026-03-24
 
 ---
 
@@ -44,8 +44,8 @@ With a 1M token context window, the entire codebase (~532K tokens) fits in one s
 
 **Goal:** Reduce the 7 mandatory context files to 3. Eliminate redundancy. Single source of truth for each concept.
 
-- [ ] 1.1 — Audit all cross-references between CLAUDE.md, AGENTS.md, CAPABILITY-MAP.md, SOUL.md, HUMAN.md to map every redundant statement
-- [ ] 1.2 — Write new consolidated CLAUDE.md (~300 lines) that merges: project identity, agent identity/personality, human context, capabilities, reference repo guides, and playbooks — one file, one read
+- [x] 1.1 — Audit all cross-references between CLAUDE.md, AGENTS.md, CAPABILITY-MAP.md, SOUL.md, HUMAN.md to map every redundant statement
+- [x] 1.2 — Write new consolidated CLAUDE.md (~300 lines) that merges: project identity, agent identity/personality, human context, capabilities, reference repo guides, and playbooks — one file, one read
 - [ ] 1.3 — Trim CONVENTIONS.md: remove sections that duplicate type-level knowledge (WS message format examples — the types already enforce this), keep only rules that AREN'T expressed in code
 - [ ] 1.4 — Delete AGENTS.md, CAPABILITY-MAP.md, SOUL.md, HUMAN.md (content now lives in CLAUDE.md)
 - [ ] 1.5 — Audit docs/ for staleness: compare WS_PROTOCOL.md method list against actual 42-method handler registry, check PI_INTEGRATION.md against current piProcess.ts
