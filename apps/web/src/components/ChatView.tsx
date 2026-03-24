@@ -73,6 +73,8 @@ export type TimelineEntry =
 			elapsedMs: number | null;
 			/** Unique file paths modified by Edit/Write tool calls in the preceding turn. */
 			changedFiles: string[];
+			/** Text content of the user message this divider precedes (for fork matching). */
+			userMessageContent: string;
 	  }
 	| { kind: "completion-summary"; id: string; timestamp: number; content: string };
 
@@ -138,6 +140,7 @@ function groupMessages(messages: readonly ChatMessage[]): TimelineEntry[] {
 					toolCount: turnToolCount,
 					elapsedMs: elapsedMs !== null && elapsedMs > 0 ? elapsedMs : null,
 					changedFiles: Array.from(turnChangedFiles),
+					userMessageContent: msg.content,
 				});
 			}
 			seenFirstUser = true;
@@ -238,6 +241,7 @@ const TimelineEntryRenderer = memo(function TimelineEntryRenderer({
 					toolCount={entry.toolCount}
 					elapsedMs={entry.elapsedMs}
 					changedFiles={entry.changedFiles}
+					userMessageContent={entry.userMessageContent}
 				/>
 			);
 		case "completion-summary":

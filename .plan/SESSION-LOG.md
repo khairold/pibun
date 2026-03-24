@@ -916,3 +916,32 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 31 — Revert to this point (fork from turn divider) (2026-03-24)
+
+**What happened:**
+- Implemented "Revert to this point" UI on turn dividers (3.7):
+  - **TimelineEntry extended**: Added `userMessageContent: string` to the `turn-divider` kind — carries the text content of the user message the divider precedes. Set in `groupMessages()` from `msg.content`.
+  - **TurnDivider component enhanced**: Added "revert" pill button (styled with warning colors on hover, matching the diff/files button pattern). Only shown when there's an active `sessionId`. Uses a two-step confirmation flow:
+    - `idle` → click shows inline confirmation bar ("Fork from this point? This creates a new session branch." + Confirm/Cancel buttons)
+    - `confirming` → Confirm click triggers `findForkEntryId()` → `forkFromMessage()`
+    - `loading` → spinner + "Finding message…" while fetching fork messages
+    - `forking` → spinner + "Forking session…" while Pi creates the fork
+  - **`findForkEntryId()` function**: Module-level async function that bridges PiBun's auto-generated message IDs with Pi's internal entry IDs. Calls `getForkableMessages()`, then matches by normalized text content (whitespace-collapsed comparison). Returns the `entryId` of the first matching message, or `null` if no match.
+  - **Error handling**: If no matching entry found, shows error banner. If fork fails, `forkFromMessage()` handles the error display. On success, `refreshSessionState()` + `loadSessionMessages()` replaces the conversation.
+- All server infrastructure already existed: `session.fork`, `session.getForkMessages` WS methods + handlers + `forkFromMessage()`/`getForkableMessages()` in sessionActions. This was purely a UI integration.
+- Only 2 files modified: `ChatView.tsx` (TimelineEntry type + groupMessages), `ChatMessages.tsx` (TurnDivider component + findForkEntryId).
+
+**Items completed:**
+- [x] 3.7 — Add checkpoint info: associate turn boundaries with git state, show "Revert to this point" UI
+
+**Issues encountered:**
+- None. All fork infrastructure (WS methods, server handlers, session actions) was already built. The implementation was a clean UI integration with text-matching bridge for entryId correlation.
+
+**Handoff to next session:**
+- Next: 3.8 — Add unread/visited tracking per tab
+- `findForkEntryId()` uses text-matching which could fail if Pi trims/normalizes text differently. If this becomes an issue, consider adding `entryId` to `PiUserMessage` and forwarding it through `message_start` events.
+- The "revert" button appears on all turn dividers (except before the first user message, which has no divider). It's hidden when there's no active session.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

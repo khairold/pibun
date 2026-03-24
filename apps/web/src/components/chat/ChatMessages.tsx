@@ -10,6 +10,7 @@
  */
 
 import { MarkdownContent } from "@/components/Markdown";
+import { forkFromMessage, getForkableMessages } from "@/lib/sessionActions";
 import { cn, formatDuration, formatTimestamp } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
@@ -365,6 +366,8 @@ interface TurnDividerProps {
 	elapsedMs: number | null;
 	/** Unique file paths modified (edit/write) in the preceding assistant turn. */
 	changedFiles: string[];
+	/** Text content of the user message this divider precedes (for fork matching). */
+	userMessageContent: string;
 }
 
 /**
@@ -379,15 +382,74 @@ interface TurnDividerProps {
  * users orient in long conversations without competing with the
  * completion summary ("✓ Worked for Xm Ys") which appears just above.
  */
+/** Revert states for the confirm-then-fork flow. */
+type RevertState = "idle" | "confirming" | "loading" | "forking";
+
+/**
+ * Find the matching Pi entryId for a user message by matching text content.
+ *
+ * Pi's `get_fork_messages` returns `{ entryId, text }[]` in session order.
+ * We match by comparing `userMessageContent` against each entry's `text`.
+ * If multiple entries have the same text, we match the first one found
+ * (Pi returns entries in chronological order, matching the UI order).
+ */
+async function findForkEntryId(userMessageContent: string): Promise<string | null> {
+	const forkMessages = await getForkableMessages();
+	if (!forkMessages || forkMessages.length === 0) return null;
+
+	// Normalize whitespace for comparison (Pi may strip/trim differently)
+	const normalize = (s: string) => s.replace(/\s+/g, " ").trim();
+	const target = normalize(userMessageContent);
+
+	for (const msg of forkMessages) {
+		if (normalize(msg.text) === target) {
+			return msg.entryId;
+		}
+	}
+
+	return null;
+}
+
 export const TurnDivider = memo(function TurnDivider({
 	timestamp,
 	toolCount,
 	elapsedMs,
 	changedFiles,
+	userMessageContent,
 }: TurnDividerProps) {
 	const timestampFormat = useStore((s) => s.timestampFormat);
+	const sessionId = useStore((s) => s.sessionId);
 	const [filesExpanded, setFilesExpanded] = useState(false);
+	const [revertState, setRevertState] = useState<RevertState>("idle");
 	const fileCount = changedFiles.length;
+
+	const handleRevert = useCallback(async () => {
+		if (revertState === "idle") {
+			setRevertState("confirming");
+			return;
+		}
+		if (revertState !== "confirming") return;
+
+		setRevertState("loading");
+		const entryId = await findForkEntryId(userMessageContent);
+		if (!entryId) {
+			useStore.getState().setLastError("Could not find the matching message to revert to.");
+			setRevertState("idle");
+			return;
+		}
+
+		setRevertState("forking");
+		const success = await forkFromMessage(entryId);
+		if (!success) {
+			// Error already shown by forkFromMessage
+			setRevertState("idle");
+		}
+		// On success, the session is replaced — component will unmount/re-render
+	}, [revertState, userMessageContent]);
+
+	const handleCancelRevert = useCallback(() => {
+		setRevertState("idle");
+	}, []);
 
 	return (
 		<div className="flex flex-col items-center gap-0.5 py-1">
@@ -476,6 +538,32 @@ export const TurnDivider = memo(function TurnDivider({
 							diff
 						</button>
 					)}
+					{/* Revert button — only when there's an active session */}
+					{sessionId && revertState === "idle" && (
+						<button
+							type="button"
+							onClick={handleRevert}
+							className="flex items-center gap-1 rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] text-text-muted transition-colors hover:bg-warning-bg/20 hover:text-warning-text"
+							title="Revert to this point — fork the conversation from this message"
+						>
+							{/* Undo/revert icon */}
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 16 16"
+								fill="currentColor"
+								className="h-2.5 w-2.5"
+								aria-label="Revert to this point"
+								role="img"
+							>
+								<path
+									fillRule="evenodd"
+									d="M2.22 4.22a.75.75 0 0 1 1.06 0L5 5.94V4.5a4.5 4.5 0 0 1 9 0v4a4.5 4.5 0 0 1-9 0V7.25a.75.75 0 0 1 1.5 0V8.5a3 3 0 1 0 6 0v-4a3 3 0 0 0-6 0v1.44l1.72-1.72a.75.75 0 1 1 1.06 1.06l-3 3a.75.75 0 0 1-1.06 0l-3-3a.75.75 0 0 1 0-1.06Z"
+									clipRule="evenodd"
+								/>
+							</svg>
+							revert
+						</button>
+					)}
 					{elapsedMs !== null && (
 						<span className="rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] text-text-muted">
 							{formatDuration(elapsedMs)}
@@ -487,6 +575,44 @@ export const TurnDivider = memo(function TurnDivider({
 				</div>
 				<div className="h-px flex-1 bg-border-primary/30" />
 			</div>
+			{/* Revert confirmation */}
+			{revertState !== "idle" && (
+				<div className="flex items-center gap-2 py-1">
+					{revertState === "confirming" && (
+						<>
+							<span className="text-[11px] text-warning-text">
+								Fork from this point? This creates a new session branch.
+							</span>
+							<button
+								type="button"
+								onClick={handleRevert}
+								className="rounded-md bg-warning-bg px-2 py-0.5 text-[11px] font-medium text-warning-text transition-colors hover:bg-warning-bg/80"
+							>
+								Confirm
+							</button>
+							<button
+								type="button"
+								onClick={handleCancelRevert}
+								className="rounded-md bg-surface-secondary px-2 py-0.5 text-[11px] text-text-muted transition-colors hover:bg-surface-tertiary"
+							>
+								Cancel
+							</button>
+						</>
+					)}
+					{revertState === "loading" && (
+						<span className="flex items-center gap-1.5 text-[11px] text-text-muted">
+							<span className="h-3 w-3 animate-spin rounded-full border border-text-muted border-t-text-secondary" />
+							Finding message…
+						</span>
+					)}
+					{revertState === "forking" && (
+						<span className="flex items-center gap-1.5 text-[11px] text-text-muted">
+							<span className="h-3 w-3 animate-spin rounded-full border border-text-muted border-t-text-secondary" />
+							Forking session…
+						</span>
+					)}
+				</div>
+			)}
 			{/* Expanded file list */}
 			{filesExpanded && fileCount > 0 && (
 				<div className="flex flex-col items-center gap-0.5 py-0.5">
