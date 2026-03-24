@@ -209,6 +209,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					sessionName: targetTab.name,
 					sessionFile: null, // Will be refreshed via get_state
 					stats: null, // Will be refreshed
+					agentStartedAt: 0,
 					isCompacting: false,
 					isRetrying: false,
 					retryAttempt: 0,

@@ -80,6 +80,21 @@ function nextId(prefix: string): string {
 // Helpers
 // ============================================================================
 
+/**
+ * Format a duration in milliseconds into a human-readable string.
+ * - Under 60s: "Xs" (e.g., "12s")
+ * - 60s+: "Xm Ys" (e.g., "2m 15s")
+ * - Under 1s: "<1s"
+ */
+function formatDuration(ms: number): string {
+	const totalSeconds = Math.round(ms / 1000);
+	if (totalSeconds < 1) return "<1s";
+	if (totalSeconds < 60) return `${totalSeconds}s`;
+	const minutes = Math.floor(totalSeconds / 60);
+	const seconds = totalSeconds % 60;
+	return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+}
+
 /** Extract text content from Pi tool result content blocks. */
 function extractText(content: readonly (PiTextContent | PiImageContent)[]): string {
 	return content
@@ -141,20 +156,35 @@ function handlePiEvent(event: PiEvent): void {
 		// ── Agent lifecycle ────────────────────────────────────────────
 		case "agent_start":
 			store.setIsStreaming(true);
+			store.setAgentStartedAt(Date.now());
 			// Clear any previous health issue — agent is working
 			if (store.providerHealth) {
 				store.setProviderHealth(null);
 			}
 			break;
 
-		case "agent_end":
+		case "agent_end": {
+			// Insert completion summary with elapsed time
+			const startedAt = store.agentStartedAt;
+			if (startedAt > 0) {
+				const elapsedMs = Date.now() - startedAt;
+				store.appendMessage(
+					makeMessage({
+						id: nextId("completion"),
+						type: "system",
+						content: `✓ Worked for ${formatDuration(elapsedMs)}`,
+					}),
+				);
+			}
 			store.setIsStreaming(false);
+			store.setAgentStartedAt(0);
 			currentAssistantMessageId = null;
 			// Fetch updated session stats (tokens, cost) after each agent turn
 			fetchSessionStats();
 			// Refresh git status — agent likely modified files
 			fetchGitStatus();
 			break;
+		}
 
 		// ── Message lifecycle ──────────────────────────────────────────
 		case "message_start":

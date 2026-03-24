@@ -248,10 +248,12 @@ type SystemCategory =
 	| "retry-progress"
 	| "retry-success"
 	| "retry-failed"
+	| "completion"
 	| "default";
 
 /** Detect message category for styling. */
 function getCategory(content: string): SystemCategory {
+	if (content.startsWith("✓ Worked for")) return "completion";
 	if (content.includes("compaction")) return "compaction";
 	if (content.startsWith("✅ Retry succeeded")) return "retry-success";
 	if (content.startsWith("❌ Retry failed")) return "retry-failed";
@@ -266,6 +268,12 @@ function getCategoryStyle(category: SystemCategory): {
 	iconClass: string;
 } {
 	switch (category) {
+		case "completion":
+			return {
+				textClass: "text-text-muted",
+				dividerClass: "bg-border-secondary",
+				iconClass: "",
+			};
 		case "compaction":
 			return {
 				textClass: "text-status-warning/70",

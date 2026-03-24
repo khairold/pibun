@@ -74,6 +74,7 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
 	model: null,
 	thinkingLevel: DEFAULT_THINKING_LEVEL,
 	isStreaming: false,
+	agentStartedAt: 0,
 	isCompacting: false,
 	isRetrying: false,
 	retryAttempt: 0,
@@ -90,6 +91,7 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
 	setModel: (model) => set({ model }),
 	setThinkingLevel: (level) => set({ thinkingLevel: level }),
 	setIsStreaming: (streaming) => set({ isStreaming: streaming }),
+	setAgentStartedAt: (timestamp) => set({ agentStartedAt: timestamp }),
 	setIsCompacting: (compacting) => set({ isCompacting: compacting }),
 	setRetrying: (retrying, attempt = 0, maxAttempts = 0, delayMs = 0) =>
 		set({
@@ -111,6 +113,7 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
 			model: null,
 			thinkingLevel: DEFAULT_THINKING_LEVEL,
 			isStreaming: false,
+			agentStartedAt: 0,
 			isCompacting: false,
 			isRetrying: false,
 			retryAttempt: 0,

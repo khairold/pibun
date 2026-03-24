@@ -284,3 +284,29 @@
 - `HealthBanner` is in `ErrorBanner.tsx` — if it grows further, consider extracting to its own file
 - Health auto-clears on `agent_start` — this means any successful prompt clears prior health issues
 - `consumeDeferredActiveTabId()` still not consumed
+
+---
+
+## Session 10 — Completion summary after agent finishes (2026-03-24)
+
+**What happened:**
+- Implemented completion summary divider between turns (1B.5):
+  - Added `agentStartedAt: number` field to `SessionSlice` (0 when idle)
+  - Added `setAgentStartedAt` action to store
+  - `agent_start` handler in wireTransport.ts now sets `agentStartedAt = Date.now()`
+  - `agent_end` handler computes elapsed time from `agentStartedAt`, inserts a system message: `"✓ Worked for Xm Ys"`
+  - Added `formatDuration()` helper in wireTransport.ts: `<1s` for under 1s, `Xs` for under 60s, `Xm Ys` for 60s+
+  - Added `"completion"` category to SystemMessage — uses `text-text-muted` + `bg-border-secondary` divider lines for subtle, non-attention-grabbing appearance
+  - `agentStartedAt` properly reset: on `agent_end` (→ 0), in `resetSession`, and in `switchTab` state restoration
+- Minimal change set: 5 files modified (types.ts, sessionSlice.ts, workspaceSlice.ts, wireTransport.ts, ChatMessages.tsx)
+
+**Items completed:**
+- [x] 1B.5 — Add completion summary after agent finishes: "Worked for Xm Ys" divider
+
+**Issues encountered:**
+- None. Clean implementation — the system message + category pattern was already well-established.
+
+**Handoff to next session:**
+- Next: 1B.6 — Improve turn boundaries: visual separator between user→assistant turns with timestamp, collapsed tool activity count
+- This is the LAST item in Phase 1B. After completing it, verify exit criteria and mark phase complete.
+- `consumeDeferredActiveTabId()` still not consumed

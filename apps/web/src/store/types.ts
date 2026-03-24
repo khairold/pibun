@@ -126,6 +126,8 @@ export interface SessionSlice {
 	isStreaming: boolean;
 	/** True while context compaction is in progress (manual or auto). */
 	isCompacting: boolean;
+	/** Timestamp (Date.now()) when the current agent run started. 0 when not running. */
+	agentStartedAt: number;
 	/** True while Pi is auto-retrying after an error. */
 	isRetrying: boolean;
 	/** Current retry attempt number (0 when not retrying). */
@@ -155,6 +157,8 @@ export interface SessionSlice {
 	setThinkingLevel: (level: PiThinkingLevel) => void;
 	/** Set streaming state. */
 	setIsStreaming: (streaming: boolean) => void;
+	/** Set the agent start timestamp. */
+	setAgentStartedAt: (timestamp: number) => void;
 	/** Set compacting state. */
 	setIsCompacting: (compacting: boolean) => void;
 	/** Set retrying state with attempt info. */
