@@ -521,3 +521,46 @@
 - `consumeDeferredActiveTabId()` still not consumed
 
 ---
+
+## Session 18 — Slash trigger verification + /model picker + cycle shortcuts (2026-03-24)
+
+**What happened:**
+- Verified 2A.3 (slash trigger detection) was already fully implemented in Session 17 — `detectSlashTrigger` handles start-of-input, start-of-line in multiline, query filtering, and menu close on space. Marked complete.
+- Implemented `/model` slash command with inline model picker (2A.4):
+  - When `/model` is selected from command menu, `handleCommandSelect` intercepts it instead of inserting text
+  - Opens `ComposerModelPicker` (new component in `ComposerCommandMenu.tsx`) — same floating position as command menu
+  - Model picker shows models grouped by provider, with keyboard nav (↑↓ Enter Escape)
+  - Model rows show name, reasoning/vision badges, model ID, context window size
+  - Current model highlighted with accent dot
+  - On select: calls `session.setModel` with optimistic update + rollback on error + toast confirmation
+  - Clears textarea text and refocuses after selection
+  - Models fetched lazily (reuses Zustand `availableModels` state)
+- Implemented `cycle_model` and `cycle_thinking_level` keyboard shortcuts (2A.5):
+  - **Contracts**: Added `session.cycleModel` and `session.cycleThinking` WS methods, `WsSessionCycleModelResult` and `WsSessionCycleThinkingResult` result types
+  - **Server**: Added `handleSessionCycleModel` and `handleSessionCycleThinking` handlers — bridge to Pi `cycle_model` / `cycle_thinking_level` RPC commands, extract response data
+  - **Handler registry**: Registered both new handlers
+  - **Keyboard shortcuts**: Ctrl/Cmd+M cycles model (updates store model + thinking level + toast). Ctrl/Cmd+Shift+M cycles thinking level (updates store + toast, or warns if unsupported)
+  - **ShortcutAction type**: Added `cycleModel` and `cycleThinking` actions
+  - **Settings dialog**: Updated keyboard shortcuts reference table with both new shortcuts
+- Phase 2A is now COMPLETE — all 5 items checked off
+- Exit criteria verified: ✅ Users can type `/` to see available commands. ✅ `/model` switches models inline. ✅ Keyboard shortcuts for quick model/thinking cycling.
+
+**Items completed:**
+- [x] 2A.3 — Implement `/` trigger detection (verified already done from Session 17)
+- [x] 2A.4 — Implement `/model` slash command: inline model picker
+- [x] 2A.5 — Implement `cycle_model` and `cycle_thinking_level` as keyboard shortcuts
+
+**Issues encountered:**
+- `resizeTextarea` was declared after `handleModelSelect` which referenced it → temporal dead zone error. Fixed by moving `resizeTextarea` declaration to right after `textareaRef`.
+- Biome import ordering: `handleSessionCycleModel`/`handleSessionCycleThinking` needed alphabetical sort in handler index imports.
+- `setThinkingLevel` was imported in Composer but unused (cycle thinking uses `useStore.getState()` in the shortcut hook, not Composer). Removed.
+
+**Handoff to next session:**
+- Phase 2A is COMPLETE. Next: Phase 2B — File Mentions
+- Start with 2B.1 — Add workspace file search API
+- `ComposerModelPicker` and `ComposerCommandMenu` are in the same file — reuse the floating menu pattern for `@` file mentions
+- `detectSlashTrigger` pattern can be adapted for `@` trigger detection
+- `PiModel` type is imported in both `Composer.tsx` and `ComposerCommandMenu.tsx`
+- `consumeDeferredActiveTabId()` still not consumed
+
+---

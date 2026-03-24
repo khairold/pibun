@@ -34,6 +34,8 @@ import {
 	handleExtensionUiResponse,
 	handleSessionAbort,
 	handleSessionCompact,
+	handleSessionCycleModel,
+	handleSessionCycleThinking,
 	handleSessionExportHtml,
 	handleSessionFollowUp,
 	handleSessionFork,
@@ -100,6 +102,8 @@ export const handlers: HandlerRegistry = {
 	"session.setName": handleSessionSetName,
 	"session.getForkMessages": handleSessionGetForkMessages,
 	"session.getCommands": handleSessionGetCommands,
+	"session.cycleModel": handleSessionCycleModel,
+	"session.cycleThinking": handleSessionCycleThinking,
 
 	// Extension UI
 	"session.extensionUiResponse": handleExtensionUiResponse,

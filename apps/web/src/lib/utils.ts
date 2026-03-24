@@ -266,6 +266,8 @@ export type ShortcutAction =
 	| "abort"
 	| "closeTab"
 	| "compact"
+	| "cycleModel"
+	| "cycleThinking"
 	| "newSession"
 	| "newTab"
 	| "nextTab"

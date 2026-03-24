@@ -23,7 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
-import type { PiSlashCommand } from "@pibun/contracts";
+import type { PiModel, PiSlashCommand } from "@pibun/contracts";
 import {
 	type ClipboardEvent,
 	type DragEvent,
@@ -38,6 +38,7 @@ import {
 import {
 	type CommandMenuItem,
 	ComposerCommandMenu,
+	ComposerModelPicker,
 	buildCommandMenuItems,
 	detectSlashTrigger,
 	filterCommandMenuItems,
@@ -125,6 +126,15 @@ export function Composer() {
 	const [isDragOver, setIsDragOver] = useState(false);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+	/** Auto-resize textarea to fit content. */
+	const resizeTextarea = useCallback(() => {
+		const textarea = textareaRef.current;
+		if (!textarea) return;
+		// Reset height to auto to measure scrollHeight accurately
+		textarea.style.height = "auto";
+		textarea.style.height = `${Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT)}px`;
+	}, []);
+
 	const setImagePreview = useStore((s) => s.setImagePreview);
 	const pendingComposerText = useStore((s) => s.pendingComposerText);
 	const setPendingComposerText = useStore((s) => s.setPendingComposerText);
@@ -154,6 +164,16 @@ export function Composer() {
 		rangeEnd: number;
 	} | null>(null);
 
+	// ── Model picker state (shown when /model is selected) ──
+	const [modelPickerOpen, setModelPickerOpen] = useState(false);
+	const [modelPickerIndex, setModelPickerIndex] = useState(0);
+	const currentModel = useStore((s) => s.model);
+	const availableModels = useStore((s) => s.availableModels);
+	const modelsLoading = useStore((s) => s.modelsLoading);
+	const setAvailableModels = useStore((s) => s.setAvailableModels);
+	const setModelsLoading = useStore((s) => s.setModelsLoading);
+	const setModel = useStore((s) => s.setModel);
+
 	/** Fetch commands from Pi (lazy — only on first `/` trigger). */
 	const fetchCommands = useCallback(async () => {
 		if (commandsCacheRef.current !== null || commandsLoading) return;
@@ -171,6 +191,50 @@ export function Composer() {
 			setCommandsLoading(false);
 		}
 	}, [commandsLoading]);
+
+	/** Fetch models from Pi (for model picker). */
+	const fetchModels = useCallback(async () => {
+		if (modelsLoading || availableModels.length > 0) return;
+		setModelsLoading(true);
+		try {
+			const result = await getTransport().request("session.getModels");
+			setAvailableModels(result.models);
+		} catch (err) {
+			console.error("[Composer] Failed to fetch models:", err);
+		} finally {
+			setModelsLoading(false);
+		}
+	}, [modelsLoading, availableModels.length, setModelsLoading, setAvailableModels]);
+
+	/** Handle model selection from the model picker. */
+	const handleModelSelect = useCallback(
+		async (model: PiModel) => {
+			setModelPickerOpen(false);
+			setModelPickerIndex(0);
+			// Clear any remaining /model text from textarea
+			setValue("");
+			requestAnimationFrame(() => {
+				textareaRef.current?.focus();
+				resizeTextarea();
+			});
+
+			// Optimistically update store
+			const previousModel = currentModel;
+			setModel(model);
+			try {
+				await getTransport().request("session.setModel", {
+					provider: model.provider,
+					modelId: model.id,
+				});
+				addToast(`Switched to ${model.name || model.id}`, "info");
+			} catch (err) {
+				console.error("[Composer] Failed to set model:", err);
+				setModel(previousModel);
+				setLastError(`Failed to switch model: ${errorMessage(err)}`);
+			}
+		},
+		[currentModel, setModel, setLastError, addToast, resizeTextarea],
+	);
 
 	/** Clear command cache when session changes (different session may have different commands). */
 	// biome-ignore lint/correctness/useExhaustiveDependencies: sessionId is the trigger — clear cache when session changes
@@ -211,7 +275,24 @@ export function Composer() {
 		(item: CommandMenuItem) => {
 			if (!slashTrigger) return;
 
-			// Replace the trigger range with the full command (e.g., "/model")
+			// Special handling for /model — open inline model picker
+			if (item.command.name === "model") {
+				setSlashTrigger(null);
+				setActiveCommandItemId(null);
+				setModelPickerOpen(true);
+				setModelPickerIndex(0);
+				// Fetch models if not cached
+				if (sessionId) {
+					fetchModels();
+				}
+				// Clear the /model text from textarea
+				const before = value.slice(0, slashTrigger.rangeStart);
+				const after = value.slice(slashTrigger.rangeEnd);
+				setValue(`${before}${after}`);
+				return;
+			}
+
+			// Replace the trigger range with the full command (e.g., "/skill-name ")
 			const replacement = `/${item.command.name} `;
 			const before = value.slice(0, slashTrigger.rangeStart);
 			const after = value.slice(slashTrigger.rangeEnd);
@@ -231,7 +312,7 @@ export function Composer() {
 				}
 			});
 		},
-		[value, slashTrigger],
+		[value, slashTrigger, sessionId, fetchModels],
 	);
 
 	/** Navigate the command menu (called from keyboard handler). */
@@ -260,15 +341,6 @@ export function Composer() {
 	const isConnected = connectionStatus === "open";
 	const hasContent = value.trim().length > 0 || images.length > 0;
 	const canSend = isConnected && hasContent && !isSending;
-
-	/** Auto-resize textarea to fit content. */
-	const resizeTextarea = useCallback(() => {
-		const textarea = textareaRef.current;
-		if (!textarea) return;
-		// Reset height to auto to measure scrollHeight accurately
-		textarea.style.height = "auto";
-		textarea.style.height = `${Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT)}px`;
-	}, []);
 
 	// Watch for pending text from plugins — insert into textarea and clear.
 	useEffect(() => {
@@ -502,6 +574,34 @@ export function Composer() {
 	/** Handle keyboard events. */
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent<HTMLTextAreaElement>) => {
+			// ── Model picker keyboard handling ──
+			if (modelPickerOpen) {
+				if (e.key === "ArrowDown") {
+					e.preventDefault();
+					setModelPickerIndex((prev) => (prev >= availableModels.length - 1 ? 0 : prev + 1));
+					return;
+				}
+				if (e.key === "ArrowUp") {
+					e.preventDefault();
+					setModelPickerIndex((prev) => (prev <= 0 ? availableModels.length - 1 : prev - 1));
+					return;
+				}
+				if (e.key === "Enter" && !e.shiftKey) {
+					e.preventDefault();
+					const model = availableModels[modelPickerIndex];
+					if (model) {
+						handleModelSelect(model);
+					}
+					return;
+				}
+				if (e.key === "Escape") {
+					e.preventDefault();
+					setModelPickerOpen(false);
+					setModelPickerIndex(0);
+					return;
+				}
+			}
+
 			// ── Command menu keyboard handling ──
 			if (commandMenuOpen) {
 				if (e.key === "ArrowDown") {
@@ -573,6 +673,10 @@ export function Composer() {
 			activeCommandItemId,
 			nudgeCommandHighlight,
 			handleCommandSelect,
+			modelPickerOpen,
+			availableModels,
+			modelPickerIndex,
+			handleModelSelect,
 		],
 	);
 
@@ -649,8 +753,24 @@ export function Composer() {
 			onDragLeave={handleDragLeave}
 			onDrop={handleDrop}
 		>
+			{/* Model picker — positioned absolutely above composer */}
+			{modelPickerOpen && (
+				<ComposerModelPicker
+					models={availableModels}
+					isLoading={modelsLoading}
+					currentModel={currentModel}
+					activeIndex={modelPickerIndex}
+					onSelect={handleModelSelect}
+					onDismiss={() => {
+						setModelPickerOpen(false);
+						setModelPickerIndex(0);
+					}}
+					onHighlightChange={setModelPickerIndex}
+				/>
+			)}
+
 			{/* Slash command menu — positioned absolutely above composer */}
-			{commandMenuOpen && (
+			{commandMenuOpen && !modelPickerOpen && (
 				<ComposerCommandMenu
 					items={filteredCommandItems}
 					activeItemId={activeCommandItemId}

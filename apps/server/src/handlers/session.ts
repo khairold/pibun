@@ -459,6 +459,51 @@ export const handleSessionGetCommands: WsHandler<"session.getCommands"> = async 
 	throw new Error("Unexpected response from get_commands");
 };
 
+/**
+ * session.cycleModel — Cycle to the next available model.
+ *
+ * Returns the new model and thinking level. Returns nulls if only one model available.
+ */
+export const handleSessionCycleModel: WsHandler<"session.cycleModel"> = async (
+	_params: undefined,
+	ctx: HandlerContext,
+): Promise<WsMethodResultMap["session.cycleModel"]> => {
+	const process = getProcess(ctx);
+	const response = await process.sendCommand({ type: "cycle_model" });
+	assertSuccess(response);
+
+	if (response.command === "cycle_model" && response.success && response.data) {
+		return {
+			model: response.data.model,
+			thinkingLevel: response.data.thinkingLevel,
+		};
+	}
+
+	// null data means only one model available — nothing cycled
+	return { model: null, thinkingLevel: null };
+};
+
+/**
+ * session.cycleThinking — Cycle to the next thinking level.
+ *
+ * Returns the new thinking level. Returns null if model doesn't support thinking.
+ */
+export const handleSessionCycleThinking: WsHandler<"session.cycleThinking"> = async (
+	_params: undefined,
+	ctx: HandlerContext,
+): Promise<WsMethodResultMap["session.cycleThinking"]> => {
+	const process = getProcess(ctx);
+	const response = await process.sendCommand({ type: "cycle_thinking_level" });
+	assertSuccess(response);
+
+	if (response.command === "cycle_thinking_level" && response.success && response.data) {
+		return { level: response.data.level };
+	}
+
+	// null data means model doesn't support thinking
+	return { level: null };
+};
+
 // ============================================================================
 // Extension UI
 // ============================================================================

@@ -4,6 +4,7 @@
  * Registers a document-level keydown listener that handles:
  * - Ctrl/Cmd+C — abort streaming (when streaming and no text selected)
  * - Ctrl/Cmd+L — toggle model selector
+ * - Ctrl/Cmd+M — cycle model
  * - Ctrl/Cmd+N — create new session
  * - Ctrl/Cmd+B — toggle sidebar
  * - Ctrl/Cmd+G — toggle git panel
@@ -14,6 +15,7 @@
  * - Ctrl/Cmd+1-9 — jump to tab by position
  * - Ctrl/Cmd+` — toggle terminal panel
  * - Ctrl/Cmd+Shift+K — compact context
+ * - Ctrl/Cmd+Shift+M — cycle thinking level
  * - Ctrl/Cmd+Shift+T — toggle thinking selector
  *
  * Reads store state imperatively (via getState) to avoid unnecessary
@@ -67,6 +69,28 @@ export function useKeyboardShortcuts(): void {
 						}
 						break;
 					}
+					case "m": {
+						// Ctrl/Cmd+Shift+M — cycle thinking level
+						if (isConnected && state.sessionId) {
+							e.preventDefault();
+							emitShortcut("cycleThinking");
+							getTransport()
+								.request("session.cycleThinking")
+								.then((result) => {
+									if (result.level) {
+										useStore.getState().setThinkingLevel(result.level);
+										useStore.getState().addToast(`Thinking: ${result.level}`, "info");
+									} else {
+										useStore.getState().addToast("Model doesn't support thinking", "warning");
+									}
+								})
+								.catch((err: unknown) => {
+									const msg = err instanceof Error ? err.message : String(err);
+									useStore.getState().setLastError(`Failed to cycle thinking: ${msg}`);
+								});
+						}
+						break;
+					}
 					case "t": {
 						// Ctrl/Cmd+Shift+T — toggle thinking selector
 						if (isConnected) {
@@ -113,6 +137,33 @@ export function useKeyboardShortcuts(): void {
 
 			// ── Non-shift combos (Ctrl/Cmd+Key) ─────────────────────
 			switch (key) {
+				case "m": {
+					// Ctrl/Cmd+M — cycle model
+					if (isConnected && state.sessionId) {
+						e.preventDefault();
+						emitShortcut("cycleModel");
+						getTransport()
+							.request("session.cycleModel")
+							.then((result) => {
+								if (result.model) {
+									useStore.getState().setModel(result.model);
+									if (result.thinkingLevel) {
+										useStore.getState().setThinkingLevel(result.thinkingLevel);
+									}
+									useStore
+										.getState()
+										.addToast(`Model: ${result.model.name || result.model.id}`, "info");
+								} else {
+									useStore.getState().addToast("Only one model available", "warning");
+								}
+							})
+							.catch((err: unknown) => {
+								const msg = err instanceof Error ? err.message : String(err);
+								useStore.getState().setLastError(`Failed to cycle model: ${msg}`);
+							});
+					}
+					break;
+				}
 				case "c": {
 					// Ctrl/Cmd+C — abort streaming
 					// Only abort if streaming AND no text is selected (preserve copy)

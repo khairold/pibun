@@ -79,6 +79,8 @@ export const WS_METHODS = {
 	sessionSetName: "session.setName",
 	sessionGetForkMessages: "session.getForkMessages",
 	sessionGetCommands: "session.getCommands",
+	sessionCycleModel: "session.cycleModel",
+	sessionCycleThinking: "session.cycleThinking",
 
 	// Extension UI
 	sessionExtensionUiResponse: "session.extensionUiResponse",
@@ -492,6 +494,8 @@ export interface WsMethodParamsMap {
 	"session.setName": WsSessionSetNameParams;
 	"session.getForkMessages": undefined;
 	"session.getCommands": undefined;
+	"session.cycleModel": undefined;
+	"session.cycleThinking": undefined;
 	"session.extensionUiResponse": WsSessionExtensionUiResponseParams;
 	"session.listSessions": undefined;
 	"session.switchSession": WsSessionSwitchSessionParams;
@@ -579,6 +583,23 @@ export interface WsSessionGetForkMessagesResult {
 /** Result for `session.getCommands` — available slash commands. */
 export interface WsSessionGetCommandsResult {
 	commands: PiSlashCommand[];
+}
+
+/**
+ * Result for `session.cycleModel` — the new model after cycling.
+ * Returns `null` if only one model is available (nothing to cycle to).
+ */
+export interface WsSessionCycleModelResult {
+	model: PiModel | null;
+	thinkingLevel: PiThinkingLevel | null;
+}
+
+/**
+ * Result for `session.cycleThinking` — the new thinking level after cycling.
+ * Returns `null` if the model doesn't support thinking.
+ */
+export interface WsSessionCycleThinkingResult {
+	level: PiThinkingLevel | null;
 }
 
 /** Summary info for a session file in the session list. */
@@ -738,6 +759,8 @@ export interface WsMethodResultMap {
 	"session.setName": WsOkResult;
 	"session.getForkMessages": WsSessionGetForkMessagesResult;
 	"session.getCommands": WsSessionGetCommandsResult;
+	"session.cycleModel": WsSessionCycleModelResult;
+	"session.cycleThinking": WsSessionCycleThinkingResult;
 	"session.extensionUiResponse": WsOkResult;
 	"session.exportHtml": WsSessionExportHtmlResult;
 	"session.listSessions": WsSessionListSessionsResult;

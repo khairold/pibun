@@ -41,6 +41,9 @@
 | 30 | ComposerCommandMenu is a separate file (`ComposerCommandMenu.tsx`), trigger logic lives in `Composer.tsx` | Menu is a pure presentational component (items, active, onSelect, onHighlight). Composer manages: trigger detection (`detectSlashTrigger`), keyboard interception (↑↓ Enter Escape Tab), command fetching (lazy, cached per session), item filtering. Separate file because the menu component is reusable for future `@` mentions. | 2026-03-24 |
 | 31 | Slash commands cached in `commandsCacheRef` (module-level ref), not Zustand store | Commands are only used by Composer — no other component needs them. Cache cleared on `sessionId` change (different sessions may have different extensions/skills). Fetched lazily on first `/` trigger. | 2026-03-24 |
 | 32 | Slash trigger detection uses `slashTrigger` state (not ref) for `useMemo` reactivity | Refs don't trigger re-renders, so `slashTriggerRef.current?.query` can't be a useMemo dep. `slashTrigger` as state drives: `commandMenuOpen` (derived boolean), `filteredCommandItems` (memoized filter). Updated on every `onChange` and `onSelect` (cursor position change). | 2026-03-24 |
+| 33 | `/model` slash command opens inline model picker, not text insertion | When `/model` is selected from command menu, `handleCommandSelect` intercepts it, clears the trigger text, and opens `ComposerModelPicker` (same floating position). Picker shows models grouped by provider with keyboard nav. On select, calls `session.setModel` with optimistic update + rollback. `ComposerModelPicker` lives in `ComposerCommandMenu.tsx` (same file — part of the floating menu system). | 2026-03-24 |
+| 34 | `session.cycleModel` and `session.cycleThinking` WS methods for keyboard shortcuts | Thin bridge to Pi `cycle_model` / `cycle_thinking_level` RPC. `cycle_model` returns `{ model, thinkingLevel }` (both null if only one model). `cycle_thinking` returns `{ level }` (null if model doesn't support thinking). Keyboard: Ctrl/Cmd+M cycles model, Ctrl/Cmd+Shift+M cycles thinking. Both update store + show toast. | 2026-03-24 |
+| 35 | `resizeTextarea` must be declared before callbacks that reference it | Moved `resizeTextarea` to right after `textareaRef` declaration in Composer to avoid TDZ errors. Was previously after model/command state, causing `handleModelSelect` to reference it before declaration. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -60,8 +63,8 @@ apps/desktop/         — Electrobun main process, menu, notifications, updater,
 - ~~`session.setAutoRetry` → Pi `set_auto_retry`~~ ✅ Done (Session 13)
 - ~~`session.setSteeringMode` → Pi `set_steering_mode`~~ ✅ Done (Session 14)
 - ~~`session.setFollowUpMode` → Pi `set_follow_up_mode`~~ ✅ Done (Session 14)
-- `session.cycleModel` → Pi `cycle_model`
-- `session.cycleThinking` → Pi `cycle_thinking_level`
+- ~~`session.cycleModel` → Pi `cycle_model`~~ ✅ Done (Session 18)
+- ~~`session.cycleThinking` → Pi `cycle_thinking_level`~~ ✅ Done (Session 18)
 - `session.getLastAssistantText` → Pi `get_last_assistant_text`
 - `project.searchFiles` → server-side file search (fd/find)
 - `session.getTurnDiff` → server-side git diff between turns

@@ -2,9 +2,9 @@
 
 > **Spec:** Audit of T3Code, Pi-mono RPC, Electrobun reference repos (2026-03-24)
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
-> **Status:** Phase 2A in progress
-> **Current Phase:** Phase 2A — Slash Commands & Command Palette
-> **Last Session:** Session 17 — 2026-03-24
+> **Status:** Phase 2A complete
+> **Current Phase:** Phase 2B — File Mentions
+> **Last Session:** Session 18 — 2026-03-24
 
 ---
 
@@ -75,9 +75,9 @@
 
 - [x] 2A.1 — Add Pi RPC `get_commands` support: new WS method `session.getCommands` + server handler + contracts types
 - [x] 2A.2 — Build ComposerCommandMenu component: floating menu above composer, keyboard navigable (↑↓ + Enter + Escape), filtered by typed text
-- [ ] 2A.3 — Implement `/` trigger detection: typing `/` at line start opens command menu with available Pi commands (extensions, skills, prompts)
-- [ ] 2A.4 — Implement `/model` slash command: opens inline model picker, selecting a model calls `session.setModel`
-- [ ] 2A.5 — Implement `cycle_model` and `cycle_thinking_level` as keyboard shortcuts (Ctrl/Cmd+M to cycle model, Ctrl/Cmd+Shift+M to cycle thinking)
+- [x] 2A.3 — Implement `/` trigger detection: typing `/` at line start opens command menu with available Pi commands (extensions, skills, prompts)
+- [x] 2A.4 — Implement `/model` slash command: opens inline model picker, selecting a model calls `session.setModel`
+- [x] 2A.5 — Implement `cycle_model` and `cycle_thinking_level` as keyboard shortcuts (Ctrl/Cmd+M to cycle model, Ctrl/Cmd+Shift+M to cycle thinking)
 
 **Exit criteria:** Users can type `/` to see available commands. `/model` switches models inline. Keyboard shortcuts for quick model/thinking cycling.
 

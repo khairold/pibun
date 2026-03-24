@@ -17,8 +17,8 @@
  */
 
 import { cn } from "@/lib/utils";
-import type { PiSlashCommand } from "@pibun/contracts";
-import { memo, useEffect, useRef } from "react";
+import type { PiModel, PiSlashCommand } from "@pibun/contracts";
+import { memo, useEffect, useMemo, useRef } from "react";
 
 // ============================================================================
 // Types
@@ -223,6 +223,193 @@ export const ComposerCommandMenu = memo(function ComposerCommandMenu(
 							{props.isLoading ? "Loading commands…" : "No matching commands"}
 						</div>
 					)}
+				</div>
+			</div>
+		</div>
+	);
+});
+
+// ============================================================================
+// Model Picker — inline model selector shown when /model is selected
+// ============================================================================
+
+/** Group models by provider name. */
+function groupByProvider(models: readonly PiModel[]): Map<string, PiModel[]> {
+	const groups = new Map<string, PiModel[]>();
+	for (const model of models) {
+		const provider = model.provider || "unknown";
+		let group = groups.get(provider);
+		if (!group) {
+			group = [];
+			groups.set(provider, group);
+		}
+		group.push(model);
+	}
+	return groups;
+}
+
+/** Format provider name for display (capitalize first letter). */
+function providerLabel(provider: string): string {
+	if (provider.length === 0) return "Unknown";
+	return provider.charAt(0).toUpperCase() + provider.slice(1);
+}
+
+/** Props for the ComposerModelPicker. */
+export interface ComposerModelPickerProps {
+	/** Available models to show. */
+	models: readonly PiModel[];
+	/** Whether models are currently being fetched. */
+	isLoading: boolean;
+	/** Currently active model (for highlight). */
+	currentModel: PiModel | null;
+	/** Index of the currently highlighted item. */
+	activeIndex: number;
+	/** Called when user selects a model. */
+	onSelect: (model: PiModel) => void;
+	/** Called to dismiss the picker. */
+	onDismiss: () => void;
+	/** Called when highlighted index changes. */
+	onHighlightChange: (index: number) => void;
+}
+
+/** A single model row in the picker. */
+const ModelPickerRow = memo(function ModelPickerRow(props: {
+	model: PiModel;
+	isActive: boolean;
+	isCurrent: boolean;
+	onSelect: (model: PiModel) => void;
+	onHover: () => void;
+}) {
+	const ref = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (props.isActive && ref.current) {
+			ref.current.scrollIntoView({ block: "nearest" });
+		}
+	}, [props.isActive]);
+
+	return (
+		// biome-ignore lint/a11y/useKeyWithClickEvents: keyboard nav handled by parent Composer
+		<div
+			ref={ref}
+			className={cn(
+				"flex cursor-pointer select-none items-center gap-2 px-3 py-1.5 text-sm",
+				"transition-colors",
+				props.isActive
+					? "bg-accent-soft text-text-primary"
+					: "text-text-secondary hover:bg-surface-secondary",
+			)}
+			onMouseDown={(e) => e.preventDefault()}
+			onClick={() => props.onSelect(props.model)}
+			onMouseEnter={props.onHover}
+		>
+			{/* Current indicator */}
+			<span
+				className={cn(
+					"h-1.5 w-1.5 shrink-0 rounded-full",
+					props.isCurrent ? "bg-accent-text" : "bg-transparent",
+				)}
+			/>
+
+			{/* Model info */}
+			<div className="min-w-0 flex-1">
+				<div className="flex items-center gap-1.5">
+					<span className="truncate text-xs font-medium">{props.model.name || props.model.id}</span>
+					{props.model.reasoning && (
+						<span className="shrink-0 rounded bg-status-warning-bg px-1 py-0.5 text-[9px] font-medium text-status-warning-text">
+							reasoning
+						</span>
+					)}
+					{props.model.input.includes("image") && (
+						<span className="shrink-0 rounded bg-status-success-bg px-1 py-0.5 text-[9px] font-medium text-status-success-text">
+							vision
+						</span>
+					)}
+				</div>
+				<div className="mt-0.5 text-[10px] text-text-tertiary">
+					{props.model.id}
+					{props.model.contextWindow > 0 && (
+						<>
+							{" · "}
+							{Math.round(props.model.contextWindow / 1000)}k ctx
+						</>
+					)}
+				</div>
+			</div>
+		</div>
+	);
+});
+
+/**
+ * ComposerModelPicker — inline model selector in the floating menu area.
+ *
+ * Shows when `/model` is selected from the command menu.
+ * Grouped by provider, keyboard navigable (↑↓ Enter Escape).
+ */
+export const ComposerModelPicker = memo(function ComposerModelPicker(
+	props: ComposerModelPickerProps,
+) {
+	/** Flat list of models for keyboard navigation indexing. */
+	const flatModels = useMemo(() => [...props.models], [props.models]);
+	const grouped = useMemo(() => groupByProvider(props.models), [props.models]);
+
+	// Build flat-index offset per provider group
+	let flatIndex = 0;
+
+	return (
+		<div className="absolute bottom-full left-0 right-0 z-50 mb-1 px-4">
+			<div className="mx-auto max-w-3xl">
+				<div className="overflow-hidden rounded-xl border border-border-primary bg-surface-base shadow-lg">
+					{/* Header */}
+					<div className="flex items-center justify-between border-b border-border-secondary px-3 py-2">
+						<span className="text-xs font-medium text-text-secondary">Switch Model</span>
+						<span className="text-[10px] text-text-tertiary">
+							↑↓ navigate · Enter select · Esc cancel
+						</span>
+					</div>
+
+					{/* Model list */}
+					<div className="max-h-80 overflow-y-auto py-1">
+						{props.isLoading && flatModels.length === 0 && (
+							<div className="px-3 py-3 text-center text-xs text-text-muted">Loading models…</div>
+						)}
+
+						{!props.isLoading && flatModels.length === 0 && (
+							<div className="px-3 py-3 text-center text-xs text-text-muted">
+								No models available
+							</div>
+						)}
+
+						{[...grouped.entries()].map(([provider, models]) => {
+							const groupStart = flatIndex;
+							flatIndex += models.length;
+							return (
+								<div key={provider}>
+									<div className="px-3 pb-1 pt-2">
+										<span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+											{providerLabel(provider)}
+										</span>
+									</div>
+									{models.map((model, i) => {
+										const modelFlatIndex = groupStart + i;
+										const isCurrent =
+											props.currentModel?.id === model.id &&
+											props.currentModel?.provider === model.provider;
+										return (
+											<ModelPickerRow
+												key={`${model.provider}-${model.id}`}
+												model={model}
+												isActive={modelFlatIndex === props.activeIndex}
+												isCurrent={isCurrent}
+												onSelect={props.onSelect}
+												onHover={() => props.onHighlightChange(modelFlatIndex)}
+											/>
+										);
+									})}
+								</div>
+							);
+						})}
+					</div>
 				</div>
 			</div>
 		</div>
