@@ -29,7 +29,7 @@ import { SessionStats } from "@/components/SessionStats";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { Sidebar } from "@/components/Sidebar";
 import { StatusBar } from "@/components/StatusBar";
-import { TabBar } from "@/components/TabBar";
+
 import { TerminalPane } from "@/components/TerminalPane";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { ThinkingSelector } from "@/components/ThinkingSelector";
@@ -96,8 +96,7 @@ export function AppShell() {
 			{/* Main chat area + right plugin panel */}
 			<div className="flex min-w-0 flex-1">
 				<main className="flex min-w-0 flex-1 flex-col">
-					{/* Tab bar — shown when multiple tabs are open */}
-					<TabBar />
+
 
 					<ConnectionBanner />
 					<HealthBanner />
