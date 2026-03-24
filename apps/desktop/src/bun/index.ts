@@ -26,6 +26,7 @@ import {
 	createMenuClickHandler,
 } from "./menu";
 import { initNotifications } from "./notifications";
+import { initTray } from "./tray";
 import { handleApplyUpdate, handleCheckForUpdates, initUpdater, stopUpdater } from "./updater";
 import {
 	type WindowFrame,
@@ -154,6 +155,9 @@ let isShuttingDown = false;
  * Updated when projects change (add/remove/update) via the server hook.
  */
 let recentProjectCwds: string[] = [];
+
+/** Cleanup function for the system tray. */
+let cleanupTray: (() => void) | null = null;
 
 // ============================================================================
 // Health / Ready Check
@@ -300,6 +304,12 @@ async function shutdown(reason: string): Promise<void> {
 	isShuttingDown = true;
 
 	console.log(`Shutting down (${reason})...`);
+
+	// Remove the system tray icon
+	if (cleanupTray) {
+		cleanupTray();
+		cleanupTray = null;
+	}
 
 	// Stop the auto-updater (clears periodic timers)
 	stopUpdater();
@@ -657,7 +667,15 @@ async function bootstrap(): Promise<void> {
 		console.log("[Notifications] System notifications enabled");
 	}
 
-	// Step 7b: Initialize auto-updater
+	// Step 7b: Initialize system tray
+	// Shows a menu bar icon with session status, recent sessions, New Session, and Quit.
+	// Menu rebuilds dynamically as sessions start/stop/crash.
+	if (pibunServer) {
+		cleanupTray = initTray(pibunServer, pibunServer.config.rpcManager);
+		console.log("[Tray] System tray enabled");
+	}
+
+	// Step 7c: Initialize auto-updater
 	// Checks for updates on startup (after 10s delay) and periodically (every 4h).
 	// "Check for Updates…" menu action also triggers a manual check.
 	// Update status is broadcast to the web app via the `app.update` WS push channel.

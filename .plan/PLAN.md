@@ -4,7 +4,7 @@
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
 > **Status:** Phase 4 in progress
 > **Current Phase:** Phase 4 — Desktop Native Features
-> **Last Session:** Session 37 — 2026-03-24
+> **Last Session:** Session 38 — 2026-03-24
 
 ---
 
@@ -135,7 +135,7 @@
 
 ### 4B — Tray & Window Features
 
-- [ ] 4B.1 — Add system tray icon with menu: current session status, recent sessions list, New Session, Quit
+- [x] 4B.1 — Add system tray icon with menu: current session status, recent sessions list, New Session, Quit
 - [ ] 4B.2 — Tray status indicator: change icon/color based on active session state (idle, working, error)
 - [ ] 4B.3 — Add Electrobun navigation rules to prevent webview from navigating away from PiBun
 - [ ] 4B.4 — Add Electrobun window focus/blur events: dim status bar when unfocused, track focus for notification suppression

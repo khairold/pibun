@@ -32,6 +32,9 @@ export default {
 			// bun-pty native library — required for terminal integration.
 			// The bundled code (bun/index.js) resolves the dylib relative to itself.
 			"../../node_modules/bun-pty/rust-pty": "bun/rust-pty",
+			// Tray icon — system tray uses this PNG for the menu bar icon.
+			// Copied to bun/tray-icon.png so it resolves via import.meta.dir.
+			"icon.iconset/icon_16x16@2x.png": "bun/tray-icon.png",
 		},
 		mac: {
 			bundleCEF: false,

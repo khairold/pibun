@@ -675,6 +675,21 @@ function handleMenuAction(data: WsMenuActionData): void {
 			emitShortcut("toggleExportDialog");
 			break;
 
+		// ── Tray ─────────────────────────────────────────────────
+		case "tray.focus-session": {
+			// Focus a specific session by finding the tab with that sessionId.
+			const targetSessionId = data.data?.sessionId;
+			if (typeof targetSessionId === "string" && targetSessionId) {
+				const targetTab = store.tabs.find((t) => t.sessionId === targetSessionId);
+				if (targetTab) {
+					switchTabAction(targetTab.id).catch((err: unknown) => {
+						console.error("[Tray] Failed to switch to session tab:", err);
+					});
+				}
+			}
+			break;
+		}
+
 		default:
 			console.log(`[Menu] Unhandled menu action: ${action}`);
 			break;

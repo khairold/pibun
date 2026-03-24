@@ -1121,3 +1121,36 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 38 — System tray icon with menu (2026-03-24)
+
+**What happened:**
+- Implemented system tray icon with dynamic session menu (4B.1):
+  - **Desktop `src/bun/tray.ts`**: New file — creates and manages the Electrobun `Tray` instance:
+    - `resolveTrayIconPath()` — checks for bundled icon first (`bun/tray-icon.png`), falls back to source tree (`icon.iconset/icon_16x16@2x.png`). Uses `existsSync` for reliable detection.
+    - `buildTrayMenu()` — builds menu from `sessionStates` Map: status summary line (e.g., "2 working, 1 idle"), up to 8 active sessions with state icons (◉ working, ⊘ error, ○ idle) + directory basename, New Session action, Quit action.
+    - `refreshTrayMenu()` — rebuilds and applies the menu. Called on every session state change.
+    - `handleSessionPiEvent()` — tracks `agent_start` → working, `agent_end` → idle, `auto_retry_end` failure → error per session.
+    - `subscribeToSession()` — subscribes to Pi events on individual session processes.
+    - `handleTrayClick()` — handles menu item clicks: `tray.quit` → SIGTERM, `tray.session:ID` → `tray.focus-session` push, `file.new-session` → forward via `menu.action` push.
+    - `initTray(server, rpcManager)` — main init: creates tray, subscribes to existing + future sessions via `rpcManager.onSessionEvent()`, returns cleanup function.
+  - **Desktop `index.ts`**: Wired `initTray()` after notifications init. `cleanupTray` module variable stores cleanup function. Called during `shutdown()` before server stop.
+  - **Desktop `electrobun.config.ts`**: Added `"icon.iconset/icon_16x16@2x.png": "bun/tray-icon.png"` to copy config for production builds.
+  - **Web `wireTransport.ts`**: Added `tray.focus-session` case in `handleMenuAction()` — finds tab by sessionId, switches to it via `switchTabAction()`.
+- No new WS methods or contracts changes needed — tray reuses the existing `menu.action` push channel.
+
+**Items completed:**
+- [x] 4B.1 — Add system tray icon with menu: current session status, recent sessions list, New Session, Quit
+
+**Issues encountered:**
+- `Bun.file().size` returns 0 for nonexistent files instead of throwing — switched to `existsSync()` for icon path detection.
+- Biome import ordering: `node:fs` and `node:path` must sort before `@pibun/*` imports.
+
+**Handoff to next session:**
+- Next: 4B.2 — Tray status indicator: change icon/color based on active session state (idle, working, error)
+- `tray.ts` is a self-contained deep module. The `Tray` class supports `setImage()` for dynamic icon changes — 4B.2 can use this.
+- `template: false` shows the colored app icon. For a proper macOS-native feel, a monochrome template icon could be designed later.
+- Tray menu click forwarding reuses `menu.action` push channel — no new protocol needed.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---
