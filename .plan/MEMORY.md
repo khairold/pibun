@@ -38,6 +38,9 @@
 | 27 | Timestamp format applied via shared `formatTimestamp()` in `utils.ts` + `timestampFormat` in Zustand UiSlice | Shared function accepts `(ts, format)` — format comes from Zustand store so components re-render when user changes setting. `timestampFormat` field added to `UiSlice` + `setTimestampFormat` action. Synced from settings cache on: init (`restorePersistedUiState`), server fetch (`fetchAndApplySettings`), and user change (`updateSetting`). TurnDivider reads from store via `useStore(s => s.timestampFormat)`. Old local `formatTimestamp` in ChatMessages.tsx deleted. | 2026-03-24 |
 | 28 | `PiSlashCommand` updated to use `sourceInfo: PiSourceInfo` matching actual Pi wire format | Pi's rpc.md docs show older `location`/`path` fields, but the actual Pi source (rpc-types.ts) uses `sourceInfo: SourceInfo` with `{ path, source, scope, origin, baseDir }`. Updated PiBun contracts to match actual wire format. Added `PiSourceInfo`, `PiSourceScope`, `PiSourceOrigin` types. | 2026-03-24 |
 | 29 | `session.getCommands` WS method follows `getModels` handler pattern (sendCommand → assertSuccess → extract data) | Returns `{ commands: PiSlashCommand[] }`. No params needed. Handler uses `process.sendCommand({ type: "get_commands" })`. Result type is `WsSessionGetCommandsResult`. | 2026-03-24 |
+| 30 | ComposerCommandMenu is a separate file (`ComposerCommandMenu.tsx`), trigger logic lives in `Composer.tsx` | Menu is a pure presentational component (items, active, onSelect, onHighlight). Composer manages: trigger detection (`detectSlashTrigger`), keyboard interception (↑↓ Enter Escape Tab), command fetching (lazy, cached per session), item filtering. Separate file because the menu component is reusable for future `@` mentions. | 2026-03-24 |
+| 31 | Slash commands cached in `commandsCacheRef` (module-level ref), not Zustand store | Commands are only used by Composer — no other component needs them. Cache cleared on `sessionId` change (different sessions may have different extensions/skills). Fetched lazily on first `/` trigger. | 2026-03-24 |
+| 32 | Slash trigger detection uses `slashTrigger` state (not ref) for `useMemo` reactivity | Refs don't trigger re-renders, so `slashTriggerRef.current?.query` can't be a useMemo dep. `slashTrigger` as state drives: `commandMenuOpen` (derived boolean), `filteredCommandItems` (memoized filter). Updated on every `onChange` and `onSelect` (cursor position change). | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -64,7 +67,7 @@ apps/desktop/         — Electrobun main process, menu, notifications, updater,
 - `session.getTurnDiff` → server-side git diff between turns
 
 ### Key Missing UI Components (for v3)
-- ComposerCommandMenu — floating autocomplete menu
+- ~~ComposerCommandMenu — floating autocomplete menu~~ ✅ Done (Session 17)
 - ComposerMentionChip — inline file/terminal reference pill
 - SettingsPage — full settings panel
 - DiffPanel — side panel with per-turn diffs

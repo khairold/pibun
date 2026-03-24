@@ -11,6 +11,7 @@
  * - Image paste from clipboard (Ctrl+V / Cmd+V)
  * - Image preview strip with remove buttons
  * - Draft persistence per tab (text + images survive tab switch and page reload)
+ * - Slash command menu: type `/` at line start to see available commands
  */
 
 import {
@@ -22,6 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
+import type { PiSlashCommand } from "@pibun/contracts";
 import {
 	type ClipboardEvent,
 	type DragEvent,
@@ -29,9 +31,17 @@ import {
 	type MouseEvent,
 	useCallback,
 	useEffect,
+	useMemo,
 	useRef,
 	useState,
 } from "react";
+import {
+	type CommandMenuItem,
+	ComposerCommandMenu,
+	buildCommandMenuItems,
+	detectSlashTrigger,
+	filterCommandMenuItems,
+} from "./ComposerCommandMenu";
 
 // ============================================================================
 // Types
@@ -127,6 +137,125 @@ export function Composer() {
 	const imagesRef = useRef(images);
 	valueRef.current = value;
 	imagesRef.current = images;
+
+	// ── Slash command menu state ──
+	/** Cached Pi slash commands (fetched once per session, cleared on session change). */
+	const commandsCacheRef = useRef<PiSlashCommand[] | null>(null);
+	/** All command menu items (derived from cache). */
+	const [commandMenuItems, setCommandMenuItems] = useState<CommandMenuItem[]>([]);
+	/** Whether commands are currently being fetched. */
+	const [commandsLoading, setCommandsLoading] = useState(false);
+	/** ID of the currently highlighted menu item. */
+	const [activeCommandItemId, setActiveCommandItemId] = useState<string | null>(null);
+	/** Current slash trigger info (query + range), null when menu is closed. */
+	const [slashTrigger, setSlashTrigger] = useState<{
+		query: string;
+		rangeStart: number;
+		rangeEnd: number;
+	} | null>(null);
+
+	/** Fetch commands from Pi (lazy — only on first `/` trigger). */
+	const fetchCommands = useCallback(async () => {
+		if (commandsCacheRef.current !== null || commandsLoading) return;
+		setCommandsLoading(true);
+		try {
+			const result = await getTransport().request("session.getCommands");
+			commandsCacheRef.current = result.commands;
+			setCommandMenuItems(buildCommandMenuItems(result.commands));
+		} catch (err) {
+			console.error("[Composer] Failed to fetch commands:", err);
+			// Don't block the menu — show empty state
+			commandsCacheRef.current = [];
+			setCommandMenuItems([]);
+		} finally {
+			setCommandsLoading(false);
+		}
+	}, [commandsLoading]);
+
+	/** Clear command cache when session changes (different session may have different commands). */
+	// biome-ignore lint/correctness/useExhaustiveDependencies: sessionId is the trigger — clear cache when session changes
+	useEffect(() => {
+		commandsCacheRef.current = null;
+		setCommandMenuItems([]);
+	}, [sessionId]);
+
+	/** Update trigger detection whenever value or cursor changes. */
+	const updateSlashTrigger = useCallback(
+		(text: string, cursorPos: number) => {
+			const trigger = detectSlashTrigger(text, cursorPos);
+			setSlashTrigger(trigger);
+
+			if (trigger) {
+				// Fetch commands if not yet cached (requires active session)
+				if (sessionId && commandsCacheRef.current === null) {
+					fetchCommands();
+				}
+			} else {
+				setActiveCommandItemId(null);
+			}
+		},
+		[sessionId, fetchCommands],
+	);
+
+	/** Whether the command menu should be visible. */
+	const commandMenuOpen = slashTrigger !== null;
+
+	/** Filtered items based on current query. */
+	const filteredCommandItems = useMemo(() => {
+		if (!slashTrigger) return [];
+		return filterCommandMenuItems(commandMenuItems, slashTrigger.query);
+	}, [slashTrigger, commandMenuItems]);
+
+	/** Handle command selection — replace trigger text with command. */
+	const handleCommandSelect = useCallback(
+		(item: CommandMenuItem) => {
+			if (!slashTrigger) return;
+
+			// Replace the trigger range with the full command (e.g., "/model")
+			const replacement = `/${item.command.name} `;
+			const before = value.slice(0, slashTrigger.rangeStart);
+			const after = value.slice(slashTrigger.rangeEnd);
+			const newValue = `${before}${replacement}${after}`;
+
+			setValue(newValue);
+			setSlashTrigger(null);
+			setActiveCommandItemId(null);
+
+			// Set cursor position after the replacement
+			const newCursorPos = slashTrigger.rangeStart + replacement.length;
+			requestAnimationFrame(() => {
+				const textarea = textareaRef.current;
+				if (textarea) {
+					textarea.setSelectionRange(newCursorPos, newCursorPos);
+					textarea.focus();
+				}
+			});
+		},
+		[value, slashTrigger],
+	);
+
+	/** Navigate the command menu (called from keyboard handler). */
+	const nudgeCommandHighlight = useCallback(
+		(direction: "up" | "down") => {
+			if (filteredCommandItems.length === 0) return;
+
+			const currentIndex = filteredCommandItems.findIndex(
+				(item) => item.id === activeCommandItemId,
+			);
+			let nextIndex: number;
+			if (direction === "down") {
+				nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % filteredCommandItems.length;
+			} else {
+				nextIndex =
+					currentIndex <= 0
+						? filteredCommandItems.length - 1
+						: (currentIndex - 1 + filteredCommandItems.length) % filteredCommandItems.length;
+			}
+			const nextItem = filteredCommandItems[nextIndex];
+			setActiveCommandItemId(nextItem?.id ?? null);
+		},
+		[filteredCommandItems, activeCommandItemId],
+	);
 
 	const isConnected = connectionStatus === "open";
 	const hasContent = value.trim().length > 0 || images.length > 0;
@@ -373,6 +502,49 @@ export function Composer() {
 	/** Handle keyboard events. */
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent<HTMLTextAreaElement>) => {
+			// ── Command menu keyboard handling ──
+			if (commandMenuOpen) {
+				if (e.key === "ArrowDown") {
+					e.preventDefault();
+					nudgeCommandHighlight("down");
+					return;
+				}
+				if (e.key === "ArrowUp") {
+					e.preventDefault();
+					nudgeCommandHighlight("up");
+					return;
+				}
+				if (e.key === "Enter" && !e.shiftKey) {
+					// Select the active item, or the first item if none highlighted
+					const selectedItem =
+						filteredCommandItems.find((item) => item.id === activeCommandItemId) ??
+						filteredCommandItems[0];
+					if (selectedItem) {
+						e.preventDefault();
+						handleCommandSelect(selectedItem);
+						return;
+					}
+				}
+				if (e.key === "Escape") {
+					e.preventDefault();
+					setSlashTrigger(null);
+					setActiveCommandItemId(null);
+					return;
+				}
+				if (e.key === "Tab") {
+					// Tab selects the active or first item (same as Enter)
+					const selectedItem =
+						filteredCommandItems.find((item) => item.id === activeCommandItemId) ??
+						filteredCommandItems[0];
+					if (selectedItem) {
+						e.preventDefault();
+						handleCommandSelect(selectedItem);
+						return;
+					}
+				}
+			}
+
+			// ── Standard keyboard handling ──
 			if (e.key === "Enter" && !e.shiftKey) {
 				if (isStreaming && canSend) {
 					e.preventDefault();
@@ -390,7 +562,18 @@ export function Composer() {
 				}
 			}
 		},
-		[canSend, isStreaming, handleSend, handleSteer, handleFollowUp],
+		[
+			canSend,
+			isStreaming,
+			handleSend,
+			handleSteer,
+			handleFollowUp,
+			commandMenuOpen,
+			filteredCommandItems,
+			activeCommandItemId,
+			nudgeCommandHighlight,
+			handleCommandSelect,
+		],
 	);
 
 	/** Handle paste events — extract images from clipboard. */
@@ -459,13 +642,24 @@ export function Composer() {
 	return (
 		<div
 			className={cn(
-				"border-t bg-surface-base px-4 py-3",
+				"relative border-t bg-surface-base px-4 py-3",
 				isDragOver ? "border-accent-primary" : "border-border-secondary",
 			)}
 			onDragOver={handleDragOver}
 			onDragLeave={handleDragLeave}
 			onDrop={handleDrop}
 		>
+			{/* Slash command menu — positioned absolutely above composer */}
+			{commandMenuOpen && (
+				<ComposerCommandMenu
+					items={filteredCommandItems}
+					activeItemId={activeCommandItemId}
+					isLoading={commandsLoading}
+					onSelect={handleCommandSelect}
+					onHighlightChange={setActiveCommandItemId}
+				/>
+			)}
+
 			<div className="mx-auto max-w-3xl">
 				{/* Image preview strip */}
 				{images.length > 0 && (
@@ -534,11 +728,19 @@ export function Composer() {
 						ref={textareaRef}
 						value={value}
 						onChange={(e) => {
-							setValue(e.target.value);
+							const newValue = e.target.value;
+							const cursorPos = e.target.selectionStart ?? newValue.length;
+							setValue(newValue);
 							resizeTextarea();
+							updateSlashTrigger(newValue, cursorPos);
 						}}
 						onKeyDown={handleKeyDown}
 						onPaste={handlePaste}
+						onSelect={(e) => {
+							// Re-check trigger when cursor position changes (click, arrow keys)
+							const textarea = e.target as HTMLTextAreaElement;
+							updateSlashTrigger(textarea.value, textarea.selectionStart);
+						}}
 						placeholder={placeholder}
 						disabled={!isConnected}
 						rows={1}

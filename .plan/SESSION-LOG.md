@@ -480,3 +480,44 @@
 - `consumeDeferredActiveTabId()` still not consumed
 
 ---
+
+## Session 17 — ComposerCommandMenu component (2026-03-24)
+
+**What happened:**
+- Built the ComposerCommandMenu component and integrated slash command trigger detection into Composer (2A.2):
+  - **ComposerCommandMenu.tsx**: New file — pure presentational component. Shows a floating menu above the composer with:
+    - Filtered command items (name + description + source badge with color coding: blue=extension, purple=prompt, green=skill)
+    - Keyboard navigation via parent (↑↓ wrap-around, Enter/Tab to select, Escape to dismiss)
+    - Mouse interaction (click to select, hover to highlight, mouseDown preventDefault to keep textarea focus)
+    - Auto-scroll active item into view
+    - Loading state ("Loading commands…") and empty state ("No matching commands")
+    - Positioned absolutely above composer using `bottom-full` with `max-w-3xl` to match composer width
+  - **Helper functions** in ComposerCommandMenu.tsx:
+    - `buildCommandMenuItems(commands)` — converts `PiSlashCommand[]` to `CommandMenuItem[]`
+    - `filterCommandMenuItems(items, query)` — case-insensitive match on name and description
+    - `detectSlashTrigger(value, cursorPos)` — detects `/` at line start, returns query + range for replacement
+  - **Composer.tsx integration**:
+    - Lazy command fetching: commands fetched from Pi on first `/` trigger, cached in `commandsCacheRef` per session
+    - Cache cleared on `sessionId` change (different sessions = different extensions/skills)
+    - `slashTrigger` state (not ref) drives menu visibility and filtering via `useMemo`
+    - `onChange` handler passes cursor position to `updateSlashTrigger` for real-time trigger detection
+    - `onSelect` handler re-checks trigger on cursor position change (click, arrow keys)
+    - `handleKeyDown` intercepts ↑↓ Enter Tab Escape when menu is open, before standard send/steer logic
+    - On command select: replaces trigger range with `/{commandName} `, positions cursor after replacement
+    - Outer container made `relative` for absolute menu positioning
+
+**Items completed:**
+- [x] 2A.2 — Build ComposerCommandMenu component: floating menu above composer, keyboard navigable (↑↓ + Enter + Escape), filtered by typed text
+
+**Issues encountered:**
+- Biome's `useExhaustiveDependencies` flagged `slashTriggerRef.current?.query` as invalid useMemo dependency (refs don't trigger re-renders). Refactored from ref to `slashTrigger` state so the memoized filter recalculates on trigger changes.
+- Biome flagged `sessionId` in useEffect deps as unnecessary (used as trigger, not inside the callback). Added biome-ignore comment.
+- Biome flagged `useKeyWithClickEvents` on menu item div — added biome-ignore since keyboard nav is handled by parent Composer.
+
+**Handoff to next session:**
+- Next: 2A.3 — Implement `/` trigger detection: typing `/` at line start opens command menu with available Pi commands
+- NOTE: 2A.3 may already be substantially done — trigger detection (`detectSlashTrigger`) is implemented and wired in. The remaining work for 2A.3 is likely just verification that the trigger works correctly at line start in multi-line text, and perhaps refinement of edge cases.
+- `ComposerCommandMenu` exports `CommandMenuItem` type and helper functions — reusable for future `@` file mention trigger (2B).
+- `consumeDeferredActiveTabId()` still not consumed
+
+---
