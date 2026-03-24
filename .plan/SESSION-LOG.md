@@ -5,6 +5,49 @@
 
 ---
 
+## Session 95 — Phase 7 Verification (2026-03-24)
+
+**What happened:**
+- Completed 7.8 — comprehensive verification of the entire plugin system
+- Created `apps/server/src/plugin-verify-test.ts` with 116 automated checks across 14 test suites
+- Test suites:
+  - Plugin Contract Types (14 checks): PluginManifest fields, Plugin runtime state, panel positions
+  - Example Plugin Source (16 checks): manifest content, panel config, panel.html structure + bridge messages
+  - Message Bridge Contracts (7 checks): plugin:ready, plugin:sendPrompt, pibun:themeChanged, postMessage, addEventListener
+  - Web Build Integration (18 checks): component files exist (PluginPanel, PluginManager, pluginActions, pluginMessageBridge, pluginsSlice), sandbox attributes, bridge handlers, wireTransport integration, AppShell rendering
+  - Install Example Plugin (9 checks): install succeeds, correct ID/name, enabled by default, no error, directory exists, files copied
+  - List Plugins (7 checks): list returns array, prompt-library present with correct state
+  - Install Second Plugin (8 checks): multi-plugin support, both present in list, multiple panels/positions
+  - Enable/Disable (5 checks): disable/re-enable cycle, state persisted
+  - HTTP Asset Serving (9 checks): panel.html served correctly, 404 for missing, directory traversal blocked
+  - Uninstall (5 checks): directory removed, gone from list, error for non-existent
+  - Upgrade/Re-install (4 checks): replace existing, correct state, no duplicates
+  - Invalid Manifests (3 checks): non-existent path, missing required fields, mismatched IDs
+  - Persistence Across Restart (3 checks): state file exists, disabled state survives server restart
+  - Clean Uninstall (3 checks): final removal, directory gone, not in list
+- Test includes full fixture management: backs up existing plugin state, restores after test completion
+- Added `test:smoke:plugins` script to root package.json
+- Verified Phase 7 exit criteria: all 4 criteria confirmed
+
+**Items completed:**
+- [x] 7.8 — Verify: install example plugin, see it in sidebar, interact with it, disable it
+
+**Phase 7 Exit Criteria Verified:**
+- ✅ Plugins can add panels to the UI (manifest → load → render pipeline)
+- ✅ Sandboxed (iframe with allow-scripts, allow-same-origin, allow-forms)
+- ✅ Can interact with session state via message bridge (postMessage API)
+- ✅ Example plugin works (Prompt Library — install, serve, interact, uninstall)
+
+**Issues encountered:**
+- None — clean verification run, all 116/116 checks passed
+
+**Handoff to next session:**
+- **Phase 7 COMPLETE.** All 7 phases of the v2 plan are done.
+- Only Parking Lot items remain (session search, voice input, split view, etc.)
+- All 8 verification test suites pass: smoke (20), multi-session (40), git (39), projects (28), terminal (43), export (89), themes (104), plugins (116) — **479 total automated checks**
+
+---
+
 ## Session 92 — Plugin ↔ PiBun messaging: postMessage bridge (2026-03-24)
 
 **What happened:**

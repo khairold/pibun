@@ -1,9 +1,9 @@
 # PiBun v2 — Build Plan
 
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
-> **Status:** Phase 7 in progress
-> **Current Phase:** Phase 7 — Plugin System
-> **Last Session:** Session 94 — 2026-03-24
+> **Status:** Phase 7 complete — all phases done
+> **Current Phase:** Phase 7 — Plugin System ✅ COMPLETE
+> **Last Session:** Session 95 — 2026-03-24
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -154,9 +154,9 @@
 - [x] 7.5 — Plugin ↔ PiBun messaging: `postMessage` bridge for reading session state, sending prompts, subscribing to events
 - [x] 7.6 — Plugin manager UI: list installed plugins, enable/disable, install from URL/path
 - [x] 7.7 — Example plugin: "Prompt Library" — panel that shows saved prompts, click to insert into composer
-- [ ] 7.8 — Verify: install example plugin, see it in sidebar, interact with it, disable it
+- [x] 7.8 — Verify: install example plugin, see it in sidebar, interact with it, disable it
 
-**Exit criteria:** Plugins can add panels to the UI. Sandboxed. Can interact with session state via message bridge. Example plugin works.
+**Exit criteria:** Plugins can add panels to the UI. Sandboxed. Can interact with session state via message bridge. Example plugin works. ✅ ALL VERIFIED — 116/116 automated checks passed.
 
 ---
 

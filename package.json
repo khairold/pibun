@@ -29,7 +29,8 @@
 		"test:smoke:artifacts": "cd apps/desktop && bun scripts/smoke-test.ts",
 		"test:smoke:terminal": "bun run apps/server/src/terminal-verify-test.ts",
 		"test:smoke:export": "bun run apps/server/src/export-verify-test.ts",
-		"test:smoke:themes": "bun run apps/server/src/theme-verify-test.ts"
+		"test:smoke:themes": "bun run apps/server/src/theme-verify-test.ts",
+		"test:smoke:plugins": "bun run apps/server/src/plugin-verify-test.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
