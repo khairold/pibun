@@ -3,7 +3,7 @@
 > **Spec:** Main content area with tab bar: session chat + project-scoped terminals
 > **Status:** In Progress
 > **Current Phase:** Phase 1 — Rekey Terminal State (Session → Project)
-> **Last Session:** Session 2 — 2026-03-24
+> **Last Session:** Session 3 — 2026-03-24
 
 ---
 
@@ -57,9 +57,9 @@ Workspaces map to projects.
 - [x] 1.2 — Update `addTerminalTab` in workspaceSlice: assign `projectPath` from active tab's CWD instead of `ownerTabId` from `activeTabId`.
 - [x] 1.3 — Update all terminal filtering: replace `t.ownerTabId === activeTabId` with `t.projectPath === activeProjectPath` throughout workspaceSlice, TerminalPane, AppShell, and any other consumers.
 - [x] 1.4 — Update `removeTab` in workspaceSlice: don't delete terminals when a session tab is removed (terminals belong to the project, not the tab). Only clean up terminal selection if the active terminal belongs to a different project.
-- [ ] 1.5 — Update `switchTab` in workspaceSlice: when switching to a session in the same project, preserve active terminal selection. When switching to a different project, select that project's first terminal (or null).
-- [ ] 1.6 — Add `activeContentTab` state to workspaceSlice: `"chat" | string` (string = terminal tab ID). Defaults to `"chat"`. This tracks which content tab is displayed in the main area.
-- [ ] 1.7 — Add `projectContentTabs: Record<string, string>` to workspaceSlice: maps project path → last active content tab. On project switch, save current, restore target's. On session switch within same project, preserve.
+- [x] 1.5 — Update `switchTab` in workspaceSlice: when switching to a session in the same project, preserve active terminal selection. When switching to a different project, select that project's first terminal (or null).
+- [x] 1.6 — Add `activeContentTab` state to workspaceSlice: `"chat" | string` (string = terminal tab ID). Defaults to `"chat"`. This tracks which content tab is displayed in the main area.
+- [x] 1.7 — Add `projectContentTabs: Record<string, string>` to workspaceSlice: maps project path → last active content tab. On project switch, save current, restore target's. On session switch within same project, preserve.
 - [ ] 1.8 — Verify: `bun run typecheck && bun run build`. Existing terminal functionality still works (bottom panel, same project filtering).
 
 **Exit criteria:** Terminals keyed by project path. Switching sessions within same project keeps terminals. Switching projects swaps terminal set. Type checks pass.

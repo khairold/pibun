@@ -168,6 +168,8 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 
 			// If removing the active tab, switch to adjacent
 			if (s.activeTabId === tabId) {
+				const removedTab = s.tabs.find((t) => t.id === tabId);
+				const removedProject = removedTab?.cwd ?? "";
 				const oldIndex = s.tabs.findIndex((t) => t.id === tabId);
 				// Prefer the tab to the left, then to the right, then null
 				const nextTab = newTabs[oldIndex > 0 ? oldIndex - 1 : 0] ?? null;
@@ -187,9 +189,34 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					updates.isStreaming = nextTab.isStreaming;
 					updates.sessionName = nextTab.name;
 					updates.sessionFile = nextTab.sessionFile;
-					// Select first terminal in the next tab's project, if any
-					const nextTabTerminal = s.terminalTabs.find((t) => t.projectPath === (nextTab.cwd ?? ""));
-					updates.activeTerminalTabId = nextTabTerminal?.id ?? null;
+
+					const nextProject = nextTab.cwd ?? "";
+					const sameProject = removedProject !== "" && removedProject === nextProject;
+
+					if (sameProject) {
+						// Same project: preserve terminal selection and content tab
+						// (activeTerminalTabId and activeContentTab stay as-is)
+					} else {
+						// Different project: save content tab for leaving project, restore for next
+						let newProjectContentTabs = s.projectContentTabs;
+						if (removedProject) {
+							newProjectContentTabs = {
+								...newProjectContentTabs,
+								[removedProject]: s.activeContentTab,
+							};
+						}
+						let restoredContentTab = newProjectContentTabs[nextProject] ?? "chat";
+						// Validate restored content tab — fall back to "chat" if terminal no longer exists
+						if (restoredContentTab !== "chat") {
+							const exists = s.terminalTabs.some((t) => t.id === restoredContentTab);
+							if (!exists) restoredContentTab = "chat";
+						}
+						updates.activeContentTab = restoredContentTab;
+						updates.projectContentTabs = newProjectContentTabs;
+						// Select first terminal in the next tab's project, if any
+						const nextTabTerminal = s.terminalTabs.find((t) => t.projectPath === nextProject);
+						updates.activeTerminalTabId = nextTabTerminal?.id ?? null;
+					}
 				} else {
 					// No tabs left — clear everything
 					updates.messages = [];
@@ -204,6 +231,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					updates.sessionName = null;
 					updates.sessionFile = null;
 					updates.activeTerminalTabId = null;
+					updates.activeContentTab = "chat";
 				}
 			}
 
@@ -232,6 +260,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 		set((s) => {
 			// Snapshot the leaving tab's metadata from current session state
 			let updatedTabs = s.tabs;
+			const leavingTab = s.activeTabId ? s.tabs.find((t) => t.id === s.activeTabId) : null;
 			if (s.activeTabId) {
 				// NOTE: Do NOT overwrite t.sessionId — it holds the PiBun manager ID
 				// from session.start. Only sync piSessionId for session list matching.
@@ -253,8 +282,41 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				);
 			}
 
-			// Select first terminal in the target tab's project, if any
-			const targetTerminal = s.terminalTabs.find((t) => t.projectPath === (targetTab?.cwd ?? ""));
+			// Determine if this is a same-project or cross-project switch
+			const leavingProject = leavingTab?.cwd ?? "";
+			const targetProject = targetTab.cwd ?? "";
+			const sameProject = leavingProject !== "" && leavingProject === targetProject;
+
+			// Terminal & content tab state depends on same-project vs cross-project
+			let newActiveTerminalTabId: string | null;
+			let newActiveContentTab: string;
+			let newProjectContentTabs = s.projectContentTabs;
+
+			if (sameProject) {
+				// Same project: preserve terminal selection and active content tab
+				newActiveTerminalTabId = s.activeTerminalTabId;
+				newActiveContentTab = s.activeContentTab;
+			} else {
+				// Cross-project: save current content tab for leaving project, restore for target
+				if (leavingProject) {
+					newProjectContentTabs = {
+						...newProjectContentTabs,
+						[leavingProject]: s.activeContentTab,
+					};
+				}
+				newActiveContentTab = newProjectContentTabs[targetProject] ?? "chat";
+				// Select first terminal in the target project, or null
+				const targetTerminal = s.terminalTabs.find((t) => t.projectPath === targetProject);
+				newActiveTerminalTabId = targetTerminal?.id ?? null;
+
+				// Validate restored content tab — if it references a terminal that no longer exists, fall back to "chat"
+				if (newActiveContentTab !== "chat") {
+					const exists = s.terminalTabs.some((t) => t.id === newActiveContentTab);
+					if (!exists) {
+						newActiveContentTab = "chat";
+					}
+				}
+			}
 
 			return {
 				tabs: updatedTabs,
@@ -281,8 +343,10 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				retryMaxAttempts: 0,
 				retryDelayMs: 0,
 				retryStartedAt: 0,
-				// Restore terminal state for target tab
-				activeTerminalTabId: targetTerminal?.id ?? null,
+				// Terminal & content tab state
+				activeTerminalTabId: newActiveTerminalTabId,
+				activeContentTab: newActiveContentTab,
+				projectContentTabs: newProjectContentTabs,
 				// Close diff panel on tab switch (diff is per-session context)
 				diffPanelOpen: false,
 				diffPanelFiles: [],
@@ -335,10 +399,25 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	terminalPanelOpen: false,
 	terminalTabs: [],
 	activeTerminalTabId: null,
+	activeContentTab: "chat",
+	projectContentTabs: {},
 
 	toggleTerminalPanel: () => set((state) => ({ terminalPanelOpen: !state.terminalPanelOpen })),
 
 	setTerminalPanelOpen: (open) => set({ terminalPanelOpen: open }),
+
+	setActiveContentTab: (tab) => {
+		const state = get();
+		const activeTab = state.getActiveTab();
+		const projectPath = activeTab?.cwd ?? "";
+		set((s) => ({
+			activeContentTab: tab,
+			// Save selection for this project so it's restored on project switch
+			projectContentTabs: projectPath
+				? { ...s.projectContentTabs, [projectPath]: tab }
+				: s.projectContentTabs,
+		}));
+	},
 
 	addTerminalTab: (terminalId, cwd) => {
 		const state = get();
@@ -391,11 +470,16 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			}
 		}
 
+		// If the removed terminal was the active content tab, fall back to "chat"
+		const contentTabUpdate =
+			state.activeContentTab === tabId ? { activeContentTab: "chat" as string } : {};
+
 		set({
 			terminalTabs: newTabs,
 			activeTerminalTabId: newActiveId,
 			// Close panel if no terminals left for the project
 			...(projectTabs.length === 0 ? { terminalPanelOpen: false } : {}),
+			...contentTabUpdate,
 		});
 	},
 

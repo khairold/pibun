@@ -85,3 +85,29 @@
 - Key insight: `switchTab` currently always selects "first terminal in target tab's project" — this is correct for cross-project switches but wrong for same-project switches (should preserve current `activeTerminalTabId`)
 
 ---
+
+## Session 3 — switchTab same/cross-project logic + activeContentTab + projectContentTabs (2026-03-24)
+
+**What happened:**
+- Updated `switchTab` in workspaceSlice with same-project vs cross-project logic:
+  - Same project: preserve both `activeTerminalTabId` and `activeContentTab`
+  - Cross-project: save `projectContentTabs[leavingProject]`, restore for target, validate restored content tab exists, select first terminal for target project
+- Added `activeContentTab: string` and `projectContentTabs: Record<string, string>` to TerminalSlice types and workspaceSlice state
+- Added `setActiveContentTab(tab)` setter that also persists to `projectContentTabs` for the current project
+- Updated `removeTab` with same same/cross-project content tab handling (was previously always selecting first terminal)
+- Updated `removeTerminalTab` to fall back `activeContentTab` to "chat" when the removed terminal was the active content tab
+
+**Items completed:**
+- [x] 1.5 — Update `switchTab`: same-project preserves, cross-project saves/restores
+- [x] 1.6 — Add `activeContentTab` state ("chat" | terminal tab ID)
+- [x] 1.7 — Add `projectContentTabs: Record<string, string>` with save/restore
+
+**Issues encountered:**
+- None. All three items were tightly coupled (all modify switchTab and terminal state) so combining them was the right call.
+
+**Handoff to next session:**
+- Next: 1.8 — Verify: `bun run typecheck && bun run build`. Existing terminal functionality still works.
+- 1.8 is a verification item — just run the checks and confirm. Phase 1 exit criteria: terminals keyed by project path, switching sessions within same project keeps terminals, switching projects swaps terminal set, type checks pass.
+- After 1.8, Phase 1 is complete. Mark phase done and EXIT.
+
+---

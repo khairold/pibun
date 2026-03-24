@@ -28,6 +28,9 @@
 | 11 | Terminals kept alive on project switch | `Map<projectPath, TerminalTab[]>` conceptually. Switching projects swaps which terminals are visible, doesn't kill processes. | 2026-03-24 |
 | 12 | Terminal splits parked | Old `groupId`/`splitTerminalTab`/`MAX_TERMINALS_PER_GROUP` removed. Each tab = one full-size terminal. Splits can return later. | 2026-03-24 |
 | 13 | `removeTab` + `cleanupEmptyTab` no longer delete project terminals | Fixed in 1.4. `removeTab` keeps all `terminalTabs` intact, only updates `activeTerminalTabId` and `terminalPanelOpen` based on the new active tab's project. `cleanupEmptyTab` no longer calls `terminal.close` on the server. | 2026-03-24 |
+| 14 | `switchTab` uses same-project vs cross-project logic | Same project → preserve `activeTerminalTabId` and `activeContentTab`. Cross-project → save/restore via `projectContentTabs`, select first terminal for target project. Both use `leavingTab.cwd === targetTab.cwd` check with empty-string guard. | 2026-03-24 |
+| 15 | `activeContentTab` + `projectContentTabs` added to TerminalSlice | `activeContentTab: string` ("chat" or terminal tab ID). `projectContentTabs: Record<string, string>` maps project path → last content tab. `setActiveContentTab` also persists to the map for the current project. | 2026-03-24 |
+| 16 | `removeTerminalTab` falls back `activeContentTab` to "chat" | If the removed terminal was the `activeContentTab`, resets to "chat". Prevents stale terminal tab ID in content display. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -42,21 +45,33 @@
 | `activeTerminalTabId` | One global active terminal | → Stays, but filtered by project |
 | `groupId` / `splitTerminalTab` | Split pane grouping | → Removed (parked) |
 
-### Content Tab State Model
+### Content Tab State Model (Implemented — items 1.5–1.7)
 
 ```
-activeContentTab: "chat" | terminalTabId    // which tab is displayed
+// State fields in TerminalSlice:
+activeContentTab: string            // "chat" | terminalTabId — which tab is displayed
 projectContentTabs: Record<string, string>  // project path → last active content tab
 
-On session switch (same project):
-  → activeContentTab preserved
-  → terminal tabs preserved
-  → chat content changes (different session messages)
+// setActiveContentTab(tab) also persists: projectContentTabs[currentProject] = tab
+
+On session switch (same project — leavingTab.cwd === targetTab.cwd):
+  → activeContentTab preserved (no save/restore)
+  → activeTerminalTabId preserved
+  → chat content changes (messages cleared, reloaded from Pi)
 
 On session switch (different project):
-  → save projectContentTabs[oldProject] = activeContentTab
-  → restore activeContentTab = projectContentTabs[newProject] ?? "chat"
-  → terminal tabs swap to new project's set
+  → save projectContentTabs[leavingProject] = activeContentTab
+  → restore activeContentTab = projectContentTabs[targetProject] ?? "chat"
+  → validate restored content tab — if terminal no longer exists, fall back to "chat"
+  → activeTerminalTabId = first terminal in target project (or null)
+
+On removeTab (active tab removed, switching to next):
+  → same project: preserve activeContentTab + activeTerminalTabId
+  → different project: save/restore via projectContentTabs (same as switchTab)
+  → no tabs left: activeContentTab = "chat"
+
+On removeTerminalTab:
+  → if removed terminal was activeContentTab → fall back to "chat"
 ```
 
 ### Session Switching Flow (Implemented — from prior plan)

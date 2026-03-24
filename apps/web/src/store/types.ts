@@ -613,6 +613,19 @@ export interface TerminalSlice {
 	terminalTabs: TerminalTab[];
 	/** ID of the active terminal tab, null when no terminals exist. */
 	activeTerminalTabId: string | null;
+	/**
+	 * Which content tab is displayed in the main area: `"chat"` or a terminal tab ID.
+	 * Defaults to `"chat"`. Set when user clicks a content tab in the tab bar.
+	 * Saved/restored per-project via `projectContentTabs` on project switch.
+	 */
+	activeContentTab: string;
+	/**
+	 * Maps project path → last active content tab for that project.
+	 * On project switch: save current `activeContentTab` for leaving project,
+	 * restore from this map for target project (defaults to `"chat"`).
+	 * On same-project session switch: `activeContentTab` is preserved (not saved/restored).
+	 */
+	projectContentTabs: Record<string, string>;
 
 	/** Toggle the terminal panel open/closed. */
 	toggleTerminalPanel: () => void;
@@ -624,6 +637,12 @@ export interface TerminalSlice {
 	removeTerminalTab: (tabId: string) => void;
 	/** Set the active terminal tab. */
 	setActiveTerminalTabId: (tabId: string | null) => void;
+	/**
+	 * Set the active content tab (`"chat"` or a terminal tab ID).
+	 * Also updates `projectContentTabs` for the current project so the
+	 * selection is restored when switching back from another project.
+	 */
+	setActiveContentTab: (tab: string) => void;
 	/** Update a terminal tab's metadata. */
 	updateTerminalTab: (tabId: string, updates: Partial<TerminalTab>) => void;
 	/** Get the active terminal tab, or null. */
