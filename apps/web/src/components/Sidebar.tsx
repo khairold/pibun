@@ -746,6 +746,9 @@ function HtmlProjectContextMenu({
 // Tab Item (sidebar variant — more detailed than TabBar)
 // ============================================================================
 
+/** Drop position relative to a tab item — "before" shows indicator above, "after" shows below. */
+type DropPosition = "before" | "after";
+
 interface SidebarTabItemProps {
 	tab: SessionTab;
 	isActive: boolean;
@@ -759,6 +762,13 @@ interface SidebarTabItemProps {
 	onRenameStart: () => void;
 	onRenameComplete: (newName: string) => void;
 	onRenameCancel: () => void;
+	/** Whether this item is currently being dragged. */
+	isDragging: boolean;
+	/** Drop indicator position when this item is the drop target. null = not a target. */
+	dropIndicator: DropPosition | null;
+	onDragStart: (tabId: string) => void;
+	onDragOver: (tabId: string, e: React.DragEvent) => void;
+	onDragEnd: () => void;
 }
 
 const SidebarTabItem = memo(function SidebarTabItem({
@@ -773,6 +783,11 @@ const SidebarTabItem = memo(function SidebarTabItem({
 	isRenaming,
 	onRenameComplete,
 	onRenameCancel,
+	isDragging,
+	dropIndicator,
+	onDragStart,
+	onDragOver,
+	onDragEnd,
 }: SidebarTabItemProps) {
 	const displayName = tab.name || "New Session";
 	const modelName = tab.model ? shortModelName(tab.model.name) : null;
@@ -807,110 +822,137 @@ const SidebarTabItem = memo(function SidebarTabItem({
 	}, [renameValue, displayName, onRenameComplete, onRenameCancel]);
 
 	return (
-		<div
-			role="tab"
-			tabIndex={0}
-			onClick={(e) => {
-				if (!isRenaming) onClick(tab.id, e);
-			}}
-			onKeyDown={(e) => {
-				if (!isRenaming && (e.key === "Enter" || e.key === " ")) {
-					e.preventDefault();
-					onSwitch(tab.id);
-				}
-			}}
-			onContextMenu={handleContextMenu}
-			className={cn(
-				"group flex w-full cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-left transition-colors",
-				isSelected
-					? "bg-accent-primary/15 text-text-primary ring-1 ring-accent-primary/30"
-					: isActive
-						? "bg-surface-secondary text-text-primary"
-						: "text-text-secondary hover:bg-surface-secondary/50 hover:text-text-primary",
+		<div className="relative">
+			{/* Drop indicator — before */}
+			{dropIndicator === "before" && (
+				<div className="absolute top-0 right-1 left-1 z-10 h-0.5 rounded-full bg-accent-primary" />
 			)}
-			aria-selected={isActive || isSelected}
-			aria-label={displayName}
-		>
-			{/* Status indicator — running (blue pulse), waiting (amber pulse), error (red), idle (gray/accent) */}
-			<span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center">
-				<TabStatusDot status={tab.status} isActive={isActive} />
-			</span>
+			<div
+				role="tab"
+				tabIndex={0}
+				draggable={!isRenaming}
+				onDragStart={(e) => {
+					e.dataTransfer.effectAllowed = "move";
+					e.dataTransfer.setData("text/plain", tab.id);
+					onDragStart(tab.id);
+				}}
+				onDragOver={(e) => {
+					e.preventDefault();
+					e.dataTransfer.dropEffect = "move";
+					onDragOver(tab.id, e);
+				}}
+				onDrop={(e) => {
+					e.preventDefault();
+					onDragEnd();
+				}}
+				onDragEnd={onDragEnd}
+				onClick={(e) => {
+					if (!isRenaming) onClick(tab.id, e);
+				}}
+				onKeyDown={(e) => {
+					if (!isRenaming && (e.key === "Enter" || e.key === " ")) {
+						e.preventDefault();
+						onSwitch(tab.id);
+					}
+				}}
+				onContextMenu={handleContextMenu}
+				className={cn(
+					"group flex w-full cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-left transition-colors",
+					isSelected
+						? "bg-accent-primary/15 text-text-primary ring-1 ring-accent-primary/30"
+						: isActive
+							? "bg-surface-secondary text-text-primary"
+							: "text-text-secondary hover:bg-surface-secondary/50 hover:text-text-primary",
+					isDragging && "opacity-40",
+				)}
+				aria-selected={isActive || isSelected}
+				aria-label={displayName}
+			>
+				{/* Status indicator — running (blue pulse), waiting (amber pulse), error (red), idle (gray/accent) */}
+				<span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center">
+					<TabStatusDot status={tab.status} isActive={isActive} />
+				</span>
 
-			{/* Tab info */}
-			<div className="min-w-0 flex-1">
-				<div className="flex items-center gap-1.5">
-					{isRenaming ? (
-						<input
-							ref={renameInputRef}
-							type="text"
-							value={renameValue}
-							onChange={(e) => setRenameValue(e.target.value)}
-							onKeyDown={(e) => {
-								if (e.key === "Enter") {
-									e.preventDefault();
-									handleRenameSubmit();
-								} else if (e.key === "Escape") {
-									e.preventDefault();
-									onRenameCancel();
-								}
-								// Stop propagation so parent doesn't handle keydown
-								e.stopPropagation();
-							}}
-							onBlur={handleRenameSubmit}
-							onClick={(e) => e.stopPropagation()}
-							className="min-w-0 flex-1 rounded border border-accent-primary bg-surface-primary px-1 py-0 text-sm font-medium text-text-primary outline-none"
-						/>
-					) : (
-						<span className="truncate text-sm font-medium">{displayName}</span>
-					)}
-					{/* Unread indicator — shown on inactive tabs with new content */}
-					{!isRenaming && !isActive && tab.hasUnread && (
-						<span
-							className="h-2 w-2 shrink-0 rounded-full bg-accent-primary"
-							title="New activity"
-						/>
-					)}
-					{!isRenaming && modelName && (
-						<span className="shrink-0 rounded bg-surface-tertiary/50 px-1 py-0.5 text-[10px] leading-none text-text-tertiary">
-							{modelName}
+				{/* Tab info */}
+				<div className="min-w-0 flex-1">
+					<div className="flex items-center gap-1.5">
+						{isRenaming ? (
+							<input
+								ref={renameInputRef}
+								type="text"
+								value={renameValue}
+								onChange={(e) => setRenameValue(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter") {
+										e.preventDefault();
+										handleRenameSubmit();
+									} else if (e.key === "Escape") {
+										e.preventDefault();
+										onRenameCancel();
+									}
+									// Stop propagation so parent doesn't handle keydown
+									e.stopPropagation();
+								}}
+								onBlur={handleRenameSubmit}
+								onClick={(e) => e.stopPropagation()}
+								className="min-w-0 flex-1 rounded border border-accent-primary bg-surface-primary px-1 py-0 text-sm font-medium text-text-primary outline-none"
+							/>
+						) : (
+							<span className="truncate text-sm font-medium">{displayName}</span>
+						)}
+						{/* Unread indicator — shown on inactive tabs with new content */}
+						{!isRenaming && !isActive && tab.hasUnread && (
+							<span
+								className="h-2 w-2 shrink-0 rounded-full bg-accent-primary"
+								title="New activity"
+							/>
+						)}
+						{!isRenaming && modelName && (
+							<span className="shrink-0 rounded bg-surface-tertiary/50 px-1 py-0.5 text-[10px] leading-none text-text-tertiary">
+								{modelName}
+							</span>
+						)}
+					</div>
+					{!isRenaming && tab.messageCount > 0 && (
+						<span className="text-xs text-text-tertiary">
+							{String(tab.messageCount)} message{tab.messageCount !== 1 ? "s" : ""}
 						</span>
 					)}
 				</div>
-				{!isRenaming && tab.messageCount > 0 && (
-					<span className="text-xs text-text-tertiary">
-						{String(tab.messageCount)} message{tab.messageCount !== 1 ? "s" : ""}
-					</span>
+
+				{/* Close button — visible on hover, hidden during rename */}
+				{canClose && !isRenaming && (
+					<button
+						type="button"
+						tabIndex={-1}
+						onClick={(e) => {
+							e.stopPropagation();
+							onClose(tab.id);
+						}}
+						className={cn(
+							"mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm transition-colors",
+							isActive
+								? "text-text-tertiary hover:bg-surface-tertiary hover:text-text-secondary"
+								: "text-transparent group-hover:text-text-tertiary group-hover:hover:bg-surface-tertiary group-hover:hover:text-text-secondary",
+						)}
+						aria-label={`Close ${displayName}`}
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="h-3 w-3"
+							aria-label="Close tab"
+							role="img"
+						>
+							<path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22z" />
+						</svg>
+					</button>
 				)}
 			</div>
-
-			{/* Close button — visible on hover, hidden during rename */}
-			{canClose && !isRenaming && (
-				<button
-					type="button"
-					tabIndex={-1}
-					onClick={(e) => {
-						e.stopPropagation();
-						onClose(tab.id);
-					}}
-					className={cn(
-						"mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm transition-colors",
-						isActive
-							? "text-text-tertiary hover:bg-surface-tertiary hover:text-text-secondary"
-							: "text-transparent group-hover:text-text-tertiary group-hover:hover:bg-surface-tertiary group-hover:hover:text-text-secondary",
-					)}
-					aria-label={`Close ${displayName}`}
-				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 16 16"
-						fill="currentColor"
-						className="h-3 w-3"
-						aria-label="Close tab"
-						role="img"
-					>
-						<path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22z" />
-					</svg>
-				</button>
+			{/* Drop indicator — after */}
+			{dropIndicator === "after" && (
+				<div className="absolute right-1 bottom-0 left-1 z-10 h-0.5 rounded-full bg-accent-primary" />
 			)}
 		</div>
 	);
@@ -934,6 +976,12 @@ interface CwdGroupProps {
 	onRenameStart: (tabId: string) => void;
 	onRenameComplete: (tabId: string, newName: string) => void;
 	onRenameCancel: () => void;
+	draggingTabId: string | null;
+	dropTargetTabId: string | null;
+	dropPosition: DropPosition | null;
+	onDragStart: (tabId: string) => void;
+	onDragOver: (tabId: string, e: React.DragEvent) => void;
+	onDragEnd: () => void;
 }
 
 const CwdGroup = memo(function CwdGroup({
@@ -950,6 +998,12 @@ const CwdGroup = memo(function CwdGroup({
 	onRenameStart,
 	onRenameComplete,
 	onRenameCancel,
+	draggingTabId,
+	dropTargetTabId,
+	dropPosition,
+	onDragStart,
+	onDragOver,
+	onDragEnd,
 }: CwdGroupProps) {
 	return (
 		<div className="mb-1">
@@ -977,6 +1031,11 @@ const CwdGroup = memo(function CwdGroup({
 						onRenameStart={() => onRenameStart(tab.id)}
 						onRenameComplete={(newName) => onRenameComplete(tab.id, newName)}
 						onRenameCancel={onRenameCancel}
+						isDragging={draggingTabId === tab.id}
+						dropIndicator={dropTargetTabId === tab.id ? dropPosition : null}
+						onDragStart={onDragStart}
+						onDragOver={onDragOver}
+						onDragEnd={onDragEnd}
 					/>
 				))}
 			</div>
@@ -1527,6 +1586,48 @@ export function Sidebar() {
 			return filtered.size === prev.size ? prev : filtered;
 		});
 	}, [tabs]);
+
+	// ── Drag-to-reorder state ────────────────────────────────────
+	const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
+	const [dropTargetTabId, setDropTargetTabId] = useState<string | null>(null);
+	const [dropPosition, setDropPosition] = useState<DropPosition | null>(null);
+	const reorderTabs = useStore((s) => s.reorderTabs);
+
+	const handleDragStart = useCallback((tabId: string) => {
+		setDraggingTabId(tabId);
+	}, []);
+
+	const handleDragOver = useCallback((tabId: string, e: React.DragEvent) => {
+		// Determine if the cursor is in the top or bottom half of the element
+		const rect = e.currentTarget.getBoundingClientRect();
+		const midY = rect.top + rect.height / 2;
+		const position: DropPosition = e.clientY < midY ? "before" : "after";
+		setDropTargetTabId(tabId);
+		setDropPosition(position);
+	}, []);
+
+	const handleDragEnd = useCallback(() => {
+		if (draggingTabId && dropTargetTabId && dropPosition && draggingTabId !== dropTargetTabId) {
+			const fromIndex = tabs.findIndex((t) => t.id === draggingTabId);
+			let toIndex = tabs.findIndex((t) => t.id === dropTargetTabId);
+			if (fromIndex !== -1 && toIndex !== -1) {
+				// Adjust toIndex: if dropping "after" the target and the source is before the target,
+				// the target index stays the same (splice removes from earlier position first).
+				// If dropping "before" the target and the source is after the target, toIndex stays.
+				if (dropPosition === "after" && fromIndex > toIndex) {
+					toIndex += 1;
+				} else if (dropPosition === "before" && fromIndex < toIndex) {
+					toIndex -= 1;
+				}
+				if (fromIndex !== toIndex) {
+					reorderTabs(fromIndex, toIndex);
+				}
+			}
+		}
+		setDraggingTabId(null);
+		setDropTargetTabId(null);
+		setDropPosition(null);
+	}, [draggingTabId, dropTargetTabId, dropPosition, tabs, reorderTabs]);
 
 	const isConnected = connectionStatus === "open";
 
@@ -2160,6 +2261,12 @@ export function Sidebar() {
 							onRenameStart={(tabId) => setRenamingTabId(tabId)}
 							onRenameComplete={handleRenameComplete}
 							onRenameCancel={handleRenameCancel}
+							draggingTabId={draggingTabId}
+							dropTargetTabId={dropTargetTabId}
+							dropPosition={dropPosition}
+							onDragStart={handleDragStart}
+							onDragOver={handleDragOver}
+							onDragEnd={handleDragEnd}
 						/>
 					))
 				) : (
@@ -2180,6 +2287,11 @@ export function Sidebar() {
 								onRenameStart={() => setRenamingTabId(tab.id)}
 								onRenameComplete={(newName) => handleRenameComplete(tab.id, newName)}
 								onRenameCancel={handleRenameCancel}
+								isDragging={draggingTabId === tab.id}
+								dropIndicator={dropTargetTabId === tab.id ? dropPosition : null}
+								onDragStart={handleDragStart}
+								onDragOver={handleDragOver}
+								onDragEnd={handleDragEnd}
 							/>
 						))}
 					</div>

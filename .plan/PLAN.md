@@ -2,9 +2,9 @@
 
 > **Spec:** Audit of T3Code, Pi-mono RPC, Electrobun reference repos (2026-03-24)
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
-> **Status:** Phase 4 in progress
-> **Current Phase:** Phase 4 — Desktop Native Features
-> **Last Session:** Session 43 — 2026-03-24
+> **Status:** Phase 4 complete
+> **Current Phase:** Phase 5 — Advanced Pi Features
+> **Last Session:** Session 44 — 2026-03-24
 
 ---
 
@@ -145,7 +145,7 @@
 
 - [x] 4C.1 — Add multi-select to sidebar: Ctrl/Cmd+click to toggle, Shift+click for range select
 - [x] 4C.2 — Multi-select context menu: Delete Selected (N), Mark All Unread
-- [ ] 4C.3 — Add session drag-to-reorder in sidebar (within project groups)
+- [x] 4C.3 — Add session drag-to-reorder in sidebar (within project groups)
 
 **Exit criteria:** Right-click works everywhere. Tray icon shows status. Auto-update has progress UI. Bulk operations work.
 

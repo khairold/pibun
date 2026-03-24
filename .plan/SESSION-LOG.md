@@ -1299,3 +1299,34 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 44 — Session drag-to-reorder in sidebar (2026-03-24)
+
+**What happened:**
+- Implemented session drag-to-reorder in the sidebar (4C.3), completing Phase 4:
+  - **Native HTML5 Drag and Drop**: Used `draggable="true"` on `SidebarTabItem` instead of adding `@dnd-kit` library. Simpler, no new dependency, sufficient for vertical reordering.
+  - **State at Sidebar level**: `draggingTabId`, `dropTargetTabId`, `dropPosition` (type `DropPosition = "before" | "after"`).
+  - **`handleDragStart`**: Sets `draggingTabId` on drag initiation.
+  - **`handleDragOver`**: Determines drop position by comparing cursor Y against element midpoint (`getBoundingClientRect().top + height / 2`). Sets `dropTargetTabId` and `dropPosition`.
+  - **`handleDragEnd`**: Computes `fromIndex` and `toIndex` in the flat `tabs` array, adjusts `toIndex` based on relative positions and drop direction, calls `reorderTabs(fromIndex, toIndex)` (already existed in workspaceSlice). Clears all drag state.
+  - **Visual feedback**: Dragged item gets `opacity-40`. Drop target shows a 2px accent-colored indicator line (`h-0.5 rounded-full bg-accent-primary`) positioned absolutely above ("before") or below ("after") the target item.
+  - **Wrapper div**: `SidebarTabItem` return now wrapped in a `relative` container div that holds the inner draggable div + drop indicator divs.
+  - **Props threading**: `isDragging`, `dropIndicator`, `onDragStart`, `onDragOver`, `onDragEnd` added to both `SidebarTabItemProps` and `CwdGroupProps`. CwdGroup passes through to child items.
+  - Disabled during rename mode (`draggable={!isRenaming}`).
+- Phase 4 exit criteria verified: ✅ Right-click works everywhere. ✅ Tray icon shows status. ✅ Auto-update has progress UI. ✅ Bulk operations work. ✅ Drag-to-reorder works.
+
+**Items completed:**
+- [x] 4C.3 — Add session drag-to-reorder in sidebar (within project groups)
+
+**Issues encountered:**
+- Biome formatting: nesting depth changed when wrapping the main div in a container div — one level deeper for all children. Fixed with `bun run format`.
+
+**Handoff to next session:**
+- **Phase 4 is COMPLETE.** Next: Phase 5 — Advanced Pi Features
+- Start with 5A.1 — Add `bash` RPC command support
+- `reorderTabs(fromIndex, toIndex)` already existed in the store — this implementation just added the UI interaction layer.
+- The drag reorder operates on the flat `tabs` array, which is the source of truth. CwdGroup views are derived (via `groupTabsByCwd`). Reordering within a CWD group works because the underlying array positions change.
+- Cross-CWD-group dragging also works — a tab can be dragged from one group to another since they all reference the same flat array.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---
