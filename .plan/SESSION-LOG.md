@@ -5,6 +5,39 @@
 
 ---
 
+## Session 89 — Plugin manifest + PanelConfig types (2026-03-24)
+
+**What happened:**
+- Created `packages/contracts/src/plugin.ts` with complete plugin type system:
+  - `PluginPanelPosition` type: `"sidebar" | "bottom" | "right"`
+  - `PluginPanelConfig` interface: id, title, icon, position, component (URL or path), defaultSize
+  - `PluginManifest` interface: id, name, version, description, author, panels array — with JSDoc example of a `plugin.json` file
+  - `Plugin` runtime state: manifest + enabled + error + directory path
+  - `PluginToPiBunMessage` union (5 variants): ready, getSessionState, sendPrompt, subscribeEvents, unsubscribeEvents
+  - `PiBunToPluginMessage` union (3 variants): sessionState, event, themeChanged
+- All types exported from `packages/contracts/src/index.ts`
+- Added 4 plugin WS methods to `wsProtocol.ts`: `plugin.list`, `plugin.install`, `plugin.uninstall`, `plugin.setEnabled`
+  - Params types: `WsPluginInstallParams`, `WsPluginUninstallParams`, `WsPluginSetEnabledParams`
+  - Result types: `WsPluginListResult`, `WsPluginInstallResult`
+  - All registered in `WsMethodParamsMap` and `WsMethodResultMap`
+- Exported all new WS types from contracts index
+
+**Items completed:**
+- [x] 7.1 — Define plugin manifest: `{ id, name, version, description, panels: PanelConfig[] }`
+- [x] 7.2 — Define `PanelConfig`: `{ id, title, icon, position: "sidebar" | "bottom" | "right", component: string (URL or path) }`
+
+**Issues encountered:**
+- None — clean type definitions, all typecheck + lint pass
+
+**Handoff to next session:**
+- Next: 7.3 — Plugin loading: read `~/.pibun/plugins/` directory, load manifests
+- The WS method types are ready (`plugin.list/install/uninstall/setEnabled`). 7.3 needs a server-side `pluginStore.ts` or `pluginManager.ts` module that scans the plugins directory, reads `plugin.json` manifests, validates them, and tracks enabled/disabled state.
+- Follow the pattern of `projectStore.ts` and `settingsStore.ts` for file I/O.
+- Consider: plugin enabled/disabled state could be stored in `~/.pibun/settings.json` (adding a `disabledPlugins: string[]` field to `PiBunSettings`) or in a separate `~/.pibun/plugins.json` file.
+- The `Plugin.directory` field stores the absolute path — plugin content (HTML/JS) is served from there.
+
+---
+
 ## Session 88 — Phase 6 Verification (2026-03-24)
 
 **What happened:**

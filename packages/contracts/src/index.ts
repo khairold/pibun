@@ -148,6 +148,24 @@ export type { Theme, ThemeColors, ThemeId, ThemePreference } from "./theme.js";
 // Settings types (application preferences)
 export type { PiBunSettings } from "./settings.js";
 
+// Plugin types (plugin system)
+export type {
+	PiBunEventMessage,
+	PiBunSessionStateMessage,
+	PiBunThemeChangedMessage,
+	PiBunToPluginMessage,
+	Plugin,
+	PluginGetSessionStateMessage,
+	PluginManifest,
+	PluginPanelConfig,
+	PluginPanelPosition,
+	PluginReadyMessage,
+	PluginSendPromptMessage,
+	PluginSubscribeEventsMessage,
+	PluginToPiBunMessage,
+	PluginUnsubscribeEventsMessage,
+} from "./plugin.js";
+
 // Git types (git integration)
 export type {
 	GitChangedFile,
@@ -231,6 +249,11 @@ export type {
 	WsSettingsGetResult,
 	WsSettingsUpdateParams,
 	WsSettingsUpdateResult,
+	WsPluginInstallParams,
+	WsPluginInstallResult,
+	WsPluginListResult,
+	WsPluginSetEnabledParams,
+	WsPluginUninstallParams,
 	WsTypedPush,
 	WsTypedRequest,
 	WsTypedResponse,

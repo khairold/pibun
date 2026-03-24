@@ -1,9 +1,9 @@
 # PiBun v2 — Build Plan
 
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
-> **Status:** Phase 6 complete — starting Phase 7
+> **Status:** Phase 7 in progress
 > **Current Phase:** Phase 7 — Plugin System
-> **Last Session:** Session 88 — 2026-03-24
+> **Last Session:** Session 89 — 2026-03-24
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -147,8 +147,8 @@
 
 **Goal:** Extend PiBun's UI with custom panels via a plugin API.
 
-- [ ] 7.1 — Define plugin manifest: `{ id, name, version, description, panels: PanelConfig[] }`
-- [ ] 7.2 — Define `PanelConfig`: `{ id, title, icon, position: "sidebar" | "bottom" | "right", component: string (URL or path) }`
+- [x] 7.1 — Define plugin manifest: `{ id, name, version, description, panels: PanelConfig[] }`
+- [x] 7.2 — Define `PanelConfig`: `{ id, title, icon, position: "sidebar" | "bottom" | "right", component: string (URL or path) }`
 - [ ] 7.3 — Plugin loading: read `~/.pibun/plugins/` directory, load manifests
 - [ ] 7.4 — Plugin panel rendering: sandboxed iframe (web) or Electrobun BrowserView (desktop) loading plugin URL
 - [ ] 7.5 — Plugin ↔ PiBun messaging: `postMessage` bridge for reading session state, sending prompts, subscribing to events

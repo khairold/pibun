@@ -18,6 +18,7 @@ import type {
 	PiSessionStats,
 	PiThinkingLevel,
 } from "./index.js";
+import type { Plugin } from "./plugin.js";
 import type { Project } from "./project.js";
 import type { PiBunSettings } from "./settings.js";
 
@@ -90,6 +91,12 @@ export const WS_METHODS = {
 	// Settings (server-side persistence)
 	settingsGet: "settings.get",
 	settingsUpdate: "settings.update",
+
+	// Plugin management (server-side)
+	pluginList: "plugin.list",
+	pluginInstall: "plugin.install",
+	pluginUninstall: "plugin.uninstall",
+	pluginSetEnabled: "plugin.setEnabled",
 } as const;
 
 /** Union of all WebSocket method strings. */
@@ -359,6 +366,35 @@ export interface WsSettingsUpdateParams {
 }
 
 // ============================================================================
+// Plugin Parameters
+// ============================================================================
+
+/**
+ * Params for `plugin.install` — install a plugin from a URL or local path.
+ *
+ * - URL: downloads the plugin archive and extracts to `~/.pibun/plugins/`
+ * - Path: copies the directory to `~/.pibun/plugins/`
+ */
+export interface WsPluginInstallParams {
+	/** URL or absolute file path to the plugin source. */
+	source: string;
+}
+
+/** Params for `plugin.uninstall` — remove a plugin by ID. */
+export interface WsPluginUninstallParams {
+	/** The plugin ID to uninstall. */
+	pluginId: string;
+}
+
+/** Params for `plugin.setEnabled` — enable or disable a plugin. */
+export interface WsPluginSetEnabledParams {
+	/** The plugin ID. */
+	pluginId: string;
+	/** Whether to enable (true) or disable (false). */
+	enabled: boolean;
+}
+
+// ============================================================================
 // Method → Params Type Map
 // ============================================================================
 
@@ -415,6 +451,10 @@ export interface WsMethodParamsMap {
 	"app.saveExportFile": WsAppSaveExportFileParams;
 	"settings.get": undefined;
 	"settings.update": WsSettingsUpdateParams;
+	"plugin.list": undefined;
+	"plugin.install": WsPluginInstallParams;
+	"plugin.uninstall": WsPluginUninstallParams;
+	"plugin.setEnabled": WsPluginSetEnabledParams;
 }
 
 // ============================================================================
@@ -585,6 +625,20 @@ export interface WsSettingsUpdateResult {
 }
 
 // ============================================================================
+// Plugin Results
+// ============================================================================
+
+/** Result for `plugin.list` — all installed plugins with runtime state. */
+export interface WsPluginListResult {
+	plugins: Plugin[];
+}
+
+/** Result for `plugin.install` — the newly installed plugin. */
+export interface WsPluginInstallResult {
+	plugin: Plugin;
+}
+
+// ============================================================================
 // Method → Result Type Map
 // ============================================================================
 
@@ -633,6 +687,10 @@ export interface WsMethodResultMap {
 	"app.saveExportFile": WsAppSaveExportFileResult;
 	"settings.get": WsSettingsGetResult;
 	"settings.update": WsSettingsUpdateResult;
+	"plugin.list": WsPluginListResult;
+	"plugin.install": WsPluginInstallResult;
+	"plugin.uninstall": WsOkResult;
+	"plugin.setEnabled": WsOkResult;
 }
 
 // ============================================================================
