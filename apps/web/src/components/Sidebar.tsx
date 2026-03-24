@@ -1198,14 +1198,15 @@ function buildProjectGroups(
 		pastSessions: projectPastSessions.get(p.id) ?? [],
 	}));
 
-	// Add orphan group if there are unmatched sessions
-	if (orphanActiveSessions.length > 0 || orphanPastSessions.length > 0) {
+	// Add orphan group only for active tabs without a project.
+	// Past sessions from unregistered CWDs are hidden — add the project to see them.
+	if (orphanActiveSessions.length > 0) {
 		groups.push({
 			project: null,
 			cwd: null,
 			displayName: "(no project)",
 			activeSessions: orphanActiveSessions,
-			pastSessions: orphanPastSessions,
+			pastSessions: [],
 		});
 	}
 
