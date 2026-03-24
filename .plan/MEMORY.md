@@ -27,7 +27,7 @@
 | 10 | Terminal tabs are renameable | Default "Terminal 1", "Terminal 2" auto-increment. Double-click label to rename (e.g., "dev server", "logs"). | 2026-03-24 |
 | 11 | Terminals kept alive on project switch | `Map<projectPath, TerminalTab[]>` conceptually. Switching projects swaps which terminals are visible, doesn't kill processes. | 2026-03-24 |
 | 12 | Terminal splits parked | Old `groupId`/`splitTerminalTab`/`MAX_TERMINALS_PER_GROUP` removed. Each tab = one full-size terminal. Splits can return later. | 2026-03-24 |
-| 13 | `removeTab` + `cleanupEmptyTab` still delete project terminals | After 1.1-1.3, these filter by `projectPath` instead of `ownerTabId`, but still delete terminals. This is wrong for multi-session-same-project. 1.4 will fix by NOT deleting terminals on tab removal. | 2026-03-24 |
+| 13 | `removeTab` + `cleanupEmptyTab` no longer delete project terminals | Fixed in 1.4. `removeTab` keeps all `terminalTabs` intact, only updates `activeTerminalTabId` and `terminalPanelOpen` based on the new active tab's project. `cleanupEmptyTab` no longer calls `terminal.close` on the server. | 2026-03-24 |
 
 ## Architecture Notes
 

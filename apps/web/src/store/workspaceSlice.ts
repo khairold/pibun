@@ -157,25 +157,14 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	removeTab: (tabId) => {
 		set((s) => {
 			const newTabs = s.tabs.filter((t) => t.id !== tabId);
-			const removedTab = s.tabs.find((t) => t.id === tabId);
-			const removedCwd = removedTab?.cwd ?? "";
 
-			// Remove terminals owned by this tab's project
-			// NOTE: 1.4 will change this to NOT remove terminals (they belong to the project)
-			const newTerminalTabs = s.terminalTabs.filter((t) => t.projectPath !== removedCwd);
-			// If active terminal was in the removed tab's project, clear it
-			const activeTerminalOwned = s.terminalTabs.some(
-				(t) => t.id === s.activeTerminalTabId && t.projectPath === removedCwd,
-			);
+			// Terminals are NOT removed — they belong to the project, not the session tab.
+			// Other sessions in the same project share the same terminal set.
+			// Only terminal selection is updated to match the new active tab's project.
 
 			const updates: Partial<AppStore> = {
 				tabs: newTabs,
-				terminalTabs: newTerminalTabs,
 			};
-
-			if (activeTerminalOwned) {
-				updates.activeTerminalTabId = null;
-			}
 
 			// If removing the active tab, switch to adjacent
 			if (s.activeTabId === tabId) {
@@ -199,9 +188,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					updates.sessionName = nextTab.name;
 					updates.sessionFile = nextTab.sessionFile;
 					// Select first terminal in the next tab's project, if any
-					const nextTabTerminal = newTerminalTabs.find(
-						(t) => t.projectPath === (nextTab.cwd ?? ""),
-					);
+					const nextTabTerminal = s.terminalTabs.find((t) => t.projectPath === (nextTab.cwd ?? ""));
 					updates.activeTerminalTabId = nextTabTerminal?.id ?? null;
 				} else {
 					// No tabs left — clear everything
@@ -220,8 +207,14 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				}
 			}
 
-			// Close panel if no terminals left for the new active tab
-			if (newTerminalTabs.length === 0) {
+			// Close panel if no terminals left for the new active tab's project
+			const newActiveTabId = updates.activeTabId ?? s.activeTabId;
+			const newActiveTab = newTabs.find((t) => t.id === newActiveTabId);
+			const activeProjectPath = newActiveTab?.cwd ?? "";
+			const activeProjectTerminals = s.terminalTabs.filter(
+				(t) => t.projectPath === activeProjectPath,
+			);
+			if (activeProjectTerminals.length === 0) {
 				updates.terminalPanelOpen = false;
 			}
 

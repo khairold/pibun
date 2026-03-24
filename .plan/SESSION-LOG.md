@@ -61,3 +61,27 @@
 - `cleanupEmptyTab` in `tabActions.ts` also closes terminals by project — same fix needed there.
 
 ---
+
+## Session 2 — removeTab: don't delete terminals on tab removal (2026-03-24)
+
+**What happened:**
+- Updated `removeTab` in `workspaceSlice.ts` to stop deleting terminals when a session tab is removed
+  - Removed `terminalTabs` filtering by `projectPath` — terminals stay in the store
+  - Removed `activeTerminalOwned` clearing logic (was tied to deleted terminals)
+  - Updated `terminalPanelOpen` check: now looks at the NEW active tab's project terminals, not the global terminal count
+  - When switching to next tab (after active tab removal), still correctly selects first terminal from next tab's project
+- Updated `cleanupEmptyTab` in `tabActions.ts` to stop closing terminals on the server
+  - Removed the loop that called `terminal.close` for all project-matching terminals
+  - Terminals now survive empty session cleanup
+
+**Items completed:**
+- [x] 1.4 — Update `removeTab`: don't delete terminals on session tab removal
+
+**Issues encountered:**
+- None. Clean change — the terminal panel open/close logic needed adjustment since it previously checked `newTerminalTabs.length === 0` (which was the filtered list). Now it checks terminals matching the new active tab's project path.
+
+**Handoff to next session:**
+- Next: 1.5 — Update `switchTab` in workspaceSlice: preserve terminal selection on same-project switch, swap on different-project switch
+- Key insight: `switchTab` currently always selects "first terminal in target tab's project" — this is correct for cross-project switches but wrong for same-project switches (should preserve current `activeTerminalTabId`)
+
+---
