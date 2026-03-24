@@ -4,7 +4,7 @@
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
 > **Status:** Phase 4 in progress
 > **Current Phase:** Phase 4 — Desktop Native Features
-> **Last Session:** Session 34 — 2026-03-24
+> **Last Session:** Session 35 — 2026-03-24
 
 ---
 
@@ -127,7 +127,7 @@
 ### 4A — Context Menus & Thread Management
 
 - [x] 4A.1 — Add Electrobun context menu support: `showContextMenu(items)` in desktop main process, forwarded via WS push on selection
-- [ ] 4A.2 — Thread context menu (right-click in sidebar): Rename, Copy Path, Copy Session ID, Mark Unread, Delete
+- [x] 4A.2 — Thread context menu (right-click in sidebar): Rename, Copy Path, Copy Session ID, Mark Unread, Delete
 - [ ] 4A.3 — Implement thread renaming: inline edit in sidebar (click rename → input field → Enter/Escape), calls `session.setName` via Pi RPC
 - [ ] 4A.4 — Implement thread deletion: confirmation dialog → stop session → remove tab → cleanup
 - [ ] 4A.5 — Project context menu: Open in Terminal, Open in Editor, Remove Project

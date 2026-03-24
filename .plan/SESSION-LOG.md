@@ -1022,3 +1022,30 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 35 — Thread context menu (2026-03-24)
+
+**What happened:**
+- Implemented thread context menu for sidebar tab items (4A.2):
+  - **Dual-mode context menu**: Right-click on sidebar tab tries native context menu first (`showNativeContextMenu`) for desktop mode. On error (browser mode), falls back to `HtmlContextMenu` component — a fixed-position HTML div at click coordinates.
+  - **`HtmlContextMenu` component**: New component in `Sidebar.tsx`. Renders a floating menu with: Rename, Copy Path, Copy Session ID, Mark Unread, Delete (destructive, red). Closes on outside click or Escape key. Each action disabled appropriately (e.g., "Rename" disabled without sessionId, "Copy Path" disabled without cwd).
+  - **`ContextMenuState` type**: Tracks `{ tabId, x, y }` for positioning the HTML fallback menu.
+  - **Native context menu actions**: `handleTabContextMenu` callback builds `ContextMenuItem[]` array with separator dividers, passes to `showNativeContextMenu()` with an `onAction` callback that handles each action string.
+  - **Inline rename**: `renamingTabId` state in Sidebar component. When set, `SidebarTabItem` renders an `<input>` instead of the display name span. Focus + select on mount. Submit on Enter/blur, cancel on Escape. `handleRenameComplete` does optimistic update (tab name + sessionName) then sends `session.setName` Pi RPC. Reverts on error with toast notification. For non-active tabs, temporarily switches transport's `activeSessionId` to send the RPC, then restores.
+  - **`SidebarTabItem` extended**: New props: `onContextMenu`, `isRenaming`, `onRenameStart`, `onRenameComplete`, `onRenameCancel`. `onContextMenu` handler calls `e.preventDefault()` + `e.stopPropagation()`. Click and keyboard handlers suppressed during rename mode.
+  - **`CwdGroup` extended**: Passes through all new context menu and rename props to child `SidebarTabItem` components.
+- Only 1 file modified: `Sidebar.tsx`. All context menu infrastructure (`showNativeContextMenu`, `ContextMenuItem`, WS protocol) already existed from 4A.1.
+
+**Items completed:**
+- [x] 4A.2 — Thread context menu (right-click in sidebar): Rename, Copy Path, Copy Session ID, Mark Unread, Delete
+
+**Issues encountered:**
+- Biome formatting: inline SVG elements needed multi-line attribute formatting. Fixed with `bun run format`.
+
+**Handoff to next session:**
+- Next: 4A.3 — Implement thread renaming (already substantially done — inline edit + `session.setName` Pi RPC implemented in 4A.2)
+- NOTE: 4A.3 may already be complete — verify and mark if so. The plan says "inline edit in sidebar (click rename → input field → Enter/Escape), calls `session.setName` via Pi RPC" — all done.
+- `HtmlContextMenu` lives in `Sidebar.tsx` (follows deep modules convention). Reusable pattern for other context menus (4A.5, 4A.6).
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

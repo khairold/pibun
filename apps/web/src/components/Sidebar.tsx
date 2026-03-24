@@ -20,9 +20,16 @@ import { fetchSessionList, switchSession } from "@/lib/sessionActions";
 import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
 import { cn, onShortcut } from "@/lib/utils";
 import { useStore } from "@/store";
-import { getTransport } from "@/wireTransport";
-import type { Project, SessionTab, TabStatus, WsSessionSummary } from "@pibun/contracts";
+import { getTransport, showNativeContextMenu } from "@/wireTransport";
+import type {
+	ContextMenuItem,
+	Project,
+	SessionTab,
+	TabStatus,
+	WsSessionSummary,
+} from "@pibun/contracts";
 import {
+	type MouseEvent as ReactMouseEvent,
 	type SyntheticEvent,
 	memo,
 	useCallback,
@@ -130,6 +137,227 @@ function TabStatusDot({ status, isActive }: { status: TabStatus; isActive: boole
 }
 
 // ============================================================================
+// Thread Context Menu (HTML fallback for browser mode)
+// ============================================================================
+
+interface ContextMenuState {
+	/** Tab the menu is open for. */
+	tabId: string;
+	/** Position of the menu (viewport coordinates). */
+	x: number;
+	y: number;
+}
+
+/**
+ * HTML fallback context menu for thread items in the sidebar.
+ *
+ * Shown when native context menu is unavailable (browser mode).
+ * Positioned at click coordinates, closes on outside click or Escape.
+ *
+ * Actions:
+ * - **Rename** — triggers inline edit mode on the tab item
+ * - **Copy Path** — copies CWD to clipboard
+ * - **Copy Session ID** — copies session ID to clipboard
+ * - **Mark Unread** — sets hasUnread on the tab
+ * - **Delete** — closes the tab (stops session + removes)
+ */
+function HtmlContextMenu({
+	menu,
+	tab,
+	canClose,
+	onClose,
+	onRename,
+	onDelete,
+}: {
+	menu: ContextMenuState;
+	tab: SessionTab;
+	canClose: boolean;
+	onClose: () => void;
+	onRename: () => void;
+	onDelete: () => void;
+}) {
+	const menuRef = useRef<HTMLDivElement>(null);
+	const addToast = useStore((s) => s.addToast);
+	const updateTab = useStore((s) => s.updateTab);
+
+	// Close on outside click or Escape
+	useEffect(() => {
+		function handleClick(e: globalThis.MouseEvent) {
+			if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+				onClose();
+			}
+		}
+		function handleKeyDown(e: KeyboardEvent) {
+			if (e.key === "Escape") onClose();
+		}
+		document.addEventListener("mousedown", handleClick);
+		document.addEventListener("keydown", handleKeyDown);
+		return () => {
+			document.removeEventListener("mousedown", handleClick);
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [onClose]);
+
+	const handleCopyPath = useCallback(() => {
+		if (tab.cwd) {
+			navigator.clipboard.writeText(tab.cwd).then(() => {
+				addToast("Path copied to clipboard", "info");
+			});
+		}
+		onClose();
+	}, [tab.cwd, addToast, onClose]);
+
+	const handleCopySessionId = useCallback(() => {
+		if (tab.sessionId) {
+			navigator.clipboard.writeText(tab.sessionId).then(() => {
+				addToast("Session ID copied to clipboard", "info");
+			});
+		}
+		onClose();
+	}, [tab.sessionId, addToast, onClose]);
+
+	const handleMarkUnread = useCallback(() => {
+		updateTab(tab.id, { hasUnread: true });
+		onClose();
+	}, [tab.id, updateTab, onClose]);
+
+	const handleRename = useCallback(() => {
+		onClose();
+		onRename();
+	}, [onClose, onRename]);
+
+	const handleDelete = useCallback(() => {
+		onClose();
+		onDelete();
+	}, [onClose, onDelete]);
+
+	return (
+		<div
+			ref={menuRef}
+			className="fixed z-[100] min-w-[160px] rounded-lg border border-border-primary bg-surface-secondary py-1 shadow-lg"
+			style={{ left: menu.x, top: menu.y }}
+		>
+			{/* Rename */}
+			<button
+				type="button"
+				onClick={handleRename}
+				disabled={!tab.sessionId}
+				className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+					className="h-3.5 w-3.5"
+					aria-hidden="true"
+				>
+					<path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L3.22 10.303a1 1 0 0 0-.258.442l-.96 3.425a.25.25 0 0 0 .305.305l3.425-.96a1 1 0 0 0 .442-.258l7.79-7.79a1.75 1.75 0 0 0 0-2.475l-.476-.479z" />
+				</svg>
+				Rename
+			</button>
+
+			{/* Separator */}
+			<div className="my-1 border-t border-border-primary" />
+
+			{/* Copy Path */}
+			<button
+				type="button"
+				onClick={handleCopyPath}
+				disabled={!tab.cwd}
+				className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+					className="h-3.5 w-3.5"
+					aria-hidden="true"
+				>
+					<path d={FOLDER_ICON_PATH} />
+				</svg>
+				Copy Path
+			</button>
+
+			{/* Copy Session ID */}
+			<button
+				type="button"
+				onClick={handleCopySessionId}
+				disabled={!tab.sessionId}
+				className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+					className="h-3.5 w-3.5"
+					aria-hidden="true"
+				>
+					<path
+						fillRule="evenodd"
+						d="M10.986 3H12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h1.014A2.25 2.25 0 0 1 7.25 1h1.5a2.25 2.25 0 0 1 2.236 2ZM9.5 4v-.75a.75.75 0 0 0-.75-.75h-1.5a.75.75 0 0 0-.75.75V4h3Z"
+						clipRule="evenodd"
+					/>
+				</svg>
+				Copy Session ID
+			</button>
+
+			{/* Separator */}
+			<div className="my-1 border-t border-border-primary" />
+
+			{/* Mark Unread */}
+			<button
+				type="button"
+				onClick={handleMarkUnread}
+				className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+					className="h-3.5 w-3.5"
+					aria-hidden="true"
+				>
+					<path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />
+					<path
+						fillRule="evenodd"
+						d="M1.38 8.28a.87.87 0 0 1 0-.566 7.003 7.003 0 0 1 13.238.006.87.87 0 0 1 0 .566A7.003 7.003 0 0 1 1.379 8.28ZM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+						clipRule="evenodd"
+					/>
+				</svg>
+				Mark Unread
+			</button>
+
+			{/* Delete */}
+			{canClose && (
+				<>
+					<div className="my-1 border-t border-border-primary" />
+					<button
+						type="button"
+						onClick={handleDelete}
+						className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-status-error transition-colors hover:bg-status-error/10"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="h-3.5 w-3.5"
+							aria-hidden="true"
+						>
+							<path
+								fillRule="evenodd"
+								d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 1 5.357 15h5.285a1.5 1.5 0 0 1 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z"
+								clipRule="evenodd"
+							/>
+						</svg>
+						Delete
+					</button>
+				</>
+			)}
+		</div>
+	);
+}
+
+// ============================================================================
 // Tab Item (sidebar variant — more detailed than TabBar)
 // ============================================================================
 
@@ -139,6 +367,11 @@ interface SidebarTabItemProps {
 	onSwitch: (tabId: string) => void;
 	onClose: (tabId: string) => void;
 	canClose: boolean;
+	onContextMenu: (tabId: string, x: number, y: number) => void;
+	isRenaming: boolean;
+	onRenameStart: () => void;
+	onRenameComplete: (newName: string) => void;
+	onRenameCancel: () => void;
 }
 
 const SidebarTabItem = memo(function SidebarTabItem({
@@ -147,21 +380,57 @@ const SidebarTabItem = memo(function SidebarTabItem({
 	onSwitch,
 	onClose,
 	canClose,
+	onContextMenu,
+	isRenaming,
+	onRenameComplete,
+	onRenameCancel,
 }: SidebarTabItemProps) {
 	const displayName = tab.name || "New Session";
 	const modelName = tab.model ? shortModelName(tab.model.name) : null;
+	const renameInputRef = useRef<HTMLInputElement>(null);
+	const [renameValue, setRenameValue] = useState(displayName);
+
+	// Focus rename input when entering rename mode
+	useEffect(() => {
+		if (isRenaming && renameInputRef.current) {
+			setRenameValue(displayName);
+			renameInputRef.current.focus();
+			renameInputRef.current.select();
+		}
+	}, [isRenaming, displayName]);
+
+	const handleContextMenu = useCallback(
+		(e: ReactMouseEvent) => {
+			e.preventDefault();
+			e.stopPropagation();
+			onContextMenu(tab.id, e.clientX, e.clientY);
+		},
+		[tab.id, onContextMenu],
+	);
+
+	const handleRenameSubmit = useCallback(() => {
+		const trimmed = renameValue.trim();
+		if (trimmed && trimmed !== displayName) {
+			onRenameComplete(trimmed);
+		} else {
+			onRenameCancel();
+		}
+	}, [renameValue, displayName, onRenameComplete, onRenameCancel]);
 
 	return (
 		<div
 			role="tab"
 			tabIndex={0}
-			onClick={() => onSwitch(tab.id)}
+			onClick={() => {
+				if (!isRenaming) onSwitch(tab.id);
+			}}
 			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") {
+				if (!isRenaming && (e.key === "Enter" || e.key === " ")) {
 					e.preventDefault();
 					onSwitch(tab.id);
 				}
 			}}
+			onContextMenu={handleContextMenu}
 			className={cn(
 				"group flex w-full cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-left transition-colors",
 				isActive
@@ -179,29 +448,52 @@ const SidebarTabItem = memo(function SidebarTabItem({
 			{/* Tab info */}
 			<div className="min-w-0 flex-1">
 				<div className="flex items-center gap-1.5">
-					<span className="truncate text-sm font-medium">{displayName}</span>
+					{isRenaming ? (
+						<input
+							ref={renameInputRef}
+							type="text"
+							value={renameValue}
+							onChange={(e) => setRenameValue(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") {
+									e.preventDefault();
+									handleRenameSubmit();
+								} else if (e.key === "Escape") {
+									e.preventDefault();
+									onRenameCancel();
+								}
+								// Stop propagation so parent doesn't handle keydown
+								e.stopPropagation();
+							}}
+							onBlur={handleRenameSubmit}
+							onClick={(e) => e.stopPropagation()}
+							className="min-w-0 flex-1 rounded border border-accent-primary bg-surface-primary px-1 py-0 text-sm font-medium text-text-primary outline-none"
+						/>
+					) : (
+						<span className="truncate text-sm font-medium">{displayName}</span>
+					)}
 					{/* Unread indicator — shown on inactive tabs with new content */}
-					{!isActive && tab.hasUnread && (
+					{!isRenaming && !isActive && tab.hasUnread && (
 						<span
 							className="h-2 w-2 shrink-0 rounded-full bg-accent-primary"
 							title="New activity"
 						/>
 					)}
-					{modelName && (
+					{!isRenaming && modelName && (
 						<span className="shrink-0 rounded bg-surface-tertiary/50 px-1 py-0.5 text-[10px] leading-none text-text-tertiary">
 							{modelName}
 						</span>
 					)}
 				</div>
-				{tab.messageCount > 0 && (
+				{!isRenaming && tab.messageCount > 0 && (
 					<span className="text-xs text-text-tertiary">
 						{String(tab.messageCount)} message{tab.messageCount !== 1 ? "s" : ""}
 					</span>
 				)}
 			</div>
 
-			{/* Close button — visible on hover */}
-			{canClose && (
+			{/* Close button — visible on hover, hidden during rename */}
+			{canClose && !isRenaming && (
 				<button
 					type="button"
 					tabIndex={-1}
@@ -244,6 +536,11 @@ interface CwdGroupProps {
 	onSwitchTab: (tabId: string) => void;
 	onCloseTab: (tabId: string) => void;
 	canClose: boolean;
+	onContextMenu: (tabId: string, x: number, y: number) => void;
+	renamingTabId: string | null;
+	onRenameStart: (tabId: string) => void;
+	onRenameComplete: (tabId: string, newName: string) => void;
+	onRenameCancel: () => void;
 }
 
 const CwdGroup = memo(function CwdGroup({
@@ -253,6 +550,11 @@ const CwdGroup = memo(function CwdGroup({
 	onSwitchTab,
 	onCloseTab,
 	canClose,
+	onContextMenu,
+	renamingTabId,
+	onRenameStart,
+	onRenameComplete,
+	onRenameCancel,
 }: CwdGroupProps) {
 	return (
 		<div className="mb-1">
@@ -273,6 +575,11 @@ const CwdGroup = memo(function CwdGroup({
 						onSwitch={onSwitchTab}
 						onClose={onCloseTab}
 						canClose={canClose}
+						onContextMenu={onContextMenu}
+						isRenaming={renamingTabId === tab.id}
+						onRenameStart={() => onRenameStart(tab.id)}
+						onRenameComplete={(newName) => onRenameComplete(tab.id, newName)}
+						onRenameCancel={onRenameCancel}
 					/>
 				))}
 			</div>
@@ -597,6 +904,10 @@ export function Sidebar() {
 	const [projectsExpanded, setProjectsExpanded] = useState(true);
 	const [showAddProjectInput, setShowAddProjectInput] = useState(false);
 	const [isAddingProject, setIsAddingProject] = useState(false);
+	const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+	const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
+	const addToast = useStore((s) => s.addToast);
+	const updateTab = useStore((s) => s.updateTab);
 
 	const isConnected = connectionStatus === "open";
 
@@ -775,6 +1086,125 @@ export function Sidebar() {
 		}
 	}, [isConnected]);
 
+	// ── Thread context menu ──────────────────────────────────────
+
+	/**
+	 * Open a context menu for a tab.
+	 *
+	 * Tries native context menu first (desktop mode). On failure (browser mode),
+	 * falls back to an HTML context menu positioned at the click coordinates.
+	 */
+	const handleTabContextMenu = useCallback(
+		(tabId: string, x: number, y: number) => {
+			const tab = tabs.find((t) => t.id === tabId);
+			if (!tab) return;
+
+			const items: ContextMenuItem[] = [
+				{ label: "Rename", action: "rename", enabled: !!tab.sessionId },
+				{ type: "separator" },
+				{ label: "Copy Path", action: "copy-path", enabled: !!tab.cwd },
+				{ label: "Copy Session ID", action: "copy-session-id", enabled: !!tab.sessionId },
+				{ type: "separator" },
+				{ label: "Mark Unread", action: "mark-unread" },
+			];
+
+			if (tabs.length > 1) {
+				items.push({ type: "separator" });
+				items.push({ label: "Delete", action: "delete", data: { tabId } });
+			}
+
+			// Try native context menu (desktop). On error, fall back to HTML.
+			showNativeContextMenu(items, (data) => {
+				switch (data.action) {
+					case "rename":
+						setRenamingTabId(tabId);
+						break;
+					case "copy-path":
+						if (tab.cwd) {
+							navigator.clipboard.writeText(tab.cwd).then(() => {
+								addToast("Path copied to clipboard", "info");
+							});
+						}
+						break;
+					case "copy-session-id":
+						if (tab.sessionId) {
+							navigator.clipboard.writeText(tab.sessionId).then(() => {
+								addToast("Session ID copied to clipboard", "info");
+							});
+						}
+						break;
+					case "mark-unread":
+						updateTab(tabId, { hasUnread: true });
+						break;
+					case "delete":
+						closeTab(tabId).catch((err: unknown) => {
+							console.error("[Sidebar] Failed to delete tab:", err);
+						});
+						break;
+				}
+			}).catch(() => {
+				// Native menu not available — show HTML context menu
+				setContextMenu({ tabId, x, y });
+			});
+		},
+		[tabs, addToast, updateTab],
+	);
+
+	const handleCloseContextMenu = useCallback(() => {
+		setContextMenu(null);
+	}, []);
+
+	const handleContextMenuRename = useCallback((tabId: string) => {
+		setContextMenu(null);
+		setRenamingTabId(tabId);
+	}, []);
+
+	const handleContextMenuDelete = useCallback((tabId: string) => {
+		setContextMenu(null);
+		closeTab(tabId).catch((err: unknown) => {
+			console.error("[Sidebar] Failed to delete tab:", err);
+		});
+	}, []);
+
+	/**
+	 * Complete an inline rename — send `session.setName` to Pi and update the tab.
+	 */
+	const handleRenameComplete = useCallback(
+		async (tabId: string, newName: string) => {
+			setRenamingTabId(null);
+			const tab = tabs.find((t) => t.id === tabId);
+			if (!tab?.sessionId) return;
+
+			// Optimistically update tab name
+			updateTab(tabId, { name: newName });
+			if (tabId === activeTabId) {
+				useStore.getState().setSessionName(newName);
+			}
+
+			// Send rename to Pi via `session.setName`
+			try {
+				const transport = getTransport();
+				const previousActiveSession = transport.activeSessionId;
+				transport.setActiveSession(tab.sessionId);
+				await transport.request("session.setName", { name: newName });
+				transport.setActiveSession(previousActiveSession);
+			} catch (err) {
+				console.error("[Sidebar] Failed to rename session:", err);
+				// Revert optimistic update
+				updateTab(tabId, { name: tab.name });
+				if (tabId === activeTabId) {
+					useStore.getState().setSessionName(tab.name);
+				}
+				addToast("Failed to rename session", "error");
+			}
+		},
+		[tabs, updateTab, activeTabId, addToast],
+	);
+
+	const handleRenameCancel = useCallback(() => {
+		setRenamingTabId(null);
+	}, []);
+
 	// The sidebar panel content (shared between mobile overlay and desktop inline)
 	const sidebarContent = (
 		<>
@@ -867,6 +1297,11 @@ export function Sidebar() {
 							onSwitchTab={handleSwitchTab}
 							onCloseTab={handleCloseTab}
 							canClose={tabs.length > 1}
+							onContextMenu={handleTabContextMenu}
+							renamingTabId={renamingTabId}
+							onRenameStart={(tabId) => setRenamingTabId(tabId)}
+							onRenameComplete={handleRenameComplete}
+							onRenameCancel={handleRenameCancel}
 						/>
 					))
 				) : (
@@ -880,6 +1315,11 @@ export function Sidebar() {
 								onSwitch={handleSwitchTab}
 								onClose={handleCloseTab}
 								canClose={tabs.length > 1}
+								onContextMenu={handleTabContextMenu}
+								isRenaming={renamingTabId === tab.id}
+								onRenameStart={() => setRenamingTabId(tab.id)}
+								onRenameComplete={(newName) => handleRenameComplete(tab.id, newName)}
+								onRenameCancel={handleRenameCancel}
 							/>
 						))}
 					</div>
@@ -1098,6 +1538,9 @@ export function Sidebar() {
 		</>
 	);
 
+	// Find the tab for the active context menu (if any)
+	const contextMenuTab = contextMenu ? tabs.find((t) => t.id === contextMenu.tabId) : null;
+
 	return (
 		<>
 			{/* Mobile backdrop — shown when sidebar is open below md breakpoint */}
@@ -1127,6 +1570,18 @@ export function Sidebar() {
 			>
 				{sidebarContent}
 			</aside>
+
+			{/* HTML fallback context menu (shown in browser mode when native menu unavailable) */}
+			{contextMenu && contextMenuTab && (
+				<HtmlContextMenu
+					menu={contextMenu}
+					tab={contextMenuTab}
+					canClose={tabs.length > 1}
+					onClose={handleCloseContextMenu}
+					onRename={() => handleContextMenuRename(contextMenu.tabId)}
+					onDelete={() => handleContextMenuDelete(contextMenu.tabId)}
+				/>
+			)}
 		</>
 	);
 }
