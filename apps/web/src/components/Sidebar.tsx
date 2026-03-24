@@ -15,7 +15,13 @@
  */
 
 import { PluginSidebarPanels } from "@/components/PluginPanel";
-import { addProject, fetchProjects, openProject, removeProject } from "@/lib/appActions";
+import {
+	addProject,
+	createTerminal,
+	fetchProjects,
+	openProject,
+	removeProject,
+} from "@/lib/appActions";
 import { fetchSessionList, switchSession } from "@/lib/sessionActions";
 import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
 import { cn, onShortcut } from "@/lib/utils";
@@ -358,6 +364,247 @@ function HtmlContextMenu({
 }
 
 // ============================================================================
+// Delete Confirmation Dialog
+// ============================================================================
+
+/**
+ * Inline confirmation dialog for thread deletion.
+ *
+ * Shown as a fixed overlay positioned near the context menu trigger.
+ * Displays session name and asks for confirmation before closing the tab.
+ * Closes on Escape, outside click, or explicit Cancel/Delete actions.
+ */
+function DeleteConfirmDialog({
+	tab,
+	onConfirm,
+	onCancel,
+}: {
+	tab: SessionTab;
+	onConfirm: () => void;
+	onCancel: () => void;
+}) {
+	const dialogRef = useRef<HTMLDivElement>(null);
+	const displayName = tab.name || "New Session";
+
+	useEffect(() => {
+		function handleClick(e: globalThis.MouseEvent) {
+			if (dialogRef.current && !dialogRef.current.contains(e.target as Node)) {
+				onCancel();
+			}
+		}
+		function handleKeyDown(e: KeyboardEvent) {
+			if (e.key === "Escape") onCancel();
+		}
+		document.addEventListener("mousedown", handleClick);
+		document.addEventListener("keydown", handleKeyDown);
+		return () => {
+			document.removeEventListener("mousedown", handleClick);
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [onCancel]);
+
+	return (
+		<div className="fixed inset-0 z-[110] flex items-center justify-center bg-surface-overlay/50">
+			<div
+				ref={dialogRef}
+				className="mx-4 w-full max-w-[280px] rounded-xl border border-border-primary bg-surface-secondary p-4 shadow-lg"
+			>
+				<h3 className="text-sm font-medium text-text-primary">Delete thread?</h3>
+				<p className="mt-1 text-xs text-text-secondary">
+					This will stop the session and close the tab for &ldquo;
+					<span className="font-medium text-text-primary">{displayName}</span>&rdquo;.
+				</p>
+				<div className="mt-3 flex items-center justify-end gap-2">
+					<button
+						type="button"
+						onClick={onCancel}
+						className="rounded-md px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+					>
+						Cancel
+					</button>
+					<button
+						type="button"
+						onClick={onConfirm}
+						className="rounded-md bg-status-error px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-status-error/80"
+					>
+						Delete
+					</button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+// ============================================================================
+// Project Context Menu (HTML fallback for browser mode)
+// ============================================================================
+
+interface ProjectContextMenuState {
+	/** Project the menu is open for. */
+	projectId: string;
+	/** Position of the menu (viewport coordinates). */
+	x: number;
+	y: number;
+}
+
+/**
+ * HTML fallback context menu for project items in the sidebar.
+ *
+ * Actions:
+ * - **Open in Terminal** — creates a terminal tab in the project's CWD
+ * - **Open in Editor** — opens the project in the system code editor
+ * - **Copy Path** — copies CWD to clipboard
+ * - **Remove** — removes the project from the list (does not delete files)
+ */
+function HtmlProjectContextMenu({
+	menu,
+	project,
+	onClose,
+	onOpenInTerminal,
+	onOpenInEditor,
+	onRemove,
+}: {
+	menu: ProjectContextMenuState;
+	project: Project;
+	onClose: () => void;
+	onOpenInTerminal: () => void;
+	onOpenInEditor: () => void;
+	onRemove: () => void;
+}) {
+	const menuRef = useRef<HTMLDivElement>(null);
+	const addToast = useStore((s) => s.addToast);
+
+	useEffect(() => {
+		function handleClick(e: globalThis.MouseEvent) {
+			if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+				onClose();
+			}
+		}
+		function handleKeyDown(e: KeyboardEvent) {
+			if (e.key === "Escape") onClose();
+		}
+		document.addEventListener("mousedown", handleClick);
+		document.addEventListener("keydown", handleKeyDown);
+		return () => {
+			document.removeEventListener("mousedown", handleClick);
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [onClose]);
+
+	const handleCopyPath = useCallback(() => {
+		navigator.clipboard.writeText(project.cwd).then(() => {
+			addToast("Path copied to clipboard", "info");
+		});
+		onClose();
+	}, [project.cwd, addToast, onClose]);
+
+	const handleOpenInTerminal = useCallback(() => {
+		onClose();
+		onOpenInTerminal();
+	}, [onClose, onOpenInTerminal]);
+
+	const handleOpenInEditor = useCallback(() => {
+		onClose();
+		onOpenInEditor();
+	}, [onClose, onOpenInEditor]);
+
+	const handleRemove = useCallback(() => {
+		onClose();
+		onRemove();
+	}, [onClose, onRemove]);
+
+	return (
+		<div
+			ref={menuRef}
+			className="fixed z-[100] min-w-[160px] rounded-lg border border-border-primary bg-surface-secondary py-1 shadow-lg"
+			style={{ left: menu.x, top: menu.y }}
+		>
+			{/* Open in Terminal */}
+			<button
+				type="button"
+				onClick={handleOpenInTerminal}
+				className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+					className="h-3.5 w-3.5"
+					aria-hidden="true"
+				>
+					<path
+						fillRule="evenodd"
+						d="M2 4.25A2.25 2.25 0 0 1 4.25 2h7.5A2.25 2.25 0 0 1 14 4.25v7.5A2.25 2.25 0 0 1 11.75 14h-7.5A2.25 2.25 0 0 1 2 11.75v-7.5Zm3.03.47a.75.75 0 0 0-1.06 1.06L5.69 7.5 3.97 9.22a.75.75 0 1 0 1.06 1.06l2.25-2.25a.75.75 0 0 0 0-1.06L5.03 4.72ZM7.75 10a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5Z"
+						clipRule="evenodd"
+					/>
+				</svg>
+				Open in Terminal
+			</button>
+
+			{/* Open in Editor */}
+			<button
+				type="button"
+				onClick={handleOpenInEditor}
+				className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+					className="h-3.5 w-3.5"
+					aria-hidden="true"
+				>
+					<path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L3.22 10.303a1 1 0 0 0-.258.442l-.96 3.425a.25.25 0 0 0 .305.305l3.425-.96a1 1 0 0 0 .442-.258l7.79-7.79a1.75 1.75 0 0 0 0-2.475l-.476-.479z" />
+				</svg>
+				Open in Editor
+			</button>
+
+			{/* Separator */}
+			<div className="my-1 border-t border-border-primary" />
+
+			{/* Copy Path */}
+			<button
+				type="button"
+				onClick={handleCopyPath}
+				className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+					className="h-3.5 w-3.5"
+					aria-hidden="true"
+				>
+					<path d={FOLDER_ICON_PATH} />
+				</svg>
+				Copy Path
+			</button>
+
+			{/* Separator */}
+			<div className="my-1 border-t border-border-primary" />
+
+			{/* Remove */}
+			<button
+				type="button"
+				onClick={handleRemove}
+				className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-status-error transition-colors hover:bg-status-error/10"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+					className="h-3.5 w-3.5"
+					aria-hidden="true"
+				>
+					<path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22z" />
+				</svg>
+				Remove Project
+			</button>
+		</div>
+	);
+}
+
+// ============================================================================
 // Tab Item (sidebar variant — more detailed than TabBar)
 // ============================================================================
 
@@ -636,6 +883,7 @@ interface ProjectItemProps {
 	isActive: boolean;
 	onOpen: (project: Project) => void;
 	onRemove: (projectId: string) => void;
+	onContextMenu: (projectId: string, x: number, y: number) => void;
 }
 
 const ProjectItem = memo(function ProjectItem({
@@ -643,8 +891,18 @@ const ProjectItem = memo(function ProjectItem({
 	isActive,
 	onOpen,
 	onRemove,
+	onContextMenu,
 }: ProjectItemProps) {
 	const lastOpenedStr = formatRelativeTime(project.lastOpened);
+
+	const handleContextMenu = useCallback(
+		(e: ReactMouseEvent) => {
+			e.preventDefault();
+			e.stopPropagation();
+			onContextMenu(project.id, e.clientX, e.clientY);
+		},
+		[project.id, onContextMenu],
+	);
 
 	return (
 		<div
@@ -657,6 +915,7 @@ const ProjectItem = memo(function ProjectItem({
 					onOpen(project);
 				}
 			}}
+			onContextMenu={handleContextMenu}
 			className={cn(
 				"group flex w-full cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-left transition-colors",
 				isActive
@@ -906,6 +1165,10 @@ export function Sidebar() {
 	const [isAddingProject, setIsAddingProject] = useState(false);
 	const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 	const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
+	const [deletingTabId, setDeletingTabId] = useState<string | null>(null);
+	const [projectContextMenu, setProjectContextMenu] = useState<ProjectContextMenuState | null>(
+		null,
+	);
 	const addToast = useStore((s) => s.addToast);
 	const updateTab = useStore((s) => s.updateTab);
 
@@ -1137,9 +1400,7 @@ export function Sidebar() {
 						updateTab(tabId, { hasUnread: true });
 						break;
 					case "delete":
-						closeTab(tabId).catch((err: unknown) => {
-							console.error("[Sidebar] Failed to delete tab:", err);
-						});
+						setDeletingTabId(tabId);
 						break;
 				}
 			}).catch(() => {
@@ -1161,9 +1422,20 @@ export function Sidebar() {
 
 	const handleContextMenuDelete = useCallback((tabId: string) => {
 		setContextMenu(null);
+		setDeletingTabId(tabId);
+	}, []);
+
+	const handleConfirmDelete = useCallback(() => {
+		if (!deletingTabId) return;
+		const tabId = deletingTabId;
+		setDeletingTabId(null);
 		closeTab(tabId).catch((err: unknown) => {
 			console.error("[Sidebar] Failed to delete tab:", err);
 		});
+	}, [deletingTabId]);
+
+	const handleCancelDelete = useCallback(() => {
+		setDeletingTabId(null);
 	}, []);
 
 	/**
@@ -1204,6 +1476,98 @@ export function Sidebar() {
 	const handleRenameCancel = useCallback(() => {
 		setRenamingTabId(null);
 	}, []);
+
+	// ── Project context menu ─────────────────────────────────────
+
+	/**
+	 * Open a context menu for a project.
+	 *
+	 * Tries native context menu first (desktop mode). On failure (browser mode),
+	 * falls back to an HTML context menu positioned at the click coordinates.
+	 */
+	const handleProjectContextMenu = useCallback(
+		(projectId: string, x: number, y: number) => {
+			const project = projects.find((p) => p.id === projectId);
+			if (!project) return;
+
+			const items: ContextMenuItem[] = [
+				{ label: "Open in Terminal", action: "open-terminal" },
+				{ label: "Open in Editor", action: "open-editor" },
+				{ type: "separator" },
+				{ label: "Copy Path", action: "copy-path" },
+				{ type: "separator" },
+				{ label: "Remove Project", action: "remove" },
+			];
+
+			showNativeContextMenu(items, (data) => {
+				switch (data.action) {
+					case "open-terminal":
+						createTerminal(project.cwd).catch((err: unknown) => {
+							console.error("[Sidebar] Failed to open terminal:", err);
+						});
+						break;
+					case "open-editor":
+						getTransport()
+							.request("project.openInEditor", { cwd: project.cwd })
+							.catch((err: unknown) => {
+								console.error("[Sidebar] Failed to open in editor:", err);
+								addToast("Could not open in editor", "error");
+							});
+						break;
+					case "copy-path":
+						navigator.clipboard.writeText(project.cwd).then(() => {
+							addToast("Path copied to clipboard", "info");
+						});
+						break;
+					case "remove":
+						handleRemoveProject(projectId);
+						break;
+				}
+			}).catch(() => {
+				setProjectContextMenu({ projectId, x, y });
+			});
+		},
+		[projects, addToast, handleRemoveProject],
+	);
+
+	const handleCloseProjectContextMenu = useCallback(() => {
+		setProjectContextMenu(null);
+	}, []);
+
+	const handleProjectOpenInTerminal = useCallback(
+		(projectId: string) => {
+			setProjectContextMenu(null);
+			const project = projects.find((p) => p.id === projectId);
+			if (!project) return;
+			createTerminal(project.cwd).catch((err: unknown) => {
+				console.error("[Sidebar] Failed to open terminal:", err);
+			});
+		},
+		[projects],
+	);
+
+	const handleProjectOpenInEditor = useCallback(
+		(projectId: string) => {
+			setProjectContextMenu(null);
+			const project = projects.find((p) => p.id === projectId);
+			if (!project) return;
+			getTransport()
+				.request("project.openInEditor", { cwd: project.cwd })
+				.catch((err: unknown) => {
+					console.error("[Sidebar] Failed to open in editor:", err);
+					addToast("Could not open in editor", "error");
+				});
+		},
+		[projects, addToast],
+	);
+
+	const handleProjectContextRemove = useCallback(
+		(projectId: string) => {
+			setProjectContextMenu(null);
+			handleRemoveProject(projectId);
+		},
+		[handleRemoveProject],
+	);
 
 	// The sidebar panel content (shared between mobile overlay and desktop inline)
 	const sidebarContent = (
@@ -1431,6 +1795,7 @@ export function Sidebar() {
 										isActive={project.id === activeProjectId}
 										onOpen={handleOpenProject}
 										onRemove={handleRemoveProject}
+										onContextMenu={handleProjectContextMenu}
 									/>
 								))
 							) : !showAddProjectInput ? (
@@ -1540,6 +1905,10 @@ export function Sidebar() {
 
 	// Find the tab for the active context menu (if any)
 	const contextMenuTab = contextMenu ? tabs.find((t) => t.id === contextMenu.tabId) : null;
+	const deletingTab = deletingTabId ? tabs.find((t) => t.id === deletingTabId) : null;
+	const contextMenuProject = projectContextMenu
+		? projects.find((p) => p.id === projectContextMenu.projectId)
+		: null;
 
 	return (
 		<>
@@ -1580,6 +1949,27 @@ export function Sidebar() {
 					onClose={handleCloseContextMenu}
 					onRename={() => handleContextMenuRename(contextMenu.tabId)}
 					onDelete={() => handleContextMenuDelete(contextMenu.tabId)}
+				/>
+			)}
+
+			{/* Delete confirmation dialog */}
+			{deletingTab && (
+				<DeleteConfirmDialog
+					tab={deletingTab}
+					onConfirm={handleConfirmDelete}
+					onCancel={handleCancelDelete}
+				/>
+			)}
+
+			{/* HTML fallback project context menu (browser mode) */}
+			{projectContextMenu && contextMenuProject && (
+				<HtmlProjectContextMenu
+					menu={projectContextMenu}
+					project={contextMenuProject}
+					onClose={handleCloseProjectContextMenu}
+					onOpenInTerminal={() => handleProjectOpenInTerminal(projectContextMenu.projectId)}
+					onOpenInEditor={() => handleProjectOpenInEditor(projectContextMenu.projectId)}
+					onRemove={() => handleProjectContextRemove(projectContextMenu.projectId)}
 				/>
 			)}
 		</>

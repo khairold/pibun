@@ -36,6 +36,7 @@ import type {
 	WsProjectAddParams,
 	WsProjectAddResult,
 	WsProjectListResult,
+	WsProjectOpenInEditorParams,
 	WsProjectRemoveParams,
 	WsProjectSearchFilesParams,
 	WsProjectSearchFilesResult,
@@ -583,6 +584,62 @@ function parseSearchResults(
 
 	return results;
 }
+
+// ============================================================================
+// Project — Open in Editor
+// ============================================================================
+
+/** Editor candidates, tried in order. `null` command = system default handler. */
+const EDITOR_CANDIDATES = [
+	{ command: "cursor", label: "Cursor" },
+	{ command: "code", label: "VS Code" },
+	{ command: "zed", label: "Zed" },
+] as const;
+
+/**
+ * Open a project directory in the system code editor.
+ *
+ * Tries common code editors in order (cursor → code → zed).
+ * Falls back to the system's default directory handler (`open` on macOS,
+ * `xdg-open` on Linux, `start` on Windows).
+ */
+export const handleProjectOpenInEditor: WsHandler<"project.openInEditor"> = async (
+	params: WsProjectOpenInEditorParams,
+): Promise<WsOkResult> => {
+	const { cwd } = params;
+
+	// Try each known editor
+	for (const editor of EDITOR_CANDIDATES) {
+		try {
+			const proc = Bun.spawn([editor.command, cwd], {
+				stdout: "ignore",
+				stderr: "pipe",
+			});
+			const exitCode = await proc.exited;
+			if (exitCode === 0) {
+				return { ok: true };
+			}
+		} catch {
+			// Editor not installed — try next
+		}
+	}
+
+	// Fallback: system default handler
+	const openCmd =
+		process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+	try {
+		const proc = Bun.spawn([openCmd, cwd], {
+			stdout: "ignore",
+			stderr: "pipe",
+		});
+		await proc.exited;
+		return { ok: true };
+	} catch {
+		throw new Error(
+			"No code editor found. Install Cursor, VS Code, or Zed, or use a terminal to open the project.",
+		);
+	}
+};
 
 // ============================================================================
 // Settings — App preferences in ~/.pibun/settings.json

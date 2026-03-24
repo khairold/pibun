@@ -96,6 +96,7 @@ export const WS_METHODS = {
 	projectRemove: "project.remove",
 	projectUpdate: "project.update",
 	projectSearchFiles: "project.searchFiles",
+	projectOpenInEditor: "project.openInEditor",
 
 	// Git integration (server-side, not Pi RPC)
 	gitStatus: "git.status",
@@ -341,6 +342,17 @@ export interface WsProjectSearchFilesResult {
 	/** Matched files and directories, ordered by relevance (path match quality). */
 	files: FileSearchResult[];
 	/** The root directory the search was performed in (resolved CWD). */
+	cwd: string;
+}
+
+/**
+ * Params for `project.openInEditor` — open a project directory in the system editor.
+ *
+ * Tries common code editors (cursor, code, zed) in order. Falls back to
+ * the system's default handler for directories (`open` on macOS, `xdg-open` on Linux).
+ */
+export interface WsProjectOpenInEditorParams {
+	/** Absolute path to the project directory. */
 	cwd: string;
 }
 
@@ -615,6 +627,7 @@ export interface WsMethodParamsMap {
 	"project.remove": WsProjectRemoveParams;
 	"project.update": WsProjectUpdateParams;
 	"project.searchFiles": WsProjectSearchFilesParams;
+	"project.openInEditor": WsProjectOpenInEditorParams;
 	"git.status": WsGitStatusParams;
 	"git.branch": WsGitBranchParams;
 	"git.diff": WsGitDiffParams;
@@ -894,6 +907,7 @@ export interface WsMethodResultMap {
 	"project.remove": WsOkResult;
 	"project.update": WsOkResult;
 	"project.searchFiles": WsProjectSearchFilesResult;
+	"project.openInEditor": WsOkResult;
 	"git.status": WsGitStatusResult;
 	"git.branch": WsGitBranchResult;
 	"git.diff": WsGitDiffResult;

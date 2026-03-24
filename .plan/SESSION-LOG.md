@@ -1049,3 +1049,38 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 36 — Thread deletion confirmation + project context menu (2026-03-24)
+
+**What happened:**
+- Verified 4A.3 (thread renaming) was already fully implemented in Session 35 — inline edit in sidebar with `session.setName` Pi RPC, optimistic update + rollback. Marked complete.
+- Implemented thread deletion confirmation dialog (4A.4):
+  - **`DeleteConfirmDialog` component**: New component in `Sidebar.tsx`. Centered modal overlay with semi-transparent backdrop. Shows session display name, "Delete thread?" heading, explanatory text, Cancel/Delete buttons. Closes on Escape or outside click.
+  - **`deletingTabId` state**: Both native context menu "delete" action and HTML context menu "Delete" button now set `deletingTabId` instead of calling `closeTab()` directly. Only `handleConfirmDelete` actually calls `closeTab()`.
+  - Prevents accidental thread deletion — important because closing a tab stops the Pi session.
+- Implemented project context menu (4A.5):
+  - **Contracts**: Added `project.openInEditor` WS method with `WsProjectOpenInEditorParams` (cwd). Wired into `WS_METHODS`, `WsMethodParamsMap`, `WsMethodResultMap`.
+  - **Server**: Added `handleProjectOpenInEditor` handler in `appHandlers.ts`. Tries editor candidates in order (cursor → code → zed). Falls back to system handler (`open` on macOS, `xdg-open` on Linux, `start` on Windows). Throws descriptive error if nothing works. Registered in handler index.
+  - **`HtmlProjectContextMenu` component**: New HTML fallback context menu for projects with 4 actions: Open in Terminal, Open in Editor, Copy Path, Remove Project. Same visual style as `HtmlContextMenu`.
+  - **`ProjectItem` extended**: Added `onContextMenu` prop for right-click support. `handleContextMenu` calls `e.preventDefault()` + forwards to parent handler.
+  - **Native context menu support**: `handleProjectContextMenu` callback builds `ContextMenuItem[]` and tries `showNativeContextMenu()` first. Falls back to HTML menu on error.
+  - **Open in Terminal**: Uses existing `createTerminal(project.cwd)` from `appActions.ts`.
+  - **Open in Editor**: Calls `project.openInEditor` WS method → server handler tries editors.
+- Only 3 source files modified: `wsProtocol.ts` (contracts), `appHandlers.ts` + `index.ts` (server), `Sidebar.tsx` (web).
+
+**Items completed:**
+- [x] 4A.3 — Implement thread renaming (verified already done from Session 35)
+- [x] 4A.4 — Implement thread deletion: confirmation dialog → stop session → remove tab → cleanup
+- [x] 4A.5 — Project context menu: Open in Terminal, Open in Editor, Remove Project
+
+**Issues encountered:**
+- Biome import ordering: `WsProjectOpenInEditorParams` needed alphabetical sort among other imports. Fixed.
+- Biome formatting: long import line for `createTerminal` needed multi-line format. Fixed with `bun run format`.
+
+**Handoff to next session:**
+- Next: 4A.6 — Message context menu (right-click on message): Copy Text, Copy as Markdown, Fork from Here
+- `DeleteConfirmDialog` and `HtmlProjectContextMenu` live in `Sidebar.tsx` (deep modules convention). The delete confirmation pattern is reusable for other destructive actions.
+- `project.openInEditor` tries editors in a hardcoded order — could be made configurable via settings in the future (add `preferredEditor` to `PiBunSettings`).
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---
