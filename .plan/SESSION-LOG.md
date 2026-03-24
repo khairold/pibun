@@ -1084,3 +1084,40 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 37 — Message context menu (2026-03-24)
+
+**What happened:**
+- Implemented message context menu for user and assistant messages in the chat timeline (4A.6):
+  - **Dual-mode context menu**: Right-click on user or assistant message tries native context menu first (`showNativeContextMenu`) for desktop mode. On error (browser mode), falls back to `HtmlMessageContextMenu` component.
+  - **`HtmlMessageContextMenu` component**: New component in `ChatMessages.tsx` (deep modules convention). Fixed-position HTML menu at click coordinates. Shows message-type-appropriate actions. Closes on outside click or Escape.
+  - **Actions**:
+    - **Copy Text**: Strips markdown formatting for assistant messages (via `stripMarkdown()` helper — handles code fences, inline code, links, images, headers, bold/italic, blockquotes, list markers). Copies raw text for user messages.
+    - **Copy as Markdown**: Copies raw markdown source (assistant messages only — their content IS markdown).
+    - **Fork from Here**: For user messages, forks from that message directly. For assistant messages, walks backwards through messages to find the preceding user message, then uses `findForkEntryId()` text matching + `forkFromMessage()`. Requires active session.
+  - **`MessageContextMenuState` type**: Exported from `ChatMessages.tsx` — tracks `{ message, x, y }`.
+  - **`showMessageContextMenu()` function**: Exported async helper that tries native menu first, returns `false` if unavailable (caller shows HTML fallback).
+  - **`buildMessageContextMenuItems()`**: Builds dynamic menu items based on message type (user vs assistant) and session state.
+  - **`stripMarkdown()`**: Helper that removes common markdown formatting (code fences, backticks, links, images, headers, bold/italic, blockquotes, rules, list markers) for plain text copy.
+  - **`handleMessageContextAction()`**: Centralized action handler shared by both native and HTML context menus.
+  - **Props threading**: `onContextMenu` optional prop added to `UserMessage` and `AssistantMessage`. Passed through `TimelineEntryRenderer` → `MessageItem` → message components. Required `| undefined` union for `exactOptionalPropertyTypes` compatibility.
+  - **Context menu state in ChatView**: `messageContextMenu` state managed at `ChatView` level. `onMessageContextMenu` callback passed to `itemContent`. `HtmlMessageContextMenu` rendered outside Virtuoso container.
+- Only 2 files modified: `ChatMessages.tsx` and `ChatView.tsx`. No contracts, server, or store changes needed — all infrastructure (native context menu, fork API) already existed.
+
+**Items completed:**
+- [x] 4A.6 — Message context menu (right-click on message): Copy Text, Copy as Markdown, Fork from Here
+
+**Issues encountered:**
+- `exactOptionalPropertyTypes` required `| undefined` on all optional `onContextMenu` prop types. Three interfaces needed fixing: `UserMessageProps`, `AssistantMessageProps`, and `MessageItem`/`TimelineEntryRenderer` inline prop types.
+- Biome import ordering: `showNativeContextMenu` from `@/wireTransport` needed to sort after `@/store/types` (by path).
+- Biome formatting: chained `.replace()` calls needed wrapping in parentheses, long function call collapsed to fewer lines.
+
+**Handoff to next session:**
+- Next: 4B.1 — Add system tray icon with menu
+- Phase 4A is now COMPLETE (all 6 items checked off). Phase 4B starts with tray/window features.
+- `HtmlMessageContextMenu` and `showMessageContextMenu` are in `ChatMessages.tsx`. The `handleMessageContextAction` function is reusable if more actions are added later.
+- `stripMarkdown()` lives in `ChatMessages.tsx` — if needed elsewhere (e.g., export feature, search), extract to `utils.ts`.
+- Fork from assistant messages walks backwards to find the preceding user message — if Pi ever exposes `entryId` on message events, the text-matching bridge can be replaced with direct ID correlation.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

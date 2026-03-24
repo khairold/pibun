@@ -4,7 +4,7 @@
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
 > **Status:** Phase 4 in progress
 > **Current Phase:** Phase 4 — Desktop Native Features
-> **Last Session:** Session 36 — 2026-03-24
+> **Last Session:** Session 37 — 2026-03-24
 
 ---
 
@@ -131,7 +131,7 @@
 - [x] 4A.3 — Implement thread renaming: inline edit in sidebar (click rename → input field → Enter/Escape), calls `session.setName` via Pi RPC
 - [x] 4A.4 — Implement thread deletion: confirmation dialog → stop session → remove tab → cleanup
 - [x] 4A.5 — Project context menu: Open in Terminal, Open in Editor, Remove Project
-- [ ] 4A.6 — Message context menu (right-click on message): Copy Text, Copy as Markdown, Fork from Here
+- [x] 4A.6 — Message context menu (right-click on message): Copy Text, Copy as Markdown, Fork from Here
 
 ### 4B — Tray & Window Features
 

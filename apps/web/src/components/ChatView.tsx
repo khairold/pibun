@@ -25,9 +25,12 @@
 import {
 	AssistantMessage,
 	CompletionSummary,
+	HtmlMessageContextMenu,
+	type MessageContextMenuState,
 	SystemMessage,
 	TurnDivider,
 	UserMessage,
+	showMessageContextMenu,
 } from "@/components/chat/ChatMessages";
 import { ToolCallMessage, ToolExecutionCard, ToolResultMessage } from "@/components/chat/ToolCards";
 import { WorkGroup } from "@/components/chat/WorkGroup";
@@ -208,12 +211,18 @@ function groupMessages(messages: readonly ChatMessage[]): TimelineEntry[] {
 // ============================================================================
 
 /** Render a single message based on its type (non-grouped messages only). */
-const MessageItem = memo(function MessageItem({ message }: { message: ChatMessage }) {
+const MessageItem = memo(function MessageItem({
+	message,
+	onContextMenu,
+}: {
+	message: ChatMessage;
+	onContextMenu?: ((e: React.MouseEvent, message: ChatMessage) => void) | undefined;
+}) {
 	switch (message.type) {
 		case "user":
-			return <UserMessage message={message} />;
+			return <UserMessage message={message} onContextMenu={onContextMenu} />;
 		case "assistant":
-			return <AssistantMessage message={message} />;
+			return <AssistantMessage message={message} onContextMenu={onContextMenu} />;
 		case "tool_call":
 			return <ToolCallMessage message={message} />;
 		case "tool_result":
@@ -228,7 +237,11 @@ const MessageItem = memo(function MessageItem({ message }: { message: ChatMessag
 /** Render a timeline entry (message, work group, turn divider, or completion summary). */
 const TimelineEntryRenderer = memo(function TimelineEntryRenderer({
 	entry,
-}: { entry: TimelineEntry }) {
+	onMessageContextMenu,
+}: {
+	entry: TimelineEntry;
+	onMessageContextMenu?: ((e: React.MouseEvent, message: ChatMessage) => void) | undefined;
+}) {
 	switch (entry.kind) {
 		case "work-group":
 			return <WorkGroup entries={entry.entries} />;
@@ -247,7 +260,7 @@ const TimelineEntryRenderer = memo(function TimelineEntryRenderer({
 		case "completion-summary":
 			return <CompletionSummary content={entry.content} />;
 		case "message":
-			return <MessageItem message={entry.message} />;
+			return <MessageItem message={entry.message} onContextMenu={onMessageContextMenu} />;
 	}
 });
 
@@ -475,6 +488,35 @@ export function ChatView() {
 	// This avoids passing the full `messages` array into the footer callback.
 	const anyMessageStreaming = useMemo(() => hasStreamingMessage(messages), [messages]);
 
+	// ── Message context menu state ───────────────────────────────────
+	const [messageContextMenu, setMessageContextMenu] = useState<MessageContextMenuState | null>(
+		null,
+	);
+
+	const addToast = useStore((s) => s.addToast);
+	const setLastError = useStore((s) => s.setLastError);
+	const sessionId = useStore((s) => s.sessionId);
+
+	/** Handle right-click on a user or assistant message. */
+	const onMessageContextMenu = useCallback(
+		(e: React.MouseEvent, message: ChatMessage) => {
+			// Try native context menu first (desktop mode)
+			showMessageContextMenu(message, messages, sessionId !== null, addToast, setLastError).then(
+				(handled) => {
+					if (!handled) {
+						// Native menu unavailable — show HTML fallback
+						setMessageContextMenu({ message, x: e.clientX, y: e.clientY });
+					}
+				},
+			);
+		},
+		[messages, sessionId, addToast, setLastError],
+	);
+
+	const closeMessageContextMenu = useCallback(() => {
+		setMessageContextMenu(null);
+	}, []);
+
 	// ── Virtuoso callbacks (stable refs) ─────────────────────────────
 
 	/** Render a single entry by index. */
@@ -482,9 +524,9 @@ export function ChatView() {
 		(index: number) => {
 			const entry = entries[index];
 			if (!entry) return null;
-			return <TimelineEntryRenderer entry={entry} />;
+			return <TimelineEntryRenderer entry={entry} onMessageContextMenu={onMessageContextMenu} />;
 		},
-		[entries],
+		[entries, onMessageContextMenu],
 	);
 
 	/** Compute stable key per entry for reconciliation. */
@@ -600,6 +642,15 @@ export function ChatView() {
 					</svg>
 					<span>New messages</span>
 				</button>
+			)}
+
+			{/* Message context menu (HTML fallback for browser mode) */}
+			{messageContextMenu && (
+				<HtmlMessageContextMenu
+					menu={messageContextMenu}
+					messages={messages}
+					onClose={closeMessageContextMenu}
+				/>
 			)}
 		</div>
 	);

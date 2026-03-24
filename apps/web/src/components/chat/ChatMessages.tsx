@@ -14,16 +14,29 @@ import { forkFromMessage, getForkableMessages } from "@/lib/sessionActions";
 import { cn, formatDuration, formatTimestamp } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
+import { showNativeContextMenu } from "@/wireTransport";
+import type { ContextMenuItem } from "@pibun/contracts";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 // ==== UserMessage ====
 
 interface UserMessageProps {
 	message: ChatMessage;
+	onContextMenu?: ((e: React.MouseEvent, message: ChatMessage) => void) | undefined;
 }
 
 /** Renders a user prompt as a right-aligned bubble with pre-wrapped text. */
-export const UserMessage = memo(function UserMessage({ message }: UserMessageProps) {
+export const UserMessage = memo(function UserMessage({ message, onContextMenu }: UserMessageProps) {
+	const handleContextMenu = useCallback(
+		(e: React.MouseEvent) => {
+			if (onContextMenu) {
+				e.preventDefault();
+				onContextMenu(e, message);
+			}
+		},
+		[onContextMenu, message],
+	);
+
 	return (
 		<div className="flex justify-end">
 			<div
@@ -31,6 +44,7 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
 					"max-w-[85%] rounded-2xl bg-user-bubble-bg px-4 py-3",
 					"text-sm text-user-bubble-text",
 				)}
+				onContextMenu={handleContextMenu}
 			>
 				<p className="whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>
 			</div>
@@ -42,6 +56,7 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
 
 interface AssistantMessageProps {
 	message: ChatMessage;
+	onContextMenu?: ((e: React.MouseEvent, message: ChatMessage) => void) | undefined;
 }
 
 /**
@@ -51,7 +66,10 @@ interface AssistantMessageProps {
  * - Streaming cursor (blinking block) while message is actively streaming
  * - Content rendered as markdown with syntax-highlighted code blocks (Shiki)
  */
-export const AssistantMessage = memo(function AssistantMessage({ message }: AssistantMessageProps) {
+export const AssistantMessage = memo(function AssistantMessage({
+	message,
+	onContextMenu,
+}: AssistantMessageProps) {
 	const [thinkingExpanded, setThinkingExpanded] = useState(false);
 	const [copied, setCopied] = useState(false);
 	/** Whether the user has explicitly toggled thinking (overrides auto-expand). */
@@ -60,6 +78,16 @@ export const AssistantMessage = memo(function AssistantMessage({ message }: Assi
 	const hasThinking = message.thinking.length > 0;
 	const hasContent = message.content.length > 0;
 	const isThinkingActive = message.streaming && hasThinking && !hasContent;
+
+	const handleContextMenu = useCallback(
+		(e: React.MouseEvent) => {
+			if (onContextMenu) {
+				e.preventDefault();
+				onContextMenu(e, message);
+			}
+		},
+		[onContextMenu, message],
+	);
 
 	// Auto-expand thinking while actively thinking (no content yet).
 	// Auto-collapse once content starts arriving, unless user explicitly toggled.
@@ -100,7 +128,7 @@ export const AssistantMessage = memo(function AssistantMessage({ message }: Assi
 			: `${thinkingCharCount} chars`;
 
 	return (
-		<div className="group/assistant max-w-[85%]">
+		<div className="group/assistant max-w-[85%]" onContextMenu={handleContextMenu}>
 			{/* Thinking section */}
 			{hasThinking && (
 				<div className="mb-2">
@@ -342,6 +370,336 @@ export const CompletionSummary = memo(function CompletionSummary({
 		</div>
 	);
 });
+
+// ==== MessageContextMenu ====
+
+/** State for the message context menu (which message, where to render). */
+export interface MessageContextMenuState {
+	/** The message to show context actions for. */
+	message: ChatMessage;
+	/** Viewport X coordinate. */
+	x: number;
+	/** Viewport Y coordinate. */
+	y: number;
+}
+
+/**
+ * Build context menu items for a message.
+ *
+ * Actions vary by message type:
+ * - **User**: Copy Text, Fork from Here
+ * - **Assistant**: Copy Text, Copy as Markdown, Fork from Here
+ */
+function buildMessageContextMenuItems(
+	message: ChatMessage,
+	hasSession: boolean,
+): ContextMenuItem[] {
+	const items: ContextMenuItem[] = [];
+	const hasContent = message.content.length > 0;
+
+	// Copy Text — available for user and assistant messages with content
+	if (hasContent) {
+		items.push({ label: "Copy Text", action: "copy-text" });
+	}
+
+	// Copy as Markdown — assistant messages only (content IS markdown)
+	if (message.type === "assistant" && hasContent) {
+		items.push({ label: "Copy as Markdown", action: "copy-markdown" });
+	}
+
+	// Fork from Here — requires active session
+	if (hasSession && hasContent) {
+		items.push({ type: "separator" });
+		items.push({ label: "Fork from Here", action: "fork" });
+	}
+
+	return items;
+}
+
+/**
+ * Strip markdown formatting to produce plain text.
+ *
+ * Handles common markdown patterns: headers, bold, italic, code fences,
+ * inline code, links, images, blockquotes, horizontal rules, list markers.
+ * Not a full parser — handles the common cases for "Copy Text" action.
+ */
+function stripMarkdown(md: string): string {
+	return (
+		md
+			// Remove code fences (``` blocks) — keep inner content
+			.replace(/```[\s\S]*?```/g, (match) => {
+				const lines = match.split("\n");
+				// Remove first line (```lang) and last line (```)
+				return lines.slice(1, -1).join("\n");
+			})
+			// Remove inline code backticks
+			.replace(/`([^`]+)`/g, "$1")
+			// Remove images ![alt](url)
+			.replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+			// Convert links [text](url) to just text
+			.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+			// Remove headers (# through ######)
+			.replace(/^#{1,6}\s+/gm, "")
+			// Remove bold/italic markers
+			.replace(/\*{1,3}([^*]+)\*{1,3}/g, "$1")
+			.replace(/_{1,3}([^_]+)_{1,3}/g, "$1")
+			// Remove blockquote markers
+			.replace(/^>\s?/gm, "")
+			// Remove horizontal rules
+			.replace(/^[-*_]{3,}\s*$/gm, "")
+			// Remove unordered list markers
+			.replace(/^[\s]*[-*+]\s+/gm, "")
+			// Remove ordered list markers
+			.replace(/^[\s]*\d+\.\s+/gm, "")
+			// Collapse multiple blank lines
+			.replace(/\n{3,}/g, "\n\n")
+			.trim()
+	);
+}
+
+/**
+ * Handle a message context menu action.
+ *
+ * Processes: copy-text, copy-markdown, fork.
+ * Fork finds the nearest user message content for the fork entry ID match.
+ */
+async function handleMessageContextAction(
+	action: string,
+	message: ChatMessage,
+	messages: readonly ChatMessage[],
+	addToast: (msg: string, level: "info" | "error" | "warning") => void,
+	setLastError: (msg: string) => void,
+): Promise<void> {
+	switch (action) {
+		case "copy-text": {
+			// For user messages, content is plain text. For assistant, strip markdown.
+			const text = message.type === "assistant" ? stripMarkdown(message.content) : message.content;
+			await navigator.clipboard.writeText(text);
+			addToast("Copied to clipboard", "info");
+			break;
+		}
+		case "copy-markdown": {
+			// Copy raw content (which is markdown for assistant messages)
+			await navigator.clipboard.writeText(message.content);
+			addToast("Copied as Markdown", "info");
+			break;
+		}
+		case "fork": {
+			// Find the user message content to fork from.
+			// If this IS a user message, use its content directly.
+			// If this is an assistant message, find the preceding user message.
+			let forkContent: string | null = null;
+			if (message.type === "user") {
+				forkContent = message.content;
+			} else {
+				// Walk backwards through messages to find the preceding user message
+				const msgIndex = messages.findIndex((m) => m.id === message.id);
+				if (msgIndex >= 0) {
+					for (let i = msgIndex - 1; i >= 0; i--) {
+						const m = messages[i];
+						if (m?.type === "user") {
+							forkContent = m.content;
+							break;
+						}
+					}
+				}
+			}
+
+			if (!forkContent) {
+				setLastError("Could not find a user message to fork from.");
+				return;
+			}
+
+			const entryId = await findForkEntryId(forkContent);
+			if (!entryId) {
+				setLastError("Could not find the matching message to fork from.");
+				return;
+			}
+
+			await forkFromMessage(entryId);
+			// On success, session is replaced — component unmounts/re-renders
+			break;
+		}
+	}
+}
+
+/**
+ * HTML fallback context menu for messages in the chat timeline.
+ *
+ * Shown when native context menu is unavailable (browser mode).
+ * Positioned at right-click coordinates, closes on outside click or Escape.
+ *
+ * Actions:
+ * - **Copy Text** — copies plain text (strips markdown for assistant messages)
+ * - **Copy as Markdown** — copies raw markdown source (assistant only)
+ * - **Fork from Here** — forks conversation from this message's user turn
+ */
+export const HtmlMessageContextMenu = memo(function HtmlMessageContextMenu({
+	menu,
+	messages,
+	onClose,
+}: {
+	menu: MessageContextMenuState;
+	messages: readonly ChatMessage[];
+	onClose: () => void;
+}) {
+	const menuRef = useRef<HTMLDivElement>(null);
+	const addToast = useStore((s) => s.addToast);
+	const setLastError = useStore((s) => s.setLastError);
+	const sessionId = useStore((s) => s.sessionId);
+	const hasSession = sessionId !== null;
+
+	// Close on outside click or Escape
+	useEffect(() => {
+		function handleClick(e: globalThis.MouseEvent) {
+			if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+				onClose();
+			}
+		}
+		function handleKeyDown(e: KeyboardEvent) {
+			if (e.key === "Escape") onClose();
+		}
+		document.addEventListener("mousedown", handleClick);
+		document.addEventListener("keydown", handleKeyDown);
+		return () => {
+			document.removeEventListener("mousedown", handleClick);
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [onClose]);
+
+	const handleAction = useCallback(
+		(action: string) => {
+			onClose();
+			handleMessageContextAction(action, menu.message, messages, addToast, setLastError).catch(
+				(err: unknown) => {
+					console.error("[MessageContextMenu] Action failed:", err);
+				},
+			);
+		},
+		[onClose, menu.message, messages, addToast, setLastError],
+	);
+
+	const hasContent = menu.message.content.length > 0;
+	const isAssistant = menu.message.type === "assistant";
+
+	return (
+		<div
+			ref={menuRef}
+			className="fixed z-[100] min-w-[160px] rounded-lg border border-border-primary bg-surface-secondary py-1 shadow-lg"
+			style={{ left: menu.x, top: menu.y }}
+		>
+			{/* Copy Text */}
+			{hasContent && (
+				<button
+					type="button"
+					onClick={() => handleAction("copy-text")}
+					className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+				>
+					{/* Copy icon */}
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 16 16"
+						fill="currentColor"
+						className="h-3.5 w-3.5 text-text-muted"
+						aria-label="Copy text"
+						role="img"
+					>
+						<path d="M5.5 3.5A1.5 1.5 0 0 1 7 2h5.5A1.5 1.5 0 0 1 14 3.5v7a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 10.5v-7Z" />
+						<path d="M3 5a1 1 0 0 0-1 1v7.5A1.5 1.5 0 0 0 3.5 15H11a1 1 0 0 0 1-1H3.5a.5.5 0 0 1-.5-.5V5Z" />
+					</svg>
+					Copy Text
+				</button>
+			)}
+
+			{/* Copy as Markdown — assistant only */}
+			{isAssistant && hasContent && (
+				<button
+					type="button"
+					onClick={() => handleAction("copy-markdown")}
+					className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+				>
+					{/* Markdown icon */}
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 16 16"
+						fill="currentColor"
+						className="h-3.5 w-3.5 text-text-muted"
+						aria-label="Copy as Markdown"
+						role="img"
+					>
+						<path
+							fillRule="evenodd"
+							d="M2 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4Zm2-.5h8a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Zm1.25 2.5v4h1.5V7.87l1.25 1.56 1.25-1.56V10h1.5V6H9.5l-1.25 1.5L7 6H5.25Z"
+							clipRule="evenodd"
+						/>
+					</svg>
+					Copy as Markdown
+				</button>
+			)}
+
+			{/* Fork from Here — requires session */}
+			{hasSession && hasContent && (
+				<>
+					<div className="my-1 h-px bg-border-primary" />
+					<button
+						type="button"
+						onClick={() => handleAction("fork")}
+						className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+					>
+						{/* Fork icon */}
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="h-3.5 w-3.5 text-text-muted"
+							aria-label="Fork from here"
+							role="img"
+						>
+							<path
+								fillRule="evenodd"
+								d="M5 3.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm0 2.122a2.25 2.25 0 1 0-1.5 0v5.256a2.25 2.25 0 1 0 1.5 0V5.372Zm-1 7.878a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm7.75-7a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm.75 1.122a2.25 2.25 0 1 0-1.5 0V8c0 .828-.672 1.5-1.5 1.5H7.75a.75.75 0 0 0 0 1.5h1.75A3.001 3.001 0 0 0 12.5 8V7.372Z"
+								clipRule="evenodd"
+							/>
+						</svg>
+						Fork from Here
+					</button>
+				</>
+			)}
+		</div>
+	);
+});
+
+/**
+ * Show a context menu for a message — tries native first, falls back to HTML.
+ *
+ * Returns `true` if native menu was shown (no HTML fallback needed),
+ * `false` if native menu failed (caller should show HTML menu).
+ */
+export async function showMessageContextMenu(
+	message: ChatMessage,
+	messages: readonly ChatMessage[],
+	hasSession: boolean,
+	addToast: (msg: string, level: "info" | "error" | "warning") => void,
+	setLastError: (msg: string) => void,
+): Promise<boolean> {
+	const items = buildMessageContextMenuItems(message, hasSession);
+	if (items.length === 0) return true; // Nothing to show
+
+	try {
+		await showNativeContextMenu(items, (data) => {
+			if (data.action) {
+				handleMessageContextAction(data.action, message, messages, addToast, setLastError).catch(
+					(err: unknown) => {
+						console.error("[MessageContextMenu] Native action failed:", err);
+					},
+				);
+			}
+		});
+		return true;
+	} catch {
+		return false; // Native menu unavailable — caller should show HTML fallback
+	}
+}
 
 // ==== Helpers ====
 
