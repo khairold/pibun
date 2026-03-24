@@ -17,23 +17,15 @@
 
 import { create } from "zustand";
 import { createAppSlice } from "./appSlice";
-import { createGitSlice } from "./gitSlice";
-import { createPluginsSlice } from "./pluginsSlice";
-import { createProjectsSlice } from "./projectsSlice";
 import { createSessionSlice } from "./sessionSlice";
-import { createTabsSlice } from "./tabsSlice";
-import { createTerminalSlice } from "./terminalSlice";
 import type { AppStore } from "./types";
+import { createWorkspaceSlice } from "./workspaceSlice";
 
 /** The main application store. Use selectors for fine-grained reactivity. */
 export const useStore = create<AppStore>()((...a) => ({
 	...createAppSlice(...a),
 	...createSessionSlice(...a),
-	...createTabsSlice(...a),
-	...createProjectsSlice(...a),
-	...createGitSlice(...a),
-	...createTerminalSlice(...a),
-	...createPluginsSlice(...a),
+	...createWorkspaceSlice(...a),
 }));
 
 // Re-export types for convenience

@@ -265,3 +265,30 @@
 - After 3.3, store/ should have 5 files (appSlice, sessionSlice, workspaceSlice, types, index) — the target
 
 ---
+
+## Session 10 — Merge workspace store slices into workspaceSlice.ts (2026-03-24)
+
+**What happened:**
+- Created merged `workspaceSlice.ts` (~350 lines) by combining 5 slices: tabsSlice, terminalSlice, gitSlice, pluginsSlice, projectsSlice
+- Defined combined type `WorkspaceSlice = TabsSlice & TerminalSlice & GitSlice & PluginsSlice & ProjectsSlice` locally
+- Included all helpers inline: `nextTabId`, `defaultTabName`, `terminalTabCounter`, `sortByLastOpened`
+- Organized with section comments: Tabs state, Terminal state, Git state, Plugins state, Projects state
+- Updated store/index.ts: replaced 5 imports + 5 spreads with 1 import + 1 spread (now 3 total: app, session, workspace)
+- Deleted 5 old files: tabsSlice.ts, terminalSlice.ts, gitSlice.ts, pluginsSlice.ts, projectsSlice.ts
+- No external import changes needed — components use `useStore(s => s.field)` selectors
+- types.ts unchanged — individual slice interfaces remain as named types
+- store/ now has exactly 5 files: appSlice.ts, sessionSlice.ts, workspaceSlice.ts, types.ts, index.ts — matching the target
+
+**Items completed:**
+- [x] 3.3 — Merge store slices: tabs + terminal + git + plugins + projects → workspaceSlice.ts
+
+**Issues encountered:**
+- None. Same pattern as appSlice.ts and sessionSlice.ts. The 5 slices had no inter-dependencies beyond what the combined AppStore type provides.
+
+**Handoff to next session:**
+- Next: 3.4 — Rewrite store/index.ts to combine 3 slices. Update store/types.ts if slice interfaces change.
+- store/index.ts already updated in this session (3 slices). Item 3.4 may be a quick verification rather than work.
+- types.ts unchanged — individual slice types remain. AppStore type still unions all 13 individual interfaces. No changes needed.
+- After 3.4, move to 3.5: Merge lib actions files.
+
+---

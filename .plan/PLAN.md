@@ -3,7 +3,7 @@
 > **Spec:** Audit findings from 2026-03-24 session + "deep modules" principle
 > **Status:** In Progress
 > **Current Phase:** Phase 3 — Deep Store + Actions
-> **Last Session:** Session 9 — 2026-03-24
+> **Last Session:** Session 10 — 2026-03-24
 
 ---
 
@@ -78,7 +78,7 @@ With a 1M token context window, the entire codebase (~532K tokens) fits in one s
 
 - [x] 3.1 — Merge store slices: connection + ui + update + notifications → `appSlice.ts`. These are app-level state, always orthogonal to chat.
 - [x] 3.2 — Merge store slices: session + messages + models + extensionUi → `sessionSlice.ts`. These co-change during conversation flow.
-- [ ] 3.3 — Merge store slices: tabs + terminal + git + plugins + projects → `workspaceSlice.ts`. Workspace-level features.
+- [x] 3.3 — Merge store slices: tabs + terminal + git + plugins + projects → `workspaceSlice.ts`. Workspace-level features.
 - [ ] 3.4 — Rewrite store/index.ts to combine 3 slices. Update store/types.ts if slice interfaces change.
 - [ ] 3.5 — Merge lib actions: gitActions + projectActions + pluginActions + settingsActions + terminalActions → `appActions.ts`. All follow the identical try/catch/getTransport/updateStore pattern.
 - [ ] 3.6 — Merge lib utilities: cn.ts + fileUtils.ts + shortcuts.ts → `utils.ts`. Small utilities always needed together.

@@ -31,6 +31,7 @@
 | 21 | index.ts uses `export type *` for type-only files | piProtocol.ts and domain.ts are pure types (interfaces + type aliases). `export type * from` used for them. wsProtocol.ts has runtime values (WS_METHODS, WS_CHANNELS) so uses plain `export * from`. | 2026-03-24 |
 | 22 | appSlice.ts combines ConnectionSlice + UiSlice + UpdateSlice + NotificationsSlice | Combined type `AppSlice` defined locally in appSlice.ts. Slice types in types.ts unchanged — they're still individually named interfaces. store/index.ts spreads one `createAppSlice` call instead of 4 separate ones. | 2026-03-24 |
 | 23 | sessionSlice.ts combines SessionSlice + MessagesSlice + ModelsSlice + ExtensionUiSlice | Combined type `SessionSlice` defined locally (imported `SessionSlice as SessionSliceType` from types to avoid naming conflict). Includes message helper functions `findMessageIndex` and `updateAtIndex` inline. store/index.ts spreads one `createSessionSlice` call instead of 4. | 2026-03-24 |
+| 24 | workspaceSlice.ts combines TabsSlice + TerminalSlice + GitSlice + PluginsSlice + ProjectsSlice | Combined type `WorkspaceSlice` defined locally. Largest merge — 5 slices into 1 (~350 lines). Includes all helpers inline (nextTabId, sortByLastOpened, terminalTabCounter). store/index.ts now spreads 3 slice creators total (app, session, workspace). | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -38,7 +39,7 @@
 - contracts/: 4 files ✅ DONE (was 12 → 9 after piProtocol merge → 4 after domain merge. index.ts: 15 lines)
 - server src (non-test): 19 files, 4460 lines
 - server handlers/: 8 files + types + index = 10 files
-- web store/: 9 files, ~1350 lines (was 15 → 12 after appSlice → 9 after sessionSlice merge)
+- web store/: 5 files ✅ DONE (was 15 → 12 after appSlice → 9 after sessionSlice → 5 after workspaceSlice merge)
 - web lib/: 13 files, 2604 lines
 - web components/: 45 files, 9361 lines
 - web components/chat/: 6 files + tools/5 files = 11 files
