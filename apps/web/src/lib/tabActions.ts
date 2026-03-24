@@ -101,8 +101,11 @@ export async function startSession(options?: { cwd?: string }): Promise<string |
 function cleanupEmptyTab(tabId: string): void {
 	const store = useStore.getState();
 
-	// Close terminals owned by the tab
-	const ownedTerminals = store.terminalTabs.filter((t) => t.ownerTabId === tabId);
+	// Close terminals owned by the tab's project
+	// NOTE: 1.4 will change this to NOT close terminals (they belong to the project)
+	const tab = store.tabs.find((t) => t.id === tabId);
+	const tabCwd = tab?.cwd ?? "";
+	const ownedTerminals = store.terminalTabs.filter((t) => t.projectPath === tabCwd);
 	for (const term of ownedTerminals) {
 		getTransport()
 			.request("terminal.close", { terminalId: term.terminalId })

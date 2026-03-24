@@ -614,9 +614,8 @@ function handleMenuAction(data: WsMenuActionData): void {
 		case "view.toggle-terminal": {
 			emitShortcut("toggleTerminal");
 			const termStore = useStore.getState();
-			const hasOwnedTerms = termStore.terminalTabs.some(
-				(t) => t.ownerTabId === termStore.activeTabId,
-			);
+			const activeTabCwd = termStore.getActiveTab()?.cwd ?? "";
+			const hasOwnedTerms = termStore.terminalTabs.some((t) => t.projectPath === activeTabCwd);
 			if (termStore.terminalPanelOpen) {
 				termStore.setTerminalPanelOpen(false);
 			} else if (hasOwnedTerms) {

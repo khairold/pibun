@@ -333,7 +333,7 @@ const DEFAULT_HEIGHT = 280;
 export function TerminalPane() {
 	const terminalPanelOpen = useStore((s) => s.terminalPanelOpen);
 	const allTerminalTabs = useStore((s) => s.terminalTabs);
-	const activeTabId = useStore((s) => s.activeTabId);
+	const activeProjectPath = useStore((s) => s.tabs.find((t) => t.id === s.activeTabId)?.cwd ?? "");
 	const activeTerminalTabId = useStore((s) => s.activeTerminalTabId);
 	const setActiveTerminalTabId = useStore((s) => s.setActiveTerminalTabId);
 	const setTerminalPanelOpen = useStore((s) => s.setTerminalPanelOpen);
@@ -341,16 +341,16 @@ export function TerminalPane() {
 	const heightRef = useRef(DEFAULT_HEIGHT);
 	const panelRef = useRef<HTMLDivElement>(null);
 
-	// Filter terminals to only show the current session tab's terminals in the tab bar
+	// Filter terminals to only show the current project's terminals in the tab bar
 	const terminalTabs = useMemo(
-		() => allTerminalTabs.filter((t) => t.ownerTabId === activeTabId),
-		[allTerminalTabs, activeTabId],
+		() => allTerminalTabs.filter((t) => t.projectPath === activeProjectPath),
+		[allTerminalTabs, activeProjectPath],
 	);
 
-	// Terminals from other session tabs — kept mounted but hidden
+	// Terminals from other projects — kept mounted but hidden
 	const otherTabTerminals = useMemo(
-		() => allTerminalTabs.filter((t) => t.ownerTabId !== activeTabId),
-		[allTerminalTabs, activeTabId],
+		() => allTerminalTabs.filter((t) => t.projectPath !== activeProjectPath),
+		[allTerminalTabs, activeProjectPath],
 	);
 
 	// Derive the active group's tabs

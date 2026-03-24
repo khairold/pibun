@@ -157,12 +157,15 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	removeTab: (tabId) => {
 		set((s) => {
 			const newTabs = s.tabs.filter((t) => t.id !== tabId);
+			const removedTab = s.tabs.find((t) => t.id === tabId);
+			const removedCwd = removedTab?.cwd ?? "";
 
-			// Remove terminals owned by this tab
-			const newTerminalTabs = s.terminalTabs.filter((t) => t.ownerTabId !== tabId);
-			// If active terminal was owned by removed tab, clear it
+			// Remove terminals owned by this tab's project
+			// NOTE: 1.4 will change this to NOT remove terminals (they belong to the project)
+			const newTerminalTabs = s.terminalTabs.filter((t) => t.projectPath !== removedCwd);
+			// If active terminal was in the removed tab's project, clear it
 			const activeTerminalOwned = s.terminalTabs.some(
-				(t) => t.id === s.activeTerminalTabId && t.ownerTabId === tabId,
+				(t) => t.id === s.activeTerminalTabId && t.projectPath === removedCwd,
 			);
 
 			const updates: Partial<AppStore> = {
@@ -195,8 +198,10 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					updates.isStreaming = nextTab.isStreaming;
 					updates.sessionName = nextTab.name;
 					updates.sessionFile = nextTab.sessionFile;
-					// Select first terminal owned by the next tab, if any
-					const nextTabTerminal = newTerminalTabs.find((t) => t.ownerTabId === nextTab.id);
+					// Select first terminal in the next tab's project, if any
+					const nextTabTerminal = newTerminalTabs.find(
+						(t) => t.projectPath === (nextTab.cwd ?? ""),
+					);
 					updates.activeTerminalTabId = nextTabTerminal?.id ?? null;
 				} else {
 					// No tabs left — clear everything
@@ -255,8 +260,8 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				);
 			}
 
-			// Select first terminal owned by the target tab, if any
-			const targetTerminal = s.terminalTabs.find((t) => t.ownerTabId === tabId);
+			// Select first terminal in the target tab's project, if any
+			const targetTerminal = s.terminalTabs.find((t) => t.projectPath === (targetTab?.cwd ?? ""));
 
 			return {
 				tabs: updatedTabs,
@@ -345,7 +350,8 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	addTerminalTab: (terminalId, cwd) => {
 		const state = get();
 		const tabId = `ttab-${String(++terminalTabCounter)}`;
-		const ownerTabId = state.activeTabId ?? "";
+		const activeTab = state.getActiveTab();
+		const projectPath = activeTab?.cwd ?? "";
 		const tab: TerminalTab = {
 			id: tabId,
 			terminalId,
@@ -353,7 +359,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			cwd,
 			isRunning: true,
 			groupId: tabId, // Each new terminal starts in its own group
-			ownerTabId,
+			projectPath,
 		};
 		set((s) => ({
 			terminalTabs: [...s.terminalTabs, tab],
@@ -367,27 +373,27 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 		const state = get();
 		const removedTab = state.terminalTabs.find((t) => t.id === tabId);
 		const newTabs = state.terminalTabs.filter((t) => t.id !== tabId);
-		const ownerTabId = removedTab?.ownerTabId ?? state.activeTabId ?? "";
+		const projectPath = removedTab?.projectPath ?? state.getActiveTab()?.cwd ?? "";
 
-		// Only consider sibling terminals from the same owner tab for active selection
-		const ownerTabs = newTabs.filter((t) => t.ownerTabId === ownerTabId);
+		// Only consider sibling terminals from the same project for active selection
+		const projectTabs = newTabs.filter((t) => t.projectPath === projectPath);
 
 		let newActiveId = state.activeTerminalTabId;
 		if (state.activeTerminalTabId === tabId) {
-			if (ownerTabs.length === 0) {
+			if (projectTabs.length === 0) {
 				newActiveId = null;
 			} else if (removedTab) {
 				// Prefer a sibling in the same split group first
-				const groupSibling = ownerTabs.find((t) => t.groupId === removedTab.groupId);
+				const groupSibling = projectTabs.find((t) => t.groupId === removedTab.groupId);
 				if (groupSibling) {
 					newActiveId = groupSibling.id;
 				} else {
-					// Fall back to first terminal in the same owner tab
-					const first = ownerTabs[0];
+					// Fall back to first terminal in the same project
+					const first = projectTabs[0];
 					newActiveId = first ? first.id : null;
 				}
 			} else {
-				const first = ownerTabs[0];
+				const first = projectTabs[0];
 				newActiveId = first ? first.id : null;
 			}
 		}
@@ -395,8 +401,8 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 		set({
 			terminalTabs: newTabs,
 			activeTerminalTabId: newActiveId,
-			// Close panel if no terminals left for the owner tab
-			...(ownerTabs.length === 0 ? { terminalPanelOpen: false } : {}),
+			// Close panel if no terminals left for the project
+			...(projectTabs.length === 0 ? { terminalPanelOpen: false } : {}),
 		});
 	},
 
@@ -420,11 +426,12 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 
 	splitTerminalTab: (terminalId, cwd) => {
 		const state = get();
-		const activeTab = state.activeTerminalTabId
+		const activeTermTab = state.activeTerminalTabId
 			? state.terminalTabs.find((t) => t.id === state.activeTerminalTabId)
 			: null;
-		const groupId = activeTab ? activeTab.groupId : null;
-		const ownerTabId = state.activeTabId ?? "";
+		const groupId = activeTermTab ? activeTermTab.groupId : null;
+		const activeSessionTab = state.getActiveTab();
+		const projectPath = activeSessionTab?.cwd ?? "";
 
 		// Check group size limit
 		if (groupId) {
@@ -440,7 +447,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			cwd,
 			isRunning: true,
 			groupId: groupId ?? tabId, // Join active group, or create new group
-			ownerTabId,
+			projectPath,
 		};
 		set((s) => ({
 			terminalTabs: [...s.terminalTabs, tab],

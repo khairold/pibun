@@ -27,14 +27,15 @@
 | 10 | Terminal tabs are renameable | Default "Terminal 1", "Terminal 2" auto-increment. Double-click label to rename (e.g., "dev server", "logs"). | 2026-03-24 |
 | 11 | Terminals kept alive on project switch | `Map<projectPath, TerminalTab[]>` conceptually. Switching projects swaps which terminals are visible, doesn't kill processes. | 2026-03-24 |
 | 12 | Terminal splits parked | Old `groupId`/`splitTerminalTab`/`MAX_TERMINALS_PER_GROUP` removed. Each tab = one full-size terminal. Splits can return later. | 2026-03-24 |
+| 13 | `removeTab` + `cleanupEmptyTab` still delete project terminals | After 1.1-1.3, these filter by `projectPath` instead of `ownerTabId`, but still delete terminals. This is wrong for multi-session-same-project. 1.4 will fix by NOT deleting terminals on tab removal. | 2026-03-24 |
 
 ## Architecture Notes
 
-### Current Terminal Infrastructure (Pre-Change)
+### Current Terminal Infrastructure (Post 1.1-1.3)
 
 | Field/Concept | Current | Target |
 |---|---|---|
-| `TerminalTab.ownerTabId` | Session tab ID | → `TerminalTab.projectPath` |
+| `TerminalTab.projectPath` | Active tab CWD (was `ownerTabId`) | ✅ Done |
 | `terminalPanelOpen` | Boolean toggle | → Removed (content tab controls visibility) |
 | `TerminalPane` | Bottom panel with resize | → Deleted. Replaced by `ContentTabBar` + full-height `TerminalView` |
 | `TerminalButton` (toolbar) | Opens/closes bottom panel | → Removed |
@@ -72,7 +73,7 @@ switchTabAction → snapshots leaving tab → clears store.sessionId →
 | File | Lines | Role |
 |------|-------|------|
 | `store/workspaceSlice.ts` | ~614 | Tabs, terminal, git, plugins, projects state |
-| `store/types.ts` | ~670 | All Zustand slice types — `TerminalTab`, `TerminalSlice` |
+| `store/types.ts` | ~670 | All Zustand slice types — `TerminalTab` (now has `projectPath`), `TerminalSlice` |
 | `lib/tabActions.ts` | ~200 | Tab lifecycle (start session, switch, cleanup) |
 | `lib/appActions.ts` | — | `createTerminal()`, `closeTerminal()` |
 | `components/AppShell.tsx` | ~250 | Top-level layout (toolbar + chat + terminal panel) |
@@ -86,6 +87,7 @@ switchTabAction → snapshots leaving tab → clears store.sessionId →
 - `createTerminal()` in appActions calls `terminal.create` on the server, then `addTerminalTab` in the store. The server side doesn't need to change — only the client ownership model changes.
 - `closeTerminal()` in appActions calls `terminal.close` on the server + `removeTerminalTab` in store. Same — server unchanged.
 - `syncActiveTabState` must NOT overwrite terminal state on session switch within same project
+- `getActiveTab()?.cwd ?? ""` is the canonical way to get the active project path for terminal matching. In React selectors, use `s.tabs.find(t => t.id === s.activeTabId)?.cwd ?? ""` to avoid function calls inside selectors.
 - Terminal processes are server-side PTY sessions. They survive client-side state changes. "Keeping alive on project switch" means keeping the store entries and not calling `terminal.close`.
 
 ## Technical Context

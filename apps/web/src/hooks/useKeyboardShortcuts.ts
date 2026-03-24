@@ -221,10 +221,11 @@ export function useKeyboardShortcuts(): void {
 					break;
 				}
 				case "splitTerminal": {
+					const splitActiveTabCwd = state.getActiveTab()?.cwd ?? "";
 					if (
 						isConnected &&
 						state.terminalPanelOpen &&
-						state.terminalTabs.some((t) => t.ownerTabId === state.activeTabId)
+						state.terminalTabs.some((t) => t.projectPath === splitActiveTabCwd)
 					) {
 						e.preventDefault();
 						emitShortcut("splitTerminal");
@@ -238,8 +239,9 @@ export function useKeyboardShortcuts(): void {
 					e.preventDefault();
 					emitShortcut("toggleTerminal");
 					const termState = useStore.getState();
+					const toggleActiveTabCwd = termState.getActiveTab()?.cwd ?? "";
 					const hasOwnedTerminals = termState.terminalTabs.some(
-						(t) => t.ownerTabId === termState.activeTabId,
+						(t) => t.projectPath === toggleActiveTabCwd,
 					);
 					if (termState.terminalPanelOpen) {
 						termState.setTerminalPanelOpen(false);

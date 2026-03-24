@@ -53,7 +53,8 @@ function TerminalButton() {
 		if (store.terminalPanelOpen) {
 			store.setTerminalPanelOpen(false);
 		} else {
-			const hasTerminals = store.terminalTabs.some((t) => t.ownerTabId === store.activeTabId);
+			const activeTabCwd = store.getActiveTab()?.cwd ?? "";
+			const hasTerminals = store.terminalTabs.some((t) => t.projectPath === activeTabCwd);
 			if (hasTerminals) {
 				store.setTerminalPanelOpen(true);
 			} else if (isConnected) {

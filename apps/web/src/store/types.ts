@@ -597,11 +597,12 @@ export interface TerminalTab {
 	 */
 	groupId: string;
 	/**
-	 * Session tab that owns this terminal. Terminals are scoped to the session tab
-	 * that created them — switching session tabs shows only that tab's terminals.
-	 * The TerminalPane filters by `ownerTabId === activeTabId`.
+	 * Project path (normalized CWD) that owns this terminal.
+	 * Terminals are scoped to projects — switching sessions within the same project
+	 * keeps terminal tabs intact. Switching projects swaps to that project's terminal set.
+	 * Filtering: `t.projectPath === activeTab.cwd`.
 	 */
-	ownerTabId: string;
+	projectPath: string;
 }
 
 /** Terminal state — embedded terminal panel and tabs. */
