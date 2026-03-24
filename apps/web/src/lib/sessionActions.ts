@@ -276,6 +276,7 @@ export async function refreshSessionState(): Promise<void> {
 	try {
 		const result = await getTransport().request("session.getState");
 		const store = useStore.getState();
+		store.setSessionId(result.state.sessionId);
 		if (result.state.model) {
 			store.setModel(result.state.model);
 		}
