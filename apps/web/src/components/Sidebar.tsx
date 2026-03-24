@@ -581,17 +581,8 @@ function buildProjectGroups(
 		pastSessions: projectPastSessions.get(p.id) ?? [],
 	}));
 
-	// Add orphan group only for active tabs without a project.
-	// Past sessions from unregistered CWDs are hidden — add the project to see them.
-	if (orphanActiveSessions.length > 0) {
-		groups.push({
-			project: null,
-			cwd: null,
-			displayName: "(no project)",
-			activeSessions: orphanActiveSessions,
-			pastSessions: [],
-		});
-	}
+	// Orphan sessions (no matching project) are hidden.
+	// Add the project to see its sessions.
 
 	return groups;
 }
