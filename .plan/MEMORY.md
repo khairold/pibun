@@ -16,6 +16,7 @@
 | 6 | Tabbed main content area (post-simplification) | After single-session simplification, main area gets tab bar: [Session Chat] + [Terminal 1..N]. Min 2 tabs always visible. Terminals renameable. Full-sized (no bottom panel). This is a separate plan after Phase 3. | 2026-03-24 |
 | 7 | `keepExisting` removed from WsSessionStartParams | Single-session model means server always stops existing session on `session.start`. No need for a flag. Removed from contracts, server handler, and all client callers. | 2026-03-24 |
 | 8 | `createNewTab` renamed to `startSession` in tabActions | Better reflects single-session semantics. All callers updated: Sidebar, TabBar, wireTransport, useKeyboardShortcuts, appActions. | 2026-03-24 |
+| 9 | Background event routing removed from `wireTransport.ts` | Single-session model: only one Pi process runs, so all events go to `handlePiEvent`. Stale events from old session during switch are silently skipped with `console.debug`. The `bgTab` branch with `hasUnread`, `setBackgroundTabStatus`, `setBackgroundTabWidget` calls is gone. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -36,8 +37,8 @@ Two IDs exist for every session — they are NEVER the same value:
 ```
 Pi process → JSONL events → PiProcess.onEvent → server pushes pi.event(sessionId, event) → 
 WebSocket → wireTransport pi.event subscriber → 
-  if event.sessionId matches active → handlePiEvent(event) → store updates
-  else → background tab status update (TO BE REMOVED in Phase 1)
+  if event.sessionId matches active (or no session context) → handlePiEvent(event) → store updates
+  else → skip stale event with console.debug log (single-session: no background routing)
 ```
 
 ### Session Switching (Current → Target)

@@ -771,94 +771,27 @@ export function initTransport(): () => void {
 	);
 
 	// pi.event → Zustand store (unwrap sessionId-tagged envelope)
+	// Single-session model: only one Pi process runs at a time, so all events
+	// go to handlePiEvent. Stale events from an old session (during switch) are skipped.
 	cleanups.push(
 		transport.subscribe("pi.event", (data: WsPiEventData) => {
 			const store = useStore.getState();
 			const activeTab = store.tabs.find((t) => t.id === store.activeTabId);
 			const activeSessionId = activeTab?.sessionId ?? store.sessionId;
 
-			// If event is for the active tab's session (or no tabs exist yet), dispatch normally
-			if (!data.sessionId || !activeSessionId || data.sessionId === activeSessionId) {
-				handlePiEvent(data.event);
-				// Forward Pi events to subscribed plugin iframes
-				forwardPiEventToPlugins(data.event);
-				// Sync active tab metadata with current streaming state
-				store.syncActiveTabState();
-			} else {
-				// Event is for a background tab — update tab status indicators + unread
-				const bgTab = store.tabs.find((t) => t.sessionId === data.sessionId);
-				if (bgTab) {
-					// Mark background tab as having unread content on any meaningful event
-					const unreadUpdate = bgTab.hasUnread ? {} : { hasUnread: true };
-
-					switch (data.event.type) {
-						case "agent_start":
-							store.updateTab(bgTab.id, {
-								isStreaming: true,
-								status: "running",
-								...unreadUpdate,
-							});
-							break;
-
-						case "agent_end":
-							store.updateTab(bgTab.id, {
-								isStreaming: false,
-								status: "idle",
-								gitDirty: true, // Optimistically mark dirty — agent likely modified files
-								...unreadUpdate,
-							});
-							break;
-
-						case "extension_ui_request": {
-							const extEvent = data.event;
-							// Dialog types — background tab needs user input
-							if (
-								extEvent.method === "select" ||
-								extEvent.method === "confirm" ||
-								extEvent.method === "input" ||
-								extEvent.method === "editor"
-							) {
-								store.updateTab(bgTab.id, { status: "waiting", ...unreadUpdate });
-							}
-							// Fire-and-forget: setStatus → cache for when tab becomes active
-							if (extEvent.method === "setStatus") {
-								store.setBackgroundTabStatus(bgTab.id, extEvent.statusKey, extEvent.statusText);
-							}
-							// Fire-and-forget: setWidget → cache for when tab becomes active
-							if (extEvent.method === "setWidget") {
-								store.setBackgroundTabWidget(
-									bgTab.id,
-									extEvent.widgetKey,
-									extEvent.widgetLines,
-									extEvent.widgetPlacement ?? "aboveEditor",
-								);
-							}
-							break;
-						}
-
-						case "auto_retry_end": {
-							// If retry failed, mark tab as error
-							const retryEvent = data.event;
-							if (!retryEvent.success && retryEvent.finalError) {
-								store.updateTab(bgTab.id, {
-									isStreaming: false,
-									status: "error",
-									...unreadUpdate,
-								});
-							}
-							break;
-						}
-
-						default:
-							// Other events (text_delta, message_start, tool_execution_*, etc.)
-							// just mark unread without status change
-							if (!bgTab.hasUnread) {
-								store.updateTab(bgTab.id, { hasUnread: true });
-							}
-							break;
-					}
-				}
+			// Skip stale events from an old session (can arrive briefly during session switch)
+			if (data.sessionId && activeSessionId && data.sessionId !== activeSessionId) {
+				console.debug(
+					`[PiBun] Skipping stale event from old session ${data.sessionId} (active: ${activeSessionId})`,
+				);
+				return;
 			}
+
+			handlePiEvent(data.event);
+			// Forward Pi events to subscribed plugin iframes
+			forwardPiEventToPlugins(data.event);
+			// Sync active tab metadata with current streaming state
+			store.syncActiveTabState();
 		}),
 	);
 

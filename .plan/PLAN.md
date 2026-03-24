@@ -3,7 +3,7 @@
 > **Spec:** Simplify from multi-tab-session to single-active-session model
 > **Status:** In Progress
 > **Current Phase:** Phase 1 — Single-Session Enforcement
-> **Last Session:** Session 1 — 2026-03-24
+> **Last Session:** Session 2 — 2026-03-24
 
 ---
 
@@ -57,7 +57,7 @@ status tracking (`tabStatuses`, `tabWidgets`), `keepExisting` flag,
 **Goal:** Only one Pi process runs at a time. Switching sessions stops the old, starts the new.
 
 - [x] 1.1 — `createNewTab` → `startSession`: stop any existing session before starting a new one. Remove `keepExisting` param. The server's `session.start` handler already supports this (it stops old session when `keepExisting` is false).
-- [ ] 1.2 — Remove background event routing in `wireTransport.ts`: delete the `else` branch in the `pi.event` handler that routes to `bgTab`. All events go to `handlePiEvent` (single session = always active).
+- [x] 1.2 — Remove background event routing in `wireTransport.ts`: delete the `else` branch in the `pi.event` handler that routes to `bgTab`. All events go to `handlePiEvent` (single session = always active).
 - [ ] 1.3 — Remove `tabMessages`, `tabStatuses`, `tabWidgets` caches from `workspaceSlice`. No save/restore on switch — messages live in the store directly. On switch, clear messages and load from Pi via `session.getMessages`.
 - [ ] 1.4 — Simplify `switchTab` in workspaceSlice: no message save/restore. Just update `activeTabId`, set session metadata. The async load happens in the action layer.
 - [ ] 1.5 — Simplify `switchTabAction` in tabActions: stop current session → switch tab → start new session (or resume existing) → load messages + refresh state.
