@@ -213,3 +213,28 @@
 - Each store slice uses `StateCreator<AppStore, [], [], SliceType>` — the `SliceType` generic must match the merged interface
 
 ---
+
+## Session 8 — Merge app-level store slices into appSlice.ts (2026-03-24)
+
+**What happened:**
+- Created `appSlice.ts` (~100 lines) by merging 4 slices: connectionSlice.ts, uiSlice.ts, updateSlice.ts, notificationsSlice.ts
+- Defined combined type `AppSlice = ConnectionSlice & UiSlice & UpdateSlice & NotificationsSlice` locally in the file
+- Organized with section comments: Connection state, UI state, Update state, Notifications state
+- Updated store/index.ts: replaced 4 imports + 4 spreads with 1 import + 1 spread
+- Deleted 4 old files: connectionSlice.ts, uiSlice.ts, updateSlice.ts, notificationsSlice.ts
+- No external import changes needed — components use `useStore(s => s.field)` selectors, not slice imports
+- types.ts unchanged — individual slice interfaces remain as named types for documentation/readability
+
+**Items completed:**
+- [x] 3.1 — Merge store slices: connection + ui + update + notifications → appSlice.ts
+
+**Issues encountered:**
+- None. The 4 slices had zero inter-dependencies and no external consumers beyond store/index.ts.
+
+**Handoff to next session:**
+- Next: 3.2 — Merge store slices: session + messages + models + extensionUi → `sessionSlice.ts`
+- Note: the current `sessionSlice.ts` already exists with session-only state. Need to merge messagesSlice, modelsSlice, extensionUiSlice into it.
+- The combined slice type pattern from appSlice.ts works well — define `type SessionSlice = ...` locally
+- Watch for the `get()` calls in messagesSlice — it reads from its own state (messages array) to filter/update
+
+---

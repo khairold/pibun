@@ -16,31 +16,25 @@
  */
 
 import { create } from "zustand";
-import { createConnectionSlice } from "./connectionSlice";
+import { createAppSlice } from "./appSlice";
 import { createExtensionUiSlice } from "./extensionUiSlice";
 import { createGitSlice } from "./gitSlice";
 import { createMessagesSlice } from "./messagesSlice";
 import { createModelsSlice } from "./modelsSlice";
-import { createNotificationsSlice } from "./notificationsSlice";
 import { createPluginsSlice } from "./pluginsSlice";
 import { createProjectsSlice } from "./projectsSlice";
 import { createSessionSlice } from "./sessionSlice";
 import { createTabsSlice } from "./tabsSlice";
 import { createTerminalSlice } from "./terminalSlice";
 import type { AppStore } from "./types";
-import { createUiSlice } from "./uiSlice";
-import { createUpdateSlice } from "./updateSlice";
 
 /** The main application store. Use selectors for fine-grained reactivity. */
 export const useStore = create<AppStore>()((...a) => ({
-	...createConnectionSlice(...a),
+	...createAppSlice(...a),
 	...createSessionSlice(...a),
 	...createMessagesSlice(...a),
 	...createModelsSlice(...a),
 	...createExtensionUiSlice(...a),
-	...createNotificationsSlice(...a),
-	...createUpdateSlice(...a),
-	...createUiSlice(...a),
 	...createTabsSlice(...a),
 	...createProjectsSlice(...a),
 	...createGitSlice(...a),
