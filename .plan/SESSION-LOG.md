@@ -564,3 +564,33 @@
 - `consumeDeferredActiveTabId()` still not consumed
 
 ---
+
+## Session 19 — Workspace file search API (2026-03-24)
+
+**What happened:**
+- Implemented `project.searchFiles` WS method end-to-end (2B.1):
+  - **Contracts wsProtocol.ts**: Added `project.searchFiles` to `WS_METHODS`. Added `WsProjectSearchFilesParams` (query, cwd, limit), `FileSearchResult` (path, kind), and `WsProjectSearchFilesResult` (files, cwd) types. Wired into `WsMethodParamsMap` and `WsMethodResultMap`.
+  - **Server appHandlers.ts**: Added `handleProjectSearchFiles` handler + 4 helper functions:
+    - `resolveSearchCwd(paramsCwd, ctx)` — same CWD resolution pattern as git handlers
+    - `searchFiles(cwd, query, limit)` — tries `fd`, falls back to `find`
+    - `searchWithFd(cwd, query, limit)` — uses `fd --type f --type d --max-results N --color never` with optional query pattern. Respects `.gitignore` by default. `--max-results` set to `limit * 2` for headroom.
+    - `searchWithFind(cwd, query, limit)` — fallback with manual ignore patterns (`.git`, `node_modules`, `dist`, `.turbo`, `__pycache__`, `.DS_Store`), `maxdepth 10`, `-iname` for case-insensitive match.
+    - `parseSearchResults(stdout, limit)` — splits output, detects directories by trailing `/` from `fd`, normalizes `./` prefix from `find`.
+  - **Server index.ts**: Registered `handleProjectSearchFiles` in handler registry.
+- Key design decision: `fd` outputs directories with trailing `/`, used to distinguish `kind: "file" | "directory"` without stat calls. For `find` fallback, everything is marked "file" (acceptable degradation since `find` output doesn't distinguish).
+
+**Items completed:**
+- [x] 2B.1 — Add workspace file search API: `project.searchFiles` WS method + server handler + contracts types
+
+**Issues encountered:**
+- Initial implementation used per-file `stat` calls to determine file vs directory — O(n) spawns. Replaced with `fd`'s trailing `/` convention for zero-cost kind detection.
+
+**Handoff to next session:**
+- Next: 2B.2 — Implement `@` trigger detection in composer
+- `project.searchFiles` is ready to be called from the UI. Uses same transport pattern as other WS methods.
+- `FileSearchResult` type is exported from `@pibun/contracts` — use for the mention menu item type.
+- `ComposerCommandMenu.tsx` has the floating menu pattern and `detectSlashTrigger` that can be adapted for `@` trigger.
+- Debounce on the client (plan says 120ms), not on the server — server just runs the search.
+- `consumeDeferredActiveTabId()` still not consumed
+
+---

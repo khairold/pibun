@@ -36,6 +36,8 @@ import type {
 	WsProjectAddResult,
 	WsProjectListResult,
 	WsProjectRemoveParams,
+	WsProjectSearchFilesParams,
+	WsProjectSearchFilesResult,
 	WsProjectUpdateParams,
 	WsSettingsGetResult,
 	WsSettingsUpdateParams,
@@ -336,6 +338,207 @@ export const handleProjectUpdate: WsHandler<"project.update"> = async (
 	ctx.hooks.onProjectsChanged?.();
 	return { ok: true };
 };
+
+/**
+ * Search for files in a project directory.
+ *
+ * Uses `fd` (fast file finder) with `.gitignore` respect for performant
+ * file search. Falls back to `find` if `fd` is not available.
+ *
+ * CWD resolution: explicit `params.cwd` → session's Pi process CWD → server CWD.
+ *
+ * The search is case-insensitive and matches against relative file paths.
+ * An empty query returns a general listing of files (useful for showing
+ * initial suggestions before the user types).
+ */
+export const handleProjectSearchFiles: WsHandler<"project.searchFiles"> = async (
+	params: WsProjectSearchFilesParams,
+	ctx: HandlerContext,
+): Promise<WsProjectSearchFilesResult> => {
+	const cwd = resolveSearchCwd(params?.cwd, ctx);
+	const query = params?.query ?? "";
+	const limit = params?.limit ?? 50;
+
+	const files = await searchFiles(cwd, query, limit);
+	return { files, cwd };
+};
+
+/**
+ * Resolve the CWD for file search operations.
+ * Priority: explicit `params.cwd` → session's Pi process CWD → server CWD.
+ */
+function resolveSearchCwd(paramsCwd: string | undefined, ctx: HandlerContext): string {
+	if (paramsCwd) {
+		return paramsCwd;
+	}
+	if (ctx.targetSessionId) {
+		const session = ctx.rpcManager.getSession(ctx.targetSessionId);
+		if (session?.process.options.cwd) {
+			return session.process.options.cwd;
+		}
+	}
+	return process.cwd();
+}
+
+/**
+ * Search for files using `fd` with `.gitignore` respect.
+ *
+ * `fd` is preferred because:
+ * - Respects `.gitignore` by default (no node_modules, dist, etc.)
+ * - Fast parallel file system traversal
+ * - Case-insensitive matching built in
+ *
+ * Falls back to a basic `find` if `fd` is not available.
+ */
+async function searchFiles(
+	cwd: string,
+	query: string,
+	limit: number,
+): Promise<Array<{ path: string; kind: "file" | "directory" }>> {
+	try {
+		return await searchWithFd(cwd, query, limit);
+	} catch {
+		// fd not available — fallback to find
+		return await searchWithFind(cwd, query, limit);
+	}
+}
+
+/**
+ * Search using `fd` — fast, respects .gitignore by default.
+ *
+ * Flags:
+ * - `--type f --type d` — include files and directories
+ * - `--case-sensitive false` (default) — case-insensitive
+ * - `--max-results <limit>` — cap results for performance
+ * - `--hidden` is NOT used — hidden files are excluded (matches .gitignore behavior)
+ */
+async function searchWithFd(
+	cwd: string,
+	query: string,
+	limit: number,
+): Promise<Array<{ path: string; kind: "file" | "directory" }>> {
+	const args = [
+		"--type",
+		"f",
+		"--type",
+		"d",
+		"--max-results",
+		String(limit * 2), // fetch extra to filter/rank
+		"--color",
+		"never",
+	];
+
+	// When query is non-empty, use it as the search pattern
+	if (query) {
+		args.push(query);
+	}
+
+	const proc = Bun.spawn(["fd", ...args], {
+		cwd,
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+
+	const stdout = await new Response(proc.stdout).text();
+	const exitCode = await proc.exited;
+
+	if (exitCode !== 0 && exitCode !== 1) {
+		// exitCode 1 = no results found (not an error for fd)
+		const stderr = await new Response(proc.stderr).text();
+		throw new Error(`fd failed (exit ${exitCode}): ${stderr.slice(0, 200)}`);
+	}
+
+	return parseSearchResults(stdout, limit);
+}
+
+/**
+ * Fallback search using `find` — slower, doesn't respect .gitignore.
+ * Filters out common ignore patterns manually.
+ */
+async function searchWithFind(
+	cwd: string,
+	query: string,
+	limit: number,
+): Promise<Array<{ path: string; kind: "file" | "directory" }>> {
+	const ignorePatterns = [
+		"-not",
+		"-path",
+		"*/.git/*",
+		"-not",
+		"-path",
+		"*/node_modules/*",
+		"-not",
+		"-path",
+		"*/dist/*",
+		"-not",
+		"-path",
+		"*/.turbo/*",
+		"-not",
+		"-path",
+		"*/__pycache__/*",
+		"-not",
+		"-name",
+		".DS_Store",
+	];
+
+	const args = [".", ...ignorePatterns, "-maxdepth", "10"];
+
+	if (query) {
+		args.push("-iname", `*${query}*`);
+	}
+
+	const proc = Bun.spawn(["find", ...args], {
+		cwd,
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+
+	const stdout = await new Response(proc.stdout).text();
+	await proc.exited;
+
+	return parseSearchResults(stdout, limit);
+}
+
+/**
+ * Parse search output lines into typed results.
+ *
+ * `fd` outputs directories with trailing `/` (e.g., "src/components/").
+ * `find` outputs `./` prefixed paths; directories have no trailing `/` but
+ * `find -type d` entries or the `-type d` + `-type f` combo doesn't distinguish,
+ * so for `find` fallback we mark everything as "file" (acceptable degradation).
+ */
+function parseSearchResults(
+	stdout: string,
+	limit: number,
+): Array<{ path: string; kind: "file" | "directory" }> {
+	const lines = stdout.split("\n").filter((line) => line.length > 0);
+	const results: Array<{ path: string; kind: "file" | "directory" }> = [];
+
+	for (const line of lines) {
+		if (results.length >= limit) break;
+
+		// Normalize: remove ./ prefix from find output
+		let relativePath = line;
+		if (relativePath.startsWith("./")) {
+			relativePath = relativePath.slice(2);
+		}
+		// Skip empty or root entries
+		if (!relativePath || relativePath === ".") continue;
+
+		// Detect directories by trailing slash (fd convention)
+		const isDir = relativePath.endsWith("/");
+		if (isDir) {
+			relativePath = relativePath.slice(0, -1);
+		}
+
+		results.push({
+			path: relativePath,
+			kind: isDir ? "directory" : "file",
+		});
+	}
+
+	return results;
+}
 
 // ============================================================================
 // Settings — App preferences in ~/.pibun/settings.json

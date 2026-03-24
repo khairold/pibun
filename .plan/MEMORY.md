@@ -44,6 +44,7 @@
 | 33 | `/model` slash command opens inline model picker, not text insertion | When `/model` is selected from command menu, `handleCommandSelect` intercepts it, clears the trigger text, and opens `ComposerModelPicker` (same floating position). Picker shows models grouped by provider with keyboard nav. On select, calls `session.setModel` with optimistic update + rollback. `ComposerModelPicker` lives in `ComposerCommandMenu.tsx` (same file — part of the floating menu system). | 2026-03-24 |
 | 34 | `session.cycleModel` and `session.cycleThinking` WS methods for keyboard shortcuts | Thin bridge to Pi `cycle_model` / `cycle_thinking_level` RPC. `cycle_model` returns `{ model, thinkingLevel }` (both null if only one model). `cycle_thinking` returns `{ level }` (null if model doesn't support thinking). Keyboard: Ctrl/Cmd+M cycles model, Ctrl/Cmd+Shift+M cycles thinking. Both update store + show toast. | 2026-03-24 |
 | 35 | `resizeTextarea` must be declared before callbacks that reference it | Moved `resizeTextarea` to right after `textareaRef` declaration in Composer to avoid TDZ errors. Was previously after model/command state, causing `handleModelSelect` to reference it before declaration. | 2026-03-24 |
+| 36 | `project.searchFiles` uses `fd` with `find` fallback for server-side file search | `fd` respects `.gitignore` by default, is fast, and case-insensitive. Falls back to `find` with manually excluded patterns (`.git`, `node_modules`, `dist`, `.turbo`, `__pycache__`). `fd` outputs directories with trailing `/` — used to distinguish file vs directory kind. CWD resolution follows same pattern as git handlers: explicit param → session CWD → server CWD. Limit defaults to 50 results. `--max-results` set to `limit * 2` to allow for filtering. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -66,7 +67,7 @@ apps/desktop/         — Electrobun main process, menu, notifications, updater,
 - ~~`session.cycleModel` → Pi `cycle_model`~~ ✅ Done (Session 18)
 - ~~`session.cycleThinking` → Pi `cycle_thinking_level`~~ ✅ Done (Session 18)
 - `session.getLastAssistantText` → Pi `get_last_assistant_text`
-- `project.searchFiles` → server-side file search (fd/find)
+- ~~`project.searchFiles` → server-side file search (fd/find)~~ ✅ Done (Session 19)
 - `session.getTurnDiff` → server-side git diff between turns
 
 ### Key Missing UI Components (for v3)

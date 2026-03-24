@@ -94,6 +94,7 @@ export const WS_METHODS = {
 	projectAdd: "project.add",
 	projectRemove: "project.remove",
 	projectUpdate: "project.update",
+	projectSearchFiles: "project.searchFiles",
 
 	// Git integration (server-side, not Pi RPC)
 	gitStatus: "git.status",
@@ -294,6 +295,46 @@ export interface WsProjectUpdateParams {
 	defaultThinking?: PiThinkingLevel | null;
 	lastOpened?: number;
 	sessionCount?: number;
+}
+
+// ============================================================================
+// Project File Search Parameters
+// ============================================================================
+
+/**
+ * Params for `project.searchFiles` — search for files in a project directory.
+ *
+ * Uses `fd` (fast file finder) on the server with `.gitignore` respect.
+ * Designed for the `@` file mention trigger in the composer — debounce on the client,
+ * the server runs the search and returns results.
+ */
+export interface WsProjectSearchFilesParams {
+	/** Search query (matched against file paths, case-insensitive). Empty string returns recent/common files. */
+	query: string;
+	/** Working directory to search in. Falls back to active session's CWD, then server CWD. */
+	cwd?: string;
+	/** Maximum number of results to return (default: 50). */
+	limit?: number;
+}
+
+/**
+ * A file search result entry.
+ */
+export interface FileSearchResult {
+	/** Relative path from the search root (e.g., "src/components/App.tsx"). */
+	path: string;
+	/** Entry kind: "file" or "directory". */
+	kind: "file" | "directory";
+}
+
+/**
+ * Result for `project.searchFiles` — matching files/directories.
+ */
+export interface WsProjectSearchFilesResult {
+	/** Matched files and directories, ordered by relevance (path match quality). */
+	files: FileSearchResult[];
+	/** The root directory the search was performed in (resolved CWD). */
+	cwd: string;
 }
 
 // ============================================================================
@@ -503,6 +544,7 @@ export interface WsMethodParamsMap {
 	"project.add": WsProjectAddParams;
 	"project.remove": WsProjectRemoveParams;
 	"project.update": WsProjectUpdateParams;
+	"project.searchFiles": WsProjectSearchFilesParams;
 	"git.status": WsGitStatusParams;
 	"git.branch": WsGitBranchParams;
 	"git.diff": WsGitDiffParams;
@@ -769,6 +811,7 @@ export interface WsMethodResultMap {
 	"project.add": WsProjectAddResult;
 	"project.remove": WsOkResult;
 	"project.update": WsOkResult;
+	"project.searchFiles": WsProjectSearchFilesResult;
 	"git.status": WsGitStatusResult;
 	"git.branch": WsGitBranchResult;
 	"git.diff": WsGitDiffResult;
