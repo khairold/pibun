@@ -11,6 +11,7 @@
  * @module
  */
 
+import { setUserKeybindings } from "@/lib/keybindings";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import type {
@@ -480,6 +481,35 @@ export async function fetchAndApplySettings(): Promise<void> {
 		// Settings fetch failed (standalone server without settings support, etc.)
 		// Silently fall back to localStorage-only persistence
 	}
+}
+
+/**
+ * Fetch user keybinding overrides from the server and apply them.
+ *
+ * Called on `server.welcome` alongside settings. Loads rules from
+ * `~/.pibun/keybindings.json`, merges with defaults in the keybinding
+ * resolver (user rules override via last-match-wins).
+ */
+export async function fetchAndApplyKeybindings(): Promise<void> {
+	try {
+		const transport = getTransport();
+		const result = await transport.request("keybindings.get");
+		if (result.rules.length > 0) {
+			setUserKeybindings(result.rules);
+		}
+		// Store the config path for display in settings
+		keybindingsConfigPath = result.configPath;
+	} catch {
+		// Keybindings fetch failed — use defaults only
+	}
+}
+
+/** Path to the user keybindings file (set after first fetch). */
+let keybindingsConfigPath = "~/.pibun/keybindings.json";
+
+/** Get the path to the keybindings config file (for settings display). */
+export function getKeybindingsConfigPath(): string {
+	return keybindingsConfigPath;
 }
 
 /**

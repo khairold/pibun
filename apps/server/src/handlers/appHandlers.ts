@@ -12,7 +12,10 @@
  * These call server-side services, not Pi RPC. Organized by domain.
  */
 
+import { homedir } from "node:os";
+import { join } from "node:path";
 import type {
+	KeybindingRule,
 	PiBunSettings,
 	WsAppOpenFolderDialogResult,
 	WsAppSaveExportFileParams,
@@ -27,6 +30,7 @@ import type {
 	WsGitLogResult,
 	WsGitStatusParams,
 	WsGitStatusResult,
+	WsKeybindingsGetResult,
 	WsOkResult,
 	WsPluginInstallParams,
 	WsPluginInstallResult,
@@ -728,6 +732,67 @@ export const handleSettingsUpdate: WsHandler<"settings.update"> = async (
 	}
 	const settings = await updateSettings(updates);
 	return { settings };
+};
+
+// ============================================================================
+// Keybindings — User keybinding overrides from ~/.pibun/keybindings.json
+// ============================================================================
+
+/** Path to the keybindings config file. */
+const KEYBINDINGS_FILE = join(homedir(), ".pibun", "keybindings.json");
+
+/**
+ * Load user-defined keybinding rules from `~/.pibun/keybindings.json`.
+ *
+ * Returns an empty array if the file doesn't exist or is malformed.
+ * Invalid individual entries are silently skipped.
+ */
+async function loadKeybindings(): Promise<KeybindingRule[]> {
+	try {
+		const file = Bun.file(KEYBINDINGS_FILE);
+		const exists = await file.exists();
+		if (!exists) return [];
+
+		const text = await file.text();
+		const parsed: unknown = JSON.parse(text);
+		if (!Array.isArray(parsed)) return [];
+
+		// Validate each entry — skip malformed ones
+		const rules: KeybindingRule[] = [];
+		for (const entry of parsed) {
+			if (
+				typeof entry === "object" &&
+				entry !== null &&
+				typeof (entry as Record<string, unknown>).key === "string" &&
+				typeof (entry as Record<string, unknown>).command === "string"
+			) {
+				const rule: KeybindingRule = {
+					key: (entry as Record<string, unknown>).key as string,
+					command: (entry as Record<string, unknown>).command as KeybindingRule["command"],
+				};
+				const when = (entry as Record<string, unknown>).when;
+				if (typeof when === "string") {
+					rule.when = when;
+				}
+				rules.push(rule);
+			}
+		}
+		return rules;
+	} catch {
+		return [];
+	}
+}
+
+/**
+ * Get user-defined keybinding overrides.
+ * Returns rules from `~/.pibun/keybindings.json` + the config file path.
+ */
+export const handleKeybindingsGet: WsHandler<"keybindings.get"> = async (
+	_params: undefined,
+	_ctx: HandlerContext,
+): Promise<WsKeybindingsGetResult> => {
+	const rules = await loadKeybindings();
+	return { rules, configPath: KEYBINDINGS_FILE };
 };
 
 // ============================================================================

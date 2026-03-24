@@ -14,6 +14,7 @@
 import {
 	addProject,
 	createTerminal,
+	fetchAndApplyKeybindings,
 	fetchAndApplySettings,
 	fetchGitStatus,
 	fetchPlugins,
@@ -869,6 +870,8 @@ export function initTransport(): () => void {
 			fetchGitStatus();
 			// Fetch server-persisted settings (theme, etc.) and apply
 			fetchAndApplySettings();
+			// Fetch user keybinding overrides
+			fetchAndApplyKeybindings();
 			// Fetch installed plugins
 			fetchPlugins();
 		}),

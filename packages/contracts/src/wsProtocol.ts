@@ -26,6 +26,7 @@ import type {
 	GitDiffResult,
 	GitLogResult,
 	GitStatusResult,
+	KeybindingRule,
 	PiBunSettings,
 	Plugin,
 	Project,
@@ -131,6 +132,9 @@ export const WS_METHODS = {
 	// Settings (server-side persistence)
 	settingsGet: "settings.get",
 	settingsUpdate: "settings.update",
+
+	// Keybindings (server-side persistence)
+	keybindingsGet: "keybindings.get",
 
 	// Plugin management (server-side)
 	pluginList: "plugin.list",
@@ -680,6 +684,7 @@ export interface WsMethodParamsMap {
 	"app.showContextMenu": WsAppShowContextMenuParams;
 	"settings.get": undefined;
 	"settings.update": WsSettingsUpdateParams;
+	"keybindings.get": undefined;
 	"plugin.list": undefined;
 	"plugin.install": WsPluginInstallParams;
 	"plugin.uninstall": WsPluginUninstallParams;
@@ -913,6 +918,23 @@ export interface WsSettingsUpdateResult {
 }
 
 // ============================================================================
+// Keybindings Results
+// ============================================================================
+
+/**
+ * Result for `keybindings.get` — user-defined keybinding overrides.
+ *
+ * Returns the rules from `~/.pibun/keybindings.json`.
+ * Empty array means no user overrides (defaults apply).
+ * The client merges these with built-in defaults (user rules win via last-match).
+ */
+export interface WsKeybindingsGetResult {
+	rules: KeybindingRule[];
+	/** Absolute path to the keybindings file (for display in settings). */
+	configPath: string;
+}
+
+// ============================================================================
 // Plugin Results
 // ============================================================================
 
@@ -990,6 +1012,7 @@ export interface WsMethodResultMap {
 	"app.showContextMenu": WsOkResult;
 	"settings.get": WsSettingsGetResult;
 	"settings.update": WsSettingsUpdateResult;
+	"keybindings.get": WsKeybindingsGetResult;
 	"plugin.list": WsPluginListResult;
 	"plugin.install": WsPluginInstallResult;
 	"plugin.uninstall": WsOkResult;

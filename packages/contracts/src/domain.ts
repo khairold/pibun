@@ -304,6 +304,86 @@ export interface PiBunSettings {
 export type TimestampFormat = "relative" | "locale" | "12h" | "24h";
 
 // ============================================================================
+// Keybindings
+// ============================================================================
+
+/**
+ * A keybinding command — the action to execute when a shortcut is triggered.
+ *
+ * Commands map to the same `ShortcutAction` values used internally, plus
+ * some that `useKeyboardShortcuts` handles directly (abort, settings, tabs).
+ */
+export type KeybindingCommand =
+	| "abort"
+	| "closeTab"
+	| "compact"
+	| "copyLastResponse"
+	| "cycleModel"
+	| "cycleThinking"
+	| "jumpToTab1"
+	| "jumpToTab2"
+	| "jumpToTab3"
+	| "jumpToTab4"
+	| "jumpToTab5"
+	| "jumpToTab6"
+	| "jumpToTab7"
+	| "jumpToTab8"
+	| "jumpToTab9"
+	| "newSession"
+	| "newTab"
+	| "nextTab"
+	| "prevTab"
+	| "settings"
+	| "splitTerminal"
+	| "toggleBashInput"
+	| "toggleDiffPanel"
+	| "toggleExportDialog"
+	| "toggleGitPanel"
+	| "toggleModelSelector"
+	| "togglePluginManager"
+	| "toggleSidebar"
+	| "toggleTerminal"
+	| "toggleThinkingSelector";
+
+/**
+ * A user-defined keybinding rule.
+ *
+ * Stored in `~/.pibun/keybindings.json` as a JSON array of these objects.
+ *
+ * **Key format**: `mod+shift+k` where:
+ * - `mod` = Cmd on macOS, Ctrl on others (platform modifier)
+ * - `ctrl` = always Ctrl
+ * - `shift` = Shift
+ * - `alt` / `option` = Alt/Option
+ * - `meta` / `cmd` = always Meta/Cmd
+ * - Last token = the key (single char, or named key like `tab`, `escape`, `backquote`)
+ *
+ * **When clause**: optional boolean condition string.
+ * - `terminalFocus` — terminal panel has focus
+ * - `!terminalFocus` — negation
+ * - `terminalOpen` — terminal panel is open
+ * - `streaming` — agent is streaming
+ * - Combine with `&&` and `||`
+ *
+ * @example
+ * ```json
+ * [
+ *   { "key": "mod+j", "command": "toggleTerminal" },
+ *   { "key": "mod+d", "command": "splitTerminal", "when": "terminalFocus" },
+ *   { "key": "mod+d", "command": "toggleDiffPanel", "when": "!terminalFocus" }
+ * ]
+ * ```
+ */
+export interface KeybindingRule {
+	/** Key combination string (e.g., "mod+shift+k"). */
+	key: string;
+	/** Command to execute when the key is pressed. */
+	command: KeybindingCommand;
+	/** Optional condition for when this binding is active. */
+	when?: string;
+}
+
+// ============================================================================
 // Plugin
 // ============================================================================
 

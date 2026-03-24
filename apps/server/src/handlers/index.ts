@@ -16,6 +16,7 @@ import {
 	handleGitDiff,
 	handleGitLog,
 	handleGitStatus,
+	handleKeybindingsGet,
 	handlePluginInstall,
 	handlePluginList,
 	handlePluginSetEnabled,
@@ -161,6 +162,9 @@ export const handlers: HandlerRegistry = {
 	// Settings (server-side persistence)
 	"settings.get": handleSettingsGet,
 	"settings.update": handleSettingsUpdate,
+
+	// Keybindings (server-side persistence)
+	"keybindings.get": handleKeybindingsGet,
 
 	// Plugin management (server-side)
 	"plugin.list": handlePluginList,

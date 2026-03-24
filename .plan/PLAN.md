@@ -2,9 +2,9 @@
 
 > **Spec:** Audit of T3Code, Pi-mono RPC, Electrobun reference repos (2026-03-24)
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
-> **Status:** Phase 5 in progress
-> **Current Phase:** Phase 5 — Advanced Pi Features
-> **Last Session:** Session 51 — 2026-03-24
+> **Status:** Phase 5 COMPLETE
+> **Current Phase:** Phase 5 — Advanced Pi Features (DONE)
+> **Last Session:** Session 52 — 2026-03-24
 
 ---
 
@@ -174,12 +174,12 @@
 
 ### 5C — Configurable Keybindings
 
-- [ ] 5C.1 — Design keybinding schema: `{ key, command, when? }` rules loaded from `~/.pibun/keybindings.json`
-- [ ] 5C.2 — Build keybinding resolver: parse key strings, evaluate `when` conditions (terminalFocus, etc.), match rules in order
-- [ ] 5C.3 — Replace hardcoded `useKeyboardShortcuts` with configurable keybinding system
-- [ ] 5C.4 — Add keybinding display in settings (show current bindings, link to edit config file)
+- [x] 5C.1 — Design keybinding schema: `{ key, command, when? }` rules loaded from `~/.pibun/keybindings.json`
+- [x] 5C.2 — Build keybinding resolver: parse key strings, evaluate `when` conditions (terminalFocus, etc.), match rules in order
+- [x] 5C.3 — Replace hardcoded `useKeyboardShortcuts` with configurable keybinding system
+- [x] 5C.4 — Add keybinding display in settings (show current bindings, link to edit config file)
 
-**Exit criteria:** All Pi RPC commands exposed. Terminal has splits and link detection. Keybindings are configurable.
+**Exit criteria:** All Pi RPC commands exposed. Terminal has splits and link detection. Keybindings are configurable. ✅ ALL MET.
 
 ---
 

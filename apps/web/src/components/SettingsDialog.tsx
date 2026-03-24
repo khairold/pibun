@@ -11,7 +11,13 @@
  * to localStorage as a fallback. Changes are applied immediately.
  */
 
-import { getSettings, persistThemeToServer, updateSetting } from "@/lib/appActions";
+import {
+	getKeybindingsConfigPath,
+	getSettings,
+	persistThemeToServer,
+	updateSetting,
+} from "@/lib/appActions";
+import { labelForCommand } from "@/lib/keybindings";
 import {
 	THEME_LIST,
 	THEME_STORAGE_KEY,
@@ -23,6 +29,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import type {
+	KeybindingCommand,
 	PiFollowUpMode,
 	PiSteeringMode,
 	Theme,
@@ -403,43 +410,60 @@ function DisplaySection() {
 // Section: Keyboard Shortcuts
 // ============================================================================
 
-const SHORTCUTS: { keys: string; description: string }[] = [
-	{ keys: "⌘/Ctrl+,", description: "Settings" },
-	{ keys: "⌘/Ctrl+B", description: "Toggle sidebar" },
-	{ keys: "⌘/Ctrl+L", description: "Switch model" },
-	{ keys: "⌘/Ctrl+M", description: "Cycle model" },
-	{ keys: "⌘/Ctrl+N", description: "New session" },
-	{ keys: "⌘/Ctrl+T", description: "New tab" },
-	{ keys: "⌘/Ctrl+W", description: "Close tab" },
-	{ keys: "⌘/Ctrl+`", description: "Toggle terminal" },
-	{ keys: "⌘/Ctrl+Shift+\\", description: "Split terminal" },
-	{ keys: "⌘/Ctrl+D", description: "Toggle diff panel" },
-	{ keys: "⌘/Ctrl+G", description: "Toggle git panel" },
-	{ keys: "⌘/Ctrl+Shift+B", description: "Toggle bash input" },
-	{ keys: "⌘/Ctrl+Shift+C", description: "Copy last response" },
-	{ keys: "⌘/Ctrl+Shift+K", description: "Compact context" },
-	{ keys: "⌘/Ctrl+Shift+M", description: "Cycle thinking level" },
-	{ keys: "⌘/Ctrl+Shift+T", description: "Toggle thinking selector" },
-	{ keys: "⌘/Ctrl+Shift+E", description: "Export session" },
-	{ keys: "⌘/Ctrl+Tab", description: "Next tab" },
-	{ keys: "⌘/Ctrl+Shift+Tab", description: "Previous tab" },
-	{ keys: "⌘/Ctrl+1-9", description: "Jump to tab" },
+/** Commands shown in the shortcuts table, in display order. */
+const SHORTCUT_COMMANDS: { command: KeybindingCommand; description: string }[] = [
+	{ command: "settings", description: "Settings" },
+	{ command: "toggleSidebar", description: "Toggle sidebar" },
+	{ command: "toggleModelSelector", description: "Switch model" },
+	{ command: "cycleModel", description: "Cycle model" },
+	{ command: "newSession", description: "New session" },
+	{ command: "newTab", description: "New tab" },
+	{ command: "closeTab", description: "Close tab" },
+	{ command: "toggleTerminal", description: "Toggle terminal" },
+	{ command: "splitTerminal", description: "Split terminal" },
+	{ command: "toggleDiffPanel", description: "Toggle diff panel" },
+	{ command: "toggleGitPanel", description: "Toggle git panel" },
+	{ command: "toggleBashInput", description: "Toggle bash input" },
+	{ command: "copyLastResponse", description: "Copy last response" },
+	{ command: "compact", description: "Compact context" },
+	{ command: "cycleThinking", description: "Cycle thinking level" },
+	{ command: "toggleThinkingSelector", description: "Toggle thinking selector" },
+	{ command: "toggleExportDialog", description: "Export session" },
+	{ command: "nextTab", description: "Next tab" },
+	{ command: "prevTab", description: "Previous tab" },
+	{ command: "jumpToTab1", description: "Jump to tab 1–9" },
 ];
 
 function ShortcutsSection() {
+	const configPath = getKeybindingsConfigPath();
+
 	return (
 		<section>
 			<h3 className="mb-3 text-sm font-semibold text-text-primary">Keyboard Shortcuts</h3>
 			<div className="flex flex-col gap-0.5">
-				{SHORTCUTS.map((s) => (
-					<div key={s.keys} className="flex items-center justify-between rounded-md px-2 py-1.5">
-						<span className="text-xs text-text-secondary">{s.description}</span>
-						<kbd className="rounded bg-surface-secondary px-1.5 py-0.5 font-mono text-[10px] text-text-tertiary">
-							{s.keys}
-						</kbd>
-					</div>
-				))}
+				{SHORTCUT_COMMANDS.map((s) => {
+					const label = labelForCommand(s.command);
+					return (
+						<div
+							key={s.command}
+							className="flex items-center justify-between rounded-md px-2 py-1.5"
+						>
+							<span className="text-xs text-text-secondary">{s.description}</span>
+							{label && (
+								<kbd className="rounded bg-surface-secondary px-1.5 py-0.5 font-mono text-[10px] text-text-tertiary">
+									{label}
+								</kbd>
+							)}
+						</div>
+					);
+				})}
 			</div>
+			<p className="mt-3 text-[10px] text-text-muted">
+				Customize keybindings by editing{" "}
+				<code className="rounded bg-surface-secondary px-1 py-0.5 font-mono text-[10px]">
+					{configPath}
+				</code>
+			</p>
 		</section>
 	);
 }

@@ -1561,3 +1561,46 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 52 — Configurable keybindings (2026-03-24)
+
+**What happened:**
+- Implemented the full configurable keybinding system (5C.1, 5C.2, 5C.3, 5C.4), completing Phase 5:
+  - **Contracts domain.ts**: Added `KeybindingCommand` union type (35 commands matching all existing shortcuts + `jumpToTab1`-`jumpToTab9` + `settings`). Added `KeybindingRule` interface: `{ key: string, command: KeybindingCommand, when?: string }`. Key format documented: `mod+shift+k` where `mod` = platform modifier.
+  - **Contracts wsProtocol.ts**: Added `keybindings.get` WS method with `WsKeybindingsGetResult` type (rules + configPath). Wired into `WS_METHODS`, `WsMethodParamsMap`, `WsMethodResultMap`.
+  - **Web keybindings.ts**: New module (self-contained deep module) with:
+    - `parseKeyString(value)` — tokenize and parse key strings into `ParsedShortcut`
+    - `tokenizeWhen(expression)` + `parseWhenExpression(expression)` — recursive descent parser for boolean `when` clauses (`&&`, `||`, `!`, identifiers, parentheses)
+    - `evaluateWhen(node, context)` — evaluate `WhenNode` AST against `WhenContext`
+    - `matchesShortcut(event, shortcut)` — match keydown event with `mod` → platform resolution
+    - `resolveCommand(event, bindings, context)` — last-match-wins command resolution
+    - `compileRule(rule)` / `compileRules(rules)` — compile rules into `ResolvedBinding[]`
+    - `DEFAULT_KEYBINDINGS` — 32 rules matching all previously hardcoded shortcuts
+    - `setUserKeybindings(rules)` / `resetKeybindings()` — merge user overrides after defaults
+    - `formatShortcutLabel(shortcut)` — Mac symbols (⌘⇧⌥⌃) or `Ctrl+Shift+` text
+    - `labelForCommand(command)` — get display label for a command's current binding
+  - **Web useKeyboardShortcuts.ts**: Complete rewrite. Now calls `resolveCommand(event, getActiveBindings(), buildWhenContext())` and dispatches via a single `switch` on command string. `buildWhenContext()` reads store state for `terminalFocus`, `terminalOpen`, `streaming`, `hasSession`, `isConnected`.
+  - **Server appHandlers.ts**: Added `handleKeybindingsGet` handler — loads `~/.pibun/keybindings.json`, validates entries (must have string `key` + string `command`, optional string `when`). Returns empty array if file missing/malformed.
+  - **Server index.ts**: Registered `handleKeybindingsGet` at `"keybindings.get"`.
+  - **Web appActions.ts**: Added `fetchAndApplyKeybindings()` — fetches user rules from server, calls `setUserKeybindings()`. `getKeybindingsConfigPath()` accessor for settings display. Called from `server.welcome` handler in wireTransport.
+  - **SettingsDialog.tsx**: `ShortcutsSection` now reads bindings dynamically via `labelForCommand()` instead of hardcoded strings. Shows config file path with `getKeybindingsConfigPath()`.
+- Phase 5 exit criteria verified: ✅ All Pi RPC commands exposed. ✅ Terminal has splits and link detection. ✅ Keybindings are configurable.
+
+**Items completed:**
+- [x] 5C.1 — Design keybinding schema
+- [x] 5C.2 — Build keybinding resolver
+- [x] 5C.3 — Replace hardcoded `useKeyboardShortcuts` with configurable keybinding system
+- [x] 5C.4 — Add keybinding display in settings
+
+**Issues encountered:**
+- TypeScript control flow narrowing doesn't propagate into nested closures. `tokens` was checked null at outer scope but inner parser functions still saw `WhenToken[] | null`. Fixed by reassigning to a non-nullable `const` after the null check.
+- Biome import ordering: `type` imports must sort after value imports from the same path prefix. Mid-file imports not allowed — moved all to top of file.
+
+**Handoff to next session:**
+- **Phase 5 is COMPLETE. All 5 phases are COMPLETE.** The plan is fully executed.
+- Remaining items are in the Parking Lot (plan mode, PR indicators, worktrees, virtual scroll, multi-window, etc.).
+- `keybindings.ts` is a self-contained deep module in `apps/web/src/lib/`. The `WhenContext` can be extended with new conditions as needed.
+- Users customize keybindings by creating/editing `~/.pibun/keybindings.json`. User rules override defaults via last-match-wins.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---
