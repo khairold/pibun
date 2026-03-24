@@ -1,21 +1,17 @@
 # .plan/
 
-**Active plan: v3 — Feature Parity & Polish**
-
-| File | Description |
-|------|-------------|
-| `PLAN.md` | v3 plan — 60 items across 5 phases (feature parity + polish) |
-| `MEMORY.md` | v3 shared context (builds on v2 archive) |
-| `DRIFT.md` | v3 spec drift log |
-| `SESSION-LOG.md` | v3 session history |
+No active plan. Future work tracked in `/TODO.md`.
 
 ## Archive
 
 | File | Description |
 |------|-------------|
-| `archive/PLAN-v1.md` | v1 plan — 97 items across 8 phases (core app) |
-| `archive/PLAN-v2.md` | v2 plan — 69 items across 7 phases (extended features) |
-| `archive/MEMORY-v2.md` | 328 decisions and technical context from v2 build |
-| `archive/SESSION-LOG-v{1,2}.md` | Session-by-session logs |
-| `archive/DRIFT-v{1,2}.md` | Spec drift logs |
-| `archive/STATUS-v{1,2}.md` | Autopilot status snapshots |
+| `archive/PLAN-v1.md` | v1 — 97 items across 8 phases (core app) |
+| `archive/PLAN-v2.md` | v2 — 69 items across 7 phases (extended features) |
+| `archive/PLAN-v3.md` | v3 — 70 items across 5 phases (feature parity & polish) |
+| `archive/MEMORY-v{2,3}.md` | Shared context and decisions |
+| `archive/SESSION-LOG-v{1,2,3}.md` | Session-by-session logs |
+| `archive/DRIFT-v{1,2,3}.md` | Spec drift logs |
+| `archive/STATUS-v{1,2,3}.md` | Autopilot status snapshots |
+
+To start a new plan, use the `phased-plan` skill.
