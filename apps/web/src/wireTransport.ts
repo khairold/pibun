@@ -32,6 +32,7 @@ import {
 	startNewSession,
 	startSessionInFolder,
 } from "@/lib/sessionActions";
+import { addLoadedSession, fetchLoadedSessionPaths } from "@/lib/workspaceActions";
 import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
 import { emitShortcut, formatDuration } from "@/lib/utils";
 import { useStore } from "@/store";
@@ -877,6 +878,8 @@ export function initTransport(): () => void {
 			fetchAndApplyKeybindings();
 			// Fetch installed plugins
 			fetchPlugins();
+			// Fetch loaded session paths for sidebar persistence
+			fetchLoadedSessionPaths();
 		}),
 	);
 
@@ -928,6 +931,12 @@ export function initTransport(): () => void {
 		transport.subscribe("session.status", (data: WsSessionStatusData) => {
 			if (data.status === "crashed") {
 				const store = useStore.getState();
+
+				// Auto-transition: add crashed session to loaded list so it stays in sidebar
+				const sessionSummary = store.sessionList.find((s) => s.sessionId === data.sessionId);
+				if (sessionSummary) {
+					addLoadedSession(sessionSummary.sessionPath);
+				}
 
 				// Clear streaming state for the crashed session's tab
 				const crashedTab = store.tabs.find((t) => t.sessionId === data.sessionId);

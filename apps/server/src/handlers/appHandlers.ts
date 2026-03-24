@@ -56,11 +56,21 @@ import type {
 	WsTerminalCreateResult,
 	WsTerminalResizeParams,
 	WsTerminalWriteParams,
+	WsWorkspaceAddLoadedParams,
+	WsWorkspaceAddLoadedResult,
+	WsWorkspaceGetLoadedResult,
+	WsWorkspaceRemoveLoadedParams,
+	WsWorkspaceRemoveLoadedResult,
 } from "@pibun/contracts";
 import { gitBranch, gitDiff, gitLog, gitStatus, gitTurnDiff } from "../gitService.js";
 import { installPlugin, loadPlugins, setPluginEnabled, uninstallPlugin } from "../pluginStore.js";
 import { addProject, loadProjects, removeProject, updateProject } from "../projectStore.js";
 import { loadSettings, updateSettings } from "../settingsStore.js";
+import {
+	addLoadedSessionPath,
+	getLoadedSessionPaths,
+	removeLoadedSessionPath,
+} from "../workspaceStore.js";
 import type { HandlerContext, WsHandler } from "./types.js";
 
 // ============================================================================
@@ -886,4 +896,47 @@ export const handleTerminalClose: WsHandler<"terminal.close"> = (params, ctx): W
 	}
 	ctx.terminalManager.close(p.terminalId);
 	return { ok: true };
+};
+
+// ============================================================================
+// Workspace — Loaded Sessions Persistence
+// ============================================================================
+
+/**
+ * `workspace.getLoaded` — get session paths the user has loaded into the sidebar.
+ */
+export const handleWorkspaceGetLoaded: WsHandler<"workspace.getLoaded"> = async (
+	_params: undefined,
+	_ctx: HandlerContext,
+): Promise<WsWorkspaceGetLoadedResult> => {
+	const sessionPaths = await getLoadedSessionPaths();
+	return { sessionPaths };
+};
+
+/**
+ * `workspace.addLoaded` — add a session path to the sidebar loaded list.
+ */
+export const handleWorkspaceAddLoaded: WsHandler<"workspace.addLoaded"> = async (
+	params: WsWorkspaceAddLoadedParams,
+	_ctx: HandlerContext,
+): Promise<WsWorkspaceAddLoadedResult> => {
+	if (!params.sessionPath) {
+		throw new Error("Missing sessionPath");
+	}
+	const sessionPaths = await addLoadedSessionPath(params.sessionPath);
+	return { sessionPaths };
+};
+
+/**
+ * `workspace.removeLoaded` — remove a session path from the sidebar loaded list.
+ */
+export const handleWorkspaceRemoveLoaded: WsHandler<"workspace.removeLoaded"> = async (
+	params: WsWorkspaceRemoveLoadedParams,
+	_ctx: HandlerContext,
+): Promise<WsWorkspaceRemoveLoadedResult> => {
+	if (!params.sessionPath) {
+		throw new Error("Missing sessionPath");
+	}
+	const sessionPaths = await removeLoadedSessionPath(params.sessionPath);
+	return { sessionPaths };
 };

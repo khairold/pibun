@@ -103,6 +103,11 @@ export const WS_METHODS = {
 	projectOpenInEditor: "project.openInEditor",
 	projectOpenFileInEditor: "project.openFileInEditor",
 
+	// Workspace (server-side persistence — loaded sessions in sidebar)
+	workspaceGetLoaded: "workspace.getLoaded",
+	workspaceAddLoaded: "workspace.addLoaded",
+	workspaceRemoveLoaded: "workspace.removeLoaded",
+
 	// Git integration (server-side, not Pi RPC)
 	gitStatus: "git.status",
 	gitBranch: "git.branch",
@@ -584,6 +589,22 @@ export interface WsSettingsUpdateParams {
 }
 
 // ============================================================================
+// Workspace Parameters
+// ============================================================================
+
+/** Params for `workspace.addLoaded` — add a session to the sidebar loaded list. */
+export interface WsWorkspaceAddLoadedParams {
+	/** Full path to the session JSONL file. */
+	sessionPath: string;
+}
+
+/** Params for `workspace.removeLoaded` — remove a session from the sidebar loaded list. */
+export interface WsWorkspaceRemoveLoadedParams {
+	/** Full path to the session JSONL file. */
+	sessionPath: string;
+}
+
+// ============================================================================
 // Plugin Parameters
 // ============================================================================
 
@@ -659,6 +680,9 @@ export interface WsMethodParamsMap {
 	"session.extensionUiResponse": WsSessionExtensionUiResponseParams;
 	"session.listSessions": undefined;
 	"session.switchSession": WsSessionSwitchSessionParams;
+	"workspace.getLoaded": undefined;
+	"workspace.addLoaded": WsWorkspaceAddLoadedParams;
+	"workspace.removeLoaded": WsWorkspaceRemoveLoadedParams;
 	"project.list": undefined;
 	"project.add": WsProjectAddParams;
 	"project.remove": WsProjectRemoveParams;
@@ -935,6 +959,25 @@ export interface WsKeybindingsGetResult {
 }
 
 // ============================================================================
+// Workspace Results
+// ============================================================================
+
+/** Result for `workspace.getLoaded` — session paths the user has loaded into sidebar. */
+export interface WsWorkspaceGetLoadedResult {
+	sessionPaths: string[];
+}
+
+/** Result for `workspace.addLoaded` — updated list after adding. */
+export interface WsWorkspaceAddLoadedResult {
+	sessionPaths: string[];
+}
+
+/** Result for `workspace.removeLoaded` — updated list after removing. */
+export interface WsWorkspaceRemoveLoadedResult {
+	sessionPaths: string[];
+}
+
+// ============================================================================
 // Plugin Results
 // ============================================================================
 
@@ -988,6 +1031,9 @@ export interface WsMethodResultMap {
 	"session.exportHtml": WsSessionExportHtmlResult;
 	"session.listSessions": WsSessionListSessionsResult;
 	"session.switchSession": WsSessionSwitchSessionResult;
+	"workspace.getLoaded": WsWorkspaceGetLoadedResult;
+	"workspace.addLoaded": WsWorkspaceAddLoadedResult;
+	"workspace.removeLoaded": WsWorkspaceRemoveLoadedResult;
 	"project.list": WsProjectListResult;
 	"project.add": WsProjectAddResult;
 	"project.remove": WsOkResult;

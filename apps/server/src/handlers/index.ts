@@ -35,6 +35,9 @@ import {
 	handleTerminalCreate,
 	handleTerminalResize,
 	handleTerminalWrite,
+	handleWorkspaceAddLoaded,
+	handleWorkspaceGetLoaded,
+	handleWorkspaceRemoveLoaded,
 } from "./appHandlers.js";
 import {
 	handleExtensionUiResponse,
@@ -165,6 +168,11 @@ export const handlers: HandlerRegistry = {
 
 	// Keybindings (server-side persistence)
 	"keybindings.get": handleKeybindingsGet,
+
+	// Workspace (server-side persistence)
+	"workspace.getLoaded": handleWorkspaceGetLoaded,
+	"workspace.addLoaded": handleWorkspaceAddLoaded,
+	"workspace.removeLoaded": handleWorkspaceRemoveLoaded,
 
 	// Plugin management (server-side)
 	"plugin.list": handlePluginList,

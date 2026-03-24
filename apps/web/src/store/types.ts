@@ -517,6 +517,19 @@ export interface GitSlice {
 	setDiffLoading: (loading: boolean) => void;
 }
 
+/** Workspace state — loaded session paths for sidebar persistence. */
+export interface WorkspacePersistSlice {
+	/**
+	 * Session file paths the user has explicitly loaded into the sidebar.
+	 * Persisted to `~/.pibun/workspace.json` via server.
+	 * Running sessions auto-appear; loaded sessions persist across restart.
+	 */
+	loadedSessionPaths: string[];
+
+	/** Replace the full loaded session paths list (from server fetch). */
+	setLoadedSessionPaths: (paths: string[]) => void;
+}
+
 /** Tabs state — multi-session tab management. */
 export interface TabsSlice {
 	/** Ordered list of open tabs. */
@@ -680,6 +693,7 @@ export type AppStore = ConnectionSlice &
 	UiSlice &
 	TabsSlice &
 	ProjectsSlice &
+	WorkspacePersistSlice &
 	GitSlice &
 	TerminalSlice &
 	PluginsSlice;

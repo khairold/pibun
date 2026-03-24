@@ -15,10 +15,12 @@
  */
 
 import { PluginSidebarPanels } from "@/components/PluginPanel";
+import { SessionBrowserDialog } from "@/components/SessionBrowserDialog";
 import { addProject, createTerminal, openProject, removeProject } from "@/lib/appActions";
 import { fetchSessionList, switchSession } from "@/lib/sessionActions";
 import { createNewTab, switchTabAction } from "@/lib/tabActions";
 import { cn, onShortcut } from "@/lib/utils";
+import { removeLoadedSession } from "@/lib/workspaceActions";
 import { useStore } from "@/store";
 import { getTransport, showNativeContextMenu } from "@/wireTransport";
 import type { ContextMenuItem, Project, SessionTab, WsSessionSummary } from "@pibun/contracts";
@@ -317,14 +319,15 @@ interface SessionItemProps {
 	isSwitching: boolean;
 	onClickActive: (tabId: string) => void;
 	onClickPast: (sessionPath: string) => void;
+	onRemoveLoaded?: (sessionPath: string) => void;
 }
 
 /**
- * Unified session item — renders active tabs and past sessions identically.
+ * Unified session item — renders active tabs and loaded past sessions.
  *
  * - **Active (current)** → highlighted background
- * - **Streaming** → pulse indicator
- * - **Past** → lighter text, click to resume
+ * - **Running** → pulse indicator
+ * - **Loaded (past)** → lighter text, click to resume, [×] to hide from sidebar
  */
 const SessionItem = memo(function SessionItem({
 	entry,
@@ -332,6 +335,7 @@ const SessionItem = memo(function SessionItem({
 	isSwitching,
 	onClickActive,
 	onClickPast,
+	onRemoveLoaded,
 }: SessionItemProps) {
 	const displayName = unifiedSessionName(entry);
 	const messageCount = unifiedSessionMessageCount(entry);
@@ -348,25 +352,39 @@ const SessionItem = memo(function SessionItem({
 		}
 	}, [entry, isSwitching, onClickActive, onClickPast]);
 
+	const handleRemove = useCallback(
+		(e: React.MouseEvent) => {
+			e.stopPropagation();
+			if (entry.kind === "past" && onRemoveLoaded) {
+				onRemoveLoaded(entry.session.sessionPath);
+			}
+		},
+		[entry, onRemoveLoaded],
+	);
+
 	return (
 		<button
 			type="button"
 			onClick={handleClick}
 			disabled={isSwitching}
 			className={cn(
-				"flex w-full items-start gap-2 rounded-lg px-3 py-1.5 text-left transition-colors",
+				"group/session flex w-full items-start gap-2 rounded-lg px-3 py-1.5 text-left transition-colors",
 				isActive
 					? "border-l-2 border-accent-primary bg-surface-secondary text-text-primary"
 					: "border-l-2 border-transparent text-text-tertiary hover:bg-surface-secondary/50 hover:text-text-secondary",
 				isSwitching && "cursor-wait opacity-60",
 			)}
 		>
-			{/* Status indicator — only visible for active sessions */}
-			{isRunning && (
+			{/* Status indicator */}
+			{isRunning ? (
 				<span className="mt-1 flex h-3 w-3 shrink-0 items-center justify-center">
 					<span className="h-2 w-2 animate-pulse rounded-full bg-accent-primary" />
 				</span>
-			)}
+			) : entry.kind === "past" ? (
+				<span className="mt-1 flex h-3 w-3 shrink-0 items-center justify-center">
+					<span className="h-1.5 w-1.5 rounded-full bg-text-muted/50" />
+				</span>
+			) : null}
 
 			<div className="min-w-0 flex-1">
 				<span
@@ -380,6 +398,33 @@ const SessionItem = memo(function SessionItem({
 					{messageCount > 0 ? `${String(messageCount)} msgs` : ""}
 				</span>
 			</div>
+
+			{/* Remove button — only for loaded (past) sessions */}
+			{entry.kind === "past" && onRemoveLoaded && (
+				<span
+					role="button"
+					tabIndex={0}
+					onClick={handleRemove}
+					onKeyDown={(e) => {
+						if (e.key === "Enter" || e.key === " ") {
+							e.preventDefault();
+							handleRemove(e as unknown as React.MouseEvent);
+						}
+					}}
+					className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm text-transparent transition-colors group-hover/session:text-text-muted group-hover/session:hover:text-text-secondary"
+					title="Remove from sidebar"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 16 16"
+						fill="currentColor"
+						className="h-3 w-3"
+						aria-hidden="true"
+					>
+						<path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22z" />
+					</svg>
+				</span>
+			)}
 		</button>
 	);
 });
@@ -790,6 +835,7 @@ export function Sidebar() {
 	const sessionListLoading = useStore((s) => s.sessionListLoading);
 	const projects = useStore((s) => s.projects);
 	const activeProjectId = useStore((s) => s.activeProjectId);
+	const loadedSessionPaths = useStore((s) => s.loadedSessionPaths);
 	const sidebarOpen = useStore((s) => s.sidebarOpen);
 	const toggleSidebar = useStore((s) => s.toggleSidebar);
 	const setSidebarOpen = useStore((s) => s.setSidebarOpen);
@@ -798,6 +844,7 @@ export function Sidebar() {
 	const [switchingPath, setSwitchingPath] = useState<string | null>(null);
 	const [showAddProjectInput, setShowAddProjectInput] = useState(false);
 	const [isAddingProject, setIsAddingProject] = useState(false);
+	const [sessionBrowserCwd, setSessionBrowserCwd] = useState<string | null>(null);
 	const [projectContextMenu, setProjectContextMenu] = useState<ProjectContextMenuState | null>(
 		null,
 	);
@@ -814,10 +861,16 @@ export function Sidebar() {
 		return ids;
 	}, [tabs]);
 
-	// Past sessions (exclude already-open ones)
+	// Loaded session paths as a Set for O(1) lookup
+	const loadedPathsSet = useMemo(() => new Set(loadedSessionPaths), [loadedSessionPaths]);
+
+	// Past sessions: only show loaded ones, exclude already-open tabs
 	const pastSessions = useMemo(
-		() => sessionList.filter((s) => !openSessionIds.has(s.sessionId)),
-		[sessionList, openSessionIds],
+		() =>
+			sessionList.filter(
+				(s) => loadedPathsSet.has(s.sessionPath) && !openSessionIds.has(s.sessionId),
+			),
+		[sessionList, openSessionIds, loadedPathsSet],
 	);
 
 	// Unified project tree: projects with their active + past sessions
@@ -1014,6 +1067,18 @@ export function Sidebar() {
 			fetchSessionList();
 		}
 	}, [isConnected]);
+
+	const handleRemoveLoaded = useCallback((sessionPath: string) => {
+		removeLoadedSession(sessionPath);
+	}, []);
+
+	const handleOpenSessionBrowser = useCallback((cwd: string) => {
+		setSessionBrowserCwd(cwd);
+	}, []);
+
+	const handleCloseSessionBrowser = useCallback(() => {
+		setSessionBrowserCwd(null);
+	}, []);
 
 	// ── Project context menu ─────────────────────────────────────
 
@@ -1340,6 +1405,32 @@ export function Sidebar() {
 												</svg>
 											</button>
 										)}
+
+										{/* Remove project from sidebar */}
+										{group.project && (
+											<button
+												type="button"
+												onClick={(e) => {
+													e.stopPropagation();
+													if (group.project) {
+														handleRemoveProject(group.project.id);
+													}
+												}}
+												className="flex h-4 w-4 shrink-0 items-center justify-center rounded-sm text-transparent transition-colors group-hover/project:text-text-muted group-hover/project:hover:text-text-secondary"
+												title="Remove from sidebar"
+												aria-label="Remove project"
+											>
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													viewBox="0 0 16 16"
+													fill="currentColor"
+													className="h-3 w-3"
+													aria-hidden="true"
+												>
+													<path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22z" />
+												</svg>
+											</button>
+										)}
 									</div>
 
 									{/* ── Expanded children: unified session list ── */}
@@ -1387,9 +1478,38 @@ export function Sidebar() {
 														}
 														onClickActive={handleSwitchTab}
 														onClickPast={handleSwitchSession}
+														onRemoveLoaded={handleRemoveLoaded}
 													/>
 												));
 											})()}
+
+											{/* Browse past sessions for this project */}
+											{group.cwd && (
+												<button
+													type="button"
+													onClick={() => {
+														if (group.cwd) {
+															handleOpenSessionBrowser(group.cwd);
+														}
+													}}
+													className="flex items-center gap-1 px-3 py-1 text-left text-[11px] text-text-muted transition-colors hover:text-text-secondary"
+												>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														viewBox="0 0 16 16"
+														fill="currentColor"
+														className="h-2.5 w-2.5"
+														aria-hidden="true"
+													>
+														<path
+															fillRule="evenodd"
+															d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
+															clipRule="evenodd"
+														/>
+													</svg>
+													Browse past sessions…
+												</button>
+											)}
 										</div>
 									)}
 								</div>
@@ -1451,6 +1571,11 @@ export function Sidebar() {
 					onOpenInEditor={() => handleProjectOpenInEditor(projectContextMenu.projectId)}
 					onRemove={() => handleProjectContextRemove(projectContextMenu.projectId)}
 				/>
+			)}
+
+			{/* Session browser dialog — filtered to a specific project CWD */}
+			{sessionBrowserCwd && (
+				<SessionBrowserDialog cwd={sessionBrowserCwd} onClose={handleCloseSessionBrowser} />
 			)}
 		</>
 	);

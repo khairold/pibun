@@ -18,6 +18,7 @@ import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import { deleteComposerDraft, fetchGitStatus } from "./appActions";
 import { loadSessionMessages, refreshSessionState } from "./sessionActions";
+import { addLoadedSession } from "./workspaceActions";
 
 // ============================================================================
 // Tab Close
@@ -73,6 +74,13 @@ export async function closeTab(tabId: string): Promise<void> {
 		// Restore transport routing if we didn't close the active tab
 		if (!isActiveTab) {
 			transport.setActiveSession(previousActiveSession);
+		}
+
+		// ── Auto-transition: add closed session to loaded list ───
+		// Look up session path from the session list so it stays in the sidebar
+		const sessionSummary = store.sessionList.find((s) => s.sessionId === tabToClose.sessionId);
+		if (sessionSummary) {
+			addLoadedSession(sessionSummary.sessionPath);
 		}
 	}
 

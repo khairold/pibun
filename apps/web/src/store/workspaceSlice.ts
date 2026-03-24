@@ -26,13 +26,19 @@ import {
 	type TabsSlice,
 	type TerminalSlice,
 	type TerminalTab,
+	type WorkspacePersistSlice,
 } from "./types";
 
 // ============================================================================
 // Combined workspace type
 // ============================================================================
 
-type WorkspaceSlice = TabsSlice & TerminalSlice & GitSlice & PluginsSlice & ProjectsSlice;
+type WorkspaceSlice = TabsSlice &
+	TerminalSlice &
+	GitSlice &
+	PluginsSlice &
+	ProjectsSlice &
+	WorkspacePersistSlice;
 
 // ============================================================================
 // Tabs helpers
@@ -695,5 +701,12 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 
 	setProjectsLoading: (loading) => {
 		set({ projectsLoading: loading });
+	},
+
+	// ==== Workspace persistence state ====
+	loadedSessionPaths: [],
+
+	setLoadedSessionPaths: (paths) => {
+		set({ loadedSessionPaths: paths });
 	},
 });
