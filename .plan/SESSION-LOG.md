@@ -236,3 +236,25 @@
 - Next: 1B.3 — Surface `extension_error` events as dismissible warning toasts
 - `RetryIndicator` lives in `ChatView.tsx` — if retry UI needs to appear elsewhere (e.g., status bar), extract to its own file
 - `consumeDeferredActiveTabId()` still not consumed
+
+---
+
+## Session 8 — Extension error toasts (2026-03-24)
+
+**What happened:**
+- Surfaced `extension_error` Pi events as dismissible warning toasts (1B.3)
+- Changed `wireTransport.ts` handler from `store.setLastError()` to `store.addToast(message, "warning")`
+- Toast message includes extension name (basename of `extensionPath`) + error text
+- Used `warning` level (not `error`) because extension errors are non-fatal — the session continues working
+- Console.error preserved for debugging
+- No new components needed — existing `ToastContainer` + `addToast` infrastructure handles everything
+
+**Items completed:**
+- [x] 1B.3 — Surface `extension_error` events as dismissible warning toasts
+
+**Issues encountered:**
+- None. This was a one-line change — the toast system was already fully built.
+
+**Handoff to next session:**
+- Next: 1B.4 — Add provider health indicator (banner when Pi process exits unexpectedly, session start fails, or model errors occur repeatedly)
+- `consumeDeferredActiveTabId()` still not consumed

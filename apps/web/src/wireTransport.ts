@@ -274,12 +274,14 @@ function handlePiEvent(event: PiEvent): void {
 			handleExtensionUiRequest(event);
 			break;
 
-		case "extension_error":
+		case "extension_error": {
 			console.error(
 				`[PiBun] Extension error: ${event.extensionPath} — ${event.event}: ${event.error}`,
 			);
-			store.setLastError(`Extension error: ${event.error}`);
+			const extName = event.extensionPath.split("/").pop() ?? event.extensionPath;
+			store.addToast(`Extension "${extName}": ${event.error}`, "warning");
 			break;
+		}
 	}
 }
 
