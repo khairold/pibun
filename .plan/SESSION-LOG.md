@@ -1362,3 +1362,32 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 46 — Extension setStatus rendering (2026-03-24)
+
+**What happened:**
+- Made `extension_ui_request` `setStatus` fully functional with per-session isolation (5A.4):
+  - **StatusBar component already existed** — renders from `statuses` Map in Zustand store. No UI changes needed.
+  - **Store `setExtensionStatus` already existed** — handles set (key→text) and clear (key→undefined). No changes needed.
+  - **wireTransport active tab handler already existed** — `setStatus` case calls `store.setExtensionStatus(event.statusKey, event.statusText)`. No changes needed.
+  - **Per-tab status isolation (NEW)**: Added `tabStatuses: Map<string, Map<string, string>>` to `WorkspaceSlice` types and initial state. Follows the same pattern as `tabMessages` — a per-tab cache for inactive tabs.
+  - **`switchTab` (UPDATED)**: Now saves current `statuses` to `tabStatuses[oldTabId]` and restores `statuses` from `tabStatuses[newTabId]` (or empty Map). Both the "has previous tab" and "no previous tab" branches updated.
+  - **`removeTab` (UPDATED)**: Cleans up `tabStatuses` for removed tab. When switching to adjacent tab, restores that tab's cached statuses.
+  - **`resetSession` (UPDATED)**: Now clears `statuses` to empty Map (was previously missing — statuses accumulated forever).
+  - **`setBackgroundTabStatus(tabId, key, text)` (NEW)**: New action in workspace slice — sets/clears status entries in `tabStatuses[tabId]`. Used by wireTransport for background tab events.
+  - **wireTransport background tab handler (UPDATED)**: `extension_ui_request` case now processes `setStatus` method via `store.setBackgroundTabStatus(bgTab.id, event.statusKey, event.statusText)`. Previously fell through to default case that only marked unread.
+- Minimal change set: 4 files modified (types.ts, workspaceSlice.ts, sessionSlice.ts, wireTransport.ts). No contracts, server, or new component changes — all infrastructure already existed, just needed per-session isolation.
+
+**Items completed:**
+- [x] 5A.4 — Add `extension_ui_request` `setStatus` rendering: persistent status entries in status bar
+
+**Issues encountered:**
+- None. The StatusBar component, store action, and active tab handler were all already built. The real work was per-session status isolation and background tab support — both clean additions following existing patterns.
+
+**Handoff to next session:**
+- Next: 5A.5 — Add `extension_ui_request` `setWidget` rendering: widget blocks above/below composer
+- `tabStatuses` follows the exact same pattern as `tabMessages` — a per-tab cache in workspace slice, saved/restored on tab switch. If future per-session state needs the same treatment, follow this pattern.
+- `clearStatuses()` is still never called externally (only `resetSession` clears statuses inline). The action exists if needed.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

@@ -100,6 +100,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	tabs: [],
 	activeTabId: null,
 	tabMessages: new Map<string, ChatMessage[]>(),
+	tabStatuses: new Map<string, Map<string, string>>(),
 
 	addTab: (partial) => {
 		const state = get();
@@ -131,10 +132,13 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			const newTabs = s.tabs.filter((t) => t.id !== tabId);
 			const newTabMessages = new Map(s.tabMessages);
 			newTabMessages.delete(tabId);
+			const newTabStatuses = new Map(s.tabStatuses);
+			newTabStatuses.delete(tabId);
 
 			const updates: Partial<AppStore> = {
 				tabs: newTabs,
 				tabMessages: newTabMessages,
+				tabStatuses: newTabStatuses,
 			};
 
 			// If removing the active tab, switch to adjacent
@@ -147,6 +151,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				// If we switched to a different tab, restore its messages
 				if (nextTab) {
 					updates.messages = newTabMessages.get(nextTab.id) ?? [];
+					updates.statuses = newTabStatuses.get(nextTab.id) ?? new Map<string, string>();
 					updates.sessionId = nextTab.sessionId;
 					updates.model = nextTab.model;
 					updates.thinkingLevel = nextTab.thinkingLevel;
@@ -155,6 +160,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				} else {
 					// No tabs left — clear everything
 					updates.messages = [];
+					updates.statuses = new Map<string, string>();
 					updates.sessionId = null;
 					updates.model = null;
 					updates.thinkingLevel = "medium";
@@ -176,10 +182,17 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 
 		set((s) => {
 			const newTabMessages = new Map(s.tabMessages);
+			const newTabStatuses = new Map(s.tabStatuses);
 
-			// Save current tab's messages and state
+			// Save current tab's messages, statuses, and state
 			if (s.activeTabId) {
 				newTabMessages.set(s.activeTabId, [...s.messages]);
+				// Save current statuses for the leaving tab
+				if (s.statuses.size > 0) {
+					newTabStatuses.set(s.activeTabId, new Map(s.statuses));
+				} else {
+					newTabStatuses.delete(s.activeTabId);
+				}
 
 				// Update the current tab's snapshot with current session state
 				// Clear hasUnread on the target tab (user is now viewing it)
@@ -204,8 +217,10 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					tabs: updatedTabs,
 					activeTabId: tabId,
 					tabMessages: newTabMessages,
+					tabStatuses: newTabStatuses,
 					// Restore target tab's cached state
 					messages: newTabMessages.get(tabId) ?? [],
+					statuses: newTabStatuses.get(tabId) ?? new Map<string, string>(),
 					sessionId: targetTab.sessionId,
 					model: targetTab.model,
 					thinkingLevel: targetTab.thinkingLevel,
@@ -233,6 +248,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			return {
 				activeTabId: tabId,
 				messages: newTabMessages.get(tabId) ?? [],
+				statuses: newTabStatuses.get(tabId) ?? new Map<string, string>(),
 				sessionId: targetTab.sessionId,
 				model: targetTab.model,
 				thinkingLevel: targetTab.thinkingLevel,
@@ -304,6 +320,24 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			if (!moved) return s;
 			newTabs.splice(toIndex, 0, moved);
 			return { tabs: newTabs };
+		});
+	},
+
+	setBackgroundTabStatus: (tabId, key, text) => {
+		set((s) => {
+			const newTabStatuses = new Map(s.tabStatuses);
+			const tabMap = new Map(newTabStatuses.get(tabId) ?? []);
+			if (text) {
+				tabMap.set(key, text);
+			} else {
+				tabMap.delete(key);
+			}
+			if (tabMap.size > 0) {
+				newTabStatuses.set(tabId, tabMap);
+			} else {
+				newTabStatuses.delete(tabId);
+			}
+			return { tabStatuses: newTabStatuses };
 		});
 	},
 

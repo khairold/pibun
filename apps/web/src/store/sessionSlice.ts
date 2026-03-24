@@ -123,6 +123,7 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
 			stats: null,
 			sessionName: null,
 			sessionFile: null,
+			statuses: new Map<string, string>(),
 			// Keep sessionList — it's independent of the current session
 		}),
 

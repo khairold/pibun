@@ -780,8 +780,8 @@ export function initTransport(): () => void {
 							break;
 
 						case "extension_ui_request": {
-							// Background tab needs user input — show waiting indicator
 							const extEvent = data.event;
+							// Dialog types — background tab needs user input
 							if (
 								extEvent.method === "select" ||
 								extEvent.method === "confirm" ||
@@ -789,6 +789,10 @@ export function initTransport(): () => void {
 								extEvent.method === "editor"
 							) {
 								store.updateTab(bgTab.id, { status: "waiting", ...unreadUpdate });
+							}
+							// Fire-and-forget: setStatus → cache for when tab becomes active
+							if (extEvent.method === "setStatus") {
+								store.setBackgroundTabStatus(bgTab.id, extEvent.statusKey, extEvent.statusText);
 							}
 							break;
 						}

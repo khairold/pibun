@@ -490,6 +490,8 @@ export interface TabsSlice {
 	activeTabId: string | null;
 	/** Per-tab message cache. Inactive tabs' messages are stored here. */
 	tabMessages: Map<string, ChatMessage[]>;
+	/** Per-tab extension status cache. Inactive tabs' statuses are stored here. */
+	tabStatuses: Map<string, Map<string, string>>;
 
 	/**
 	 * Create a new tab with optional initial values.
@@ -512,6 +514,8 @@ export interface TabsSlice {
 	syncActiveTabState: () => void;
 	/** Reorder tabs by moving a tab from one index to another. */
 	reorderTabs: (fromIndex: number, toIndex: number) => void;
+	/** Set or clear an extension status for a background (inactive) tab. */
+	setBackgroundTabStatus: (tabId: string, key: string, text: string | undefined) => void;
 }
 
 /** A terminal tab — represents one PTY session. */

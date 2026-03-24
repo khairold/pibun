@@ -4,7 +4,7 @@
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
 > **Status:** Phase 5 in progress
 > **Current Phase:** Phase 5 — Advanced Pi Features
-> **Last Session:** Session 45 — 2026-03-24
+> **Last Session:** Session 46 — 2026-03-24
 
 ---
 
@@ -160,7 +160,7 @@
 - [x] 5A.1 — Add `bash` RPC command support: new WS method `session.bash` → execute command, add output to Pi context. UI: terminal-like input in composer or dedicated panel
 - [x] 5A.2 — Add `abort_bash` support for cancelling running bash commands
 - [x] 5A.3 — Wire `get_last_assistant_text` to "Copy Last Response" action (keyboard shortcut + menu item)
-- [ ] 5A.4 — Add `extension_ui_request` `setStatus` rendering: persistent status entries in status bar (keyed, updateable)
+- [x] 5A.4 — Add `extension_ui_request` `setStatus` rendering: persistent status entries in status bar (keyed, updateable)
 - [ ] 5A.5 — Add `extension_ui_request` `setWidget` rendering: widget blocks above/below composer
 - [ ] 5A.6 — Add `extension_ui_request` `setTitle` handling: update window title from extension
 - [ ] 5A.7 — Add `extension_ui_request` `set_editor_text` handling: prefill composer text from extension
