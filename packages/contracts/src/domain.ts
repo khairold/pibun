@@ -36,6 +36,13 @@ export interface SessionTab {
 	name: string;
 	/** The Pi session ID bound to this tab. Null before session starts. */
 	sessionId: string | null;
+	/**
+	 * Pi's internal session UUID (from the session file).
+	 * Different from `sessionId` which is the PiBun manager ID used for routing.
+	 * Used for session list matching (Pi lists sessions by this UUID).
+	 * Null before `get_state` is called.
+	 */
+	piSessionId: string | null;
 	/** Working directory for this session. Null before session starts. */
 	cwd: string | null;
 	/** Active model for this session. Null before first state fetch. */

@@ -830,7 +830,7 @@ export function Sidebar() {
 	const connectionStatus = useStore((s) => s.connectionStatus);
 	const tabs = useStore((s) => s.tabs);
 	const activeTabId = useStore((s) => s.activeTabId);
-	const sessionId = useStore((s) => s.sessionId);
+	const piSessionId = useStore((s) => s.piSessionId);
 	const sessionList = useStore((s) => s.sessionList);
 	const sessionListLoading = useStore((s) => s.sessionListLoading);
 	const projects = useStore((s) => s.projects);
@@ -852,11 +852,12 @@ export function Sidebar() {
 
 	const isConnected = connectionStatus === "open";
 
-	// Set of session IDs that are currently open as tabs (for filtering past sessions)
+	// Set of Pi internal UUIDs that are currently open as tabs (for filtering past sessions).
+	// Uses piSessionId (Pi's UUID) because session list entries use Pi UUIDs.
 	const openSessionIds = useMemo(() => {
 		const ids = new Set<string>();
 		for (const tab of tabs) {
-			if (tab.sessionId) ids.add(tab.sessionId);
+			if (tab.piSessionId) ids.add(tab.piSessionId);
 		}
 		return ids;
 	}, [tabs]);
@@ -1470,8 +1471,8 @@ export function Sidebar() {
 														isActive={
 															(entry.kind === "active" && entry.tab.id === activeTabId) ||
 															(entry.kind === "past" &&
-																!!sessionId &&
-																entry.session.sessionId === sessionId)
+																!!piSessionId &&
+																entry.session.sessionId === piSessionId)
 														}
 														isSwitching={
 															entry.kind === "past" && switchingPath === entry.session.sessionPath

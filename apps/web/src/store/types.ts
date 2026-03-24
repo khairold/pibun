@@ -120,6 +120,13 @@ export interface ConnectionSlice {
 export interface SessionSlice {
 	/** Current Pi session ID, null before session.start. */
 	sessionId: string | null;
+	/**
+	 * Pi's internal session UUID (from the session file).
+	 * Different from `sessionId` which is the PiBun manager ID used for event routing.
+	 * Used for session list matching and past session highlighting.
+	 * Null before `get_state` is called.
+	 */
+	piSessionId: string | null;
 	/** Active model, null before first state fetch. */
 	model: PiModel | null;
 	/** Current thinking level. */
@@ -153,6 +160,8 @@ export interface SessionSlice {
 
 	/** Set the session ID. */
 	setSessionId: (id: string | null) => void;
+	/** Set Pi's internal session UUID (from get_state). */
+	setPiSessionId: (id: string | null) => void;
 	/** Set the active model. */
 	setModel: (model: PiModel | null) => void;
 	/** Set the thinking level. */

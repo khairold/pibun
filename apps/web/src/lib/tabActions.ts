@@ -77,10 +77,13 @@ export async function closeTab(tabId: string): Promise<void> {
 		}
 
 		// ── Auto-transition: add closed session to loaded list ───
-		// Look up session path from the session list so it stays in the sidebar
-		const sessionSummary = store.sessionList.find((s) => s.sessionId === tabToClose.sessionId);
-		if (sessionSummary) {
-			addLoadedSession(sessionSummary.sessionPath);
+		// Look up session path using Pi UUID (session list uses Pi's internal UUIDs)
+		if (tabToClose.piSessionId) {
+			const piUuid = tabToClose.piSessionId;
+			const sessionSummary = store.sessionList.find((s) => s.sessionId === piUuid);
+			if (sessionSummary) {
+				addLoadedSession(sessionSummary.sessionPath);
+			}
 		}
 	}
 

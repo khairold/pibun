@@ -71,6 +71,7 @@ function updateAtIndex(
 export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = (set) => ({
 	// ---- Session state ----
 	sessionId: null,
+	piSessionId: null,
 	model: null,
 	thinkingLevel: DEFAULT_THINKING_LEVEL,
 	isStreaming: false,
@@ -88,6 +89,7 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
 	sessionListLoading: false,
 
 	setSessionId: (id) => set({ sessionId: id }),
+	setPiSessionId: (id) => set({ piSessionId: id }),
 	setModel: (model) => set({ model }),
 	setThinkingLevel: (level) => set({ thinkingLevel: level }),
 	setIsStreaming: (streaming) => set({ isStreaming: streaming }),
@@ -110,6 +112,7 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
 	resetSession: () =>
 		set({
 			sessionId: null,
+			piSessionId: null,
 			model: null,
 			thinkingLevel: DEFAULT_THINKING_LEVEL,
 			isStreaming: false,

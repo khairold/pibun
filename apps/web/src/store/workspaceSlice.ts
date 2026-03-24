@@ -125,6 +125,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			id,
 			name: partial?.name ?? defaultTabName(state.tabs.length),
 			sessionId: partial?.sessionId ?? null,
+			piSessionId: null,
 			cwd: partial?.cwd ?? null,
 			model: partial?.model ?? null,
 			thinkingLevel: partial?.thinkingLevel ?? "medium",
@@ -190,6 +191,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					updates.extensionWidgets =
 						newTabWidgets.get(nextTab.id) ?? new Map<string, ExtensionWidget>();
 					updates.sessionId = nextTab.sessionId;
+					updates.piSessionId = nextTab.piSessionId;
 					updates.model = nextTab.model;
 					updates.thinkingLevel = nextTab.thinkingLevel;
 					updates.isStreaming = nextTab.isStreaming;
@@ -203,6 +205,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					updates.extensionWidgets = new Map<string, ExtensionWidget>();
 					updates.extensionTitle = null;
 					updates.sessionId = null;
+					updates.piSessionId = null;
 					updates.model = null;
 					updates.thinkingLevel = "medium";
 					updates.isStreaming = false;
@@ -256,6 +259,8 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 
 				// Update the current tab's snapshot with current session state
 				// Clear hasUnread on the target tab (user is now viewing it)
+				// NOTE: Do NOT overwrite t.sessionId — it holds the PiBun manager ID
+				// from session.start. Only sync piSessionId for session list matching.
 				const updatedTabs = s.tabs.map((t) =>
 					t.id === s.activeTabId
 						? {
@@ -266,7 +271,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 								firstMessage: getFirstUserMessage(s.messages) ?? t.firstMessage,
 								model: s.model,
 								thinkingLevel: s.thinkingLevel,
-								sessionId: s.sessionId,
+								piSessionId: s.piSessionId,
 								name: s.sessionName ?? t.name,
 							}
 						: t.id === tabId
@@ -287,6 +292,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					extensionWidgets: newTabWidgets.get(tabId) ?? new Map<string, ExtensionWidget>(),
 					extensionTitle: null, // Extension title is per-session, clear on switch
 					sessionId: targetTab.sessionId,
+					piSessionId: targetTab.piSessionId,
 					model: targetTab.model,
 					thinkingLevel: targetTab.thinkingLevel,
 					isStreaming: targetTab.isStreaming,
@@ -320,6 +326,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				extensionWidgets: newTabWidgets.get(tabId) ?? new Map<string, ExtensionWidget>(),
 				extensionTitle: null,
 				sessionId: targetTab.sessionId,
+				piSessionId: targetTab.piSessionId,
 				model: targetTab.model,
 				thinkingLevel: targetTab.thinkingLevel,
 				isStreaming: targetTab.isStreaming,
@@ -362,7 +369,9 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				t.id === s.activeTabId
 					? {
 							...t,
-							sessionId: s.sessionId,
+							// NOTE: Do NOT overwrite t.sessionId here — it holds the PiBun manager ID
+							// set during session.start. store.sessionId must stay as the routing key.
+							piSessionId: s.piSessionId,
 							isStreaming: s.isStreaming,
 							status: deriveTabStatus(s.isStreaming, s.pendingExtensionUi !== null, t.status),
 							messageCount: s.messages.length,

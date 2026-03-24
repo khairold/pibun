@@ -243,7 +243,11 @@ async function ensureSession(): Promise<boolean> {
 	if (sessionId) return true;
 
 	try {
-		const result = await getTransport().request("session.start", {});
+		// Use the active tab's CWD so new sessions inherit the project directory
+		const activeTab = useStore.getState().getActiveTab();
+		const result = await getTransport().request("session.start", {
+			...(activeTab?.cwd ? { cwd: activeTab.cwd } : {}),
+		});
 		setSessionId(result.sessionId);
 		// Multi-session: set as active session so subsequent requests target it
 		getTransport().setActiveSession(result.sessionId);
@@ -276,7 +280,9 @@ export async function refreshSessionState(): Promise<void> {
 	try {
 		const result = await getTransport().request("session.getState");
 		const store = useStore.getState();
-		store.setSessionId(result.state.sessionId);
+		// Set Pi's internal UUID (for session list matching) — NOT store.sessionId
+		// which must remain the PiBun manager ID for event routing.
+		store.setPiSessionId(result.state.sessionId);
 		if (result.state.model) {
 			store.setModel(result.state.model);
 		}

@@ -895,7 +895,11 @@ export function Composer() {
 	const ensureSession = useCallback(async (): Promise<boolean> => {
 		if (sessionId) return true;
 		try {
-			const result = await getTransport().request("session.start", {});
+			// Use active tab's CWD so new sessions inherit the project directory
+			const activeTabCwd = useStore.getState().getActiveTab()?.cwd;
+			const result = await getTransport().request("session.start", {
+				...(activeTabCwd ? { cwd: activeTabCwd } : {}),
+			});
 			setSessionId(result.sessionId);
 			// Multi-session: set active session + create/associate tab
 			getTransport().setActiveSession(result.sessionId);

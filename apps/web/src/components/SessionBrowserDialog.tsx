@@ -150,11 +150,12 @@ export function SessionBrowserDialog({
 		return () => document.removeEventListener("keydown", handleKeyDown);
 	}, [onClose]);
 
-	// Running session IDs (from tabs with active Pi processes)
+	// Running session Pi UUIDs (from tabs with active Pi processes).
+	// Uses piSessionId because session list entries use Pi's internal UUIDs.
 	const runningSessionIds = useMemo(() => {
 		const ids = new Set<string>();
 		for (const tab of tabs) {
-			if (tab.sessionId) ids.add(tab.sessionId);
+			if (tab.piSessionId) ids.add(tab.piSessionId);
 		}
 		return ids;
 	}, [tabs]);

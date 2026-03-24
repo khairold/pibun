@@ -32,9 +32,9 @@ import {
 	startNewSession,
 	startSessionInFolder,
 } from "@/lib/sessionActions";
-import { addLoadedSession, fetchLoadedSessionPaths } from "@/lib/workspaceActions";
 import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
 import { emitShortcut, formatDuration } from "@/lib/utils";
+import { addLoadedSession, fetchLoadedSessionPaths } from "@/lib/workspaceActions";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { WsTransport } from "@/transport";
@@ -932,10 +932,16 @@ export function initTransport(): () => void {
 			if (data.status === "crashed") {
 				const store = useStore.getState();
 
-				// Auto-transition: add crashed session to loaded list so it stays in sidebar
-				const sessionSummary = store.sessionList.find((s) => s.sessionId === data.sessionId);
-				if (sessionSummary) {
-					addLoadedSession(sessionSummary.sessionPath);
+				// Auto-transition: add crashed session to loaded list so it stays in sidebar.
+				// Match by piSessionId: data.sessionId is PiBun manager ID, but session list
+				// uses Pi UUIDs. Find the tab first, then use its piSessionId to match.
+				const crashedTabForLookup = store.tabs.find((t) => t.sessionId === data.sessionId);
+				if (crashedTabForLookup?.piSessionId) {
+					const piUuid = crashedTabForLookup.piSessionId;
+					const sessionSummary = store.sessionList.find((s) => s.sessionId === piUuid);
+					if (sessionSummary) {
+						addLoadedSession(sessionSummary.sessionPath);
+					}
 				}
 
 				// Clear streaming state for the crashed session's tab
