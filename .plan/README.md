@@ -1,6 +1,18 @@
 # .plan/
 
-Build plan archives from PiBun's development.
+Build plan for PiBun's deep modules refactoring.
+
+## Active Plan
+
+**Refactoring for AI Agent Maintenance** — 6 phases, ~38 items.
+Consolidate 135 files into ~90. Reduce 7 mandatory context docs to 3.
+
+| File | Purpose |
+|------|---------|
+| `PLAN.md` | Master plan with phases and checkboxes |
+| `MEMORY.md` | Shared decisions and technical context |
+| `DRIFT.md` | Spec changes and pivots |
+| `SESSION-LOG.md` | Session-by-session history |
 
 ## Archive
 
@@ -12,12 +24,3 @@ Build plan archives from PiBun's development.
 | `archive/SESSION-LOG-v{1,2}.md` | Session-by-session logs |
 | `archive/DRIFT-v{1,2}.md` | Spec drift logs |
 | `archive/STATUS-v{1,2}.md` | Autopilot status snapshots |
-
-## Active Plan
-
-No active plan. Essential information has been consolidated into:
-
-- `docs/DECISIONS.md` — key decisions, gotchas, technical context
-- `docs/ROADMAP.md` — what's been built + parking lot items
-
-To start a new plan, use the `phased-plan` skill.
