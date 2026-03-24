@@ -20,6 +20,7 @@ import { ForkDialog } from "@/components/ForkDialog";
 import { GitPanel } from "@/components/GitPanel";
 import { GitStatusBar } from "@/components/GitStatusBar";
 import { ModelSelector } from "@/components/ModelSelector";
+import { PluginManager } from "@/components/PluginManager";
 import { PluginBottomPanels, PluginRightPanels } from "@/components/PluginPanel";
 import { SessionStats } from "@/components/SessionStats";
 import { Sidebar } from "@/components/Sidebar";
@@ -130,6 +131,7 @@ export function AppShell() {
 							<CompactButton />
 							<ForkDialog />
 							<ExportDialog />
+							<PluginManager />
 							<ThemeSelector />
 						</div>
 					</div>

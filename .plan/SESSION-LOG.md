@@ -1259,3 +1259,39 @@
 - After 6.5: 6.6 (system preference detection — `prefers-color-scheme`), 6.7 (macOS appearance changes), 6.8 (Shiki + xterm theme matching), 6.9 (verification)
 
 ---
+
+## Session 93 — Plugin manager UI (2026-03-24)
+
+**What happened:**
+- Implemented the full Plugin Manager UI component (7.6) — toolbar dropdown for listing, enabling/disabling, installing, and uninstalling plugins
+- **Updated `apps/web/src/lib/pluginActions.ts`**: Added 3 new actions: `installPlugin(source)` (calls `plugin.install` WS method + refreshes list), `uninstallPlugin(pluginId)` (closes panels first, removes via WS, refreshes), `setPluginEnabled(pluginId, enabled)` (optimistic panel toggle, persists via WS, refreshes)
+- **New file: `apps/web/src/components/PluginManager.tsx`**: Toolbar dropdown component with:
+  - Trigger button: puzzle piece icon + "Plugins" text + active count badge (accent colored)
+  - Header: installed count + active count, refresh button
+  - Scrollable plugin list: `PluginItem` (memoized) with enable/disable toggle switch (`role="switch"`), version badge, description, author, panel count, uninstall button
+  - Visual states: enabled (full color), disabled (muted), error (red tint with ⚠ indicator)
+  - Install form: `InstallForm` (memoized) with text input for URL/path + Install button
+  - Loading states for install/toggle/uninstall operations
+  - Standard dropdown behavior: click-outside close, Escape close, z-50 positioning
+  - Refreshes plugin list on open
+- **Updated `apps/web/src/lib/shortcuts.ts`**: Added `"togglePluginManager"` to `ShortcutAction` union
+- **Updated `apps/web/src/hooks/useKeyboardShortcuts.ts`**: Added Ctrl/Cmd+Shift+P binding for plugin manager toggle
+- **Updated `apps/web/src/components/AppShell.tsx`**: Added `PluginManager` to toolbar session management controls (between ExportDialog and ThemeSelector)
+
+**Items completed:**
+- [x] 7.6 — Plugin manager UI: list installed plugins, enable/disable, install from URL/path
+
+**Issues encountered:**
+- Biome formatting: new file needed `bun run format` for tab indentation and line wrapping consistency
+
+**Handoff to next session:**
+- Next: 7.7 — Example plugin: "Prompt Library" — panel that shows saved prompts, click to insert into composer
+- The Plugin Manager is fully wired. Users can now:
+  1. Click "Plugins" in toolbar → see all installed plugins
+  2. Toggle enable/disable via switch → panels appear/disappear immediately
+  3. Install from local path or URL via the install form
+  4. Uninstall plugins (panels closed first, then directory removed)
+  5. Ctrl+Shift+P keyboard shortcut to toggle
+- 7.7 needs: Create an actual example plugin at `~/.pibun/plugins/prompt-library/` with `plugin.json` manifest + `panel.html` (self-contained HTML page with JS that uses the postMessage bridge to insert prompts into Composer). The plugin should demonstrate the full lifecycle: manifest → rendering → bridge communication.
+
+---

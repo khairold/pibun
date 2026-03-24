@@ -83,6 +83,14 @@ export function useKeyboardShortcuts(): void {
 						}
 						break;
 					}
+					case "p": {
+						// Ctrl/Cmd+Shift+P — toggle plugin manager
+						if (isConnected) {
+							e.preventDefault();
+							emitShortcut("togglePluginManager");
+						}
+						break;
+					}
 					case "tab": {
 						// Ctrl/Cmd+Shift+Tab — previous tab
 						if (state.tabs.length > 1 && state.activeTabId) {

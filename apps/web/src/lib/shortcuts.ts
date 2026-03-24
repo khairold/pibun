@@ -17,6 +17,7 @@ export type ShortcutAction =
 	| "toggleExportDialog"
 	| "toggleGitPanel"
 	| "toggleModelSelector"
+	| "togglePluginManager"
 	| "toggleSidebar"
 	| "toggleTerminal"
 	| "toggleThinkingSelector";
