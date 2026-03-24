@@ -6,7 +6,7 @@
  * and session history. Types-only, zero runtime code.
  */
 
-import type { PiThinkingLevel } from "./piTypes.js";
+import type { PiThinkingLevel } from "./piProtocol.js";
 
 // ============================================================================
 // Project

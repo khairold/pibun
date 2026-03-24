@@ -3,7 +3,7 @@
 > **Spec:** Audit findings from 2026-03-24 session + "deep modules" principle
 > **Status:** In Progress
 > **Current Phase:** Phase 2 — Deep Contracts Package
-> **Last Session:** Session 4 — 2026-03-24
+> **Last Session:** Session 5 — 2026-03-24
 
 ---
 
@@ -61,7 +61,7 @@ With a 1M token context window, the entire codebase (~532K tokens) fits in one s
 
 **Goal:** Consolidate 12 contracts files into 4. One file to read per domain.
 
-- [ ] 2.1 — Merge piTypes.ts + piEvents.ts + piCommands.ts + piResponses.ts → `piProtocol.ts` (~1200 lines). All Pi RPC types in one file. Organize with `// ==== SECTION ====` headers.
+- [x] 2.1 — Merge piTypes.ts + piEvents.ts + piCommands.ts + piResponses.ts → `piProtocol.ts` (~1200 lines). All Pi RPC types in one file. Organize with `// ==== SECTION ====` headers.
 - [ ] 2.2 — Merge sessionTab.ts + project.ts + theme.ts + settings.ts + plugin.ts + gitTypes.ts → `domain.ts` (~300 lines). All app domain types.
 - [ ] 2.3 — Keep wsProtocol.ts as-is (already 933 lines, already deep). Add TSDoc from the deleted WS_PROTOCOL.md.
 - [ ] 2.4 — Rewrite index.ts as a slim re-export from 3 files (piProtocol, wsProtocol, domain)

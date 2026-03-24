@@ -5,7 +5,7 @@
  * independent Pi RPC session with its own CWD, model, and conversation.
  */
 
-import type { PiModel, PiThinkingLevel } from "./piTypes.js";
+import type { PiModel, PiThinkingLevel } from "./piProtocol.js";
 
 // ============================================================================
 // Session Tab

@@ -132,3 +132,28 @@
 - Run typecheck after each merge, fix all imports before moving to next merge
 
 ---
+
+## Session 5 — Merge Pi protocol types into piProtocol.ts (2026-03-24)
+
+**What happened:**
+- Created `piProtocol.ts` (1182 lines) by merging piTypes.ts + piEvents.ts + piCommands.ts + piResponses.ts
+- Organized with section headers: Content Blocks → Usage & Cost → Stop Reasons → Messages → Model → Assistant Streaming Events → Tool Results → Compaction → Session Stats → Bash → Session State → Slash Commands → Queue Modes → Events (lifecycle, turn, message, tool, compaction, retry, extension) → Commands → Responses → Stdout Line
+- Updated index.ts to re-export from piProtocol.ts instead of the 4 old files
+- Updated sessionTab.ts and project.ts internal imports from ./piTypes.js → ./piProtocol.js
+- wsProtocol.ts imports from ./index.js (unchanged — barrel still works)
+- Deleted 4 old files: piTypes.ts, piEvents.ts, piCommands.ts, piResponses.ts
+- contracts/ went from 12 files → 9 files
+
+**Items completed:**
+- [x] 2.1 — Merge piTypes.ts + piEvents.ts + piCommands.ts + piResponses.ts → piProtocol.ts
+
+**Issues encountered:**
+- None. All external consumers import through the barrel (`@pibun/contracts`), so no import changes needed outside the package. Internal cross-references between the 4 files became unnecessary since everything is in one file.
+
+**Handoff to next session:**
+- Next: 2.2 — Merge sessionTab.ts + project.ts + theme.ts + settings.ts + plugin.ts + gitTypes.ts → `domain.ts`
+- All domain files are small (835-7274 lines). plugin.ts is the largest at 7274 lines.
+- sessionTab.ts and project.ts now import from ./piProtocol.js — update to internal refs when merging into domain.ts
+- wsProtocol.ts imports from ./index.js — note for 2.4 (rewrite index.ts)
+
+---

@@ -24,11 +24,12 @@
 | 14 | DECISIONS.md is 100% redundant with CLAUDE.md | All 12 decisions + all gotchas already merged into CLAUDE.md in Session 1. Recommend deleting in 1.6 alongside the other three stale docs. | 2026-03-24 |
 | 15 | Phase 1 complete — docs/ reduced from 8 to 4 files | Deleted: WS_PROTOCOL.md, PI_INTEGRATION.md, WEB_UI.md, DECISIONS.md. Kept: ARCHITECTURE.md (rewritten), DESKTOP.md, CODE_SIGNING.md, ROADMAP.md. TSDoc updated in wsProtocol.ts, piProcess.ts, piRpcManager.ts, server.ts, wireTransport.ts. | 2026-03-24 |
 | 16 | ARCHITECTURE.md rewritten as current-state doc | ~85 lines. Covers: overview diagram, monorepo layout, package roles (with key files), data flow, multi-session model. No aspirational content, no redundancy with CLAUDE.md decisions/gotchas. | 2026-03-24 |
+| 17 | piProtocol.ts created (1182 lines) — merged from piTypes + piEvents + piCommands + piResponses | All Pi RPC types in one file. No cross-imports needed. Organized with `// ==== SECTION ====` headers: Content Blocks → Messages → Model → Events → Commands → Responses → StdoutLine. | 2026-03-24 |
 
 ## Architecture Notes
 
-### Current file counts (before refactoring)
-- contracts/: 12 files, 2992 lines
+### Current file counts (in progress)
+- contracts/: 9 files (was 12 — piTypes, piEvents, piCommands, piResponses merged into piProtocol)
 - server src (non-test): 19 files, 4460 lines
 - server handlers/: 8 files + types + index = 10 files
 - web store/: 15 files, 1409 lines
@@ -62,6 +63,7 @@
 - **Store slice merging changes the `StateCreator` generic.** Each slice uses `StateCreator<AppStore, [], [], SliceType>`. When merging slices, the combined slice type changes.
 - **Handler registry in index.ts maps string literals.** When moving handlers between files, the string keys don't change — only the import paths.
 - **contracts index.ts exports `WS_METHODS` and `WS_CHANNELS` as values.** Everything else is type-only. Don't accidentally make domain.ts export runtime values unless needed.
+- **wsProtocol.ts imports Pi types from `./index.js`** (circular-ish via barrel). This works fine because all exports are type-only. When doing item 2.4 (rewrite index.ts), keep this import path working or update wsProtocol.ts to import from `./piProtocol.js` directly.
 
 ## Technical Context
 
