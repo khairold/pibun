@@ -17,10 +17,7 @@
 
 import { create } from "zustand";
 import { createAppSlice } from "./appSlice";
-import { createExtensionUiSlice } from "./extensionUiSlice";
 import { createGitSlice } from "./gitSlice";
-import { createMessagesSlice } from "./messagesSlice";
-import { createModelsSlice } from "./modelsSlice";
 import { createPluginsSlice } from "./pluginsSlice";
 import { createProjectsSlice } from "./projectsSlice";
 import { createSessionSlice } from "./sessionSlice";
@@ -32,9 +29,6 @@ import type { AppStore } from "./types";
 export const useStore = create<AppStore>()((...a) => ({
 	...createAppSlice(...a),
 	...createSessionSlice(...a),
-	...createMessagesSlice(...a),
-	...createModelsSlice(...a),
-	...createExtensionUiSlice(...a),
 	...createTabsSlice(...a),
 	...createProjectsSlice(...a),
 	...createGitSlice(...a),

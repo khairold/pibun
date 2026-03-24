@@ -238,3 +238,30 @@
 - Watch for the `get()` calls in messagesSlice — it reads from its own state (messages array) to filter/update
 
 ---
+
+## Session 9 — Merge session-flow store slices into sessionSlice.ts (2026-03-24)
+
+**What happened:**
+- Created merged `sessionSlice.ts` (~160 lines) by combining 4 slices: sessionSlice, messagesSlice, modelsSlice, extensionUiSlice
+- Defined combined type `SessionSlice = SessionSliceType & MessagesSlice & ModelsSlice & ExtensionUiSlice` locally (imported original `SessionSlice` as `SessionSliceType` to avoid naming conflict)
+- Included message helper functions `findMessageIndex` and `updateAtIndex` inline in the file
+- Organized with section comments: Session state, Messages state, Models state, Extension UI state
+- Updated store/index.ts: replaced 4 imports + 4 spreads with 1 import + 1 spread
+- Deleted 3 old files: messagesSlice.ts, modelsSlice.ts, extensionUiSlice.ts
+- No external import changes needed — components use `useStore(s => s.field)` selectors
+- types.ts unchanged — individual slice interfaces remain as named types
+- store/ went from 12 files → 9 files
+
+**Items completed:**
+- [x] 3.2 — Merge store slices: session + messages + models + extensionUi → sessionSlice.ts
+
+**Issues encountered:**
+- Minor: had to alias `SessionSlice` import as `SessionSliceType` from types.ts because the local combined type uses the same name. Clean pattern — matches how appSlice.ts works.
+
+**Handoff to next session:**
+- Next: 3.3 — Merge store slices: tabs + terminal + git + plugins + projects → `workspaceSlice.ts`
+- Same pattern as appSlice.ts and sessionSlice.ts: define combined type locally, spread in store/index.ts
+- tabsSlice.ts is the largest (6386 lines) with complex `switchTab` logic — preserve it carefully
+- After 3.3, store/ should have 5 files (appSlice, sessionSlice, workspaceSlice, types, index) — the target
+
+---
