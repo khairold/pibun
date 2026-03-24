@@ -284,16 +284,12 @@ export function formatDuration(ms: number): string {
 
 export type ShortcutAction =
 	| "abort"
-	| "closeTab"
 	| "compact"
 	| "copyLastResponse"
 	| "toggleBashInput"
 	| "cycleModel"
 	| "cycleThinking"
 	| "newSession"
-	| "newTab"
-	| "nextTab"
-	| "prevTab"
 	| "splitTerminal"
 	| "toggleDiffPanel"
 	| "toggleExportDialog"

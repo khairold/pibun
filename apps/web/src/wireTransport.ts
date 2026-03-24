@@ -629,34 +629,6 @@ function handleMenuAction(data: WsMenuActionData): void {
 			break;
 		}
 
-		case "view.next-tab": {
-			if (store.tabs.length > 1 && store.activeTabId) {
-				const idx = store.tabs.findIndex((t) => t.id === store.activeTabId);
-				const nextIdx = idx >= store.tabs.length - 1 ? 0 : idx + 1;
-				const nextTab = store.tabs[nextIdx];
-				if (nextTab) {
-					switchTabAction(nextTab.id).catch((err: unknown) => {
-						console.error("[Menu] Failed to switch to next tab:", err);
-					});
-				}
-			}
-			break;
-		}
-
-		case "view.prev-tab": {
-			if (store.tabs.length > 1 && store.activeTabId) {
-				const idx = store.tabs.findIndex((t) => t.id === store.activeTabId);
-				const prevIdx = idx <= 0 ? store.tabs.length - 1 : idx - 1;
-				const prevTab = store.tabs[prevIdx];
-				if (prevTab) {
-					switchTabAction(prevTab.id).catch((err: unknown) => {
-						console.error("[Menu] Failed to switch to previous tab:", err);
-					});
-				}
-			}
-			break;
-		}
-
 		// ── Session ──────────────────────────────────────────────
 		case "session.abort":
 			if (store.isStreaming) {

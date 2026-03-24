@@ -25,8 +25,6 @@ export const MENU_ACTIONS = {
 
 	// File
 	newSession: "file.new-session",
-	newTab: "file.new-tab",
-	closeTab: "file.close-tab",
 	openFolder: "file.open-folder",
 	closeWindow: "file.close-window",
 
@@ -34,8 +32,6 @@ export const MENU_ACTIONS = {
 	toggleSidebar: "view.toggle-sidebar",
 	toggleGitPanel: "view.toggle-git-panel",
 	toggleTerminal: "view.toggle-terminal",
-	nextTab: "view.next-tab",
-	prevTab: "view.prev-tab",
 	zoomIn: "view.zoom-in",
 	zoomOut: "view.zoom-out",
 	zoomActualSize: "view.zoom-actual-size",
@@ -110,11 +106,6 @@ export function buildMenuConfig(recentProjects?: RecentProject[]): ApplicationMe
 					action: MENU_ACTIONS.newSession,
 					accelerator: "CommandOrControl+N",
 				},
-				{
-					label: "New Tab",
-					action: MENU_ACTIONS.newTab,
-					accelerator: "CommandOrControl+T",
-				},
 				{ type: "separator" },
 				{
 					label: "Open Folder…",
@@ -132,11 +123,6 @@ export function buildMenuConfig(recentProjects?: RecentProject[]): ApplicationMe
 					accelerator: "CommandOrControl+Shift+E",
 				},
 				{ type: "separator" },
-				{
-					label: "Close Tab",
-					action: MENU_ACTIONS.closeTab,
-					accelerator: "CommandOrControl+W",
-				},
 				{
 					label: "Close Window",
 					action: MENU_ACTIONS.closeWindow,
@@ -178,17 +164,6 @@ export function buildMenuConfig(recentProjects?: RecentProject[]): ApplicationMe
 					label: "Toggle Terminal",
 					action: MENU_ACTIONS.toggleTerminal,
 					accelerator: "CommandOrControl+`",
-				},
-				{ type: "separator" },
-				{
-					label: "Next Tab",
-					action: MENU_ACTIONS.nextTab,
-					accelerator: "Control+Tab",
-				},
-				{
-					label: "Previous Tab",
-					action: MENU_ACTIONS.prevTab,
-					accelerator: "Control+Shift+Tab",
 				},
 				{ type: "separator" },
 				{

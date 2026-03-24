@@ -417,8 +417,6 @@ const SHORTCUT_COMMANDS: { command: KeybindingCommand; description: string }[] =
 	{ command: "toggleModelSelector", description: "Switch model" },
 	{ command: "cycleModel", description: "Cycle model" },
 	{ command: "newSession", description: "New session" },
-	{ command: "newTab", description: "New tab" },
-	{ command: "closeTab", description: "Close tab" },
 	{ command: "toggleTerminal", description: "Toggle terminal" },
 	{ command: "splitTerminal", description: "Split terminal" },
 	{ command: "toggleDiffPanel", description: "Toggle diff panel" },
@@ -429,9 +427,6 @@ const SHORTCUT_COMMANDS: { command: KeybindingCommand; description: string }[] =
 	{ command: "cycleThinking", description: "Cycle thinking level" },
 	{ command: "toggleThinkingSelector", description: "Toggle thinking selector" },
 	{ command: "toggleExportDialog", description: "Export session" },
-	{ command: "nextTab", description: "Next tab" },
-	{ command: "prevTab", description: "Previous tab" },
-	{ command: "jumpToTab1", description: "Jump to tab 1–9" },
 ];
 
 function ShortcutsSection() {

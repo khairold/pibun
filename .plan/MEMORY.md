@@ -33,6 +33,9 @@
 | 23 | `hasUnread` removed from `SessionTab` | Single-session: no background tabs to go unread. Removed from contracts type, workspaceSlice addTab/switchTab, and TabBar. | 2026-03-24 |
 | 24 | Tab keyboard shortcuts removed | `newTab`, `closeTab`, `nextTab`, `prevTab`, `jumpToTab1-9` removed from useKeyboardShortcuts. Only `newSession` (Ctrl+N) remains for creating sessions. Tab navigation is done via sidebar. | 2026-03-24 |
 | 25 | Tab menu actions removed from wireTransport | `file.new-tab` and `file.close-tab` handlers removed. `file.new-session` remains. `closeTab` and `startSession` imports removed from wireTransport. | 2026-03-24 |
+| 26 | `closeTab` removed from tabActions, `TabBar.tsx` deleted | `closeTab` had no callers after 3.4/3.5 removed tab shortcuts. `TabBar.tsx` was dead code (not imported anywhere since sidebar handles navigation). Both removed. | 2026-03-24 |
+| 27 | 14 dead `KeybindingCommand` members removed | `closeTab`, `newTab`, `nextTab`, `prevTab`, `jumpToTab1-9` removed from domain type, default bindings, ShortcutAction, SettingsDialog, and desktop menu. Single-session model uses sidebar, not tab keyboard shortcuts. | 2026-03-24 |
+| 28 | Single-session simplification plan COMPLETE | All 3 phases done across 10 sessions. Codebase now enforces single active Pi process, auto-removes empty sessions, auto-names from first message, and has zero dead multi-tab code paths. Next work: project-scoped tabbed UI (see PLAN.md "What Comes Next"). | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -73,7 +76,7 @@ Tabs without a `sessionFile` (never started) just route transport to null. User 
 | File | Lines | Role |
 |------|-------|------|
 | `store/workspaceSlice.ts` | 725 | Tabs, terminal, git, plugins, projects state |
-| `lib/tabActions.ts` | 252 | Tab lifecycle coordinator (create, close, switch) |
+| `lib/tabActions.ts` | ~160 | Tab lifecycle coordinator (start session, switch, cleanup) |
 | `lib/sessionActions.ts` | 668 | Session lifecycle (start, new, fork, switch, bash) |
 | `wireTransport.ts` | 1002 | Event routing, menu handling, push subscriptions |
 | `components/Sidebar.tsx` | 1583 | Project tree, session list, context menus |
@@ -87,7 +90,6 @@ Tabs without a `sessionFile` (never started) just route transport to null. User 
 - `startNewSession()` in sessionActions calls `session.new` (in-process) not `session.start` (new process). These are different Pi commands.
 - `session.switchSession` is a Pi command that switches session files within the same process. Different from stopping one process and starting another.
 - Keyboard shortcuts `Ctrl+N` calls `startNewSession()`, `Ctrl+T` calls `createNewTab()` — both need updating
-- `closeTab` in tabActions still targets dead sessions (loads messages from stopped process). Needs update in Phase 3 or removal (3.6).
 - `switchSession()` from sessionActions must have `store.sessionId` cleared to null BEFORE calling — otherwise `ensureSession()` thinks a session exists and skips starting a new process
 
 ## Technical Context

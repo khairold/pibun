@@ -379,11 +379,8 @@ export const DEFAULT_KEYBINDINGS: readonly KeybindingRule[] = [
 	{ key: "mod+l", command: "toggleModelSelector" },
 	{ key: "mod+m", command: "cycleModel" },
 	{ key: "mod+n", command: "newSession" },
-	{ key: "mod+t", command: "newTab" },
-	{ key: "mod+w", command: "closeTab" },
 	{ key: "mod+,", command: "settings" },
 	{ key: "mod+j", command: "toggleTerminal" },
-	{ key: "mod+tab", command: "nextTab" },
 	// Shift combos
 	{ key: "mod+shift+b", command: "toggleBashInput" },
 	{ key: "mod+shift+c", command: "copyLastResponse" },
@@ -393,17 +390,6 @@ export const DEFAULT_KEYBINDINGS: readonly KeybindingRule[] = [
 	{ key: "mod+shift+p", command: "togglePluginManager" },
 	{ key: "mod+shift+t", command: "toggleThinkingSelector" },
 	{ key: "mod+shift+\\", command: "splitTerminal" },
-	{ key: "mod+shift+tab", command: "prevTab" },
-	// Tab jumps
-	{ key: "mod+1", command: "jumpToTab1" },
-	{ key: "mod+2", command: "jumpToTab2" },
-	{ key: "mod+3", command: "jumpToTab3" },
-	{ key: "mod+4", command: "jumpToTab4" },
-	{ key: "mod+5", command: "jumpToTab5" },
-	{ key: "mod+6", command: "jumpToTab6" },
-	{ key: "mod+7", command: "jumpToTab7" },
-	{ key: "mod+8", command: "jumpToTab8" },
-	{ key: "mod+9", command: "jumpToTab9" },
 ];
 
 // ============================================================================

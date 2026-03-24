@@ -252,3 +252,38 @@
 - Default keybindings in `keybindings.ts` still reference `newTab`, `closeTab`, `nextTab`, `prevTab`, `jumpToTab1-9` — these are type-safe (KeybindingCommand union) and will fail to compile after 3.7 removes the union members.
 
 ---
+
+## Session 10 — Phase 3.6–3.8: closeTab removal + dead keybindings + final verify (2026-03-24)
+
+**What happened:**
+- Removed `closeTab` function (~80 lines) from `tabActions.ts` — no callers remained after Sessions 8–9 removed tab shortcuts and menu actions. Cleaned up imports (`addLoadedSession`, `loadSessionMessages` removed; `refreshSessionState` kept — still used by `startSession`).
+- Deleted `TabBar.tsx` entirely — dead code not imported anywhere (confirmed via grep). Was the last consumer of `closeTab`.
+- Removed 14 dead `KeybindingCommand` type members from `domain.ts`: `closeTab`, `newTab`, `nextTab`, `prevTab`, `jumpToTab1-9`.
+- Removed 13 dead entries from `DEFAULT_KEYBINDINGS` in `keybindings.ts`.
+- Removed 4 dead members from `ShortcutAction` type in `utils.ts`.
+- Removed 5 dead entries from `SHORTCUT_COMMANDS` in `SettingsDialog.tsx`.
+- Removed `view.next-tab` and `view.prev-tab` menu handlers from `wireTransport.ts`.
+- Removed `newTab`, `closeTab`, `nextTab`, `prevTab` from desktop `menu.ts` (MENU_ACTIONS + menu config items).
+- **Phase 3 complete. All 3 phases of the single-session simplification plan are done.**
+
+**Items completed:**
+- [x] 3.6 — Remove `closeTab` from `tabActions.ts` + delete dead `TabBar.tsx`
+- [x] 3.7 — Delete dead keybinding commands (14 type members, 13 bindings, 5 settings entries, 4 menu items)
+- [x] 3.8 — Final verify: typecheck ✅, build ✅, lint has only pre-existing warnings
+
+**Phase 3 exit criteria verification:**
+- ✅ No dead tab-switching code (closeTab, TabBar, tab shortcuts, tab menu items all removed)
+- ✅ Types reflect single-session model (KeybindingCommand, ShortcutAction cleaned)
+- ✅ Clean build with no warnings from our code
+
+**Issues encountered:**
+- First typecheck failed because `refreshSessionState` was still used by `startSession` but I removed the import along with `closeTab`'s imports. Quick fix — re-added just `refreshSessionState` to the import.
+- Lint warnings are all pre-existing (unused var in multi-session-test, a11y in SessionBrowserDialog/Sidebar, unused var in workspaceSlice addTab).
+
+**Handoff to next session:**
+- **This plan is complete.** All 3 phases (21 items across 10 sessions) of the single-session simplification are done.
+- Next work should be a NEW plan for the **Project-Scoped Tabbed UI** described in PLAN.md "What Comes Next" section.
+- Pre-existing lint warnings (6 total across 3 files) could be cleaned as a quick housekeeping task.
+- Consider renaming `SessionTab` to `Session` now that the refactor is stable (noted in Parking Lot).
+
+---

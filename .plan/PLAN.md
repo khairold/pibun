@@ -1,9 +1,9 @@
 # Single-Session Simplification — Build Plan
 
 > **Spec:** Simplify from multi-tab-session to single-active-session model
-> **Status:** In Progress — Phase 2 complete
-> **Current Phase:** Phase 3 — Cleanup & Simplify Types
-> **Last Session:** Session 9 — 2026-03-24
+> **Status:** ✅ COMPLETE — All 3 phases done
+> **Current Phase:** All phases complete
+> **Last Session:** Session 10 — 2026-03-24
 
 ---
 
@@ -92,9 +92,9 @@ status tracking (`tabStatuses`, `tabWidgets`), `keepExisting` flag,
 - [x] 3.3 — Clean up `wireTransport.ts`: remove `bgTab` references, simplify `pi.event` handler. Remove `hasUnread` update logic.
 - [x] 3.4 — Clean up `useKeyboardShortcuts`: remove `newTab`/`closeTab`/`nextTab`/`prevTab`/`jumpToTab` shortcuts — these are multi-tab concepts. Keep `newSession` (creates session in active project).
 - [x] 3.5 — Clean up menu handler in `wireTransport.ts`: remove `file.new-tab`, `file.close-tab`, `file.next-tab`, `file.prev-tab` menu actions.
-- [ ] 3.6 — Remove `closeTab` from `tabActions.ts` — replaced by session switching (old session auto-stops). Keep the function if terminal close needs it, or inline the cleanup.
-- [ ] 3.7 — Delete dead keybinding commands from `domain.ts` `KeybindingCommand` type: `closeTab`, `newTab`, `nextTab`, `prevTab`, `jumpToTab1-9`.
-- [ ] 3.8 — Final verify: `bun run typecheck && bun run build && bun run lint`.
+- [x] 3.6 — Remove `closeTab` from `tabActions.ts` — replaced by session switching (old session auto-stops). Also deleted dead `TabBar.tsx`.
+- [x] 3.7 — Delete dead keybinding commands from `domain.ts` `KeybindingCommand` type: `closeTab`, `newTab`, `nextTab`, `prevTab`, `jumpToTab1-9`. Also cleaned: `keybindings.ts`, `utils.ts`, `SettingsDialog.tsx`, `wireTransport.ts`, `menu.ts`.
+- [x] 3.8 — Final verify: `bun run typecheck && bun run build` pass. Lint has only pre-existing warnings (not from our changes).
 
 **Exit criteria:** No dead tab-switching code. Types reflect single-session model. Clean build with no warnings from our code.
 
