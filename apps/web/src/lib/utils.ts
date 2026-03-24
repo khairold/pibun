@@ -294,6 +294,7 @@ export type ShortcutAction =
 	| "newTab"
 	| "nextTab"
 	| "prevTab"
+	| "splitTerminal"
 	| "toggleDiffPanel"
 	| "toggleExportDialog"
 	| "toggleGitPanel"

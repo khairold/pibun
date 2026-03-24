@@ -22,7 +22,7 @@
  * re-renders. Must be mounted once at the app level (AppShell).
  */
 
-import { createTerminal } from "@/lib/appActions";
+import { createTerminal, splitTerminal } from "@/lib/appActions";
 import { compactSession, fetchSessionList, startNewSession } from "@/lib/sessionActions";
 import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
 import { emitShortcut } from "@/lib/utils";
@@ -145,6 +145,17 @@ export function useKeyboardShortcuts(): void {
 						if (isConnected) {
 							e.preventDefault();
 							emitShortcut("togglePluginManager");
+						}
+						break;
+					}
+					case "\\": {
+						// Ctrl/Cmd+Shift+\ — split terminal
+						if (isConnected && state.terminalPanelOpen && state.terminalTabs.length > 0) {
+							e.preventDefault();
+							emitShortcut("splitTerminal");
+							splitTerminal().catch((err: unknown) => {
+								console.error("[Shortcut] Failed to split terminal:", err);
+							});
 						}
 						break;
 					}

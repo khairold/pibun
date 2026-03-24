@@ -15,16 +15,17 @@
 
 import type { GitChangedFile, Project, SessionTab, TabStatus } from "@pibun/contracts";
 import type { StateCreator } from "zustand";
-import type {
-	AppStore,
-	ChatMessage,
-	ExtensionWidget,
-	GitSlice,
-	PluginsSlice,
-	ProjectsSlice,
-	TabsSlice,
-	TerminalSlice,
-	TerminalTab,
+import {
+	type AppStore,
+	type ChatMessage,
+	type ExtensionWidget,
+	type GitSlice,
+	MAX_TERMINALS_PER_GROUP,
+	type PluginsSlice,
+	type ProjectsSlice,
+	type TabsSlice,
+	type TerminalSlice,
+	type TerminalTab,
 } from "./types";
 
 // ============================================================================
@@ -397,6 +398,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			name: `Terminal ${String(terminalTabCounter)}`,
 			cwd,
 			isRunning: true,
+			groupId: tabId, // Each new terminal starts in its own group
 		};
 		set((state) => ({
 			terminalTabs: [...state.terminalTabs, tab],
@@ -408,14 +410,25 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 
 	removeTerminalTab: (tabId) => {
 		const state = get();
+		const removedTab = state.terminalTabs.find((t) => t.id === tabId);
 		const idx = state.terminalTabs.findIndex((t) => t.id === tabId);
 		const newTabs = state.terminalTabs.filter((t) => t.id !== tabId);
 
 		let newActiveId = state.activeTerminalTabId;
 		if (state.activeTerminalTabId === tabId) {
-			// Switch to adjacent tab
 			if (newTabs.length === 0) {
 				newActiveId = null;
+			} else if (removedTab) {
+				// Prefer a sibling in the same split group first
+				const groupSibling = newTabs.find((t) => t.groupId === removedTab.groupId);
+				if (groupSibling) {
+					newActiveId = groupSibling.id;
+				} else {
+					// Fall back to adjacent tab in the flat list
+					const newIdx = Math.min(idx, newTabs.length - 1);
+					const adjacent = newTabs[newIdx];
+					newActiveId = adjacent ? adjacent.id : null;
+				}
 			} else {
 				const newIdx = Math.min(idx, newTabs.length - 1);
 				const adjacent = newTabs[newIdx];
@@ -447,6 +460,35 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	getTerminalTabByTerminalId: (terminalId) => {
 		const state = get();
 		return state.terminalTabs.find((t) => t.terminalId === terminalId) ?? null;
+	},
+
+	splitTerminalTab: (terminalId, cwd) => {
+		const state = get();
+		const activeTab = state.activeTerminalTabId
+			? state.terminalTabs.find((t) => t.id === state.activeTerminalTabId)
+			: null;
+		const groupId = activeTab ? activeTab.groupId : null;
+
+		// Check group size limit
+		if (groupId) {
+			const groupSize = state.terminalTabs.filter((t) => t.groupId === groupId).length;
+			if (groupSize >= MAX_TERMINALS_PER_GROUP) return null;
+		}
+
+		const tabId = `ttab-${String(++terminalTabCounter)}`;
+		const tab: TerminalTab = {
+			id: tabId,
+			terminalId,
+			name: `Terminal ${String(terminalTabCounter)}`,
+			cwd,
+			isRunning: true,
+			groupId: groupId ?? tabId, // Join active group, or create new group
+		};
+		set((state) => ({
+			terminalTabs: [...state.terminalTabs, tab],
+			activeTerminalTabId: tabId,
+		}));
+		return tabId;
 	},
 
 	// ==== Git state ====

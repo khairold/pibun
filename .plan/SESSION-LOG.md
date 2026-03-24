@@ -1435,3 +1435,36 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 48 — Terminal split panes (2026-03-24)
+
+**What happened:**
+- Implemented terminal split panes with independent resize handles (5B.1):
+  - **Store types**: Added `groupId: string` to `TerminalTab` — terminals with the same `groupId` render side-by-side. Added `MAX_TERMINALS_PER_GROUP = 4` constant. Added `splitTerminalTab()` action to `TerminalSlice`.
+  - **workspaceSlice**: `addTerminalTab` now sets `groupId` = tab ID (each new terminal starts in its own group). `splitTerminalTab` creates a new terminal in the active terminal's group (enforces max limit, returns null if full). `removeTerminalTab` updated with group-aware active tab selection (prefers siblings in the same group).
+  - **appActions**: Added `splitTerminal()` — creates a PTY server-side, then calls `splitTerminalTab` to add to the group. If group is full, closes the PTY and shows a warning toast.
+  - **TerminalPane rewrite**: Major refactoring:
+    - `SplitResizeHandle` — horizontal drag handle between split panes (col-resize cursor)
+    - `SplitTerminalGroup` — renders all terminals in a group side-by-side using flexbox with fractional pane widths. Drag resize adjusts adjacent fractions with minimum 15% constraint. Active pane gets accent ring highlight. Single-terminal groups render without split chrome.
+    - Tab bar shows group separators (vertical divider between groups when multiple groups exist)
+    - Split button added to toolbar (disabled when group is full or no terminals)
+    - Active group rendered via `SplitTerminalGroup`, other groups' terminals stay mounted but hidden
+  - **Keyboard shortcut**: `Ctrl/Cmd+Shift+\` splits the terminal. Added `splitTerminal` to `ShortcutAction` union. Added to `useKeyboardShortcuts`.
+  - **Settings dialog**: Split terminal shortcut added to keyboard shortcuts reference table.
+- 7 files modified: `types.ts`, `workspaceSlice.ts`, `appActions.ts`, `TerminalPane.tsx` (rewrite), `useKeyboardShortcuts.ts`, `utils.ts`, `SettingsDialog.tsx`.
+
+**Items completed:**
+- [x] 5B.1 — Terminal split panes: split current terminal horizontally, independent resize handles
+
+**Issues encountered:**
+- Biome flagged unused variable `newFractions` in an incomplete code path (was a remnant of an approach to handle dynamic group size changes). Replaced with a comment explaining the fallback mechanism.
+- Biome import ordering: `MAX_TERMINALS_PER_GROUP` (non-type) export needed to sort after type imports alphabetically.
+
+**Handoff to next session:**
+- Next: 5B.2 — Terminal groups per tab: each tab has its own terminal group (preserved across tab switches)
+- `SplitTerminalGroup` uses `key={activeGroupId}` to remount when the active group changes — this resets pane fractions to equal. If preserved fractions are needed across group switches, move fractions to store.
+- The split button in the toolbar uses a "split horizontal" SVG icon (vertical divider between two panes).
+- `TerminalTabItem` now has `isGroupVisible` prop for visual highlighting of group siblings.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

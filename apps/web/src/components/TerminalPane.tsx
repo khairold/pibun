@@ -1,21 +1,23 @@
 /**
- * TerminalPane — embedded terminal with xterm.js and resizable splitter.
+ * TerminalPane — embedded terminal with xterm.js, resizable splitter, and split panes.
  *
  * Renders as a bottom panel below ChatView, similar to VS Code's terminal panel.
  * Features:
- * - xterm.js terminal instance with fit addon for auto-resize
- * - Multiple terminal tabs
- * - Resizable via drag handle
+ * - xterm.js terminal instances with fit addon for auto-resize
+ * - Multiple terminal tabs with split pane grouping
+ * - Split current terminal horizontally (side-by-side) with independent resize handles
+ * - Resizable panel height via drag handle
  * - Theme-matched colors (semantic theme tokens)
  * - Terminal data flows: xterm onData → writeTerminal → server → PTY stdin
  *                        PTY stdout → server → terminal.data push → xterm.write
  */
 
-import { closeTerminal, createTerminal } from "@/lib/appActions";
+import { closeTerminal, createTerminal, splitTerminal } from "@/lib/appActions";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { TerminalTab } from "@/store/types";
-import { memo, useCallback, useRef } from "react";
+import { MAX_TERMINALS_PER_GROUP } from "@/store/types";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { TerminalInstance } from "./TerminalInstance";
 
 // ============================================================================
@@ -25,6 +27,7 @@ import { TerminalInstance } from "./TerminalInstance";
 interface TerminalTabItemProps {
 	tab: TerminalTab;
 	isActive: boolean;
+	isGroupVisible: boolean;
 	onSelect: (tabId: string) => void;
 	onClose: (tabId: string) => void;
 }
@@ -32,6 +35,7 @@ interface TerminalTabItemProps {
 const TerminalTabItem = memo(function TerminalTabItem({
 	tab,
 	isActive,
+	isGroupVisible,
 	onSelect,
 	onClose,
 }: TerminalTabItemProps) {
@@ -44,7 +48,9 @@ const TerminalTabItem = memo(function TerminalTabItem({
 				"flex items-center gap-1.5 px-3 py-1.5 text-xs cursor-pointer select-none border-r border-border-secondary transition-colors",
 				isActive
 					? "bg-surface-primary text-text-primary"
-					: "bg-surface-base text-text-tertiary hover:text-text-secondary hover:bg-surface-primary/50",
+					: isGroupVisible
+						? "bg-surface-primary/70 text-text-secondary"
+						: "bg-surface-base text-text-tertiary hover:text-text-secondary hover:bg-surface-primary/50",
 			)}
 			onClick={() => onSelect(tab.id)}
 			onKeyDown={(e) => {
@@ -102,14 +108,14 @@ const TerminalTabItem = memo(function TerminalTabItem({
 });
 
 // ============================================================================
-// Resize Handle
+// Panel Height Resize Handle (vertical — top of panel)
 // ============================================================================
 
-interface ResizeHandleProps {
+interface PanelResizeHandleProps {
 	onResize: (deltaY: number) => void;
 }
 
-function ResizeHandle({ onResize }: ResizeHandleProps) {
+function PanelResizeHandle({ onResize }: PanelResizeHandleProps) {
 	const isDragging = useRef(false);
 	const lastY = useRef(0);
 
@@ -152,6 +158,168 @@ function ResizeHandle({ onResize }: ResizeHandleProps) {
 }
 
 // ============================================================================
+// Split Pane Resize Handle (horizontal — between split panes)
+// ============================================================================
+
+interface SplitResizeHandleProps {
+	/** Index of the divider between pane[index] and pane[index+1]. */
+	index: number;
+	/** Callback to adjust sizes: positive deltaX grows left pane, shrinks right. */
+	onResize: (index: number, deltaX: number) => void;
+}
+
+function SplitResizeHandle({ index, onResize }: SplitResizeHandleProps) {
+	const isDragging = useRef(false);
+	const lastX = useRef(0);
+
+	const handleMouseDown = useCallback(
+		(e: React.MouseEvent) => {
+			e.preventDefault();
+			isDragging.current = true;
+			lastX.current = e.clientX;
+
+			const handleMouseMove = (me: MouseEvent) => {
+				if (!isDragging.current) return;
+				const deltaX = me.clientX - lastX.current;
+				lastX.current = me.clientX;
+				onResize(index, deltaX);
+			};
+
+			const handleMouseUp = () => {
+				isDragging.current = false;
+				document.removeEventListener("mousemove", handleMouseMove);
+				document.removeEventListener("mouseup", handleMouseUp);
+				document.body.style.cursor = "";
+				document.body.style.userSelect = "";
+			};
+
+			document.addEventListener("mousemove", handleMouseMove);
+			document.addEventListener("mouseup", handleMouseUp);
+			document.body.style.cursor = "col-resize";
+			document.body.style.userSelect = "none";
+		},
+		[index, onResize],
+	);
+
+	return (
+		<div
+			className="w-1 cursor-col-resize bg-border-secondary hover:bg-accent-primary-hover transition-colors shrink-0"
+			onMouseDown={handleMouseDown}
+			title="Drag to resize split"
+		/>
+	);
+}
+
+// ============================================================================
+// Split Terminal Group — renders multiple terminals side-by-side
+// ============================================================================
+
+/** Minimum width fraction for a pane (prevents collapsing to zero). */
+const MIN_PANE_FRACTION = 0.15;
+
+interface SplitTerminalGroupProps {
+	/** Terminals in this group (1 = single, 2+ = split view). */
+	tabs: TerminalTab[];
+	/** Which terminal tab is currently active (for focus). */
+	activeTerminalTabId: string | null;
+	/** Called when a pane is clicked to make it active. */
+	onActivate: (tabId: string) => void;
+}
+
+function SplitTerminalGroup({ tabs, activeTerminalTabId, onActivate }: SplitTerminalGroupProps) {
+	// Track pane width fractions (each starts at 1/N). Stored as fractions summing to 1.
+	const [paneFractions, setPaneFractions] = useState<number[]>(() =>
+		tabs.map(() => 1 / tabs.length),
+	);
+	const containerRef = useRef<HTMLDivElement>(null);
+
+	// Note: paneFractions may go out of sync when tabs are added/removed.
+	// The `fractions` fallback below handles this — if lengths don't match,
+	// it falls back to equal distribution. The `key={activeGroupId}` on the
+	// parent SplitTerminalGroup ensures re-mount when the group changes.
+
+	// Resize handler: adjust adjacent pane fractions
+	const handleSplitResize = useCallback((dividerIndex: number, deltaX: number) => {
+		if (!containerRef.current) return;
+		const containerWidth = containerRef.current.offsetWidth;
+		if (containerWidth <= 0) return;
+
+		const deltaFraction = deltaX / containerWidth;
+
+		setPaneFractions((prev) => {
+			const next = [...prev];
+			const left = next[dividerIndex];
+			const right = next[dividerIndex + 1];
+			if (left === undefined || right === undefined) return prev;
+
+			const newLeft = left + deltaFraction;
+			const newRight = right - deltaFraction;
+
+			// Enforce minimum widths
+			if (newLeft < MIN_PANE_FRACTION || newRight < MIN_PANE_FRACTION) return prev;
+
+			next[dividerIndex] = newLeft;
+			next[dividerIndex + 1] = newRight;
+			return next;
+		});
+	}, []);
+
+	// Single terminal — no split chrome
+	if (tabs.length === 1) {
+		const tab = tabs[0];
+		if (!tab) return null;
+		return (
+			<div className="h-full w-full">
+				<TerminalInstance
+					terminalId={tab.terminalId}
+					isActive={tab.id === activeTerminalTabId}
+					terminalLabel={tab.name}
+				/>
+			</div>
+		);
+	}
+
+	// Ensure fractions match tab count (handles dynamic changes)
+	const fractions =
+		paneFractions.length === tabs.length ? paneFractions : tabs.map(() => 1 / tabs.length);
+
+	return (
+		<div ref={containerRef} className="flex h-full w-full min-w-0">
+			{tabs.map((tab, i) => {
+				const isLast = i === tabs.length - 1;
+				const fraction = fractions[i] ?? 1 / tabs.length;
+
+				return (
+					<div key={tab.id} className="flex min-w-0" style={{ flex: `${String(fraction)} 1 0%` }}>
+						{/* Terminal pane */}
+						<div
+							className={cn(
+								"flex-1 min-w-0",
+								tab.id === activeTerminalTabId ? "ring-1 ring-inset ring-accent-primary/30" : "",
+							)}
+							onMouseDown={() => {
+								if (tab.id !== activeTerminalTabId) {
+									onActivate(tab.id);
+								}
+							}}
+						>
+							<TerminalInstance
+								terminalId={tab.terminalId}
+								isActive={tab.id === activeTerminalTabId}
+								terminalLabel={tab.name}
+							/>
+						</div>
+
+						{/* Resize handle between panes */}
+						{!isLast && <SplitResizeHandle index={i} onResize={handleSplitResize} />}
+					</div>
+				);
+			})}
+		</div>
+	);
+}
+
+// ============================================================================
 // Main TerminalPane
 // ============================================================================
 
@@ -169,6 +337,37 @@ export function TerminalPane() {
 
 	const heightRef = useRef(DEFAULT_HEIGHT);
 	const panelRef = useRef<HTMLDivElement>(null);
+
+	// Derive the active group's tabs
+	const activeGroup = useMemo(() => {
+		if (!activeTerminalTabId) return [];
+		const activeTab = terminalTabs.find((t) => t.id === activeTerminalTabId);
+		if (!activeTab) return [];
+		return terminalTabs.filter((t) => t.groupId === activeTab.groupId);
+	}, [terminalTabs, activeTerminalTabId]);
+
+	// Derive the active group ID for highlighting tabs in the bar
+	const activeGroupId = useMemo(() => {
+		if (!activeTerminalTabId) return null;
+		const activeTab = terminalTabs.find((t) => t.id === activeTerminalTabId);
+		return activeTab?.groupId ?? null;
+	}, [terminalTabs, activeTerminalTabId]);
+
+	// Check if split limit is reached for the active group
+	const splitLimitReached = activeGroup.length >= MAX_TERMINALS_PER_GROUP;
+
+	// Collect unique group IDs to show group separators in the tab bar
+	const tabGroupInfo = useMemo(() => {
+		const groupOrder: string[] = [];
+		const groupSet = new Set<string>();
+		for (const tab of terminalTabs) {
+			if (!groupSet.has(tab.groupId)) {
+				groupSet.add(tab.groupId);
+				groupOrder.push(tab.groupId);
+			}
+		}
+		return { groupOrder, groupSet };
+	}, [terminalTabs]);
 
 	const handleResize = useCallback((deltaY: number) => {
 		const maxHeight = window.innerHeight * MAX_HEIGHT_RATIO;
@@ -197,11 +396,28 @@ export function TerminalPane() {
 		});
 	}, []);
 
+	const handleSplitTerminal = useCallback(() => {
+		splitTerminal().catch((err: unknown) => {
+			console.error("[TerminalPane] Failed to split terminal:", err);
+		});
+	}, []);
+
 	const handleClosePanel = useCallback(() => {
 		setTerminalPanelOpen(false);
 	}, [setTerminalPanelOpen]);
 
 	if (!terminalPanelOpen) return null;
+
+	// Build tab bar items with group separators
+	const tabBarItems: Array<{ type: "tab"; tab: TerminalTab } | { type: "separator" }> = [];
+	let prevGroupId: string | null = null;
+	for (const tab of terminalTabs) {
+		if (prevGroupId !== null && tab.groupId !== prevGroupId && tabGroupInfo.groupOrder.length > 1) {
+			tabBarItems.push({ type: "separator" });
+		}
+		tabBarItems.push({ type: "tab", tab });
+		prevGroupId = tab.groupId;
+	}
 
 	return (
 		<div
@@ -210,22 +426,60 @@ export function TerminalPane() {
 			style={{ height: DEFAULT_HEIGHT }}
 		>
 			{/* Resize handle */}
-			<ResizeHandle onResize={handleResize} />
+			<PanelResizeHandle onResize={handleResize} />
 
 			{/* Terminal tab bar */}
 			<div className="flex items-center border-b border-border-secondary bg-surface-base shrink-0">
 				{/* Tab list */}
 				<div className="flex items-center overflow-x-auto" role="tablist">
-					{terminalTabs.map((tab) => (
-						<TerminalTabItem
-							key={tab.id}
-							tab={tab}
-							isActive={tab.id === activeTerminalTabId}
-							onSelect={handleTabSelect}
-							onClose={handleTabClose}
-						/>
-					))}
+					{tabBarItems.map((item, i) => {
+						if (item.type === "separator") {
+							return (
+								<div key={`sep-${String(i)}`} className="mx-0.5 h-4 w-px bg-border-secondary" />
+							);
+						}
+						const { tab } = item;
+						return (
+							<TerminalTabItem
+								key={tab.id}
+								tab={tab}
+								isActive={tab.id === activeTerminalTabId}
+								isGroupVisible={tab.groupId === activeGroupId && tab.id !== activeTerminalTabId}
+								onSelect={handleTabSelect}
+								onClose={handleTabClose}
+							/>
+						);
+					})}
 				</div>
+
+				{/* Split terminal button */}
+				<button
+					type="button"
+					onClick={handleSplitTerminal}
+					disabled={splitLimitReached || terminalTabs.length === 0}
+					className={cn(
+						"px-2 py-1.5 transition-colors",
+						splitLimitReached || terminalTabs.length === 0
+							? "text-text-muted cursor-not-allowed opacity-50"
+							: "text-text-tertiary hover:text-text-secondary",
+					)}
+					title={
+						splitLimitReached
+							? `Split Terminal (max ${String(MAX_TERMINALS_PER_GROUP)} per group)`
+							: "Split Terminal"
+					}
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 16 16"
+						fill="currentColor"
+						className="h-3.5 w-3.5"
+						aria-label="Split terminal"
+						role="img"
+					>
+						<path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h9A1.5 1.5 0 0 1 14 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12.5v-9zM3.5 3a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5H7.5V3H3.5zm5 0v10h4a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5H8.5z" />
+					</svg>
+				</button>
 
 				{/* New terminal button */}
 				<button
@@ -292,21 +546,31 @@ export function TerminalPane() {
 						</button>
 					</div>
 				) : (
-					terminalTabs.map((tab) => (
-						<div
-							key={tab.id}
-							className={cn(
-								"absolute inset-0",
-								tab.id === activeTerminalTabId ? "block" : "hidden",
-							)}
-						>
-							<TerminalInstance
-								terminalId={tab.terminalId}
-								isActive={tab.id === activeTerminalTabId}
-								terminalLabel={tab.name}
-							/>
-						</div>
-					))
+					<>
+						{/* Active group: render all tabs in the group (split view) */}
+						{activeGroup.length > 0 && (
+							<div className="absolute inset-0">
+								<SplitTerminalGroup
+									key={activeGroupId ?? "none"}
+									tabs={activeGroup}
+									activeTerminalTabId={activeTerminalTabId}
+									onActivate={handleTabSelect}
+								/>
+							</div>
+						)}
+						{/* Hidden tabs: keep mounted but invisible for other groups */}
+						{terminalTabs
+							.filter((tab) => tab.groupId !== activeGroupId)
+							.map((tab) => (
+								<div key={tab.id} className="absolute inset-0 hidden">
+									<TerminalInstance
+										terminalId={tab.terminalId}
+										isActive={false}
+										terminalLabel={tab.name}
+									/>
+								</div>
+							))}
+					</>
 				)}
 			</div>
 		</div>

@@ -4,7 +4,7 @@
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
 > **Status:** Phase 5 in progress
 > **Current Phase:** Phase 5 — Advanced Pi Features
-> **Last Session:** Session 47 — 2026-03-24
+> **Last Session:** Session 48 — 2026-03-24
 
 ---
 
@@ -167,7 +167,7 @@
 
 ### 5B — Terminal Enhancements
 
-- [ ] 5B.1 — Terminal split panes: split current terminal horizontally, independent resize handles
+- [x] 5B.1 — Terminal split panes: split current terminal horizontally, independent resize handles
 - [ ] 5B.2 — Terminal groups per tab: each tab has its own terminal group (preserved across tab switches)
 - [ ] 5B.3 — Terminal link detection: parse file paths in terminal output, make clickable (open in editor)
 - [ ] 5B.4 — Terminal theme sync: derive xterm.js theme from current PiBun theme tokens
