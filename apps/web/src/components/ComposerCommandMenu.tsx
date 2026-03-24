@@ -1,23 +1,23 @@
 /**
- * ComposerCommandMenu — floating autocomplete menu above the composer.
+ * ComposerCommandMenu — floating autocomplete menus above the composer.
  *
- * Appears when the user types `/` at the start of a line. Shows available
- * Pi slash commands (extensions, skills, prompt templates) filtered by
- * the typed query. Keyboard navigable with ↑↓ + Enter + Escape.
+ * Contains three menu systems:
+ * 1. **Slash command menu** — `/` at line start shows Pi commands
+ * 2. **File mention menu** — `@` anywhere shows project file search results
+ * 3. **Model picker** — inline model selector shown when `/model` is selected
  *
  * Design:
  * - Positioned absolutely above the composer's textarea
  * - Max height with scroll for many items
  * - Active item highlighted, auto-scrolled into view
- * - Shows command name, description, and source badge
- * - Empty state when no matches found
- * - Loading state while commands are being fetched
+ * - Keyboard navigable with ↑↓ + Enter + Escape
+ * - Loading and empty states for async searches
  *
  * @module
  */
 
 import { cn } from "@/lib/utils";
-import type { PiModel, PiSlashCommand } from "@pibun/contracts";
+import type { FileSearchResult, PiModel, PiSlashCommand } from "@pibun/contracts";
 import { memo, useEffect, useMemo, useRef } from "react";
 
 // ============================================================================
@@ -103,6 +103,65 @@ export function detectSlashTrigger(
 		rangeStart: lineStart,
 		rangeEnd: cursorPos,
 	};
+}
+
+/**
+ * Detect an `@` file mention trigger from textarea value and cursor position.
+ *
+ * Unlike slash triggers (which must be at line start), `@` can appear anywhere
+ * in the text — it triggers when the cursor is inside a word that starts with `@`.
+ * The query is everything after `@` until the cursor (no whitespace allowed).
+ *
+ * Returns null if the cursor is not in an `@` trigger context.
+ */
+export function detectAtTrigger(
+	value: string,
+	cursorPos: number,
+): { query: string; rangeStart: number; rangeEnd: number } | null {
+	// Walk backwards from cursor to find the start of the current token
+	let tokenStart = cursorPos - 1;
+	while (tokenStart >= 0 && !/\s/.test(value[tokenStart] ?? "")) {
+		tokenStart--;
+	}
+	tokenStart++; // move past the whitespace (or -1 → 0)
+
+	const token = value.slice(tokenStart, cursorPos);
+	if (!token.startsWith("@")) return null;
+
+	// The query is everything after `@`
+	const query = token.slice(1);
+
+	return {
+		query,
+		rangeStart: tokenStart,
+		rangeEnd: cursorPos,
+	};
+}
+
+/** A file mention menu item — wraps a FileSearchResult with display metadata. */
+export interface FileMentionMenuItem {
+	/** Unique ID for this item. */
+	id: string;
+	/** The file search result. */
+	file: FileSearchResult;
+	/** Display label — the filename (last segment of path). */
+	label: string;
+	/** Full relative path from project root. */
+	path: string;
+}
+
+/** Build FileMentionMenuItems from FileSearchResults. */
+export function buildFileMentionItems(files: FileSearchResult[]): FileMentionMenuItem[] {
+	return files.map((file, i) => {
+		const segments = file.path.split("/");
+		const label = segments[segments.length - 1] ?? file.path;
+		return {
+			id: `file:${String(i)}:${file.path}`,
+			file,
+			label,
+			path: file.path,
+		};
+	});
 }
 
 // ============================================================================
@@ -221,6 +280,159 @@ export const ComposerCommandMenu = memo(function ComposerCommandMenu(
 					{props.items.length === 0 && (
 						<div className="px-3 py-3 text-center text-xs text-text-muted">
 							{props.isLoading ? "Loading commands…" : "No matching commands"}
+						</div>
+					)}
+				</div>
+			</div>
+		</div>
+	);
+});
+
+// ============================================================================
+// File Mention Menu — file search results for @ mentions
+// ============================================================================
+
+/** Props for the FileMentionMenu. */
+export interface FileMentionMenuProps {
+	/** File search result items to display. */
+	items: FileMentionMenuItem[];
+	/** ID of the currently highlighted item, null if none. */
+	activeItemId: string | null;
+	/** Whether a search is currently in progress. */
+	isLoading: boolean;
+	/** Called when user selects an item (Enter or click). */
+	onSelect: (item: FileMentionMenuItem) => void;
+	/** Called when highlighted item changes (keyboard nav or hover). */
+	onHighlightChange: (itemId: string | null) => void;
+}
+
+/** File/directory kind icon. */
+const FileKindIcon = memo(function FileKindIcon(props: { kind: "file" | "directory" }) {
+	if (props.kind === "directory") {
+		return (
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 16 16"
+				fill="currentColor"
+				className="h-3.5 w-3.5"
+				aria-label="Directory"
+				role="img"
+			>
+				<path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h3.879a1.5 1.5 0 0 1 1.06.44l1.122 1.12A1.5 1.5 0 0 0 9.62 4H13.5A1.5 1.5 0 0 1 15 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5v-9z" />
+			</svg>
+		);
+	}
+	return (
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 16 16"
+			fill="currentColor"
+			className="h-3.5 w-3.5"
+			aria-label="File"
+			role="img"
+		>
+			<path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0H4zm5.5 1.5v2a1 1 0 0 0 1 1h2l-3-3z" />
+		</svg>
+	);
+});
+
+/** A single item in the file mention menu. */
+const FileMentionItemRow = memo(function FileMentionItemRow(props: {
+	item: FileMentionMenuItem;
+	isActive: boolean;
+	onSelect: (item: FileMentionMenuItem) => void;
+	onHover: (itemId: string) => void;
+}) {
+	const ref = useRef<HTMLDivElement>(null);
+
+	// Auto-scroll active item into view
+	useEffect(() => {
+		if (props.isActive && ref.current) {
+			ref.current.scrollIntoView({ block: "nearest" });
+		}
+	}, [props.isActive]);
+
+	// Split path into directory and filename for display
+	const lastSlash = props.item.path.lastIndexOf("/");
+	const dir = lastSlash >= 0 ? props.item.path.slice(0, lastSlash + 1) : "";
+	const name = lastSlash >= 0 ? props.item.path.slice(lastSlash + 1) : props.item.path;
+
+	return (
+		// biome-ignore lint/a11y/useKeyWithClickEvents: keyboard nav handled by parent Composer via ↑↓ Enter
+		<div
+			ref={ref}
+			className={cn(
+				"flex cursor-pointer select-none items-center gap-2 px-3 py-1.5 text-sm",
+				"transition-colors",
+				props.isActive
+					? "bg-accent-soft text-text-primary"
+					: "text-text-secondary hover:bg-surface-secondary",
+			)}
+			onMouseDown={(e) => {
+				// Prevent textarea blur
+				e.preventDefault();
+			}}
+			onClick={() => props.onSelect(props.item)}
+			onMouseEnter={() => props.onHover(props.item.id)}
+		>
+			{/* File/directory icon */}
+			<span
+				className={cn(
+					"flex h-5 w-5 shrink-0 items-center justify-center",
+					props.item.file.kind === "directory" ? "text-accent-text" : "text-text-muted",
+				)}
+			>
+				<FileKindIcon kind={props.item.file.kind} />
+			</span>
+
+			{/* Path — directory in muted, filename in normal weight */}
+			<span className="min-w-0 truncate">
+				{dir && <span className="text-xs text-text-muted">{dir}</span>}
+				<span className="text-xs font-medium">{name}</span>
+			</span>
+		</div>
+	);
+});
+
+/**
+ * FileMentionMenu — floating autocomplete for @file mentions.
+ *
+ * Pure presentational component. The parent (Composer) manages:
+ * - Trigger detection (when to show/hide)
+ * - Debounced file search requests
+ * - Keyboard event interception (↑↓ Enter Escape)
+ * - Active item tracking
+ */
+export const FileMentionMenu = memo(function FileMentionMenu(props: FileMentionMenuProps) {
+	return (
+		<div className="absolute bottom-full left-0 right-0 z-50 mb-1 px-4">
+			<div className="mx-auto max-w-3xl">
+				<div className="overflow-hidden rounded-xl border border-border-primary bg-surface-base shadow-lg">
+					{/* Header */}
+					<div className="flex items-center justify-between border-b border-border-secondary px-3 py-1.5">
+						<span className="text-[10px] font-medium text-text-secondary">File Mention</span>
+						<span className="text-[10px] text-text-tertiary">
+							↑↓ navigate · Enter select · Esc cancel
+						</span>
+					</div>
+
+					{/* Item list */}
+					<div className="max-h-64 overflow-y-auto">
+						{props.items.map((item) => (
+							<FileMentionItemRow
+								key={item.id}
+								item={item}
+								isActive={props.activeItemId === item.id}
+								onSelect={props.onSelect}
+								onHover={props.onHighlightChange}
+							/>
+						))}
+					</div>
+
+					{/* Empty / loading states */}
+					{props.items.length === 0 && (
+						<div className="px-3 py-3 text-center text-xs text-text-muted">
+							{props.isLoading ? "Searching files…" : "No matching files"}
 						</div>
 					)}
 				</div>

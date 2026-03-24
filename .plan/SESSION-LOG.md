@@ -594,3 +594,26 @@
 - `consumeDeferredActiveTabId()` still not consumed
 
 ---
+
+## Session 20 — `@` trigger detection in composer (2026-03-24)
+
+**What happened:**
+- Implemented `@` file mention trigger detection and file search menu in the composer (2B.2):
+  - **ComposerCommandMenu.tsx**: Added `detectAtTrigger()` — word-boundary scanning for `@` tokens anywhere in text (unlike `/` which must be at line start). Walks backwards from cursor to find whitespace boundary, checks if token starts with `@`. Added `FileMentionMenuItem` type and `buildFileMentionItems()` helper. Added `FileMentionMenu` component — pure presentational floating menu with file/directory icons, path display (directory in muted, filename in bold), header with keyboard hints, loading/empty states.
+  - **Composer.tsx**: Added `atTrigger` state, `fileMentionItems`, `fileMentionLoading`, `activeFileMentionId` state. Added `fileSearchTimerRef` (debounce) and `fileSearchSeqRef` (stale result discard). `updateAtTrigger()` fires debounced search (120ms) via `project.searchFiles` WS method. `handleFileMentionSelect()` replaces trigger range with `@path/to/file `. `nudgeFileMentionHighlight()` handles ↑↓ wrap-around navigation. Keyboard handling (↑↓ Enter Tab Escape) added to `handleKeyDown` before slash command handling. `FileMentionMenu` rendered in floating menu area alongside `ComposerCommandMenu`. Both `onChange` and `onSelect` now call `updateAtTrigger` for real-time trigger detection.
+  - Menu priority: `fileMentionMenuOpen` is suppressed when `commandMenuOpen` or `modelPickerOpen` is active (slash commands take precedence).
+
+**Items completed:**
+- [x] 2B.2 — Implement `@` trigger detection in composer: typing `@` opens file search menu, debounced query (120ms), fuzzy matched
+
+**Issues encountered:**
+- Biome import ordering: `type CommandMenuItem` must come before `ComposerCommandMenu` alphabetically. Fixed.
+- Biome formatting: multiline `findIndex` and `??` expressions collapsed to single lines. Fixed with `bun run format`.
+
+**Handoff to next session:**
+- Next: 2B.3 — Render file mentions as inline chips in composer (visual pill with filename, removable)
+- Currently, file selection inserts plain text `@path/to/file ` into the textarea. 2B.3 needs to convert these into visual chips (pills). This likely requires tracking mention positions in the text or using a separate data structure for mentions.
+- `detectAtTrigger` and `FileMentionMenu` are in `ComposerCommandMenu.tsx` — reusable components.
+- `consumeDeferredActiveTabId()` still not consumed
+
+---

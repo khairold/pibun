@@ -39,7 +39,11 @@ import {
 	type CommandMenuItem,
 	ComposerCommandMenu,
 	ComposerModelPicker,
+	FileMentionMenu,
+	type FileMentionMenuItem,
 	buildCommandMenuItems,
+	buildFileMentionItems,
+	detectAtTrigger,
 	detectSlashTrigger,
 	filterCommandMenuItems,
 } from "./ComposerCommandMenu";
@@ -164,6 +168,24 @@ export function Composer() {
 		rangeEnd: number;
 	} | null>(null);
 
+	// ── File mention (@) menu state ──
+	/** Current @ trigger info (query + range), null when menu is closed. */
+	const [atTrigger, setAtTrigger] = useState<{
+		query: string;
+		rangeStart: number;
+		rangeEnd: number;
+	} | null>(null);
+	/** File search results as menu items. */
+	const [fileMentionItems, setFileMentionItems] = useState<FileMentionMenuItem[]>([]);
+	/** Whether a file search is in progress. */
+	const [fileMentionLoading, setFileMentionLoading] = useState(false);
+	/** ID of the currently highlighted file mention item. */
+	const [activeFileMentionId, setActiveFileMentionId] = useState<string | null>(null);
+	/** Debounce timer for file search requests. */
+	const fileSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	/** Sequence counter to discard stale search results. */
+	const fileSearchSeqRef = useRef(0);
+
 	// ── Model picker state (shown when /model is selected) ──
 	const [modelPickerOpen, setModelPickerOpen] = useState(false);
 	const [modelPickerIndex, setModelPickerIndex] = useState(0);
@@ -261,6 +283,62 @@ export function Composer() {
 		[sessionId, fetchCommands],
 	);
 
+	/** Update `@` file mention trigger detection and fire debounced search. */
+	const updateAtTrigger = useCallback(
+		(text: string, cursorPos: number) => {
+			const trigger = detectAtTrigger(text, cursorPos);
+			setAtTrigger(trigger);
+
+			if (!trigger) {
+				setActiveFileMentionId(null);
+				setFileMentionItems([]);
+				// Cancel any pending search
+				if (fileSearchTimerRef.current) {
+					clearTimeout(fileSearchTimerRef.current);
+					fileSearchTimerRef.current = null;
+				}
+				return;
+			}
+
+			// Debounced file search (120ms)
+			if (fileSearchTimerRef.current) {
+				clearTimeout(fileSearchTimerRef.current);
+			}
+			const seq = ++fileSearchSeqRef.current;
+			setFileMentionLoading(true);
+
+			fileSearchTimerRef.current = setTimeout(async () => {
+				try {
+					const result = await getTransport().request("project.searchFiles", {
+						query: trigger.query,
+						limit: 20,
+					});
+					// Only apply results if this is still the latest search
+					if (seq === fileSearchSeqRef.current) {
+						setFileMentionItems(buildFileMentionItems(result.files));
+						setFileMentionLoading(false);
+					}
+				} catch (err) {
+					console.error("[Composer] File search failed:", err);
+					if (seq === fileSearchSeqRef.current) {
+						setFileMentionItems([]);
+						setFileMentionLoading(false);
+					}
+				}
+			}, 120);
+		},
+		[], // no deps needed — reads from refs and transport singleton
+	);
+
+	// Cleanup file search timer on unmount
+	useEffect(() => {
+		return () => {
+			if (fileSearchTimerRef.current) {
+				clearTimeout(fileSearchTimerRef.current);
+			}
+		};
+	}, []);
+
 	/** Whether the command menu should be visible. */
 	const commandMenuOpen = slashTrigger !== null;
 
@@ -269,6 +347,60 @@ export function Composer() {
 		if (!slashTrigger) return [];
 		return filterCommandMenuItems(commandMenuItems, slashTrigger.query);
 	}, [slashTrigger, commandMenuItems]);
+
+	/** Whether the file mention menu should be visible. */
+	const fileMentionMenuOpen = atTrigger !== null && !commandMenuOpen && !modelPickerOpen;
+
+	/** Handle file mention selection — replace trigger text with @path. */
+	const handleFileMentionSelect = useCallback(
+		(item: FileMentionMenuItem) => {
+			if (!atTrigger) return;
+
+			// Replace the trigger range with @path (including trailing space)
+			const replacement = `@${item.path} `;
+			const before = value.slice(0, atTrigger.rangeStart);
+			const after = value.slice(atTrigger.rangeEnd);
+			const newValue = `${before}${replacement}${after}`;
+
+			setValue(newValue);
+			setAtTrigger(null);
+			setActiveFileMentionId(null);
+			setFileMentionItems([]);
+
+			// Set cursor position after the replacement
+			const newCursorPos = atTrigger.rangeStart + replacement.length;
+			requestAnimationFrame(() => {
+				const textarea = textareaRef.current;
+				if (textarea) {
+					textarea.setSelectionRange(newCursorPos, newCursorPos);
+					textarea.focus();
+				}
+				resizeTextarea();
+			});
+		},
+		[value, atTrigger, resizeTextarea],
+	);
+
+	/** Navigate the file mention menu (called from keyboard handler). */
+	const nudgeFileMentionHighlight = useCallback(
+		(direction: "up" | "down") => {
+			if (fileMentionItems.length === 0) return;
+
+			const currentIndex = fileMentionItems.findIndex((item) => item.id === activeFileMentionId);
+			let nextIndex: number;
+			if (direction === "down") {
+				nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % fileMentionItems.length;
+			} else {
+				nextIndex =
+					currentIndex <= 0
+						? fileMentionItems.length - 1
+						: (currentIndex - 1 + fileMentionItems.length) % fileMentionItems.length;
+			}
+			const nextItem = fileMentionItems[nextIndex];
+			setActiveFileMentionId(nextItem?.id ?? null);
+		},
+		[fileMentionItems, activeFileMentionId],
+	);
 
 	/** Handle command selection — replace trigger text with command. */
 	const handleCommandSelect = useCallback(
@@ -602,6 +734,45 @@ export function Composer() {
 				}
 			}
 
+			// ── File mention menu keyboard handling ──
+			if (fileMentionMenuOpen) {
+				if (e.key === "ArrowDown") {
+					e.preventDefault();
+					nudgeFileMentionHighlight("down");
+					return;
+				}
+				if (e.key === "ArrowUp") {
+					e.preventDefault();
+					nudgeFileMentionHighlight("up");
+					return;
+				}
+				if (e.key === "Enter" && !e.shiftKey) {
+					const selectedItem =
+						fileMentionItems.find((item) => item.id === activeFileMentionId) ?? fileMentionItems[0];
+					if (selectedItem) {
+						e.preventDefault();
+						handleFileMentionSelect(selectedItem);
+						return;
+					}
+				}
+				if (e.key === "Escape") {
+					e.preventDefault();
+					setAtTrigger(null);
+					setActiveFileMentionId(null);
+					setFileMentionItems([]);
+					return;
+				}
+				if (e.key === "Tab") {
+					const selectedItem =
+						fileMentionItems.find((item) => item.id === activeFileMentionId) ?? fileMentionItems[0];
+					if (selectedItem) {
+						e.preventDefault();
+						handleFileMentionSelect(selectedItem);
+						return;
+					}
+				}
+			}
+
 			// ── Command menu keyboard handling ──
 			if (commandMenuOpen) {
 				if (e.key === "ArrowDown") {
@@ -677,6 +848,11 @@ export function Composer() {
 			availableModels,
 			modelPickerIndex,
 			handleModelSelect,
+			fileMentionMenuOpen,
+			fileMentionItems,
+			activeFileMentionId,
+			nudgeFileMentionHighlight,
+			handleFileMentionSelect,
 		],
 	);
 
@@ -769,6 +945,17 @@ export function Composer() {
 				/>
 			)}
 
+			{/* File mention menu — positioned absolutely above composer */}
+			{fileMentionMenuOpen && (
+				<FileMentionMenu
+					items={fileMentionItems}
+					activeItemId={activeFileMentionId}
+					isLoading={fileMentionLoading}
+					onSelect={handleFileMentionSelect}
+					onHighlightChange={setActiveFileMentionId}
+				/>
+			)}
+
 			{/* Slash command menu — positioned absolutely above composer */}
 			{commandMenuOpen && !modelPickerOpen && (
 				<ComposerCommandMenu
@@ -853,13 +1040,15 @@ export function Composer() {
 							setValue(newValue);
 							resizeTextarea();
 							updateSlashTrigger(newValue, cursorPos);
+							updateAtTrigger(newValue, cursorPos);
 						}}
 						onKeyDown={handleKeyDown}
 						onPaste={handlePaste}
 						onSelect={(e) => {
-							// Re-check trigger when cursor position changes (click, arrow keys)
+							// Re-check triggers when cursor position changes (click, arrow keys)
 							const textarea = e.target as HTMLTextAreaElement;
 							updateSlashTrigger(textarea.value, textarea.selectionStart);
+							updateAtTrigger(textarea.value, textarea.selectionStart);
 						}}
 						placeholder={placeholder}
 						disabled={!isConnected}
