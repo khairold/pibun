@@ -66,3 +66,26 @@
 - Next: 1.3 — Remove `tabMessages`, `tabStatuses`, `tabWidgets` caches from `workspaceSlice`
 - These caches saved/restored messages when switching tabs (multi-session). In single-session model, messages live in the store directly and are loaded from Pi via `session.getMessages` on switch.
 - Read `workspaceSlice.ts` carefully — the save/restore logic is in `switchTab`.
+
+---
+
+## Session 3 — Phase 1.3: Remove per-tab message/status/widget caches (2026-03-24)
+
+**What happened:**
+- Removed `tabMessages`, `tabStatuses`, `tabWidgets` state fields from `TabsSlice` type and `workspaceSlice` implementation
+- Removed `saveActiveTabMessages` method (type + implementation)
+- Simplified `switchTab`: no longer saves current tab's messages/statuses/widgets to cache or restores from cache. Instead clears messages and relies on async action layer (`switchTabAction` → `loadSessionMessages`) to load from Pi
+- Simplified `removeTab`: no longer manipulates cache Maps or restores cached messages for the next tab. Clears messages; async layer loads if needed
+- Made `setBackgroundTabStatus`/`setBackgroundTabWidget` into no-ops (their backing state is gone, but the type interface stays until 1.6 removes them)
+- Updated `tabActions.ts`: removed `nextTabHasCache` check in `closeTab`, removed `hasCachedMessages` check in `switchTabAction`. Both now always load from Pi
+
+**Items completed:**
+- [x] 1.3 — Remove `tabMessages`, `tabStatuses`, `tabWidgets` caches from `workspaceSlice`
+
+**Issues encountered:**
+- `setBackgroundTabStatus`/`setBackgroundTabWidget` implementations referenced the removed `tabStatuses`/`tabWidgets` state — had to make them no-ops to keep the build passing. These are dead code anyway (nothing calls them after 1.2 removed background routing) and are slated for full removal in 1.6.
+
+**Handoff to next session:**
+- Next: 1.4 — Simplify `switchTab` in workspaceSlice: no message save/restore. Just update `activeTabId`, set session metadata.
+- Note: 1.4 is largely done — `switchTab` already doesn't save/restore messages after this session's changes. May be a quick verification/no-op or can combine with 1.5.
+- `switchTab` still snapshots the leaving tab's metadata (streaming, messageCount, model, etc.) which is still useful for sidebar display. That stays.

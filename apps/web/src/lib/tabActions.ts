@@ -98,10 +98,6 @@ export async function closeTab(tabId: string): Promise<void> {
 		}
 	}
 
-	// Check if the next tab has cached messages BEFORE removal
-	// (removeTab deletes the closed tab's cache but not others')
-	const nextTabHasCache = nextTab ? (store.tabMessages.get(nextTab.id)?.length ?? 0) > 0 : false;
-
 	// ── Clean up composer draft for the closed tab ──────────────
 	deleteComposerDraft(tabId);
 
@@ -121,10 +117,8 @@ export async function closeTab(tabId: string): Promise<void> {
 		if (nextTab?.sessionId) {
 			transport.setActiveSession(nextTab.sessionId);
 
-			// Fetch messages from Pi if the cache was empty
-			if (!nextTabHasCache) {
-				await loadSessionMessages();
-			}
+			// Always load messages from Pi (no cache — single-session model)
+			await loadSessionMessages();
 
 			// Refresh session state for live data (model, thinking, etc.)
 			await refreshSessionState();
@@ -226,17 +220,14 @@ export async function switchTabAction(tabId: string): Promise<void> {
 	const targetTab = store.tabs.find((t) => t.id === tabId);
 	if (!targetTab || targetTab.id === store.activeTabId) return;
 
-	// Check if we have cached messages for this tab
-	const hasCachedMessages = (store.tabMessages.get(tabId)?.length ?? 0) > 0;
-
-	// 1. Switch tab in store — saves current, restores cached
+	// 1. Switch tab in store — snapshots leaving tab, clears messages
 	store.switchTab(tabId);
 
 	// 2. Route transport to target session
 	getTransport().setActiveSession(targetTab.sessionId);
 
-	// 3. If target has a session but no cached messages, fetch from Pi
-	if (targetTab.sessionId && !hasCachedMessages) {
+	// 3. Load messages from Pi (no cache — single-session model)
+	if (targetTab.sessionId) {
 		await loadSessionMessages();
 	}
 

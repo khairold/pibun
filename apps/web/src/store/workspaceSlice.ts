@@ -117,9 +117,6 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	// ==== Tabs state ====
 	tabs: [],
 	activeTabId: null,
-	tabMessages: new Map<string, ChatMessage[]>(),
-	tabStatuses: new Map<string, Map<string, string>>(),
-	tabWidgets: new Map<string, Map<string, ExtensionWidget>>(),
 	tabTerminalActiveIds: new Map<string, string | null>(),
 
 	addTab: (partial) => {
@@ -152,12 +149,6 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	removeTab: (tabId) => {
 		set((s) => {
 			const newTabs = s.tabs.filter((t) => t.id !== tabId);
-			const newTabMessages = new Map(s.tabMessages);
-			newTabMessages.delete(tabId);
-			const newTabStatuses = new Map(s.tabStatuses);
-			newTabStatuses.delete(tabId);
-			const newTabWidgets = new Map(s.tabWidgets);
-			newTabWidgets.delete(tabId);
 			const newTabTerminalActiveIds = new Map(s.tabTerminalActiveIds);
 			newTabTerminalActiveIds.delete(tabId);
 
@@ -170,9 +161,6 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 
 			const updates: Partial<AppStore> = {
 				tabs: newTabs,
-				tabMessages: newTabMessages,
-				tabStatuses: newTabStatuses,
-				tabWidgets: newTabWidgets,
 				tabTerminalActiveIds: newTabTerminalActiveIds,
 				terminalTabs: newTerminalTabs,
 			};
@@ -188,12 +176,13 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				const nextTab = newTabs[oldIndex > 0 ? oldIndex - 1 : 0] ?? null;
 				updates.activeTabId = nextTab?.id ?? null;
 
-				// If we switched to a different tab, restore its messages
 				if (nextTab) {
-					updates.messages = newTabMessages.get(nextTab.id) ?? [];
-					updates.statuses = newTabStatuses.get(nextTab.id) ?? new Map<string, string>();
-					updates.extensionWidgets =
-						newTabWidgets.get(nextTab.id) ?? new Map<string, ExtensionWidget>();
+					// Set session metadata from the next tab.
+					// Messages are NOT restored from cache — the async action layer
+					// loads them from Pi via session.getMessages.
+					updates.messages = [];
+					updates.statuses = new Map<string, string>();
+					updates.extensionWidgets = new Map<string, ExtensionWidget>();
 					updates.sessionId = nextTab.sessionId;
 					updates.piSessionId = nextTab.piSessionId;
 					updates.model = nextTab.model;
@@ -235,37 +224,17 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 		if (!targetTab) return;
 
 		set((s) => {
-			const newTabMessages = new Map(s.tabMessages);
-			const newTabStatuses = new Map(s.tabStatuses);
-			const newTabWidgets = new Map(s.tabWidgets);
 			const newTabTerminalActiveIds = new Map(s.tabTerminalActiveIds);
 
-			// Save current tab's messages, statuses, widgets, and state
+			// Snapshot the leaving tab's metadata from current session state
+			let updatedTabs = s.tabs;
 			if (s.activeTabId) {
-				newTabMessages.set(s.activeTabId, [...s.messages]);
-				// Save current statuses for the leaving tab
-				if (s.statuses.size > 0) {
-					newTabStatuses.set(s.activeTabId, new Map(s.statuses));
-				} else {
-					newTabStatuses.delete(s.activeTabId);
-				}
-				// Save current widgets for the leaving tab
-				if (s.extensionWidgets.size > 0) {
-					newTabWidgets.set(s.activeTabId, new Map(s.extensionWidgets));
-				} else {
-					newTabWidgets.delete(s.activeTabId);
-				}
 				// Save current active terminal tab ID for the leaving tab
 				newTabTerminalActiveIds.set(s.activeTabId, s.activeTerminalTabId);
 
-				// Restore target tab's active terminal tab ID
-				const targetTerminalActiveId = newTabTerminalActiveIds.get(tabId) ?? null;
-
-				// Update the current tab's snapshot with current session state
-				// Clear hasUnread on the target tab (user is now viewing it)
 				// NOTE: Do NOT overwrite t.sessionId — it holds the PiBun manager ID
 				// from session.start. Only sync piSessionId for session list matching.
-				const updatedTabs = s.tabs.map((t) =>
+				updatedTabs = s.tabs.map((t) =>
 					t.id === s.activeTabId
 						? {
 								...t,
@@ -282,60 +251,45 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 							? { ...t, hasUnread: false }
 							: t,
 				);
-
-				return {
-					tabs: updatedTabs,
-					activeTabId: tabId,
-					tabMessages: newTabMessages,
-					tabStatuses: newTabStatuses,
-					tabWidgets: newTabWidgets,
-					tabTerminalActiveIds: newTabTerminalActiveIds,
-					// Restore target tab's cached state
-					messages: newTabMessages.get(tabId) ?? [],
-					statuses: newTabStatuses.get(tabId) ?? new Map<string, string>(),
-					extensionWidgets: newTabWidgets.get(tabId) ?? new Map<string, ExtensionWidget>(),
-					extensionTitle: null, // Extension title is per-session, clear on switch
-					sessionId: targetTab.sessionId,
-					piSessionId: targetTab.piSessionId,
-					model: targetTab.model,
-					thinkingLevel: targetTab.thinkingLevel,
-					isStreaming: targetTab.isStreaming,
-					sessionName: targetTab.name,
-					sessionFile: null, // Will be refreshed via get_state
-					stats: null, // Will be refreshed
-					agentStartedAt: 0,
-					isCompacting: false,
-					isRetrying: false,
-					retryAttempt: 0,
-					retryMaxAttempts: 0,
-					retryDelayMs: 0,
-					retryStartedAt: 0,
-					// Restore terminal state for target tab
-					activeTerminalTabId: targetTerminalActiveId,
-					// Close diff panel on tab switch (diff is per-session context)
-					diffPanelOpen: false,
-					diffPanelFiles: [],
-					diffPanelResult: null,
-					diffPanelError: null,
-					diffPanelSelectedFile: null,
-				};
 			}
 
-			// No previous active tab — just activate target
+			// Restore target tab's active terminal tab ID
 			const targetTerminalActiveId = newTabTerminalActiveIds.get(tabId) ?? null;
+
 			return {
+				tabs: updatedTabs,
 				activeTabId: tabId,
-				messages: newTabMessages.get(tabId) ?? [],
-				statuses: newTabStatuses.get(tabId) ?? new Map<string, string>(),
-				extensionWidgets: newTabWidgets.get(tabId) ?? new Map<string, ExtensionWidget>(),
-				extensionTitle: null,
+				tabTerminalActiveIds: newTabTerminalActiveIds,
+				// Clear messages/statuses/widgets — the async action layer
+				// loads fresh data from Pi via session.getMessages
+				messages: [],
+				statuses: new Map<string, string>(),
+				extensionWidgets: new Map<string, ExtensionWidget>(),
+				extensionTitle: null, // Extension title is per-session, clear on switch
+				// Set session metadata from target tab
 				sessionId: targetTab.sessionId,
 				piSessionId: targetTab.piSessionId,
 				model: targetTab.model,
 				thinkingLevel: targetTab.thinkingLevel,
 				isStreaming: targetTab.isStreaming,
 				sessionName: targetTab.name,
+				sessionFile: null, // Will be refreshed via get_state
+				stats: null, // Will be refreshed
+				agentStartedAt: 0,
+				isCompacting: false,
+				isRetrying: false,
+				retryAttempt: 0,
+				retryMaxAttempts: 0,
+				retryDelayMs: 0,
+				retryStartedAt: 0,
+				// Restore terminal state for target tab
 				activeTerminalTabId: targetTerminalActiveId,
+				// Close diff panel on tab switch (diff is per-session context)
+				diffPanelOpen: false,
+				diffPanelFiles: [],
+				diffPanelResult: null,
+				diffPanelError: null,
+				diffPanelSelectedFile: null,
 			};
 		});
 	},
@@ -350,18 +304,6 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 		const state = get();
 		if (!state.activeTabId) return null;
 		return state.tabs.find((t) => t.id === state.activeTabId) ?? null;
-	},
-
-	saveActiveTabMessages: () => {
-		const state = get();
-		const activeId = state.activeTabId;
-		if (!activeId) return;
-
-		set((s) => {
-			const newTabMessages = new Map(s.tabMessages);
-			newTabMessages.set(activeId, [...s.messages]);
-			return { tabMessages: newTabMessages };
-		});
 	},
 
 	syncActiveTabState: () => {
@@ -408,41 +350,11 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 		});
 	},
 
-	setBackgroundTabStatus: (tabId, key, text) => {
-		set((s) => {
-			const newTabStatuses = new Map(s.tabStatuses);
-			const tabMap = new Map(newTabStatuses.get(tabId) ?? []);
-			if (text) {
-				tabMap.set(key, text);
-			} else {
-				tabMap.delete(key);
-			}
-			if (tabMap.size > 0) {
-				newTabStatuses.set(tabId, tabMap);
-			} else {
-				newTabStatuses.delete(tabId);
-			}
-			return { tabStatuses: newTabStatuses };
-		});
-	},
+	// Dead code — nothing calls these after background event routing was removed (1.2).
+	// Kept as no-ops until 1.6 removes them from the type interface.
+	setBackgroundTabStatus: (_tabId, _key, _text) => {},
 
-	setBackgroundTabWidget: (tabId, key, lines, placement) => {
-		set((s) => {
-			const newTabWidgets = new Map(s.tabWidgets);
-			const tabMap = new Map(newTabWidgets.get(tabId) ?? []);
-			if (lines && lines.length > 0) {
-				tabMap.set(key, { lines, placement });
-			} else {
-				tabMap.delete(key);
-			}
-			if (tabMap.size > 0) {
-				newTabWidgets.set(tabId, tabMap);
-			} else {
-				newTabWidgets.delete(tabId);
-			}
-			return { tabWidgets: newTabWidgets };
-		});
-	},
+	setBackgroundTabWidget: (_tabId, _key, _lines, _placement) => {},
 
 	// ==== Terminal state ====
 	terminalPanelOpen: false,

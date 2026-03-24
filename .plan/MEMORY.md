@@ -17,6 +17,7 @@
 | 7 | `keepExisting` removed from WsSessionStartParams | Single-session model means server always stops existing session on `session.start`. No need for a flag. Removed from contracts, server handler, and all client callers. | 2026-03-24 |
 | 8 | `createNewTab` renamed to `startSession` in tabActions | Better reflects single-session semantics. All callers updated: Sidebar, TabBar, wireTransport, useKeyboardShortcuts, appActions. | 2026-03-24 |
 | 9 | Background event routing removed from `wireTransport.ts` | Single-session model: only one Pi process runs, so all events go to `handlePiEvent`. Stale events from old session during switch are silently skipped with `console.debug`. The `bgTab` branch with `hasUnread`, `setBackgroundTabStatus`, `setBackgroundTabWidget` calls is gone. | 2026-03-24 |
+| 10 | Per-tab message/status/widget caches removed | `tabMessages`, `tabStatuses`, `tabWidgets` removed from state. `saveActiveTabMessages` removed. `switchTab` now clears messages and relies on async action layer to load from Pi via `session.getMessages`. `setBackgroundTabStatus`/`setBackgroundTabWidget` are no-ops pending removal in 1.6. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -60,7 +61,7 @@ WebSocket → wireTransport pi.event subscriber →
 ## Gotchas & Warnings
 
 - `syncActiveTabState` must NOT overwrite `tab.sessionId` — fixed in commit `059d862`
-- `switchTab` in workspaceSlice saves leaving tab state — this save/restore goes away in Phase 1
+- `switchTab` no longer saves/restores messages — clears them and async layer loads from Pi
 - Terminal tabs use `ownerTabId` to scope to a session tab — this still works
 - `startNewSession()` in sessionActions calls `session.new` (in-process) not `session.start` (new process). These are different Pi commands.
 - `session.switchSession` is a Pi command that switches session files within the same process. Different from stopping one process and starting another.

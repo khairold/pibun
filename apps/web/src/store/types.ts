@@ -539,18 +539,17 @@ export interface WorkspacePersistSlice {
 	setLoadedSessionPaths: (paths: string[]) => void;
 }
 
-/** Tabs state — multi-session tab management. */
+/**
+ * Tabs state — single-active-session tab management.
+ *
+ * Only one Pi session runs at a time. Messages live in the MessagesSlice
+ * (not cached per-tab). Switching tabs clears messages and loads from Pi.
+ */
 export interface TabsSlice {
 	/** Ordered list of open tabs. */
 	tabs: SessionTab[];
 	/** ID of the currently active tab, null when no tabs exist. */
 	activeTabId: string | null;
-	/** Per-tab message cache. Inactive tabs' messages are stored here. */
-	tabMessages: Map<string, ChatMessage[]>;
-	/** Per-tab extension status cache. Inactive tabs' statuses are stored here. */
-	tabStatuses: Map<string, Map<string, string>>;
-	/** Per-tab extension widget cache. Inactive tabs' widgets are stored here. */
-	tabWidgets: Map<string, Map<string, ExtensionWidget>>;
 	/**
 	 * Per-tab active terminal tab ID cache.
 	 * When switching session tabs, the current `activeTerminalTabId` is saved here
@@ -567,14 +566,16 @@ export interface TabsSlice {
 	) => string;
 	/** Remove a tab by ID. Switches to adjacent tab if active tab is removed. */
 	removeTab: (tabId: string) => void;
-	/** Switch to a different tab. Saves current tab's state, restores target's. */
+	/**
+	 * Switch to a different tab. Updates activeTabId and sets session metadata
+	 * from the target tab. Clears messages/statuses/widgets — the async action
+	 * layer loads fresh data from Pi via session.getMessages.
+	 */
 	switchTab: (tabId: string) => void;
 	/** Update a tab's metadata (name, model, streaming state, etc.). */
 	updateTab: (tabId: string, updates: Partial<SessionTab>) => void;
 	/** Get the currently active tab, or null if no tabs. */
 	getActiveTab: () => SessionTab | null;
-	/** Save the current messages to the active tab's message cache. */
-	saveActiveTabMessages: () => void;
 	/** Sync the active tab's metadata with current session slice state. */
 	syncActiveTabState: () => void;
 	/** Reorder tabs by moving a tab from one index to another. */
