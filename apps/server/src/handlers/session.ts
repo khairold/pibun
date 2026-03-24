@@ -20,8 +20,10 @@ import type {
 	WsSessionPromptParams,
 	WsSessionSetAutoCompactionParams,
 	WsSessionSetAutoRetryParams,
+	WsSessionSetFollowUpModeParams,
 	WsSessionSetModelParams,
 	WsSessionSetNameParams,
+	WsSessionSetSteeringModeParams,
 	WsSessionSetThinkingParams,
 	WsSessionStartParams,
 	WsSessionSteerParams,
@@ -314,6 +316,28 @@ export const handleSessionSetAutoRetry: WsHandler<"session.setAutoRetry"> = asyn
 ): Promise<WsOkResult> => {
 	const process = getProcess(ctx);
 	return sendAndAck(process, { type: "set_auto_retry", enabled: params.enabled });
+};
+
+/**
+ * session.setSteeringMode — Set how steering messages are delivered.
+ */
+export const handleSessionSetSteeringMode: WsHandler<"session.setSteeringMode"> = async (
+	params: WsSessionSetSteeringModeParams,
+	ctx: HandlerContext,
+): Promise<WsOkResult> => {
+	const process = getProcess(ctx);
+	return sendAndAck(process, { type: "set_steering_mode", mode: params.mode });
+};
+
+/**
+ * session.setFollowUpMode — Set how follow-up messages are delivered.
+ */
+export const handleSessionSetFollowUpMode: WsHandler<"session.setFollowUpMode"> = async (
+	params: WsSessionSetFollowUpModeParams,
+	ctx: HandlerContext,
+): Promise<WsOkResult> => {
+	const process = getProcess(ctx);
+	return sendAndAck(process, { type: "set_follow_up_mode", mode: params.mode });
 };
 
 /**

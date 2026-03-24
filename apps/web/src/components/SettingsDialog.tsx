@@ -22,7 +22,13 @@ import {
 } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
-import type { Theme, ThemePreference, TimestampFormat } from "@pibun/contracts";
+import type {
+	PiFollowUpMode,
+	PiSteeringMode,
+	Theme,
+	ThemePreference,
+	TimestampFormat,
+} from "@pibun/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // ============================================================================
@@ -219,10 +225,62 @@ function ToggleSwitch({
 	);
 }
 
+/** Inline segmented control for choosing between two modes. */
+function ModeSelector<T extends string>({
+	value,
+	onChange,
+	label,
+	description,
+	options,
+}: {
+	value: T;
+	onChange: (value: T) => void;
+	label: string;
+	description: string;
+	options: { value: T; label: string }[];
+}) {
+	return (
+		<div className="flex items-start justify-between gap-4">
+			<div className="min-w-0">
+				<div className="text-xs font-medium text-text-primary">{label}</div>
+				<div className="mt-0.5 text-[11px] text-text-tertiary">{description}</div>
+			</div>
+			<div className="flex shrink-0 overflow-hidden rounded-md border border-border-primary">
+				{options.map((opt) => (
+					<button
+						key={opt.value}
+						type="button"
+						onClick={() => onChange(opt.value)}
+						className={cn(
+							"px-2.5 py-1 text-[11px] font-medium transition-colors",
+							value === opt.value
+								? "bg-accent-primary text-text-on-accent"
+								: "bg-surface-primary text-text-secondary hover:bg-surface-secondary",
+						)}
+					>
+						{opt.label}
+					</button>
+				))}
+			</div>
+		</div>
+	);
+}
+
+const DELIVERY_MODE_OPTIONS: { value: "all" | "one-at-a-time"; label: string }[] = [
+	{ value: "one-at-a-time", label: "One at a time" },
+	{ value: "all", label: "All" },
+];
+
 function AgentSection() {
 	const settings = getSettings();
 	const [autoCompaction, setAutoCompaction] = useState(settings.autoCompaction !== false);
 	const [autoRetry, setAutoRetry] = useState(settings.autoRetry !== false);
+	const [steeringMode, setSteeringMode] = useState<PiSteeringMode>(
+		settings.steeringMode ?? "one-at-a-time",
+	);
+	const [followUpMode, setFollowUpMode] = useState<PiFollowUpMode>(
+		settings.followUpMode ?? "one-at-a-time",
+	);
 
 	const handleAutoCompaction = useCallback((checked: boolean) => {
 		setAutoCompaction(checked);
@@ -232,6 +290,16 @@ function AgentSection() {
 	const handleAutoRetry = useCallback((checked: boolean) => {
 		setAutoRetry(checked);
 		updateSetting("autoRetry", checked);
+	}, []);
+
+	const handleSteeringMode = useCallback((mode: PiSteeringMode) => {
+		setSteeringMode(mode);
+		updateSetting("steeringMode", mode);
+	}, []);
+
+	const handleFollowUpMode = useCallback((mode: PiFollowUpMode) => {
+		setFollowUpMode(mode);
+		updateSetting("followUpMode", mode);
 	}, []);
 
 	return (
@@ -249,6 +317,20 @@ function AgentSection() {
 					onChange={handleAutoRetry}
 					label="Auto-retry"
 					description="Automatically retry on transient API errors (rate limits, timeouts)"
+				/>
+				<ModeSelector
+					value={steeringMode}
+					onChange={handleSteeringMode}
+					label="Steering mode"
+					description="How queued steering messages are delivered between turns"
+					options={DELIVERY_MODE_OPTIONS}
+				/>
+				<ModeSelector
+					value={followUpMode}
+					onChange={handleFollowUpMode}
+					label="Follow-up mode"
+					description="How queued follow-up messages are delivered after agent finishes"
+					options={DELIVERY_MODE_OPTIONS}
 				/>
 			</div>
 		</section>

@@ -29,6 +29,8 @@ const DEFAULT_SETTINGS: PiBunSettings = {
 	themeId: null,
 	autoCompaction: null,
 	autoRetry: null,
+	steeringMode: null,
+	followUpMode: null,
 	timestampFormat: "locale",
 };
 
@@ -70,6 +72,14 @@ export async function loadSettings(): Promise<PiBunSettings> {
 			themeId: typeof raw.themeId === "string" ? (raw.themeId as PiBunSettings["themeId"]) : null,
 			autoCompaction: typeof raw.autoCompaction === "boolean" ? raw.autoCompaction : null,
 			autoRetry: typeof raw.autoRetry === "boolean" ? raw.autoRetry : null,
+			steeringMode:
+				typeof raw.steeringMode === "string" && ["all", "one-at-a-time"].includes(raw.steeringMode)
+					? (raw.steeringMode as PiBunSettings["steeringMode"])
+					: null,
+			followUpMode:
+				typeof raw.followUpMode === "string" && ["all", "one-at-a-time"].includes(raw.followUpMode)
+					? (raw.followUpMode as PiBunSettings["followUpMode"])
+					: null,
 			...(typeof raw.timestampFormat === "string" &&
 				["relative", "locale", "12h", "24h"].includes(raw.timestampFormat) && {
 					timestampFormat: raw.timestampFormat as PiBunSettings["timestampFormat"],
@@ -109,6 +119,12 @@ export async function updateSettings(updates: Partial<PiBunSettings>): Promise<P
 	}
 	if (updates.autoRetry !== undefined) {
 		current.autoRetry = updates.autoRetry;
+	}
+	if (updates.steeringMode !== undefined) {
+		current.steeringMode = updates.steeringMode;
+	}
+	if (updates.followUpMode !== undefined) {
+		current.followUpMode = updates.followUpMode;
 	}
 	if (updates.timestampFormat !== undefined) {
 		current.timestampFormat = updates.timestampFormat;

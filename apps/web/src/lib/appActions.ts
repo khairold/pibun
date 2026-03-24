@@ -397,6 +397,8 @@ const DEFAULT_SETTINGS: PiBunSettings = {
 	themeId: null,
 	autoCompaction: null,
 	autoRetry: null,
+	steeringMode: null,
+	followUpMode: null,
 	timestampFormat: "locale",
 };
 
@@ -518,6 +520,8 @@ export function updateSetting<K extends keyof WsSettingsUpdateParams>(
  * Maps PiBun settings to Pi RPC commands:
  * - `autoCompaction` → `session.setAutoCompaction`
  * - `autoRetry` → `session.setAutoRetry`
+ * - `steeringMode` → `session.setSteeringMode`
+ * - `followUpMode` → `session.setFollowUpMode`
  *
  * Fire-and-forget: failures are silently ignored (Pi session may not be running).
  */
@@ -533,6 +537,18 @@ function applySettingToPiSession<K extends keyof WsSettingsUpdateParams>(
 		transport.request("session.setAutoCompaction", { enabled: value }).catch(() => {});
 	} else if (key === "autoRetry" && typeof value === "boolean") {
 		transport.request("session.setAutoRetry", { enabled: value }).catch(() => {});
+	} else if (key === "steeringMode" && typeof value === "string") {
+		transport
+			.request("session.setSteeringMode", {
+				mode: value as "all" | "one-at-a-time",
+			})
+			.catch(() => {});
+	} else if (key === "followUpMode" && typeof value === "string") {
+		transport
+			.request("session.setFollowUpMode", {
+				mode: value as "all" | "one-at-a-time",
+			})
+			.catch(() => {});
 	}
 }
 

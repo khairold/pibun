@@ -34,10 +34,12 @@ import type {
 import type {
 	PiAgentMessage,
 	PiEvent,
+	PiFollowUpMode,
 	PiModel,
 	PiResponse,
 	PiSessionState,
 	PiSessionStats,
+	PiSteeringMode,
 	PiThinkingLevel,
 } from "./piProtocol.js";
 
@@ -66,6 +68,8 @@ export const WS_METHODS = {
 	sessionGetModels: "session.getModels",
 	sessionSetAutoCompaction: "session.setAutoCompaction",
 	sessionSetAutoRetry: "session.setAutoRetry",
+	sessionSetSteeringMode: "session.setSteeringMode",
+	sessionSetFollowUpMode: "session.setFollowUpMode",
 
 	// Session management
 	sessionNew: "session.new",
@@ -213,6 +217,16 @@ export interface WsSessionSetAutoCompactionParams {
 /** Params for `session.setAutoRetry` — enable/disable auto-retry. */
 export interface WsSessionSetAutoRetryParams {
 	enabled: boolean;
+}
+
+/** Params for `session.setSteeringMode` — set how steering messages are delivered. */
+export interface WsSessionSetSteeringModeParams {
+	mode: PiSteeringMode;
+}
+
+/** Params for `session.setFollowUpMode` — set how follow-up messages are delivered. */
+export interface WsSessionSetFollowUpModeParams {
+	mode: PiFollowUpMode;
 }
 
 /** Params for `session.compact` — compact context window. */
@@ -400,6 +414,10 @@ export interface WsSettingsUpdateParams {
 	autoCompaction?: boolean | null;
 	/** Whether auto-retry is enabled. `null` to use Pi default. */
 	autoRetry?: boolean | null;
+	/** Steering message delivery mode. `null` to use Pi default. */
+	steeringMode?: PiSteeringMode | null;
+	/** Follow-up message delivery mode. `null` to use Pi default. */
+	followUpMode?: PiFollowUpMode | null;
 	/** Timestamp display format. */
 	timestampFormat?: TimestampFormat;
 }
@@ -464,6 +482,8 @@ export interface WsMethodParamsMap {
 	"session.getModels": undefined;
 	"session.setAutoCompaction": WsSessionSetAutoCompactionParams;
 	"session.setAutoRetry": WsSessionSetAutoRetryParams;
+	"session.setSteeringMode": WsSessionSetSteeringModeParams;
+	"session.setFollowUpMode": WsSessionSetFollowUpModeParams;
 	"session.new": undefined;
 	"session.compact": WsSessionCompactParams;
 	"session.fork": WsSessionForkParams;
@@ -702,6 +722,8 @@ export interface WsMethodResultMap {
 	"session.getModels": WsSessionGetModelsResult;
 	"session.setAutoCompaction": WsOkResult;
 	"session.setAutoRetry": WsOkResult;
+	"session.setSteeringMode": WsOkResult;
+	"session.setFollowUpMode": WsOkResult;
 	"session.new": WsSessionNewResult;
 	"session.compact": WsOkResult;
 	"session.fork": WsSessionForkResult;

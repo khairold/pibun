@@ -51,6 +51,12 @@ async function applySettingsToNewSession(): Promise<void> {
 	if (settings.autoRetry !== null) {
 		transport.request("session.setAutoRetry", { enabled: settings.autoRetry }).catch(() => {});
 	}
+	if (settings.steeringMode !== null) {
+		transport.request("session.setSteeringMode", { mode: settings.steeringMode }).catch(() => {});
+	}
+	if (settings.followUpMode !== null) {
+		transport.request("session.setFollowUpMode", { mode: settings.followUpMode }).catch(() => {});
+	}
 }
 
 // ============================================================================

@@ -405,3 +405,29 @@
 - `consumeDeferredActiveTabId()` still not consumed
 
 ---
+
+## Session 14 — Steering mode + follow-up mode Pi RPC wiring (2026-03-24)
+
+**What happened:**
+- Implemented steering mode and follow-up mode end-to-end (1C.5), following the exact same pattern as auto-compaction/auto-retry:
+  - **Contracts**: Added `session.setSteeringMode` and `session.setFollowUpMode` WS methods with `WsSessionSetSteeringModeParams` / `WsSessionSetFollowUpModeParams` types. Added `steeringMode` and `followUpMode` to `WsSettingsUpdateParams` and `PiBunSettings`.
+  - **Server**: Added `handleSessionSetSteeringMode` and `handleSessionSetFollowUpMode` handlers in `session.ts` — thin bridge to Pi `set_steering_mode` / `set_follow_up_mode` RPC commands via `sendAndAck`. Registered in handler index.
+  - **Server settingsStore**: Added `steeringMode` and `followUpMode` to defaults, load parsing (with validation against `["all", "one-at-a-time"]`), and update merge.
+  - **UI appActions**: Extended `applySettingToPiSession()` to handle `steeringMode` → `session.setSteeringMode` and `followUpMode` → `session.setFollowUpMode`. Updated `DEFAULT_SETTINGS` with new null fields.
+  - **UI sessionActions**: Extended `applySettingsToNewSession()` to send steering/follow-up mode on session start.
+  - **UI SettingsDialog**: Created `ModeSelector` segmented control component (inline button group). Added steering mode and follow-up mode selectors to Agent Behavior section with descriptive labels.
+
+**Items completed:**
+- [x] 1C.5 — Wire `set_steering_mode` and `set_follow_up_mode` to Pi RPC
+
+**Issues encountered:**
+- Biome import ordering: `handleSessionSetSteeringMode` had to come after `handleSessionSetName` alphabetically. Fixed.
+- Biome formatting: settings store ternary expressions reformatted to single lines. Fixed with `bun run format`.
+
+**Handoff to next session:**
+- Next: 1C.6 — Add timestamp format selector (relative, locale, 12-hour, 24-hour) — apply throughout UI
+- This is the LAST item in Phase 1C. After completing it, verify exit criteria and mark phase complete.
+- `ModeSelector` component in SettingsDialog is reusable for any two-option selector.
+- `consumeDeferredActiveTabId()` still not consumed
+
+---

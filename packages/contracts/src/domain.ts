@@ -7,7 +7,7 @@
  * @module
  */
 
-import type { PiModel, PiThinkingLevel } from "./piProtocol.js";
+import type { PiFollowUpMode, PiModel, PiSteeringMode, PiThinkingLevel } from "./piProtocol.js";
 
 // ============================================================================
 // Session Tab
@@ -269,6 +269,22 @@ export interface PiBunSettings {
 	 * Null means use Pi's default (usually enabled).
 	 */
 	autoRetry: boolean | null;
+
+	/**
+	 * Steering message delivery mode.
+	 * - `"all"` — deliver all queued steering messages after current turn
+	 * - `"one-at-a-time"` — deliver one steering message per completed turn (Pi default)
+	 * Null means use Pi's default.
+	 */
+	steeringMode: PiSteeringMode | null;
+
+	/**
+	 * Follow-up message delivery mode.
+	 * - `"all"` — deliver all queued follow-up messages when agent finishes
+	 * - `"one-at-a-time"` — deliver one follow-up per agent completion (Pi default)
+	 * Null means use Pi's default.
+	 */
+	followUpMode: PiFollowUpMode | null;
 
 	/**
 	 * Timestamp display format throughout the UI.

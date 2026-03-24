@@ -47,8 +47,10 @@ import {
 	handleSessionPrompt,
 	handleSessionSetAutoCompaction,
 	handleSessionSetAutoRetry,
+	handleSessionSetFollowUpMode,
 	handleSessionSetModel,
 	handleSessionSetName,
+	handleSessionSetSteeringMode,
 	handleSessionSetThinking,
 	handleSessionStart,
 	handleSessionSteer,
@@ -87,6 +89,8 @@ export const handlers: HandlerRegistry = {
 	"session.getModels": handleSessionGetModels,
 	"session.setAutoCompaction": handleSessionSetAutoCompaction,
 	"session.setAutoRetry": handleSessionSetAutoRetry,
+	"session.setSteeringMode": handleSessionSetSteeringMode,
+	"session.setFollowUpMode": handleSessionSetFollowUpMode,
 
 	// Session management
 	"session.new": handleSessionNew,
