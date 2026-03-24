@@ -1295,3 +1295,45 @@
 - 7.7 needs: Create an actual example plugin at `~/.pibun/plugins/prompt-library/` with `plugin.json` manifest + `panel.html` (self-contained HTML page with JS that uses the postMessage bridge to insert prompts into Composer). The plugin should demonstrate the full lifecycle: manifest → rendering → bridge communication.
 
 ---
+
+## Session 94 — Example plugin: Prompt Library (2026-03-24)
+
+**What happened:**
+- Created the "Prompt Library" example plugin at `examples/plugins/prompt-library/` (7.7)
+- **New file: `examples/plugins/prompt-library/plugin.json`** — manifest with id `prompt-library`, sidebar position, `./panel.html` component
+- **New file: `examples/plugins/prompt-library/panel.html`** — self-contained HTML/CSS/JS (787 lines) with full plugin functionality:
+  - 12 built-in prompts for common coding tasks (explain, review, tests, refactor, optimize, add types, error handling, docs, async/await, README, security, simplify)
+  - Custom prompts with localStorage persistence (add name + optional tag + text, delete individual prompts)
+  - Tabbed UI: "Built-in" and "Custom" tabs
+  - Search filter across prompt names, text, and tags
+  - Click-to-insert via `plugin:sendPrompt` with `sendImmediately: false` (inserts into Composer for user review)
+  - Theme integration via `pibun:themeChanged` — switches between dark and light CSS custom properties
+  - Toast notification on prompt insertion
+  - `plugin:ready` sent on load to register with the message bridge
+  - Tag badges (colored pills) for visual categorization
+  - Empty states for both tabs (search miss + no custom prompts)
+  - Hover-to-reveal delete button on custom prompts
+  - Accessible: keyboard navigation (Enter/Space on prompt items), proper roles
+- Verified end-to-end: install → loadPlugins → manifest validation → panel.html serving → uninstall round-trip all pass programmatically
+
+**Items completed:**
+- [x] 7.7 — Example plugin: "Prompt Library" — panel that shows saved prompts, click to insert into composer
+
+**Issues encountered:**
+- None — clean implementation, typecheck + lint pass (plugin is pure HTML/CSS/JS, no TS compilation needed)
+
+**Handoff to next session:**
+- Next: 7.8 — Verify: install example plugin, see it in sidebar, interact with it, disable it
+- The example plugin is at `examples/plugins/prompt-library/`. To verify:
+  1. Install via `plugin.install` WS method with source path (or via PluginManager UI's install form)
+  2. Confirm it appears in sidebar as "Prompts" panel
+  3. Click a built-in prompt → text inserted into Composer
+  4. Switch to "Custom" tab → add a custom prompt → verify it persists
+  5. Search filter works across both tabs
+  6. Theme changes propagate (switch theme → plugin re-renders in matching colors)
+  7. Disable via PluginManager toggle → panel disappears
+  8. Re-enable → panel reappears
+  9. Uninstall → panel gone, plugin removed from list
+- This is the last item in Phase 7. After verification, mark Phase 7 complete and EXIT.
+
+---

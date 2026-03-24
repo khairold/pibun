@@ -1,0 +1,17 @@
+{
+	"id": "prompt-library",
+	"name": "Prompt Library",
+	"version": "1.0.0",
+	"description": "Browse and insert saved prompts into the composer. Includes built-in prompts for common tasks and lets you save your own.",
+	"author": "PiBun",
+	"panels": [
+		{
+			"id": "main",
+			"title": "Prompts",
+			"icon": "book-open",
+			"position": "sidebar",
+			"component": "./panel.html",
+			"defaultSize": null
+		}
+	]
+}

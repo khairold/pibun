@@ -3,7 +3,7 @@
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
 > **Status:** Phase 7 in progress
 > **Current Phase:** Phase 7 — Plugin System
-> **Last Session:** Session 93 — 2026-03-24
+> **Last Session:** Session 94 — 2026-03-24
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -153,7 +153,7 @@
 - [x] 7.4 — Plugin panel rendering: sandboxed iframe (web) or Electrobun BrowserView (desktop) loading plugin URL
 - [x] 7.5 — Plugin ↔ PiBun messaging: `postMessage` bridge for reading session state, sending prompts, subscribing to events
 - [x] 7.6 — Plugin manager UI: list installed plugins, enable/disable, install from URL/path
-- [ ] 7.7 — Example plugin: "Prompt Library" — panel that shows saved prompts, click to insert into composer
+- [x] 7.7 — Example plugin: "Prompt Library" — panel that shows saved prompts, click to insert into composer
 - [ ] 7.8 — Verify: install example plugin, see it in sidebar, interact with it, disable it
 
 **Exit criteria:** Plugins can add panels to the UI. Sandboxed. Can interact with session state via message bridge. Example plugin works.

@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prompt Library</title>
+<style>
+/* ============================================================================
+ * Base styles — CSS custom properties for theme integration
+ * ============================================================================ */
+:root {
+	--bg: #0a0a0a;
+	--bg-secondary: #171717;
+	--bg-hover: #262626;
+	--bg-active: #404040;
+	--text: #fafafa;
+	--text-secondary: #a3a3a3;
+	--text-tertiary: #737373;
+	--border: #262626;
+	--accent: #818cf8;
+	--accent-hover: #6366f1;
+	--danger: #ef4444;
+	--danger-hover: #dc2626;
+	--radius: 6px;
+}
+
+:root.light {
+	--bg: #ffffff;
+	--bg-secondary: #f5f5f5;
+	--bg-hover: #e5e5e5;
+	--bg-active: #d4d4d4;
+	--text: #171717;
+	--text-secondary: #525252;
+	--text-tertiary: #737373;
+	--border: #e5e5e5;
+	--accent: #6366f1;
+	--accent-hover: #4f46e5;
+	--danger: #dc2626;
+	--danger-hover: #b91c1c;
+}
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--text);
+	background: var(--bg);
+	overflow-x: hidden;
+}
+
+/* ============================================================================
+ * Layout
+ * ============================================================================ */
+.container {
+	display: flex;
+	flex-direction: column;
+	height: 100vh;
+}
+
+/* ============================================================================
+ * Tabs — Built-in vs Custom toggle
+ * ============================================================================ */
+.tabs {
+	display: flex;
+	border-bottom: 1px solid var(--border);
+	padding: 0 8px;
+	gap: 2px;
+	flex-shrink: 0;
+}
+
+.tab {
+	padding: 6px 12px;
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-tertiary);
+	background: none;
+	border: none;
+	border-bottom: 2px solid transparent;
+	cursor: pointer;
+	transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+	color: var(--text-secondary);
+}
+
+.tab.active {
+	color: var(--accent);
+	border-bottom-color: var(--accent);
+}
+
+/* ============================================================================
+ * Search
+ * ============================================================================ */
+.search-bar {
+	padding: 8px;
+	flex-shrink: 0;
+}
+
+.search-input {
+	width: 100%;
+	padding: 6px 10px;
+	font-size: 12px;
+	color: var(--text);
+	background: var(--bg-secondary);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	outline: none;
+	transition: border-color 0.15s;
+}
+
+.search-input::placeholder {
+	color: var(--text-tertiary);
+}
+
+.search-input:focus {
+	border-color: var(--accent);
+}
+
+/* ============================================================================
+ * Prompt List
+ * ============================================================================ */
+.prompt-list {
+	flex: 1;
+	overflow-y: auto;
+	padding: 4px 8px 8px;
+}
+
+.prompt-item {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 8px 10px;
+	margin-bottom: 4px;
+	border-radius: var(--radius);
+	cursor: pointer;
+	transition: background-color 0.15s;
+	border: 1px solid transparent;
+}
+
+.prompt-item:hover {
+	background: var(--bg-hover);
+	border-color: var(--border);
+}
+
+.prompt-item:active {
+	background: var(--bg-active);
+}
+
+.prompt-item-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.prompt-item-name {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	flex: 1;
+}
+
+.prompt-item-tag {
+	font-size: 10px;
+	font-weight: 500;
+	color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 15%, transparent);
+	padding: 1px 6px;
+	border-radius: 10px;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.prompt-item-preview {
+	font-size: 11px;
+	color: var(--text-tertiary);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.prompt-item-actions {
+	display: none;
+	flex-shrink: 0;
+}
+
+.prompt-item:hover .prompt-item-actions {
+	display: flex;
+}
+
+.delete-btn {
+	background: none;
+	border: none;
+	color: var(--text-tertiary);
+	cursor: pointer;
+	padding: 2px;
+	border-radius: 3px;
+	font-size: 14px;
+	line-height: 1;
+	transition: color 0.15s, background-color 0.15s;
+}
+
+.delete-btn:hover {
+	color: var(--danger);
+	background: color-mix(in srgb, var(--danger) 15%, transparent);
+}
+
+/* ============================================================================
+ * Empty state
+ * ============================================================================ */
+.empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 32px 16px;
+	text-align: center;
+	color: var(--text-tertiary);
+	gap: 8px;
+}
+
+.empty-state-icon {
+	font-size: 24px;
+	opacity: 0.5;
+}
+
+.empty-state-text {
+	font-size: 12px;
+}
+
+/* ============================================================================
+ * Add prompt form
+ * ============================================================================ */
+.add-form {
+	border-top: 1px solid var(--border);
+	padding: 8px;
+	flex-shrink: 0;
+}
+
+.add-form-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	width: 100%;
+	padding: 6px;
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-secondary);
+	background: var(--bg-secondary);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	cursor: pointer;
+	transition: background-color 0.15s, color 0.15s;
+}
+
+.add-form-toggle:hover {
+	background: var(--bg-hover);
+	color: var(--text);
+}
+
+.add-form-fields {
+	display: none;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.add-form-fields.visible {
+	display: flex;
+}
+
+.add-form-fields input,
+.add-form-fields textarea {
+	width: 100%;
+	padding: 6px 10px;
+	font-size: 12px;
+	font-family: inherit;
+	color: var(--text);
+	background: var(--bg-secondary);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	outline: none;
+	resize: vertical;
+	transition: border-color 0.15s;
+}
+
+.add-form-fields input:focus,
+.add-form-fields textarea:focus {
+	border-color: var(--accent);
+}
+
+.add-form-fields textarea {
+	min-height: 60px;
+	max-height: 120px;
+}
+
+.add-form-fields input::placeholder,
+.add-form-fields textarea::placeholder {
+	color: var(--text-tertiary);
+}
+
+.add-form-buttons {
+	display: flex;
+	gap: 6px;
+	justify-content: flex-end;
+}
+
+.btn-save {
+	padding: 5px 12px;
+	font-size: 12px;
+	font-weight: 500;
+	color: white;
+	background: var(--accent);
+	border: none;
+	border-radius: var(--radius);
+	cursor: pointer;
+	transition: background-color 0.15s;
+}
+
+.btn-save:hover {
+	background: var(--accent-hover);
+}
+
+.btn-save:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.btn-cancel {
+	padding: 5px 12px;
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-secondary);
+	background: var(--bg-secondary);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	cursor: pointer;
+	transition: background-color 0.15s;
+}
+
+.btn-cancel:hover {
+	background: var(--bg-hover);
+}
+
+/* ============================================================================
+ * Toast notification
+ * ============================================================================ */
+.toast {
+	position: fixed;
+	bottom: 12px;
+	left: 50%;
+	transform: translateX(-50%) translateY(100%);
+	padding: 6px 14px;
+	font-size: 12px;
+	font-weight: 500;
+	color: white;
+	background: var(--accent);
+	border-radius: var(--radius);
+	opacity: 0;
+	transition: transform 0.2s ease, opacity 0.2s ease;
+	pointer-events: none;
+	z-index: 100;
+}
+
+.toast.visible {
+	transform: translateX(-50%) translateY(0);
+	opacity: 1;
+}
+
+/* Scrollbar styling */
+.prompt-list::-webkit-scrollbar {
+	width: 6px;
+}
+.prompt-list::-webkit-scrollbar-track {
+	background: transparent;
+}
+.prompt-list::-webkit-scrollbar-thumb {
+	background: var(--bg-active);
+	border-radius: 3px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+	<!-- Tabs -->
+	<div class="tabs">
+		<button class="tab active" data-tab="builtin" onclick="switchTab('builtin')">Built-in</button>
+		<button class="tab" data-tab="custom" onclick="switchTab('custom')">Custom</button>
+	</div>
+
+	<!-- Search -->
+	<div class="search-bar">
+		<input
+			type="text"
+			class="search-input"
+			id="search"
+			placeholder="Search prompts…"
+			oninput="renderPrompts()"
+		/>
+	</div>
+
+	<!-- Prompt list -->
+	<div class="prompt-list" id="promptList"></div>
+
+	<!-- Add custom prompt form -->
+	<div class="add-form" id="addForm" style="display: none">
+		<button class="add-form-toggle" id="addToggle" onclick="toggleAddForm()">
+			<span>+</span> Add Custom Prompt
+		</button>
+		<div class="add-form-fields" id="addFields">
+			<input type="text" id="addName" placeholder="Prompt name" maxlength="80" />
+			<input type="text" id="addTag" placeholder="Tag (optional, e.g. refactor)" maxlength="30" />
+			<textarea id="addText" placeholder="Prompt text…"></textarea>
+			<div class="add-form-buttons">
+				<button class="btn-cancel" onclick="cancelAdd()">Cancel</button>
+				<button class="btn-save" id="saveBtn" onclick="savePrompt()" disabled>Save</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================================
+// Constants — Plugin ID
+// ============================================================================
+const PLUGIN_ID = "prompt-library";
+const STORAGE_KEY = "pibun-prompt-library-custom";
+
+// ============================================================================
+// Built-in Prompts
+// ============================================================================
+const BUILTIN_PROMPTS = [
+	{
+		name: "Explain this code",
+		tag: "understand",
+		text: "Explain the following code in detail. What does it do, what patterns does it use, and are there any potential issues?\n\n",
+	},
+	{
+		name: "Review for bugs",
+		tag: "review",
+		text: "Review this code for bugs, edge cases, and potential issues. Suggest fixes for anything you find.\n\n",
+	},
+	{
+		name: "Add TypeScript types",
+		tag: "typescript",
+		text: "Add proper TypeScript types to this code. Use strict typing — avoid `any`. Add interfaces or type aliases where appropriate.\n\n",
+	},
+	{
+		name: "Write unit tests",
+		tag: "testing",
+		text: "Write comprehensive unit tests for the code I'll share. Cover happy paths, edge cases, and error conditions. Use the testing framework already in the project.\n\n",
+	},
+	{
+		name: "Refactor for readability",
+		tag: "refactor",
+		text: "Refactor this code to improve readability and maintainability. Extract functions where appropriate, improve naming, and add comments for complex logic.\n\n",
+	},
+	{
+		name: "Optimize performance",
+		tag: "perf",
+		text: "Analyze this code for performance issues. Suggest optimizations with explanations of why each change helps. Prioritize the highest-impact improvements.\n\n",
+	},
+	{
+		name: "Add error handling",
+		tag: "robustness",
+		text: "Add comprehensive error handling to this code. Consider network failures, invalid inputs, missing data, and edge cases. Use appropriate error types.\n\n",
+	},
+	{
+		name: "Write documentation",
+		tag: "docs",
+		text: "Write clear documentation for this code. Include JSDoc comments for public functions, a module-level description, and usage examples.\n\n",
+	},
+	{
+		name: "Convert to async/await",
+		tag: "refactor",
+		text: "Convert this callback-based or promise-chain code to use async/await. Ensure error handling is preserved.\n\n",
+	},
+	{
+		name: "Create a README",
+		tag: "docs",
+		text: "Create a README.md for this project. Include: overview, installation, usage, configuration, API reference (if applicable), and contributing guidelines.\n\n",
+	},
+	{
+		name: "Security review",
+		tag: "security",
+		text: "Review this code for security vulnerabilities. Check for injection risks, authentication issues, data exposure, and other OWASP-style concerns. Suggest fixes.\n\n",
+	},
+	{
+		name: "Simplify this logic",
+		tag: "refactor",
+		text: "Simplify this code while preserving its behavior. Remove unnecessary complexity, reduce nesting, and make the intent clearer.\n\n",
+	},
+];
+
+// ============================================================================
+// State
+// ============================================================================
+let activeTab = "builtin";
+let customPrompts = [];
+let addFormVisible = false;
+
+// ============================================================================
+// Custom Prompt Persistence (localStorage)
+// ============================================================================
+function loadCustomPrompts() {
+	try {
+		const raw = localStorage.getItem(STORAGE_KEY);
+		if (raw) {
+			const parsed = JSON.parse(raw);
+			if (Array.isArray(parsed)) {
+				customPrompts = parsed;
+			}
+		}
+	} catch {
+		customPrompts = [];
+	}
+}
+
+function saveCustomPrompts() {
+	try {
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(customPrompts));
+	} catch {
+		// localStorage may be unavailable in sandboxed iframes
+	}
+}
+
+// ============================================================================
+// Rendering
+// ============================================================================
+function getFilteredPrompts() {
+	const query = document.getElementById("search").value.toLowerCase().trim();
+	const prompts = activeTab === "builtin" ? BUILTIN_PROMPTS : customPrompts;
+
+	if (!query) return prompts;
+
+	return prompts.filter(
+		(p) =>
+			p.name.toLowerCase().includes(query) ||
+			p.text.toLowerCase().includes(query) ||
+			(p.tag && p.tag.toLowerCase().includes(query))
+	);
+}
+
+function renderPrompts() {
+	const list = document.getElementById("promptList");
+	const prompts = getFilteredPrompts();
+	const isCustom = activeTab === "custom";
+
+	if (prompts.length === 0) {
+		const searchActive = document.getElementById("search").value.trim().length > 0;
+		list.innerHTML = `
+			<div class="empty-state">
+				<div class="empty-state-icon">${searchActive ? "🔍" : isCustom ? "📝" : "📚"}</div>
+				<div class="empty-state-text">
+					${searchActive
+						? "No prompts match your search"
+						: isCustom
+							? "No custom prompts yet.<br>Click \"+ Add Custom Prompt\" below."
+							: "No built-in prompts available"}
+				</div>
+			</div>
+		`;
+		return;
+	}
+
+	list.innerHTML = prompts
+		.map((p, i) => {
+			const preview = p.text.replace(/\n/g, " ").trim();
+			const deleteBtn = isCustom
+				? `<div class="prompt-item-actions">
+					<button class="delete-btn" onclick="deletePrompt(event, ${i})" title="Delete prompt">×</button>
+				</div>`
+				: "";
+
+			return `
+				<div class="prompt-item" onclick="insertPrompt(${i})" role="button" tabindex="0"
+					onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();insertPrompt(${i})}">
+					<div class="prompt-item-header">
+						<span class="prompt-item-name">${escapeHtml(p.name)}</span>
+						${p.tag ? `<span class="prompt-item-tag">${escapeHtml(p.tag)}</span>` : ""}
+						${deleteBtn}
+					</div>
+					<div class="prompt-item-preview">${escapeHtml(preview)}</div>
+				</div>
+			`;
+		})
+		.join("");
+}
+
+function escapeHtml(text) {
+	const el = document.createElement("span");
+	el.textContent = text;
+	return el.innerHTML;
+}
+
+// ============================================================================
+// Actions
+// ============================================================================
+function insertPrompt(index) {
+	const prompts = getFilteredPrompts();
+	const prompt = prompts[index];
+	if (!prompt) return;
+
+	// Send to PiBun via postMessage bridge — insert into Composer
+	window.parent.postMessage(
+		{
+			type: "plugin:sendPrompt",
+			message: prompt.text,
+			sendImmediately: false,
+		},
+		"*"
+	);
+
+	showToast(`Inserted: ${prompt.name}`);
+}
+
+function deletePrompt(event, index) {
+	event.stopPropagation();
+	const prompts = getFilteredPrompts();
+	const prompt = prompts[index];
+	if (!prompt) return;
+
+	// Find actual index in customPrompts (may differ due to search filtering)
+	const actualIndex = customPrompts.findIndex(
+		(p) => p.name === prompt.name && p.text === prompt.text
+	);
+	if (actualIndex >= 0) {
+		customPrompts.splice(actualIndex, 1);
+		saveCustomPrompts();
+		renderPrompts();
+	}
+}
+
+// ============================================================================
+// Tab Switching
+// ============================================================================
+function switchTab(tab) {
+	activeTab = tab;
+
+	document.querySelectorAll(".tab").forEach((el) => {
+		el.classList.toggle("active", el.dataset.tab === tab);
+	});
+
+	// Show/hide add form based on tab
+	document.getElementById("addForm").style.display = tab === "custom" ? "" : "none";
+	if (tab !== "custom") {
+		cancelAdd();
+	}
+
+	renderPrompts();
+}
+
+// ============================================================================
+// Add Custom Prompt Form
+// ============================================================================
+function toggleAddForm() {
+	addFormVisible = !addFormVisible;
+
+	document.getElementById("addToggle").style.display = addFormVisible ? "none" : "";
+	document.getElementById("addFields").classList.toggle("visible", addFormVisible);
+
+	if (addFormVisible) {
+		document.getElementById("addName").focus();
+	}
+}
+
+function cancelAdd() {
+	addFormVisible = false;
+	document.getElementById("addToggle").style.display = "";
+	document.getElementById("addFields").classList.remove("visible");
+	document.getElementById("addName").value = "";
+	document.getElementById("addTag").value = "";
+	document.getElementById("addText").value = "";
+	document.getElementById("saveBtn").disabled = true;
+}
+
+function savePrompt() {
+	const name = document.getElementById("addName").value.trim();
+	const tag = document.getElementById("addTag").value.trim();
+	const text = document.getElementById("addText").value.trim();
+
+	if (!name || !text) return;
+
+	customPrompts.unshift({
+		name,
+		tag: tag || null,
+		text,
+	});
+
+	saveCustomPrompts();
+	cancelAdd();
+	renderPrompts();
+	showToast("Prompt saved!");
+}
+
+function updateSaveBtn() {
+	const name = document.getElementById("addName").value.trim();
+	const text = document.getElementById("addText").value.trim();
+	document.getElementById("saveBtn").disabled = !name || !text;
+}
+
+// ============================================================================
+// Toast
+// ============================================================================
+let toastTimer = null;
+
+function showToast(message) {
+	const toast = document.getElementById("toast");
+	toast.textContent = message;
+	toast.classList.add("visible");
+
+	clearTimeout(toastTimer);
+	toastTimer = setTimeout(() => {
+		toast.classList.remove("visible");
+	}, 2000);
+}
+
+// ============================================================================
+// Theme Integration
+// ============================================================================
+function applyTheme(isDark) {
+	document.documentElement.classList.toggle("light", !isDark);
+}
+
+// ============================================================================
+// PiBun Message Bridge
+// ============================================================================
+function handlePiBunMessage(event) {
+	const data = event.data;
+	if (!data || typeof data.type !== "string") return;
+
+	switch (data.type) {
+		case "pibun:themeChanged":
+			applyTheme(data.isDark);
+			break;
+	}
+}
+
+// ============================================================================
+// Initialization
+// ============================================================================
+function init() {
+	// Load custom prompts from localStorage
+	loadCustomPrompts();
+
+	// Listen for messages from PiBun
+	window.addEventListener("message", handlePiBunMessage);
+
+	// Wire up add-form input listeners for save button state
+	document.getElementById("addName").addEventListener("input", updateSaveBtn);
+	document.getElementById("addText").addEventListener("input", updateSaveBtn);
+
+	// Render initial prompt list
+	renderPrompts();
+
+	// Notify PiBun that the plugin is ready
+	window.parent.postMessage(
+		{
+			type: "plugin:ready",
+			pluginId: PLUGIN_ID,
+		},
+		"*"
+	);
+}
+
+// Start when DOM is ready
+if (document.readyState === "loading") {
+	document.addEventListener("DOMContentLoaded", init);
+} else {
+	init();
+}
+</script>
+</body>
+</html>
