@@ -18,7 +18,7 @@ import { PluginSidebarPanels } from "@/components/PluginPanel";
 import { SessionBrowserDialog } from "@/components/SessionBrowserDialog";
 import { addProject, createTerminal, openProject, removeProject } from "@/lib/appActions";
 import { fetchSessionList, switchSession } from "@/lib/sessionActions";
-import { createNewTab, switchTabAction } from "@/lib/tabActions";
+import { startSession, switchTabAction } from "@/lib/tabActions";
 import { cn, onShortcut } from "@/lib/utils";
 import { removeLoadedSession } from "@/lib/workspaceActions";
 import { useStore } from "@/store";
@@ -1017,7 +1017,7 @@ export function Sidebar() {
 			setIsCreating(true);
 			try {
 				useStore.getState().setActiveProjectId(project.id);
-				await createNewTab({ cwd: project.cwd });
+				await startSession({ cwd: project.cwd });
 				// Auto-close sidebar on mobile after creating
 				if (isMobileWidth()) {
 					setSidebarOpen(false);

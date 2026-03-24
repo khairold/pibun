@@ -13,7 +13,7 @@
  * when they overflow. Sits at the top of the main area in AppShell.
  */
 
-import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
+import { closeTab, startSession, switchTabAction } from "@/lib/tabActions";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { SessionTab, TabStatus } from "@pibun/contracts";
@@ -241,9 +241,9 @@ export function TabBar() {
 
 	const handleAddTab = useCallback(() => {
 		if (!isConnected) return;
-		// Create a new tab with its own Pi process
-		createNewTab().catch((err: unknown) => {
-			console.error("[TabBar] Failed to create new tab:", err);
+		// Start a new session (stops any existing one)
+		startSession().catch((err: unknown) => {
+			console.error("[TabBar] Failed to start session:", err);
 		});
 	}, [isConnected]);
 

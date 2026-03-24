@@ -104,9 +104,8 @@ export const handleSessionStart: WsHandler<"session.start"> = async (
 	params: WsSessionStartParams,
 	ctx: HandlerContext,
 ): Promise<WsMethodResultMap["session.start"]> => {
-	// Multi-session: keepExisting=true preserves existing sessions (tab mode).
-	// Default: stop existing primary session (backward compat).
-	if (!params?.keepExisting && ctx.connection.sessionId) {
+	// Single-session: always stop existing session before starting a new one.
+	if (ctx.connection.sessionId) {
 		const oldSessionId = ctx.connection.sessionId;
 		ctx.connection.sessionIds.delete(oldSessionId);
 		await ctx.rpcManager.stopSession(oldSessionId);

@@ -32,7 +32,7 @@ import {
 	startNewSession,
 	startSessionInFolder,
 } from "@/lib/sessionActions";
-import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
+import { closeTab, startSession, switchTabAction } from "@/lib/tabActions";
 import { emitShortcut, formatDuration } from "@/lib/utils";
 import { addLoadedSession, fetchLoadedSessionPaths } from "@/lib/workspaceActions";
 import { useStore } from "@/store";
@@ -578,10 +578,10 @@ function handleMenuAction(data: WsMenuActionData): void {
 			break;
 
 		case "file.new-tab": {
-			// Create new tab in the active tab's CWD (project-scoped)
+			// Start new session in the active tab's CWD (project-scoped)
 			const activeTab = store.tabs.find((t) => t.id === store.activeTabId);
-			createNewTab(activeTab?.cwd ? { cwd: activeTab.cwd } : undefined).catch((err: unknown) => {
-				console.error("[Menu] Failed to create new tab:", err);
+			startSession(activeTab?.cwd ? { cwd: activeTab.cwd } : undefined).catch((err: unknown) => {
+				console.error("[Menu] Failed to start session:", err);
 			});
 			break;
 		}

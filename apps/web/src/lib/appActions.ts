@@ -22,7 +22,7 @@ import type {
 	TimestampFormat,
 	WsSettingsUpdateParams,
 } from "@pibun/contracts";
-import { createNewTab, switchTabAction } from "./tabActions";
+import { startSession, switchTabAction } from "./tabActions";
 import { THEME_STORAGE_KEY, applyTheme, resolveTheme } from "./themes";
 
 // ============================================================================
@@ -245,8 +245,8 @@ export async function openProject(project: Project): Promise<"switched" | "creat
 		return "switched";
 	}
 
-	// No existing tab — create a new one with the project's CWD
-	const tabId = await createNewTab({ cwd: project.cwd });
+	// No existing tab — start a new session with the project's CWD
+	const tabId = await startSession({ cwd: project.cwd });
 	return tabId ? "created" : null;
 }
 

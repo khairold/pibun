@@ -192,12 +192,6 @@ export interface WsSessionStartParams {
 	provider?: string;
 	model?: string;
 	thinkingLevel?: PiThinkingLevel;
-	/**
-	 * If true, don't stop existing sessions on this connection.
-	 * Used by the tab system to create additional concurrent sessions.
-	 * Default: false (stops existing primary session for backward compat).
-	 */
-	keepExisting?: boolean;
 }
 
 /** An image attachment with base64 data and MIME type. */

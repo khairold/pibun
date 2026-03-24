@@ -152,9 +152,7 @@ async function testThreeSimultaneousSessions(
 	for (let i = 0; i < 3; i++) {
 		const reqId = `start-${i}`;
 		const isFirst = i === 0;
-		sendRequest(ws, reqId, "session.start", {
-			keepExisting: !isFirst, // first session doesn't need keepExisting
-		});
+		sendRequest(ws, reqId, "session.start", {});
 		const resp = await waitForResponse(ws, reqId);
 		const result = resp.result as { sessionId?: string } | undefined;
 		check(`Session ${i + 1} starts successfully`, typeof result?.sessionId === "string");
@@ -412,7 +410,7 @@ async function testCleanupOnDisconnect(wsUrl: string, rpcManager: PiRpcManager):
 	const resp1 = await waitForResponse(ws, "cleanup-start-1");
 	const sid1 = (resp1.result as { sessionId?: string } | undefined)?.sessionId;
 
-	sendRequest(ws, "cleanup-start-2", "session.start", { keepExisting: true });
+	sendRequest(ws, "cleanup-start-2", "session.start", {});
 	const resp2 = await waitForResponse(ws, "cleanup-start-2");
 	const sid2 = (resp2.result as { sessionId?: string } | undefined)?.sessionId;
 

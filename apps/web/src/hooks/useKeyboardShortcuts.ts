@@ -14,7 +14,7 @@ import { createTerminal, splitTerminal } from "@/lib/appActions";
 import type { WhenContext } from "@/lib/keybindings";
 import { getActiveBindings, resolveCommand } from "@/lib/keybindings";
 import { compactSession, fetchSessionList, startNewSession } from "@/lib/sessionActions";
-import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
+import { closeTab, startSession, switchTabAction } from "@/lib/tabActions";
 import { emitShortcut } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
@@ -165,11 +165,11 @@ export function useKeyboardShortcuts(): void {
 					if (isConnected) {
 						e.preventDefault();
 						emitShortcut("newTab");
-						// Create new tab in the active tab's CWD (project-scoped)
+						// Start new session in the active tab's CWD (project-scoped)
 						const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
-						createNewTab(activeTab?.cwd ? { cwd: activeTab.cwd } : undefined).catch(
+						startSession(activeTab?.cwd ? { cwd: activeTab.cwd } : undefined).catch(
 							(err: unknown) => {
-								console.error("[Shortcut] Failed to create new tab:", err);
+								console.error("[Shortcut] Failed to start session:", err);
 							},
 						);
 					}

@@ -1,17 +1,16 @@
 /**
- * Tab management actions — coordinate tab switching with
- * transport session routing and Pi message loading.
+ * Tab & session lifecycle actions — coordinate session switching with
+ * transport routing and Pi message loading.
  *
- * Sits between TabBar UI and the tabsSlice/sessionActions.
+ * Sits between UI and the tabsSlice/sessionActions.
  * Handles the async coordination that pure Zustand slices can't:
  * - Setting the active WS session on the transport
- * - Fetching messages from Pi when switching to a tab with no cached messages
+ * - Fetching messages from Pi when switching to a tab
  * - Refreshing session state (model, thinking, etc.) after a switch
- * - Creating new tabs with their own Pi processes
+ * - Starting sessions (single active session model)
  *
- * Dependency direction: tabActions → sessionActions (not circular).
- * Tab creation/association during session.start is handled inline
- * in sessionActions.ts and Composer.tsx to avoid circular imports.
+ * Single-session model: only one Pi process runs at a time.
+ * Starting a new session automatically stops the existing one.
  */
 
 import { useStore } from "@/store";
@@ -140,17 +139,20 @@ export async function closeTab(tabId: string): Promise<void> {
 }
 
 // ============================================================================
-// Tab Creation
+// Session Start
 // ============================================================================
 
 /**
- * Create a new tab and spawn a Pi process for it.
+ * Start a new session — stops any existing session, creates a tab, spawns a Pi process.
+ *
+ * Single-session model: only one Pi process runs at a time. The server
+ * automatically stops the existing session when `session.start` is called.
  *
  * Flow:
  * 1. Create a tab in the store
- * 2. Switch to it (saves current tab's messages to cache)
- * 3. Clear messages for the fresh tab
- * 4. Start a new Pi session with `keepExisting: true` (preserves other tabs' sessions)
+ * 2. Switch to it
+ * 3. Clear messages for a fresh start
+ * 4. Start a new Pi session (server stops any existing session)
  * 5. Associate the session with the tab
  * 6. Set transport active session for routing
  * 7. Refresh session state (model, thinking, etc.)
@@ -160,7 +162,7 @@ export async function closeTab(tabId: string): Promise<void> {
  * @param options Optional CWD for the new session.
  * @returns The new tab ID on success, null on failure.
  */
-export async function createNewTab(options?: { cwd?: string }): Promise<string | null> {
+export async function startSession(options?: { cwd?: string }): Promise<string | null> {
 	const store = useStore.getState();
 
 	// 1. Create a new tab
@@ -168,16 +170,15 @@ export async function createNewTab(options?: { cwd?: string }): Promise<string |
 		...(options?.cwd ? { cwd: options.cwd } : {}),
 	});
 
-	// 2. Switch to the new tab — saves current tab's messages, activates new tab
+	// 2. Switch to the new tab
 	store.switchTab(tabId);
 
-	// 3. Clear messages for a fresh start (switchTab restores empty cache)
+	// 3. Clear messages for a fresh start
 	store.clearMessages();
 
-	// 4. Start a new Pi session (keepExisting prevents killing other tabs' sessions)
+	// 4. Start a new Pi session (server stops any existing session automatically)
 	try {
 		const result = await getTransport().request("session.start", {
-			keepExisting: true,
 			...(options?.cwd ? { cwd: options.cwd } : {}),
 		});
 
@@ -200,7 +201,7 @@ export async function createNewTab(options?: { cwd?: string }): Promise<string |
 		// Session start failed — remove the orphan tab
 		useStore.getState().removeTab(tabId);
 		const msg = err instanceof Error ? err.message : String(err);
-		useStore.getState().setLastError(`Failed to create new tab: ${msg}`);
+		useStore.getState().setLastError(`Failed to start session: ${msg}`);
 		return null;
 	}
 }

@@ -14,6 +14,8 @@
 | 4 | Empty sessions auto-removed on switch | When user switches away from a session with 0 messages, it gets stopped and removed. Prevents orphan "New session" entries. | 2026-03-24 |
 | 5 | Terminals scoped to project, not session | Terminals are workspaces (dev servers, file browsing, bash). They map to projects, not conversations. Switching sessions within a project keeps terminals. Switching projects swaps terminal set (kept alive in background). Old per-session terminal model is dead. | 2026-03-24 |
 | 6 | Tabbed main content area (post-simplification) | After single-session simplification, main area gets tab bar: [Session Chat] + [Terminal 1..N]. Min 2 tabs always visible. Terminals renameable. Full-sized (no bottom panel). This is a separate plan after Phase 3. | 2026-03-24 |
+| 7 | `keepExisting` removed from WsSessionStartParams | Single-session model means server always stops existing session on `session.start`. No need for a flag. Removed from contracts, server handler, and all client callers. | 2026-03-24 |
+| 8 | `createNewTab` renamed to `startSession` in tabActions | Better reflects single-session semantics. All callers updated: Sidebar, TabBar, wireTransport, useKeyboardShortcuts, appActions. | 2026-03-24 |
 
 ## Architecture Notes
 
