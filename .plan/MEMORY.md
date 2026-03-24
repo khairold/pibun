@@ -12,6 +12,8 @@
 | 2 | `SessionTab` type stays, behavior changes | The type is a fine session container (sessionId, cwd, model, etc.). We change the lifecycle, not the data structure. | 2026-03-24 |
 | 3 | Two session ID domains: PiBun manager ID vs Pi UUID | `sessionId` = PiBun manager ID (routing). `piSessionId` = Pi internal UUID (session list matching). Never conflate. Fixed in commit `059d862`. | 2026-03-24 |
 | 4 | Empty sessions auto-removed on switch | When user switches away from a session with 0 messages, it gets stopped and removed. Prevents orphan "New session" entries. | 2026-03-24 |
+| 5 | Terminals scoped to project, not session | Terminals are workspaces (dev servers, file browsing, bash). They map to projects, not conversations. Switching sessions within a project keeps terminals. Switching projects swaps terminal set (kept alive in background). Old per-session terminal model is dead. | 2026-03-24 |
+| 6 | Tabbed main content area (post-simplification) | After single-session simplification, main area gets tab bar: [Session Chat] + [Terminal 1..N]. Min 2 tabs always visible. Terminals renameable. Full-sized (no bottom panel). This is a separate plan after Phase 3. | 2026-03-24 |
 
 ## Architecture Notes
 

@@ -102,7 +102,23 @@ status tracking (`tabStatuses`, `tabWidgets`), `keepExisting` flag,
 
 ## Parking Lot
 
-- [ ] Terminal tabs should eventually be scoped to the session (when session stops, terminals close). Currently they use `ownerTabId` — this still works since "tab" = session container.
 - [ ] Session resume from sidebar "past sessions" — currently uses `session.switchSession` which is an in-process Pi command. With single-session (stop old, start new), this may need to become: stop old process → start new process with CWD → switch to session file. Assess during Phase 1.5.
 - [ ] Desktop menu rebuild — `file.new-tab` etc. should become `file.new-session`. Electrobun menu config is in `apps/desktop/`.
 - [ ] Consider renaming `SessionTab` to `Session` or `SessionInstance` after the refactor stabilizes.
+
+---
+
+## What Comes Next
+
+After Phase 3 completes, a **new plan** will be created for the **Project-Scoped Tabbed UI**:
+
+- Main content area gets a tab bar: `[Session Chat] [Terminal 1] [Terminal 2] [+]`
+- First tab (leftmost) = active Pi session content, changes when sidebar selection changes
+- Remaining tabs = terminals, **keyed by project path**, not session
+- Switching sessions within the same project keeps terminal tabs intact
+- Switching to a different project swaps to that project's terminal set (kept alive in background)
+- Minimum 2 tabs always visible: 1 session content + 1 terminal
+- Terminal tabs are renameable (e.g., "dev server", "logs")
+- Full-sized terminals (no bottom panel — tab switching replaces vertical split)
+
+This replaces the old model where terminals were scoped to sessions. The mental model: **sessions are conversations, terminals are workspaces. Workspaces map to projects.**
