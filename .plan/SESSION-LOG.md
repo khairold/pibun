@@ -881,3 +881,38 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 30 — DiffPanel component (2026-03-24)
+
+**What happened:**
+- Built the DiffPanel component end-to-end (3.6):
+  - **Store state**: Added 8 new fields to `UiSlice`: `diffPanelOpen`, `diffPanelFiles`, `diffPanelLoading`, `diffPanelResult`, `diffPanelError`, `diffPanelMode` ("stacked" | "split"), `diffPanelSelectedFile`. Added 8 corresponding actions: `toggleDiffPanel`, `setDiffPanelOpen`, `openDiffPanel`, `setDiffPanelLoading`, `setDiffPanelResult`, `setDiffPanelError`, `setDiffPanelMode`, `setDiffPanelSelectedFile`. `openDiffPanel(files)` is the primary action — clears prior state and opens the panel.
+  - **DiffPanel.tsx**: New component — right-side panel (420px wide, min 320, max 560) with:
+    - Header: "Changes" title with file count, stacked/split view mode toggle, close button
+    - File tree sidebar: clickable per-file items with addition/deletion stats, "All files" option to show everything, max-height 160px with overflow scroll
+    - Summary bar: total files changed + additions + deletions
+    - Diff content area: parsed unified diff rendered per-file with colored addition/deletion/context lines, hunk headers, line numbers
+    - Loading state: pulsing dot + "Loading diff…"
+    - Error state: error message + retry button
+    - Empty states: no changes detected, no session open
+    - Client-side diff parsing: `parseUnifiedDiff()` splits raw unified diff on `diff --git` boundaries into `ParsedFileDiff[]`. `classifyDiffLine()` categorizes lines for coloring. No external diff library needed.
+    - `fetchDiffData(files)` calls `session.getTurnDiff` WS method, stores result in Zustand
+  - **AppShell layout**: DiffPanel rendered between `<main>` and `<PluginRightPanels>` in the flex row
+  - **Keyboard shortcut**: Ctrl/Cmd+D toggles diff panel. Added to `useKeyboardShortcuts` and `ShortcutAction` union type. Added to SettingsDialog keyboard shortcuts reference.
+  - **TurnDivider integration**: Added "diff" pill button (visible when `changedFiles.length > 0`). Clicking calls `store.openDiffPanel(changedFiles)` to open the diff panel filtered by that turn's changed files.
+  - **Tab switch cleanup**: Diff panel state (open, files, result, error, selectedFile) resets on tab switch in `workspaceSlice.switchTab`.
+- Decision: Used client-side unified diff parsing instead of T3Code's `@pierre/diffs` library. PiBun's approach is simpler (no Web Workers, no virtualizer for diffs) — adequate for the typical diff sizes in coding agent sessions. Can upgrade later if performance is an issue.
+
+**Items completed:**
+- [x] 3.6 — Build DiffPanel component: side panel (toggled via Ctrl/Cmd+D) showing per-turn diffs with file tree and stacked/split view toggle
+
+**Issues encountered:**
+- Biome flagged unused `getFileName` and `useState` imports, and wanted import reordering. Fixed by removing unused imports and running `bun run format`.
+
+**Handoff to next session:**
+- Next: 3.7 — Add checkpoint info: associate turn boundaries with git state, show "Revert to this point" UI (calls Pi `fork` to branch from that turn's user message)
+- DiffPanel state lives in `UiSlice`/`appSlice.ts`. Component is `DiffPanel.tsx`. Client-side diff parsing is in the same file (self-contained).
+- The `diffPanelMode` ("stacked" | "split") toggle is wired in the UI but both modes currently render the same unified diff. True side-by-side split view would require additional diff parsing to align old/new lines — a future enhancement.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

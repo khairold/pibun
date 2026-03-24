@@ -292,6 +292,7 @@ export type ShortcutAction =
 	| "newTab"
 	| "nextTab"
 	| "prevTab"
+	| "toggleDiffPanel"
 	| "toggleExportDialog"
 	| "toggleGitPanel"
 	| "toggleModelSelector"

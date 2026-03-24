@@ -419,7 +419,7 @@ export const TurnDivider = memo(function TurnDivider({
 							type="button"
 							onClick={() => setFilesExpanded((p) => !p)}
 							className="flex items-center gap-1 rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-secondary"
-							title={changedFiles.join("\n")}
+							title={`${changedFiles.join("\n")}\n\nClick to expand file list`}
 						>
 							{/* File icon */}
 							<svg
@@ -451,6 +451,29 @@ export const TurnDivider = memo(function TurnDivider({
 									clipRule="evenodd"
 								/>
 							</svg>
+						</button>
+					)}
+					{fileCount > 0 && (
+						<button
+							type="button"
+							onClick={() => {
+								useStore.getState().openDiffPanel(changedFiles);
+							}}
+							className="flex items-center gap-1 rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] text-text-muted transition-colors hover:bg-accent-bg/20 hover:text-accent-text"
+							title="View diff for changed files (Ctrl+D)"
+						>
+							{/* Diff icon */}
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 16 16"
+								fill="currentColor"
+								className="h-2.5 w-2.5"
+								aria-label="View diff"
+								role="img"
+							>
+								<path d="M8 1a.75.75 0 0 1 .75.75V6.5h4.75a.75.75 0 0 1 0 1.5H8.75v4.75a.75.75 0 0 1-1.5 0V8H2.5a.75.75 0 0 1 0-1.5h4.75V1.75A.75.75 0 0 1 8 1Z" />
+							</svg>
+							diff
 						</button>
 					)}
 					{elapsedMs !== null && (

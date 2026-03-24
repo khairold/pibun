@@ -91,6 +91,31 @@ export const createAppSlice: StateCreator<AppStore, [], [], AppSlice> = (set, ge
 		})),
 	clearTerminalContexts: () => set({ pendingTerminalContexts: [] }),
 
+	// ---- Diff panel state ----
+	diffPanelOpen: false,
+	diffPanelFiles: [],
+	diffPanelLoading: false,
+	diffPanelResult: null,
+	diffPanelError: null,
+	diffPanelMode: "stacked",
+	diffPanelSelectedFile: null,
+
+	toggleDiffPanel: () => set((state) => ({ diffPanelOpen: !state.diffPanelOpen })),
+	setDiffPanelOpen: (open) => set({ diffPanelOpen: open }),
+	openDiffPanel: (files) =>
+		set({
+			diffPanelOpen: true,
+			diffPanelFiles: files,
+			diffPanelResult: null,
+			diffPanelError: null,
+			diffPanelSelectedFile: null,
+		}),
+	setDiffPanelLoading: (loading) => set({ diffPanelLoading: loading }),
+	setDiffPanelResult: (result) => set({ diffPanelResult: result }),
+	setDiffPanelError: (error) => set({ diffPanelError: error }),
+	setDiffPanelMode: (mode) => set({ diffPanelMode: mode }),
+	setDiffPanelSelectedFile: (path) => set({ diffPanelSelectedFile: path }),
+
 	// ---- Update state ----
 	updateStatus: null,
 	updateMessage: "",

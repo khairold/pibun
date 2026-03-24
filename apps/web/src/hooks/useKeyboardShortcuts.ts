@@ -192,6 +192,13 @@ export function useKeyboardShortcuts(): void {
 					emitShortcut("toggleSidebar");
 					break;
 				}
+				case "d": {
+					// Ctrl/Cmd+D — toggle diff panel
+					e.preventDefault();
+					emitShortcut("toggleDiffPanel");
+					useStore.getState().toggleDiffPanel();
+					break;
+				}
 				case "g": {
 					// Ctrl/Cmd+G — toggle git panel
 					e.preventDefault();

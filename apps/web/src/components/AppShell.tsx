@@ -14,6 +14,7 @@ import { ChatView } from "@/components/ChatView";
 import { CompactButton } from "@/components/CompactButton";
 import { Composer } from "@/components/Composer";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
+import { DiffPanel } from "@/components/DiffPanel";
 import { ErrorBanner, HealthBanner } from "@/components/ErrorBanner";
 import { ExportDialog } from "@/components/ExportDialog";
 import { ForkDialog } from "@/components/ForkDialog";
@@ -189,6 +190,9 @@ export function AppShell() {
 
 					<Composer />
 				</main>
+
+				{/* Diff panel — beside main area (toggled via Ctrl/Cmd+D) */}
+				<DiffPanel />
 
 				{/* Plugin right panels — beside main area */}
 				<PluginRightPanels />

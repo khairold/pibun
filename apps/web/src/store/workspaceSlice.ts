@@ -216,6 +216,12 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					retryMaxAttempts: 0,
 					retryDelayMs: 0,
 					retryStartedAt: 0,
+					// Close diff panel on tab switch (diff is per-session context)
+					diffPanelOpen: false,
+					diffPanelFiles: [],
+					diffPanelResult: null,
+					diffPanelError: null,
+					diffPanelSelectedFile: null,
 				};
 			}
 

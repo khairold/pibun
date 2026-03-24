@@ -19,6 +19,7 @@ import type {
 	Project,
 	SessionTab,
 	TimestampFormat,
+	TurnDiffResult,
 	WsSessionSummary,
 } from "@pibun/contracts";
 
@@ -361,6 +362,26 @@ export interface UiSlice {
 	 * Managed by Composer component (like file mentions and images).
 	 */
 	pendingTerminalContexts: TerminalContext[];
+	/**
+	 * Whether the diff panel side panel is open.
+	 * Toggled via Ctrl/Cmd+D or the "View Diff" button on turn dividers.
+	 */
+	diffPanelOpen: boolean;
+	/**
+	 * File paths to show diffs for in the diff panel.
+	 * Populated from a turn divider's `changedFiles` or empty for "all changes".
+	 */
+	diffPanelFiles: string[];
+	/** True while loading diff data from the server. */
+	diffPanelLoading: boolean;
+	/** The loaded turn diff result, null when not loaded or panel is closed. */
+	diffPanelResult: TurnDiffResult | null;
+	/** Error message from diff loading, null when no error. */
+	diffPanelError: string | null;
+	/** Diff render mode — stacked (unified) or split (side-by-side). */
+	diffPanelMode: "stacked" | "split";
+	/** Currently selected file in the diff panel file tree, null for all files. */
+	diffPanelSelectedFile: string | null;
 
 	/** Toggle the sidebar open/closed. */
 	toggleSidebar: () => void;
@@ -380,6 +401,25 @@ export interface UiSlice {
 	removeTerminalContext: (id: string) => void;
 	/** Clear all pending terminal contexts. */
 	clearTerminalContexts: () => void;
+	/** Toggle the diff panel open/closed. */
+	toggleDiffPanel: () => void;
+	/** Set the diff panel open state explicitly. */
+	setDiffPanelOpen: (open: boolean) => void;
+	/**
+	 * Open the diff panel with specific files. Triggers a diff fetch.
+	 * Pass empty array for "all changes since last commit".
+	 */
+	openDiffPanel: (files: string[]) => void;
+	/** Set the diff panel loading state. */
+	setDiffPanelLoading: (loading: boolean) => void;
+	/** Set the diff panel result. */
+	setDiffPanelResult: (result: TurnDiffResult | null) => void;
+	/** Set the diff panel error. */
+	setDiffPanelError: (error: string | null) => void;
+	/** Set the diff render mode (stacked or split). */
+	setDiffPanelMode: (mode: "stacked" | "split") => void;
+	/** Set the selected file in the diff panel file tree. */
+	setDiffPanelSelectedFile: (path: string | null) => void;
 }
 
 /** Git state — repository status for the active session's CWD. */

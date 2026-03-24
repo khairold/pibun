@@ -412,6 +412,7 @@ const SHORTCUTS: { keys: string; description: string }[] = [
 	{ keys: "⌘/Ctrl+T", description: "New tab" },
 	{ keys: "⌘/Ctrl+W", description: "Close tab" },
 	{ keys: "⌘/Ctrl+`", description: "Toggle terminal" },
+	{ keys: "⌘/Ctrl+D", description: "Toggle diff panel" },
 	{ keys: "⌘/Ctrl+G", description: "Toggle git panel" },
 	{ keys: "⌘/Ctrl+Shift+K", description: "Compact context" },
 	{ keys: "⌘/Ctrl+Shift+M", description: "Cycle thinking level" },
