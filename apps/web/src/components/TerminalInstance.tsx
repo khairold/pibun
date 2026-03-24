@@ -8,6 +8,7 @@
  * - Data flow: terminal.data push → xterm.write (stdout)
  * - Resize: ResizeObserver → fitAddon.fit → resizeTerminal (PTY cols/rows)
  * - Selection detection → floating "Add to composer" button
+ * - Link detection → Cmd/Ctrl-clickable file paths and URLs
  *
  * Each instance subscribes to the `terminal.data` push channel and
  * filters by its own `terminalId`.
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import { FitAddon } from "@xterm/addon-fit";
+import type { ILink, ILinkProvider } from "@xterm/xterm";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -64,6 +66,241 @@ const SELECTION_ACTION_DELAY_MS = 250;
 let terminalContextIdCounter = 0;
 
 // ============================================================================
+// Terminal Link Detection
+// ============================================================================
+
+/** Match result for a detected link in terminal output. */
+interface TerminalLinkMatch {
+	kind: "url" | "path";
+	text: string;
+	/** 0-based start index in the line string. */
+	start: number;
+	/** 0-based end index (exclusive) in the line string. */
+	end: number;
+}
+
+/** URL pattern — standard http(s) links. */
+const URL_PATTERN = /https?:\/\/[^\s"'`<>]+/g;
+
+/**
+ * File path pattern — matches:
+ * - Absolute paths: /foo/bar, ~/foo/bar
+ * - Relative paths: ./foo, ../foo
+ * - Windows paths: C:\foo, \\server\share
+ * - Bare relative paths: src/foo/bar.ts, foo/bar.ts:10:5
+ * - Paths with line:col suffixes: file.ts:42, file.ts:42:10
+ */
+const FILE_PATH_PATTERN =
+	/(?:~\/|\.{1,2}\/|\/|[A-Za-z]:\\|\\\\)[^\s"'`<>]+|[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)+(?::\d+){0,2}/g;
+
+/** Trailing punctuation to trim from matched links. */
+const TRAILING_PUNCTUATION_PATTERN = /[.,;!?:]+$/;
+
+/** Trim unbalanced closing delimiters and trailing punctuation from a matched string. */
+function trimClosingDelimiters(value: string): string {
+	let output = value.replace(TRAILING_PUNCTUATION_PATTERN, "");
+	if (output.length === 0) return output;
+
+	const trimUnbalanced = (open: string, close: string) => {
+		while (output.endsWith(close)) {
+			const opens = output.split(open).length - 1;
+			const closes = output.split(close).length - 1;
+			if (opens >= closes) return;
+			output = output.slice(0, -1);
+		}
+	};
+
+	trimUnbalanced("(", ")");
+	trimUnbalanced("[", "]");
+	trimUnbalanced("{", "}");
+	return output;
+}
+
+/** Check if two ranges overlap. */
+function overlaps(a: { start: number; end: number }, b: { start: number; end: number }): boolean {
+	return a.start < b.end && b.start < a.end;
+}
+
+/** Collect regex matches of a given kind from a line, avoiding overlap with existing matches. */
+function collectMatches(
+	line: string,
+	kind: "url" | "path",
+	pattern: RegExp,
+	existing: TerminalLinkMatch[],
+): TerminalLinkMatch[] {
+	const matches: TerminalLinkMatch[] = [];
+	pattern.lastIndex = 0;
+
+	for (const rawMatch of line.matchAll(pattern)) {
+		const raw = rawMatch[0];
+		const start = rawMatch.index ?? -1;
+		if (start < 0 || raw.length === 0) continue;
+
+		const trimmed = trimClosingDelimiters(raw);
+		if (trimmed.length === 0) continue;
+		// Skip path matches that are actually URLs
+		if (kind === "path" && /^https?:\/\//i.test(trimmed)) continue;
+
+		const candidate: TerminalLinkMatch = {
+			kind,
+			text: trimmed,
+			start,
+			end: start + trimmed.length,
+		};
+
+		const collides = [...existing, ...matches].some((other) => overlaps(candidate, other));
+		if (collides) continue;
+
+		matches.push(candidate);
+	}
+
+	return matches;
+}
+
+/** Extract all terminal links (URLs and file paths) from a single line of text. */
+function extractTerminalLinks(line: string): TerminalLinkMatch[] {
+	const urlMatches = collectMatches(line, "url", URL_PATTERN, []);
+	const pathMatches = collectMatches(line, "path", FILE_PATH_PATTERN, urlMatches);
+	return [...urlMatches, ...pathMatches].sort((a, b) => a.start - b.start);
+}
+
+/**
+ * Split a path string into the file path and optional line:column position.
+ * Handles: `file.ts:42`, `file.ts:42:10`, `file.ts`
+ */
+function splitPathAndPosition(value: string): {
+	path: string;
+	line: number | undefined;
+	column: number | undefined;
+} {
+	let path = value;
+	let column: number | undefined;
+	let line: number | undefined;
+
+	// Try to extract trailing :number (column)
+	const colMatch = path.match(/:(\d+)$/);
+	if (!colMatch?.[1]) {
+		return { path, line: undefined, column: undefined };
+	}
+
+	const firstNum = Number.parseInt(colMatch[1], 10);
+	path = path.slice(0, -colMatch[0].length);
+
+	// Try to extract another trailing :number (line — then firstNum is column)
+	const lineMatch = path.match(/:(\d+)$/);
+	if (lineMatch?.[1]) {
+		line = Number.parseInt(lineMatch[1], 10);
+		column = firstNum;
+		path = path.slice(0, -lineMatch[0].length);
+	} else {
+		// Only one number — it's the line
+		line = firstNum;
+		column = undefined;
+	}
+
+	return { path, line, column };
+}
+
+/** Resolve a potentially relative path against a CWD. */
+function resolveFilePath(rawPath: string, cwd: string): string {
+	if (rawPath.startsWith("~/")) {
+		// Infer home directory from CWD
+		const homeMatch = cwd.match(/^(\/Users\/[^/]+|\/home\/[^/]+)/);
+		if (homeMatch?.[1]) {
+			return `${homeMatch[1]}/${rawPath.slice(2)}`;
+		}
+		return rawPath; // Can't resolve ~ without knowing home
+	}
+	if (rawPath.startsWith("/") || /^[A-Za-z]:[\\/]/.test(rawPath)) {
+		return rawPath; // Already absolute
+	}
+	// Relative path — resolve against CWD
+	const cleanCwd = cwd.replace(/\/+$/, "");
+	return `${cleanCwd}/${rawPath.replace(/^\.\//, "")}`;
+}
+
+/** Check if link activation requires modifier key (Cmd on Mac, Ctrl on others). */
+function isLinkActivation(event: Pick<MouseEvent, "metaKey" | "ctrlKey">): boolean {
+	const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+	return isMac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
+}
+
+/**
+ * Create an xterm.js link provider that detects file paths and URLs in terminal output.
+ *
+ * - **URLs**: Opened in the system browser via window.open
+ * - **File paths**: Opened in the preferred code editor via `project.openFileInEditor` WS method
+ * - **Activation**: Cmd-click (macOS) or Ctrl-click (other platforms)
+ */
+function createTerminalLinkProvider(
+	terminalRef: React.RefObject<Terminal | null>,
+	cwd: string,
+	addToast: (message: string, level: "info" | "warning" | "error") => void,
+): ILinkProvider {
+	return {
+		provideLinks(bufferLineNumber: number, callback: (links: ILink[] | undefined) => void) {
+			const terminal = terminalRef.current;
+			if (!terminal) {
+				callback(undefined);
+				return;
+			}
+
+			const line = terminal.buffer.active.getLine(bufferLineNumber - 1);
+			if (!line) {
+				callback(undefined);
+				return;
+			}
+
+			const lineText = line.translateToString(true);
+			const matches = extractTerminalLinks(lineText);
+			if (matches.length === 0) {
+				callback(undefined);
+				return;
+			}
+
+			callback(
+				matches.map(
+					(match): ILink => ({
+						text: match.text,
+						range: {
+							// xterm ranges are 1-based
+							start: { x: match.start + 1, y: bufferLineNumber },
+							end: { x: match.end, y: bufferLineNumber },
+						},
+						decorations: {
+							pointerCursor: true,
+							underline: true,
+						},
+						activate(event: MouseEvent) {
+							if (!isLinkActivation(event)) return;
+
+							if (match.kind === "url") {
+								window.open(match.text, "_blank", "noopener,noreferrer");
+								return;
+							}
+
+							// File path — resolve and open in editor
+							const { path, line: lineNum, column } = splitPathAndPosition(match.text);
+							const resolvedPath = resolveFilePath(path, cwd);
+							const transport = getTransport();
+							transport
+								.request("project.openFileInEditor", {
+									filePath: resolvedPath,
+									...(lineNum != null && { line: lineNum }),
+									...(column != null && { column }),
+								})
+								.catch(() => {
+									addToast(`Could not open ${match.text} in editor`, "warning");
+								});
+						},
+					}),
+				),
+			);
+		},
+	};
+}
+
+// ============================================================================
 // Component
 // ============================================================================
 
@@ -74,12 +311,15 @@ interface TerminalInstanceProps {
 	isActive: boolean;
 	/** Display name for the terminal tab (used in context labels). */
 	terminalLabel: string;
+	/** Working directory of the terminal — used to resolve relative file paths in links. */
+	cwd: string;
 }
 
 export const TerminalInstance = memo(function TerminalInstance({
 	terminalId,
 	isActive,
 	terminalLabel,
+	cwd,
 }: TerminalInstanceProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const terminalRef = useRef<Terminal | null>(null);
@@ -205,6 +445,10 @@ export const TerminalInstance = memo(function TerminalInstance({
 			}
 		});
 
+		// Link detection: Cmd/Ctrl-clickable file paths and URLs
+		const linkProvider = createTerminalLinkProvider(terminalRef, cwd, addToast);
+		const linkDisposable = terminal.registerLinkProvider(linkProvider);
+
 		// Mouse events for selection action detection
 		const handlePointerDown = (event: PointerEvent) => {
 			clearSelectionAction();
@@ -267,6 +511,7 @@ export const TerminalInstance = memo(function TerminalInstance({
 			resizeObserverRef.current = null;
 			dataDisposable.dispose();
 			selectionDisposable.dispose();
+			linkDisposable.dispose();
 			unsubData();
 			unsubExit();
 			container.removeEventListener("pointerdown", handlePointerDown);
@@ -279,7 +524,7 @@ export const TerminalInstance = memo(function TerminalInstance({
 			terminalRef.current = null;
 			fitAddonRef.current = null;
 		};
-	}, [terminalId, clearSelectionAction]);
+	}, [terminalId, clearSelectionAction, cwd, addToast]);
 
 	// Re-fit when tab becomes active (may have been resized while hidden)
 	useEffect(() => {

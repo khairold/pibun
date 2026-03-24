@@ -1499,3 +1499,36 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 50 — Terminal link detection (2026-03-24)
+
+**What happened:**
+- Implemented terminal link detection — file paths and URLs in terminal output are now Cmd/Ctrl-clickable (5B.3):
+  - **Contracts**: Added `project.openFileInEditor` WS method with `WsProjectOpenFileInEditorParams` (filePath, line?, column?). Wired into `WS_METHODS`, `WsMethodParamsMap`, `WsMethodResultMap`.
+  - **Server**: Added `handleProjectOpenFileInEditor` handler in `appHandlers.ts` — tries cursor/code/zed with `--goto file:line:col` syntax (zed uses bare `file:line:col`). Falls back to system `open`/`xdg-open`. Registered in handler index.
+  - **TerminalInstance.tsx**: Major enhancement — added comprehensive link detection system:
+    - `extractTerminalLinks(line)` — detects URLs (`http(s)://...`) and file paths (absolute, relative, `~/`, bare relative like `src/foo/bar.ts:42:10`) in terminal output. Adapted from T3Code's `terminal-links.ts`.
+    - `trimClosingDelimiters()` — handles unbalanced closing parens/brackets/braces and trailing punctuation.
+    - `splitPathAndPosition()` — extracts optional `:line` and `:line:col` suffixes from file paths.
+    - `resolveFilePath()` — resolves relative paths against terminal CWD, expands `~/` using CWD-inferred home dir.
+    - `isLinkActivation()` — requires Cmd on Mac, Ctrl on others (prevents accidental clicks during selection).
+    - `createTerminalLinkProvider()` — factory creating `ILinkProvider` with `provideLinks` that scans each buffer line.
+    - URLs opened via `window.open()`. File paths opened via `project.openFileInEditor` WS method.
+    - Links get underline decoration + pointer cursor on hover.
+  - **TerminalInstance props**: Added `cwd: string` prop for path resolution. Passed from `TerminalPane` at all 5 `TerminalInstance` usage sites.
+- 5 files modified: `wsProtocol.ts` (contracts), `appHandlers.ts` + `index.ts` (server), `TerminalInstance.tsx`, `TerminalPane.tsx` (web).
+
+**Items completed:**
+- [x] 5B.3 — Terminal link detection: parse file paths in terminal output, make clickable (open in editor)
+
+**Issues encountered:**
+- Biome suppression comment for `useExhaustiveDependencies` was unnecessary — `cwd` and `addToast` in the deps array didn't trigger the lint rule. Removed the suppression.
+- Biome formatting: multi-line function params and ternary collapsed to single lines. Fixed with `bun run format`.
+
+**Handoff to next session:**
+- Next: 5B.4 — Terminal theme sync: derive xterm.js theme from current PiBun theme tokens
+- `project.openFileInEditor` tries editors with `--goto` for line:col positioning. No editor configuration yet — could add `preferredEditor` to `PiBunSettings` in the future.
+- Link detection all lives in `TerminalInstance.tsx` (deep modules). If other components need link detection (e.g., chat message terminal output), extract `extractTerminalLinks` and helpers to `utils.ts`.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

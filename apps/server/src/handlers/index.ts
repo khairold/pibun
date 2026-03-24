@@ -22,6 +22,7 @@ import {
 	handlePluginUninstall,
 	handleProjectAdd,
 	handleProjectList,
+	handleProjectOpenFileInEditor,
 	handleProjectOpenInEditor,
 	handleProjectRemove,
 	handleProjectSearchFiles,
@@ -132,6 +133,7 @@ export const handlers: HandlerRegistry = {
 	"project.update": handleProjectUpdate,
 	"project.searchFiles": handleProjectSearchFiles,
 	"project.openInEditor": handleProjectOpenInEditor,
+	"project.openFileInEditor": handleProjectOpenFileInEditor,
 
 	// Terminal integration
 	"terminal.create": handleTerminalCreate,

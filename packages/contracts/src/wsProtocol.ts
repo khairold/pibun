@@ -100,6 +100,7 @@ export const WS_METHODS = {
 	projectUpdate: "project.update",
 	projectSearchFiles: "project.searchFiles",
 	projectOpenInEditor: "project.openInEditor",
+	projectOpenFileInEditor: "project.openFileInEditor",
 
 	// Git integration (server-side, not Pi RPC)
 	gitStatus: "git.status",
@@ -368,6 +369,21 @@ export interface WsProjectSearchFilesResult {
 export interface WsProjectOpenInEditorParams {
 	/** Absolute path to the project directory. */
 	cwd: string;
+}
+
+/**
+ * Params for `project.openFileInEditor` — open a file in the system code editor.
+ *
+ * Supports line and column positioning. Tries common code editors (cursor, code, zed)
+ * with `editor <file>:<line>:<col>` syntax. Falls back to `open`/`xdg-open` for the file.
+ */
+export interface WsProjectOpenFileInEditorParams {
+	/** Absolute path to the file to open. */
+	filePath: string;
+	/** Optional line number (1-based) to jump to. */
+	line?: number;
+	/** Optional column number (1-based) to jump to. */
+	column?: number;
 }
 
 // ============================================================================
@@ -645,6 +661,7 @@ export interface WsMethodParamsMap {
 	"project.update": WsProjectUpdateParams;
 	"project.searchFiles": WsProjectSearchFilesParams;
 	"project.openInEditor": WsProjectOpenInEditorParams;
+	"project.openFileInEditor": WsProjectOpenFileInEditorParams;
 	"git.status": WsGitStatusParams;
 	"git.branch": WsGitBranchParams;
 	"git.diff": WsGitDiffParams;
@@ -955,6 +972,7 @@ export interface WsMethodResultMap {
 	"project.update": WsOkResult;
 	"project.searchFiles": WsProjectSearchFilesResult;
 	"project.openInEditor": WsOkResult;
+	"project.openFileInEditor": WsOkResult;
 	"git.status": WsGitStatusResult;
 	"git.branch": WsGitBranchResult;
 	"git.diff": WsGitDiffResult;

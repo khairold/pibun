@@ -36,6 +36,7 @@ import type {
 	WsProjectAddParams,
 	WsProjectAddResult,
 	WsProjectListResult,
+	WsProjectOpenFileInEditorParams,
 	WsProjectOpenInEditorParams,
 	WsProjectRemoveParams,
 	WsProjectSearchFilesParams,
@@ -637,6 +638,63 @@ export const handleProjectOpenInEditor: WsHandler<"project.openInEditor"> = asyn
 	} catch {
 		throw new Error(
 			"No code editor found. Install Cursor, VS Code, or Zed, or use a terminal to open the project.",
+		);
+	}
+};
+
+/**
+ * Open a specific file in the system code editor with optional line:column.
+ *
+ * Uses `editor <file>:<line>:<col>` syntax which is supported by
+ * Cursor, VS Code, and Zed. Falls back to `open`/`xdg-open` for the file.
+ */
+export const handleProjectOpenFileInEditor: WsHandler<"project.openFileInEditor"> = async (
+	params: WsProjectOpenFileInEditorParams,
+): Promise<WsOkResult> => {
+	const { filePath, line, column } = params;
+
+	// Build the file target with optional line:col suffix
+	// All major editors support <file>:<line>:<col> via the --goto/-g flag
+	let target = filePath;
+	if (line != null) {
+		target += `:${String(line)}`;
+		if (column != null) {
+			target += `:${String(column)}`;
+		}
+	}
+
+	// Try each known editor with --goto flag
+	for (const editor of EDITOR_CANDIDATES) {
+		try {
+			// cursor/code use --goto, zed uses the file:line:col syntax directly
+			const args =
+				editor.command === "zed" ? [editor.command, target] : [editor.command, "--goto", target];
+			const proc = Bun.spawn(args, {
+				stdout: "ignore",
+				stderr: "pipe",
+			});
+			const exitCode = await proc.exited;
+			if (exitCode === 0) {
+				return { ok: true };
+			}
+		} catch {
+			// Editor not installed — try next
+		}
+	}
+
+	// Fallback: system default handler (no line:col support)
+	const openCmd =
+		process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+	try {
+		const proc = Bun.spawn([openCmd, filePath], {
+			stdout: "ignore",
+			stderr: "pipe",
+		});
+		await proc.exited;
+		return { ok: true };
+	} catch {
+		throw new Error(
+			"No code editor found. Install Cursor, VS Code, or Zed to open files from the terminal.",
 		);
 	}
 };

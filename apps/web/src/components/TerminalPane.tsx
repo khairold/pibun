@@ -274,6 +274,7 @@ function SplitTerminalGroup({ tabs, activeTerminalTabId, onActivate }: SplitTerm
 					terminalId={tab.terminalId}
 					isActive={tab.id === activeTerminalTabId}
 					terminalLabel={tab.name}
+					cwd={tab.cwd}
 				/>
 			</div>
 		);
@@ -307,6 +308,7 @@ function SplitTerminalGroup({ tabs, activeTerminalTabId, onActivate }: SplitTerm
 								terminalId={tab.terminalId}
 								isActive={tab.id === activeTerminalTabId}
 								terminalLabel={tab.name}
+								cwd={tab.cwd}
 							/>
 						</div>
 
@@ -580,6 +582,7 @@ export function TerminalPane() {
 										terminalId={tab.terminalId}
 										isActive={false}
 										terminalLabel={tab.name}
+										cwd={tab.cwd}
 									/>
 								</div>
 							))}
@@ -592,6 +595,7 @@ export function TerminalPane() {
 							terminalId={tab.terminalId}
 							isActive={false}
 							terminalLabel={tab.name}
+							cwd={tab.cwd}
 						/>
 					</div>
 				))}
