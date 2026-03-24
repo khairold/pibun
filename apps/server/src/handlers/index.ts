@@ -24,6 +24,7 @@ import {
 	handleProjectRemove,
 	handleProjectSearchFiles,
 	handleProjectUpdate,
+	handleSessionGetTurnDiff,
 	handleSettingsGet,
 	handleSettingsUpdate,
 	handleTerminalClose,
@@ -134,6 +135,9 @@ export const handlers: HandlerRegistry = {
 	"git.branch": handleGitBranch,
 	"git.diff": handleGitDiff,
 	"git.log": handleGitLog,
+
+	// Turn diff (server-side git diff for specific files)
+	"session.getTurnDiff": handleSessionGetTurnDiff,
 
 	// App-level (desktop integration)
 	"app.applyUpdate": handleAppApplyUpdate,

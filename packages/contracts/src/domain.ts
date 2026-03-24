@@ -587,3 +587,44 @@ export interface GitDiffResult {
 	/** Raw unified diff output from git. Empty string if no changes. */
 	diff: string;
 }
+
+// ============================================================================
+// Turn Diff
+// ============================================================================
+
+/**
+ * Per-file summary within a turn diff — path + addition/deletion line counts.
+ *
+ * Parsed from `git diff --numstat` output. Binary files show -1/-1.
+ */
+export interface TurnDiffFileSummary {
+	/** File path relative to the repo root. */
+	path: string;
+	/** Number of added lines (-1 for binary files). */
+	additions: number;
+	/** Number of deleted lines (-1 for binary files). */
+	deletions: number;
+}
+
+/**
+ * Result of a turn diff request.
+ *
+ * Contains the raw unified diff text for all requested files,
+ * plus a per-file summary with line counts. The web app handles
+ * parsing and rendering the unified diff.
+ *
+ * Without git checkpoints (Pi doesn't create them), diffs are computed
+ * as `git diff HEAD -- <files>` (working tree vs last commit). This
+ * means the diff shows ALL changes to those files since the last commit,
+ * not just changes from a single turn. This is a known limitation —
+ * accurate per-turn diffs would require Pi to create git tags/stashes
+ * at turn boundaries.
+ */
+export interface TurnDiffResult {
+	/** Raw unified diff output. Empty string if no changes. */
+	diff: string;
+	/** Per-file summary with addition/deletion counts. */
+	files: TurnDiffFileSummary[];
+	/** The CWD used for the diff (for display purposes). */
+	cwd: string;
+}

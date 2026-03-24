@@ -15,6 +15,8 @@ import type {
 	GitLogEntry,
 	GitLogResult,
 	GitStatusResult,
+	TurnDiffFileSummary,
+	TurnDiffResult,
 } from "@pibun/contracts";
 
 // ============================================================================
@@ -165,6 +167,99 @@ export async function gitDiff(
 	const { stdout } = await runGit(args, cwd);
 
 	return { diff: stdout };
+}
+
+/**
+ * Get unified diff + per-file summary for specific files or all changes.
+ *
+ * Uses `git diff HEAD` to compare working tree + staged changes against
+ * the last commit. When `files` is provided, restricts the diff to those
+ * paths. Also runs `git diff HEAD --numstat` to get per-file line counts.
+ *
+ * If there's no HEAD commit (empty repo), falls back to `git diff --cached`
+ * to show staged changes.
+ *
+ * @throws If the directory is not a git repo.
+ */
+export async function gitTurnDiff(cwd: string, files?: string[]): Promise<TurnDiffResult> {
+	const repo = await isGitRepo(cwd);
+	if (!repo) {
+		throw new Error("Not a git repository");
+	}
+
+	// Check if HEAD exists (empty repos have no commits)
+	const hasHead = await hasHeadCommit(cwd);
+
+	// Build base args: diff against HEAD, or just staged if no HEAD
+	const baseArgs = hasHead ? ["diff", "HEAD"] : ["diff", "--cached"];
+
+	// Build file args (-- separator + file paths)
+	const fileArgs = files && files.length > 0 ? ["--", ...files] : [];
+
+	// Run unified diff and numstat in parallel
+	const [diffResult, numstatResult] = await Promise.all([
+		runGit([...baseArgs, ...fileArgs], cwd),
+		runGit([...baseArgs, "--numstat", ...fileArgs], cwd),
+	]);
+
+	const fileSummaries = parseNumstat(numstatResult.stdout);
+
+	return {
+		diff: diffResult.stdout,
+		files: fileSummaries,
+		cwd,
+	};
+}
+
+/**
+ * Check if the repository has at least one commit (HEAD exists).
+ */
+async function hasHeadCommit(cwd: string): Promise<boolean> {
+	try {
+		const { exitCode } = await runGit(["rev-parse", "HEAD"], cwd);
+		return exitCode === 0;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Parse `git diff --numstat` output into per-file summaries.
+ *
+ * Format: `<additions>\t<deletions>\t<filepath>`
+ * Binary files show: `-\t-\t<filepath>`
+ *
+ * Example:
+ * ```
+ * 5       2       src/foo.ts
+ * -       -       assets/icon.png
+ * 10      0       src/new-file.ts
+ * ```
+ */
+function parseNumstat(output: string): TurnDiffFileSummary[] {
+	const summaries: TurnDiffFileSummary[] = [];
+
+	for (const line of output.split("\n")) {
+		const trimmed = line.trim();
+		if (!trimmed) continue;
+
+		const parts = trimmed.split("\t");
+		if (parts.length < 3) continue;
+
+		const addStr = parts[0] ?? "-";
+		const delStr = parts[1] ?? "-";
+		const path = parts.slice(2).join("\t"); // Handle paths with tabs (unlikely but safe)
+
+		// Binary files show "-" for additions/deletions
+		const additions = addStr === "-" ? -1 : Number.parseInt(addStr, 10);
+		const deletions = delStr === "-" ? -1 : Number.parseInt(delStr, 10);
+
+		if (path) {
+			summaries.push({ path, additions, deletions });
+		}
+	}
+
+	return summaries.toSorted((a, b) => a.path.localeCompare(b.path));
 }
 
 /**

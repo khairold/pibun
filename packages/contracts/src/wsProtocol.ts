@@ -30,6 +30,7 @@ import type {
 	Plugin,
 	Project,
 	TimestampFormat,
+	TurnDiffResult,
 } from "./domain.js";
 import type {
 	PiAgentMessage,
@@ -101,6 +102,9 @@ export const WS_METHODS = {
 	gitBranch: "git.branch",
 	gitDiff: "git.diff",
 	gitLog: "git.log",
+
+	// Turn diff (server-side git diff for specific files)
+	sessionGetTurnDiff: "session.getTurnDiff",
 
 	// Terminal integration
 	terminalCreate: "terminal.create",
@@ -382,6 +386,31 @@ export interface WsGitLogParams {
 }
 
 // ============================================================================
+// Turn Diff Parameters
+// ============================================================================
+
+/**
+ * Params for `session.getTurnDiff` — get git diff for specific files or all changes.
+ *
+ * Without git checkpoints at turn boundaries, diffs are computed as
+ * `git diff HEAD -- <files>` (working tree + staged vs last commit).
+ * When `files` is empty/omitted, returns diff for all changes.
+ *
+ * The DiffPanel uses this with `changedFiles` from turn dividers to show
+ * per-turn diffs (approximate — shows all changes to those files, not just
+ * changes from a specific turn).
+ */
+export interface WsSessionGetTurnDiffParams {
+	/** Override CWD instead of using the session's CWD. */
+	cwd?: string;
+	/**
+	 * File paths to diff (relative to repo root).
+	 * If empty or omitted, diffs all changes in the working tree.
+	 */
+	files?: string[];
+}
+
+// ============================================================================
 // Terminal Integration Parameters
 // ============================================================================
 
@@ -549,6 +578,7 @@ export interface WsMethodParamsMap {
 	"git.branch": WsGitBranchParams;
 	"git.diff": WsGitDiffParams;
 	"git.log": WsGitLogParams;
+	"session.getTurnDiff": WsSessionGetTurnDiffParams;
 	"session.exportHtml": WsSessionExportHtmlParams;
 	"terminal.create": WsTerminalCreateParams;
 	"terminal.write": WsTerminalWriteParams;
@@ -712,6 +742,16 @@ export interface WsGitLogResult {
 }
 
 // ============================================================================
+// Turn Diff Results
+// ============================================================================
+
+/** Result for `session.getTurnDiff` — unified diff + per-file summary. */
+export interface WsSessionGetTurnDiffResult {
+	/** The complete turn diff data (diff text + file summaries + cwd). */
+	turnDiff: TurnDiffResult;
+}
+
+// ============================================================================
 // Terminal Integration Results
 // ============================================================================
 
@@ -816,6 +856,7 @@ export interface WsMethodResultMap {
 	"git.branch": WsGitBranchResult;
 	"git.diff": WsGitDiffResult;
 	"git.log": WsGitLogResult;
+	"session.getTurnDiff": WsSessionGetTurnDiffResult;
 	"terminal.create": WsTerminalCreateResult;
 	"terminal.write": WsOkResult;
 	"terminal.resize": WsOkResult;

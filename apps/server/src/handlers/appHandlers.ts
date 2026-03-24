@@ -39,6 +39,8 @@ import type {
 	WsProjectSearchFilesParams,
 	WsProjectSearchFilesResult,
 	WsProjectUpdateParams,
+	WsSessionGetTurnDiffParams,
+	WsSessionGetTurnDiffResult,
 	WsSettingsGetResult,
 	WsSettingsUpdateParams,
 	WsSettingsUpdateResult,
@@ -48,7 +50,7 @@ import type {
 	WsTerminalResizeParams,
 	WsTerminalWriteParams,
 } from "@pibun/contracts";
-import { gitBranch, gitDiff, gitLog, gitStatus } from "../gitService.js";
+import { gitBranch, gitDiff, gitLog, gitStatus, gitTurnDiff } from "../gitService.js";
 import { installPlugin, loadPlugins, setPluginEnabled, uninstallPlugin } from "../pluginStore.js";
 import { addProject, loadProjects, removeProject, updateProject } from "../projectStore.js";
 import { loadSettings, updateSettings } from "../settingsStore.js";
@@ -207,6 +209,28 @@ export const handleGitLog: WsHandler<"git.log"> = async (
 	const cwd = resolveGitCwd(params?.cwd, ctx);
 	const log = await gitLog(cwd, params?.count);
 	return { log };
+};
+
+// ============================================================================
+// Turn Diff — Git diff for specific files (per-turn or full session)
+// ============================================================================
+
+/**
+ * Get git diff for specific files or all working tree changes.
+ *
+ * Uses `git diff HEAD` to compare working tree + staged changes against
+ * the last commit. When `files` is provided, restricts the diff to those
+ * paths. Returns both the unified diff text and per-file line count summaries.
+ *
+ * CWD is resolved from the session's Pi process CWD if not explicitly provided.
+ */
+export const handleSessionGetTurnDiff: WsHandler<"session.getTurnDiff"> = async (
+	params: WsSessionGetTurnDiffParams,
+	ctx: HandlerContext,
+): Promise<WsSessionGetTurnDiffResult> => {
+	const cwd = resolveGitCwd(params?.cwd, ctx);
+	const turnDiff = await gitTurnDiff(cwd, params?.files);
+	return { turnDiff };
 };
 
 // ============================================================================

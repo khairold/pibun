@@ -854,3 +854,30 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 29 — Turn diff data pipeline (2026-03-24)
+
+**What happened:**
+- Implemented `session.getTurnDiff` WS method end-to-end (3.5):
+  - **Contracts domain.ts**: Added `TurnDiffFileSummary` type (`{ path, additions, deletions }` — additions/deletions are -1 for binary files). Added `TurnDiffResult` type (`{ diff, files, cwd }`) with detailed TSDoc explaining the limitation of `git diff HEAD` vs true per-turn checkpoints.
+  - **Contracts wsProtocol.ts**: Added `session.getTurnDiff` to `WS_METHODS`. Added `WsSessionGetTurnDiffParams` (cwd?, files?: string[]) and `WsSessionGetTurnDiffResult` (turnDiff: TurnDiffResult). Wired into `WsMethodParamsMap` and `WsMethodResultMap`. Imported `TurnDiffResult` from domain.
+  - **Server gitService.ts**: Added `gitTurnDiff(cwd, files?)` function — runs `git diff HEAD` (unified diff) and `git diff HEAD --numstat` in parallel. Falls back to `git diff --cached` for empty repos (no HEAD commit). Added `hasHeadCommit()` helper and `parseNumstat()` parser. `parseNumstat` handles binary files (`-\t-\t<path>`), returns sorted summaries. Fixed `noUncheckedIndexedAccess` issue with `parts[0] ?? "-"` pattern.
+  - **Server appHandlers.ts**: Added `handleSessionGetTurnDiff` handler — uses `resolveGitCwd` for CWD resolution (same pattern as git handlers), delegates to `gitTurnDiff`. Import ordering fixed for Biome.
+  - **Server index.ts**: Registered `handleSessionGetTurnDiff` at `"session.getTurnDiff"`.
+- **Design decision**: Pi doesn't have a checkpoint system (T3Code uses git tags at turn boundaries via its orchestration layer). PiBun uses `git diff HEAD -- <files>` which shows ALL changes since last commit, not just per-turn changes. The UI can request diffs filtered by per-turn `changedFiles` (from item 3.4), but the diff content may include changes from multiple turns. This is a known and documented limitation.
+
+**Items completed:**
+- [x] 3.5 — Add diff data pipeline: server handler + git diff + new WS method `session.getTurnDiff`
+
+**Issues encountered:**
+- `noUncheckedIndexedAccess` flagged `parts[0]` and `parts[1]` as `string | undefined` in `parseNumstat`. Fixed with `?? "-"` defaults.
+- Biome import ordering: `WsSessionGetTurnDiff*` imports needed to be sorted between `WsProjectUpdate*` and `WsSettings*` alphabetically.
+
+**Handoff to next session:**
+- Next: 3.6 — Build DiffPanel component: side panel (toggled via Ctrl/Cmd+D) showing per-turn diffs with file tree and stacked/split view toggle
+- `session.getTurnDiff` is ready to be called from the UI. Pass `files` from turn divider's `changedFiles` for per-turn diffs, or omit `files` for full working tree diff.
+- T3Code uses `@pierre/diffs` package for diff rendering with `parsePatchFiles`, `FileDiff`, `Virtualizer` components. PiBun can use a simpler approach — render unified diff text with syntax highlighting, or find a lightweight diff rendering library.
+- The DiffPanel will need: a toggle keybinding (Ctrl/Cmd+D), a side panel layout (split with ChatView), turn selection UI, file tree with per-file stats, and the actual diff rendering.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

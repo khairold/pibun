@@ -62,6 +62,7 @@
 | 51 | Turn dividers enhanced with `elapsedMs` field — wall-clock time between user messages | `groupMessages()` tracks `prevUserTimestamp` and computes `elapsedMs = currentTimestamp - prevUserTimestamp` for each turn divider. `null` for the first divider or when elapsed ≤ 0. `TurnDivider` component shows elapsed time as a pill badge (using shared `formatDuration()`) between the tool count badge and the timestamp. | 2026-03-24 |
 | 52 | `formatDuration()` extracted to shared `utils.ts` from `wireTransport.ts` | Used by both `wireTransport.ts` (completion summary "✓ Worked for Xm Ys") and `TurnDivider` (elapsed time badge). Single implementation: `<1s`, `Xs`, `Xm Ys`. | 2026-03-24 |
 | 53 | Per-turn changed files tracked via `collectChangedFile()` in `groupMessages()` | Collects unique file paths from `edit` and `write` tool calls (file-modifying tools only — `read`, `bash`, `glob`, `grep` excluded as they don't modify files). `changedFiles: string[]` added to `turn-divider` TimelineEntry. TurnDivider shows clickable "N files changed" badge with chevron toggle → expands to show shortened file paths (last 2 path segments via `shortenPath()`). Full path shown on hover via `title` attribute. Uses `Set<string>` for deduplication (same file edited multiple times in a turn = counted once). Badge uses same visual style as tool count badge but with a file icon. | 2026-03-24 |
+| 54 | `session.getTurnDiff` uses `git diff HEAD` (not checkpoint-based) for turn diffs | Pi doesn't create git checkpoints at turn boundaries (unlike T3Code's full checkpoint system). PiBun uses `git diff HEAD -- <files>` to show working tree + staged changes vs last commit, filtered by per-turn `changedFiles`. This means the diff shows ALL changes to those files since the last commit, not just changes from a single turn — a known limitation. `gitTurnDiff()` in `gitService.ts` runs unified diff + `--numstat` in parallel. Returns `TurnDiffResult` with `{ diff, files: TurnDiffFileSummary[], cwd }`. `TurnDiffFileSummary` has `{ path, additions, deletions }` (-1/-1 for binary files). Falls back to `git diff --cached` for empty repos (no HEAD). Handler is `handleSessionGetTurnDiff` in `appHandlers.ts`, registered as `"session.getTurnDiff"` in handler index. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -85,7 +86,7 @@ apps/desktop/         — Electrobun main process, menu, notifications, updater,
 - ~~`session.cycleThinking` → Pi `cycle_thinking_level`~~ ✅ Done (Session 18)
 - `session.getLastAssistantText` → Pi `get_last_assistant_text`
 - ~~`project.searchFiles` → server-side file search (fd/find)~~ ✅ Done (Session 19)
-- `session.getTurnDiff` → server-side git diff between turns
+- ~~`session.getTurnDiff` → server-side git diff between turns~~ ✅ Done (Session 29)
 
 ### Key Missing UI Components (for v3)
 - ~~ComposerCommandMenu — floating autocomplete menu~~ ✅ Done (Session 17)
