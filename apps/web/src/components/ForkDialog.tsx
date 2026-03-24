@@ -11,8 +11,8 @@
  * The dropdown closes on selection, Escape, or click-outside.
  */
 
-import { cn } from "@/lib/cn";
 import { forkFromMessage, getForkableMessages } from "@/lib/sessionActions";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { WsForkableMessage } from "@pibun/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";

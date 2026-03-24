@@ -5,7 +5,7 @@
  * Hidden when no error is set. Auto-clears after 10 seconds.
  */
 
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { useCallback, useEffect } from "react";
 

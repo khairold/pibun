@@ -16,7 +16,7 @@
 
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
-import { fetchGitStatus } from "./gitActions";
+import { fetchGitStatus } from "./appActions";
 import { loadSessionMessages, refreshSessionState } from "./sessionActions";
 
 // ============================================================================

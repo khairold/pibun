@@ -11,8 +11,7 @@
  * switches between Light and Dark Mode in System Settings.
  */
 
-import { cn } from "@/lib/cn";
-import { persistThemeToServer } from "@/lib/settingsActions";
+import { persistThemeToServer } from "@/lib/appActions";
 import {
 	THEME_LIST,
 	THEME_STORAGE_KEY,
@@ -21,6 +20,7 @@ import {
 	resolveTheme,
 	watchSystemPreference,
 } from "@/lib/themes";
+import { cn } from "@/lib/utils";
 import type { Theme, ThemeId, ThemePreference } from "@pibun/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 

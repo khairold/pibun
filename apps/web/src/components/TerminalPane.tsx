@@ -11,8 +11,8 @@
  *                        PTY stdout → server → terminal.data push → xterm.write
  */
 
-import { cn } from "@/lib/cn";
-import { closeTerminal, createTerminal } from "@/lib/terminalActions";
+import { closeTerminal, createTerminal } from "@/lib/appActions";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { TerminalTab } from "@/store/types";
 import { memo, useCallback, useRef } from "react";

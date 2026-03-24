@@ -15,11 +15,10 @@
  */
 
 import { PluginSidebarPanels } from "@/components/PluginPanel";
-import { cn } from "@/lib/cn";
-import { addProject, fetchProjects, openProject, removeProject } from "@/lib/projectActions";
+import { addProject, fetchProjects, openProject, removeProject } from "@/lib/appActions";
 import { fetchSessionList, switchSession } from "@/lib/sessionActions";
-import { onShortcut } from "@/lib/shortcuts";
 import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
+import { cn, onShortcut } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import type { Project, SessionTab, WsSessionSummary } from "@pibun/contracts";

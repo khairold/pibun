@@ -6,7 +6,7 @@
  * Compaction, retry, and error messages get distinct styling/colors.
  */
 
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/store/types";
 import { memo } from "react";
 

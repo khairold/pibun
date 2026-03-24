@@ -13,8 +13,8 @@
  * when they overflow. Sits at the top of the main area in AppShell.
  */
 
-import { cn } from "@/lib/cn";
 import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { SessionTab } from "@pibun/contracts";
 import { type DragEvent, type MouseEvent, memo, useCallback, useRef, useState } from "react";

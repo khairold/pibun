@@ -7,8 +7,8 @@
  */
 
 import { useShikiTheme } from "@/hooks/useShikiTheme";
-import { cn } from "@/lib/cn";
 import { highlightCode } from "@/lib/highlighter";
+import { cn } from "@/lib/utils";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 interface CodeBlockProps {

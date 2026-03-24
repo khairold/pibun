@@ -12,7 +12,7 @@
  * - Image preview strip with remove buttons
  */
 
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import {

@@ -292,3 +292,32 @@
 - After 3.4, move to 3.5: Merge lib actions files.
 
 ---
+
+## Session 11 — Merge lib actions + utilities (2026-03-24)
+
+**What happened:**
+- Verified item 3.4 (store/index.ts already combines 3 slices from Session 10 — no work needed)
+- Created `appActions.ts` (~480 lines) by merging 5 action files: gitActions, projectActions, pluginActions, settingsActions, terminalActions
+- Created `utils.ts` (~200 lines) by merging 3 utility files: cn.ts, fileUtils.ts, shortcuts.ts
+- Updated imports across 46+ files (components, wireTransport, hooks, tabActions)
+- Consolidated 8 duplicate import lines in files that imported from both `cn` and `fileUtils`/`shortcuts` (now merged into single `utils` import)
+- Ran `biome check --fix --unsafe` to auto-fix 15 import sorting issues caused by path changes
+- Deleted 8 old files: gitActions.ts, projectActions.ts, pluginActions.ts, settingsActions.ts, terminalActions.ts, cn.ts, fileUtils.ts, shortcuts.ts
+- lib/ now has 7 files (down from 13): appActions, sessionActions, tabActions, themes, highlighter, pluginMessageBridge, utils
+- Caught hidden reference: tabActions.ts imported `fetchGitStatus` from `./gitActions` (relative import, not caught by initial grep for `@/lib/gitActions`)
+
+**Items completed:**
+- [x] 3.4 — Rewrite store/index.ts to combine 3 slices (already done, verified)
+- [x] 3.5 — Merge lib actions: gitActions + projectActions + pluginActions + settingsActions + terminalActions → appActions.ts
+- [x] 3.6 — Merge lib utilities: cn.ts + fileUtils.ts + shortcuts.ts → utils.ts
+
+**Issues encountered:**
+- tabActions.ts used a relative import `./gitActions` instead of `@/lib/gitActions` — missed in initial import sweep, caught by typecheck after deletion. Fixed to `./appActions`.
+
+**Handoff to next session:**
+- Next: 3.7 — Keep as-is: sessionActions.ts, tabActions.ts, themes.ts, highlighter.ts, pluginMessageBridge.ts (verification only)
+- Then: 3.8 — Update all component imports (already done in this session — 3.8 should be a no-op verification)
+- Then: 3.9 — Verify full build
+- Items 3.7-3.9 should be quick verifications. Phase 3 is nearly complete.
+
+---

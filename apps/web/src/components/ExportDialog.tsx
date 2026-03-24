@@ -14,8 +14,7 @@
  * The dropdown closes on selection, Escape, or click-outside.
  */
 
-import { cn } from "@/lib/cn";
-import { onShortcut } from "@/lib/shortcuts";
+import { cn, onShortcut } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { getTransport } from "@/wireTransport";

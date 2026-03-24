@@ -6,7 +6,7 @@
  * severity levels with corresponding colors and icons.
  */
 
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { Toast } from "@/store/types";
 import React, { useCallback } from "react";

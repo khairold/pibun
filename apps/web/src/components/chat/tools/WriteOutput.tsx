@@ -9,8 +9,7 @@
  */
 
 import { CodeBlock } from "@/components/CodeBlock";
-import { cn } from "@/lib/cn";
-import { getFileName, inferLanguageFromPath } from "@/lib/fileUtils";
+import { cn, getFileName, inferLanguageFromPath } from "@/lib/utils";
 import { memo, useCallback, useState } from "react";
 
 /** Maximum content lines before collapsing in preview. */

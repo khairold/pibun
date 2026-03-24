@@ -9,7 +9,7 @@
  * Ctrl+G also toggles the panel (wired in 3.9).
  */
 
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { useCallback } from "react";
 

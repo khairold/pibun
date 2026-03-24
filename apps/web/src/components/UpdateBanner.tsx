@@ -9,7 +9,7 @@
  * `app.update` pushes.
  */
 
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import { useCallback } from "react";

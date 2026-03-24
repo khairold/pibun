@@ -3,7 +3,7 @@
 > **Spec:** Audit findings from 2026-03-24 session + "deep modules" principle
 > **Status:** In Progress
 > **Current Phase:** Phase 3 — Deep Store + Actions
-> **Last Session:** Session 10 — 2026-03-24
+> **Last Session:** Session 11 — 2026-03-24
 
 ---
 
@@ -79,9 +79,9 @@ With a 1M token context window, the entire codebase (~532K tokens) fits in one s
 - [x] 3.1 — Merge store slices: connection + ui + update + notifications → `appSlice.ts`. These are app-level state, always orthogonal to chat.
 - [x] 3.2 — Merge store slices: session + messages + models + extensionUi → `sessionSlice.ts`. These co-change during conversation flow.
 - [x] 3.3 — Merge store slices: tabs + terminal + git + plugins + projects → `workspaceSlice.ts`. Workspace-level features.
-- [ ] 3.4 — Rewrite store/index.ts to combine 3 slices. Update store/types.ts if slice interfaces change.
-- [ ] 3.5 — Merge lib actions: gitActions + projectActions + pluginActions + settingsActions + terminalActions → `appActions.ts`. All follow the identical try/catch/getTransport/updateStore pattern.
-- [ ] 3.6 — Merge lib utilities: cn.ts + fileUtils.ts + shortcuts.ts → `utils.ts`. Small utilities always needed together.
+- [x] 3.4 — Rewrite store/index.ts to combine 3 slices. Update store/types.ts if slice interfaces change.
+- [x] 3.5 — Merge lib actions: gitActions + projectActions + pluginActions + settingsActions + terminalActions → `appActions.ts`. All follow the identical try/catch/getTransport/updateStore pattern.
+- [x] 3.6 — Merge lib utilities: cn.ts + fileUtils.ts + shortcuts.ts → `utils.ts`. Small utilities always needed together.
 - [ ] 3.7 — Keep as-is: sessionActions.ts (533 lines, complex), tabActions.ts (246 lines, coordination logic), themes.ts (527 lines, self-contained), highlighter.ts (208 lines, shiki setup), pluginMessageBridge.ts (323 lines, different concern)
 - [ ] 3.8 — Update all component imports. Run typecheck.
 - [ ] 3.9 — Verify: `bun run typecheck && bun run lint && bun run build` all pass

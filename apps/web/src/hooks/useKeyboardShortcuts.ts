@@ -20,10 +20,10 @@
  * re-renders. Must be mounted once at the app level (AppShell).
  */
 
+import { createTerminal } from "@/lib/appActions";
 import { compactSession, fetchSessionList, startNewSession } from "@/lib/sessionActions";
-import { emitShortcut } from "@/lib/shortcuts";
 import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
-import { createTerminal } from "@/lib/terminalActions";
+import { emitShortcut } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import { useEffect } from "react";

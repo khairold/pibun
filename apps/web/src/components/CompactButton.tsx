@@ -6,8 +6,8 @@
  * Shows a spinning indicator while compacting (from either manual or auto trigger).
  */
 
-import { cn } from "@/lib/cn";
 import { compactSession } from "@/lib/sessionActions";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { useCallback } from "react";
 

@@ -9,8 +9,7 @@
  * Subsequent opens use the cached list (re-fetch via a refresh button).
  */
 
-import { cn } from "@/lib/cn";
-import { onShortcut } from "@/lib/shortcuts";
+import { cn, onShortcut } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import type { PiModel } from "@pibun/contracts";

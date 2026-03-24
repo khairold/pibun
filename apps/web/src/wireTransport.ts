@@ -11,10 +11,16 @@
  * Use `getTransport()` to access the singleton for sending requests.
  */
 
-import { fetchGitStatus } from "@/lib/gitActions";
-import { fetchPlugins } from "@/lib/pluginActions";
+import {
+	addProject,
+	createTerminal,
+	fetchAndApplySettings,
+	fetchGitStatus,
+	fetchPlugins,
+	fetchProjects,
+	openProject,
+} from "@/lib/appActions";
 import { forwardPiEventToPlugins, initPluginMessageBridge } from "@/lib/pluginMessageBridge";
-import { addProject, fetchProjects, openProject } from "@/lib/projectActions";
 import {
 	compactSession,
 	fetchSessionList,
@@ -22,15 +28,13 @@ import {
 	startNewSession,
 	startSessionInFolder,
 } from "@/lib/sessionActions";
-import { fetchAndApplySettings } from "@/lib/settingsActions";
-import { emitShortcut } from "@/lib/shortcuts";
 import {
 	closeTab,
 	createNewTab,
 	switchTabAction,
 	updateTabStreamingBySessionId,
 } from "@/lib/tabActions";
-import { createTerminal } from "@/lib/terminalActions";
+import { emitShortcut } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { WsTransport } from "@/transport";

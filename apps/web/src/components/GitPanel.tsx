@@ -9,8 +9,8 @@
  * syntax-highlighted DiffViewer in 3.7).
  */
 
-import { cn } from "@/lib/cn";
-import { fetchGitDiff, fetchGitStatus } from "@/lib/gitActions";
+import { fetchGitDiff, fetchGitStatus } from "@/lib/appActions";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { GitChangedFile } from "@pibun/contracts";
 import { memo, useCallback } from "react";

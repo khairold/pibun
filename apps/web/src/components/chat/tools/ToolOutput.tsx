@@ -12,7 +12,7 @@
  * them to the specialized renderer.
  */
 
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/store/types";
 import { memo } from "react";
 import { BashOutput } from "./BashOutput";

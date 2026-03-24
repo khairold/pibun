@@ -1,11 +1,32 @@
 /**
- * File utilities — helpers for working with file paths and extensions.
+ * General utilities — className helper, file path helpers, shortcut event bus.
  *
- * Used by tool-specific renderers to determine syntax highlighting language
- * from file paths in tool arguments.
+ * Consolidates: cn.ts, fileUtils.ts, shortcuts.ts.
+ * Small utilities that are always needed together.
  *
  * @module
  */
+
+// ============================================================================
+// className Utility
+// ============================================================================
+
+/**
+ * Minimal className utility — joins class name segments, filtering out falsy values.
+ *
+ * Usage:
+ * ```typescript
+ * cn("flex", isActive && "bg-blue-500", className)
+ * // → "flex bg-blue-500" (if isActive is true)
+ * ```
+ */
+export function cn(...inputs: (string | false | null | undefined)[]): string {
+	return inputs.filter(Boolean).join(" ");
+}
+
+// ============================================================================
+// File Utilities
+// ============================================================================
 
 /** Map of file extensions to Shiki language identifiers. */
 const EXTENSION_TO_LANGUAGE: Record<string, string> = {
@@ -164,4 +185,51 @@ export function shortPath(path: string): string {
 	const segments = path.split("/").filter((s) => s.length > 0);
 	if (segments.length <= 2) return segments.join("/");
 	return segments.slice(-2).join("/");
+}
+
+// ============================================================================
+// Shortcut Event Bus
+// ============================================================================
+
+/**
+ * Shortcut event bus — lightweight pub/sub for keyboard shortcut actions.
+ *
+ * The `useKeyboardShortcuts` hook emits actions here.
+ * Components subscribe to react to specific shortcuts
+ * (e.g., ModelSelector toggles on "toggleModelSelector").
+ */
+
+export type ShortcutAction =
+	| "abort"
+	| "closeTab"
+	| "compact"
+	| "newSession"
+	| "newTab"
+	| "nextTab"
+	| "prevTab"
+	| "toggleExportDialog"
+	| "toggleGitPanel"
+	| "toggleModelSelector"
+	| "togglePluginManager"
+	| "toggleSidebar"
+	| "toggleTerminal"
+	| "toggleThinkingSelector";
+
+type ShortcutListener = (action: ShortcutAction) => void;
+
+const listeners = new Set<ShortcutListener>();
+
+/** Emit a shortcut action to all subscribers. */
+export function emitShortcut(action: ShortcutAction): void {
+	for (const listener of listeners) {
+		listener(action);
+	}
+}
+
+/** Subscribe to shortcut actions. Returns an unsubscribe function. */
+export function onShortcut(handler: ShortcutListener): () => void {
+	listeners.add(handler);
+	return () => {
+		listeners.delete(handler);
+	};
 }

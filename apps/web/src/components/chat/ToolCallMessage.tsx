@@ -5,7 +5,7 @@
  * more sophisticated tool-specific rendering comes in Phase 1D.
  */
 
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/store/types";
 import { memo, useCallback, useState } from "react";
 

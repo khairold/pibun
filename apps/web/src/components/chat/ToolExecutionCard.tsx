@@ -12,7 +12,7 @@
  */
 
 import { ToolOutput } from "@/components/chat/tools/ToolOutput";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/store/types";
 import { memo, useCallback, useState } from "react";
 

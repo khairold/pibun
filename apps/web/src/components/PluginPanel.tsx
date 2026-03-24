@@ -11,9 +11,9 @@
  * - "right": renders as a right panel adjacent to the main area
  */
 
-import { cn } from "@/lib/cn";
-import { resolvePluginComponentUrl } from "@/lib/pluginActions";
+import { resolvePluginComponentUrl } from "@/lib/appActions";
 import { registerPluginFrame, unregisterPluginFrame } from "@/lib/pluginMessageBridge";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { ActivePluginPanel } from "@/store/types";
 import type { Plugin, PluginPanelPosition } from "@pibun/contracts";

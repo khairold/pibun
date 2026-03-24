@@ -6,7 +6,7 @@
  * to empty/undefined removes it. Hidden when no statuses are active.
  */
 
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 
 export function StatusBar() {

@@ -9,8 +9,7 @@
  */
 
 import { CodeBlock } from "@/components/CodeBlock";
-import { cn } from "@/lib/cn";
-import { getFileName, inferLanguageFromPath } from "@/lib/fileUtils";
+import { cn, getFileName, inferLanguageFromPath } from "@/lib/utils";
 import { memo } from "react";
 
 interface ReadOutputProps {

@@ -7,7 +7,7 @@
  * - open → hidden (renders nothing)
  */
 
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 
 export function ConnectionBanner() {

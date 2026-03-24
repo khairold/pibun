@@ -10,14 +10,8 @@
  * click-outside to close, Escape to close, z-50 positioning.
  */
 
-import { cn } from "@/lib/cn";
-import {
-	fetchPlugins,
-	installPlugin,
-	setPluginEnabled,
-	uninstallPlugin,
-} from "@/lib/pluginActions";
-import { onShortcut } from "@/lib/shortcuts";
+import { fetchPlugins, installPlugin, setPluginEnabled, uninstallPlugin } from "@/lib/appActions";
+import { cn, onShortcut } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { Plugin } from "@pibun/contracts";
 import { memo, useCallback, useEffect, useRef, useState } from "react";

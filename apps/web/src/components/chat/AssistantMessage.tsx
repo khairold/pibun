@@ -9,7 +9,7 @@
  */
 
 import { MarkdownContent } from "@/components/Markdown";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/store/types";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 

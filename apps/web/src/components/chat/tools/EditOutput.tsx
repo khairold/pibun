@@ -8,8 +8,7 @@
  * - Collapsible to save space for large diffs
  */
 
-import { cn } from "@/lib/cn";
-import { getFileName } from "@/lib/fileUtils";
+import { cn, getFileName } from "@/lib/utils";
 import { memo, useCallback, useState } from "react";
 
 /** Maximum diff lines before collapsing. */

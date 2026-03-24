@@ -13,9 +13,8 @@
  */
 
 import { useShikiTheme } from "@/hooks/useShikiTheme";
-import { cn } from "@/lib/cn";
-import { inferLanguageFromPath } from "@/lib/fileUtils";
 import { type ThemedToken, tokenizeCode } from "@/lib/highlighter";
+import { cn, inferLanguageFromPath } from "@/lib/utils";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // ============================================================================

@@ -5,7 +5,7 @@
  * Submits the selected value back to Pi.
  */
 
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import type { PiExtensionSelectRequest } from "@pibun/contracts";
 import React, { useCallback, useState } from "react";
 import { useExtensionResponse } from "./useExtensionResponse";

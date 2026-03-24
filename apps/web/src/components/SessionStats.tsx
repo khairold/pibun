@@ -8,8 +8,8 @@
  * Clicking opens a detailed tooltip with input/output/cache breakdown.
  */
 
-import { cn } from "@/lib/cn";
 import { fetchSessionStats } from "@/lib/sessionActions";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { PiSessionStats } from "@pibun/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";

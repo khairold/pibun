@@ -12,7 +12,7 @@
  * filters by its own `terminalId`.
  */
 
-import { resizeTerminal, writeTerminal } from "@/lib/terminalActions";
+import { resizeTerminal, writeTerminal } from "@/lib/appActions";
 import { getTransport } from "@/wireTransport";
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";

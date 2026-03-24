@@ -10,7 +10,7 @@
  */
 
 import { CodeBlock } from "@/components/CodeBlock";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import type { Components, ExtraProps } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";

@@ -8,7 +8,7 @@
  * - Streaming cursor while running
  */
 
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 import { memo } from "react";
 
 interface BashOutputProps {

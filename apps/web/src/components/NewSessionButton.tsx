@@ -6,8 +6,8 @@
  * Disabled when not connected or when a new session is being created.
  */
 
-import { cn } from "@/lib/cn";
 import { startNewSession } from "@/lib/sessionActions";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { useCallback, useState } from "react";
 

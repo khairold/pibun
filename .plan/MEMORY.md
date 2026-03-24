@@ -32,6 +32,9 @@
 | 22 | appSlice.ts combines ConnectionSlice + UiSlice + UpdateSlice + NotificationsSlice | Combined type `AppSlice` defined locally in appSlice.ts. Slice types in types.ts unchanged — they're still individually named interfaces. store/index.ts spreads one `createAppSlice` call instead of 4 separate ones. | 2026-03-24 |
 | 23 | sessionSlice.ts combines SessionSlice + MessagesSlice + ModelsSlice + ExtensionUiSlice | Combined type `SessionSlice` defined locally (imported `SessionSlice as SessionSliceType` from types to avoid naming conflict). Includes message helper functions `findMessageIndex` and `updateAtIndex` inline. store/index.ts spreads one `createSessionSlice` call instead of 4. | 2026-03-24 |
 | 24 | workspaceSlice.ts combines TabsSlice + TerminalSlice + GitSlice + PluginsSlice + ProjectsSlice | Combined type `WorkspaceSlice` defined locally. Largest merge — 5 slices into 1 (~350 lines). Includes all helpers inline (nextTabId, sortByLastOpened, terminalTabCounter). store/index.ts now spreads 3 slice creators total (app, session, workspace). | 2026-03-24 |
+| 25 | store/index.ts already correct after Session 10 | 3 slices (app, session, workspace). types.ts unchanged — individual slice interfaces remain as named types for documentation/readability. Item 3.4 was a verification, not work. | 2026-03-24 |
+| 26 | appActions.ts merges 5 action files (git + project + plugin + settings + terminal) | ~480 lines. All follow the same pattern: getTransport → request → update store. `errorMessage()` helper shared across project/git/terminal sections. Imports tabActions for `createNewTab`/`switchTabAction` (project open). Imports themes for settings. | 2026-03-24 |
+| 27 | utils.ts merges 3 utility files (cn + fileUtils + shortcuts) | ~200 lines. `cn()` className helper, file extension→language maps, shortcut event bus. All small, always needed together. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -40,7 +43,7 @@
 - server src (non-test): 19 files, 4460 lines
 - server handlers/: 8 files + types + index = 10 files
 - web store/: 5 files ✅ DONE (was 15 → 12 after appSlice → 9 after sessionSlice → 5 after workspaceSlice merge)
-- web lib/: 13 files, 2604 lines
+- web lib/: 7 files ✅ DONE (was 13 → 7 after appActions + utils merges)
 - web components/: 45 files, 9361 lines
 - web components/chat/: 6 files + tools/5 files = 11 files
 - desktop src/: 6 files, 1631 lines
@@ -50,7 +53,7 @@
 - contracts/: 4 files (piProtocol, wsProtocol, domain, index)
 - server handlers/: 4 files (session, appHandlers, types, index)
 - web store/: 5 files (appSlice, sessionSlice, workspaceSlice, types, index)
-- web lib/: 8 files (sessionActions, tabActions, appActions, themes, highlighter, pluginMessageBridge, utils, wireTransport stays at top level)
+- web lib/: 7 files (sessionActions, tabActions, appActions, themes, highlighter, pluginMessageBridge, utils — wireTransport stays at src/ top level)
 - web components/chat/: 3 files (ChatMessages, ToolCards, ToolOutput)
 - Context docs: 3 mandatory (CLAUDE.md, CONVENTIONS.md, TENSIONS.md)
 
@@ -69,6 +72,7 @@
 - **Don't lose TSDoc.** When merging files, keep the best comment from each. Don't concatenate all headers.
 - **Store slice merging changes the `StateCreator` generic.** Each slice uses `StateCreator<AppStore, [], [], SliceType>`. When merging slices, the combined slice type changes.
 - **Handler registry in index.ts maps string literals.** When moving handlers between files, the string keys don't change — only the import paths.
+- **tabActions.ts imports from appActions.ts** (for `fetchGitStatus`). This is a relative import `./appActions` — easy to miss when renaming action files.
 - **contracts index.ts exports `WS_METHODS` and `WS_CHANNELS` as values.** Everything else is type-only. Don't accidentally make domain.ts export runtime values unless needed.
 - **wsProtocol.ts now imports from `./domain.js` and `./piProtocol.js` directly.** The old barrel import via `./index.js` is gone. Item 2.4 (rewrite index.ts) should be straightforward — index.ts is already just re-exports from 3 files.
 

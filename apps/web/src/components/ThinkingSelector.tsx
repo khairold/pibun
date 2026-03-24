@@ -8,8 +8,7 @@
  * Unlike ModelSelector, the level list is static — no server fetch needed.
  */
 
-import { cn } from "@/lib/cn";
-import { onShortcut } from "@/lib/shortcuts";
+import { cn, onShortcut } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import type { PiThinkingLevel } from "@pibun/contracts";
