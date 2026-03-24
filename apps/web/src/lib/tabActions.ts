@@ -201,6 +201,36 @@ export async function startSession(options?: { cwd?: string }): Promise<string |
 }
 
 // ============================================================================
+// Empty Tab Cleanup
+// ============================================================================
+
+/**
+ * Remove a tab's UI artifacts after switching away from it.
+ * Closes its terminals on the server, deletes the composer draft,
+ * and removes the tab from the store.
+ *
+ * Must be called AFTER the tab is no longer active (post-switchTab).
+ * Session stop must happen BEFORE the switch (while transport routes to it).
+ */
+function cleanupEmptyTab(tabId: string): void {
+	const store = useStore.getState();
+
+	// Close terminals owned by the tab
+	const ownedTerminals = store.terminalTabs.filter((t) => t.ownerTabId === tabId);
+	for (const term of ownedTerminals) {
+		getTransport()
+			.request("terminal.close", { terminalId: term.terminalId })
+			.catch(() => {});
+	}
+
+	// Delete composer draft
+	deleteComposerDraft(tabId);
+
+	// Remove from store (non-active tab — just filters it out)
+	store.removeTab(tabId);
+}
+
+// ============================================================================
 // Tab Switching
 // ============================================================================
 
@@ -208,13 +238,16 @@ export async function startSession(options?: { cwd?: string }): Promise<string |
  * Switch to a different tab — single-session model.
  *
  * Only one Pi process runs at a time. Switching tabs requires:
+ * - Auto-removing the leaving tab if it has zero messages (empty session)
  * - Snapshotting the leaving tab's metadata
  * - If the target had a previous session (sessionFile), resuming it:
  *   start a new Pi process → switch to the session file → load messages
  * - If the target has no session, just clear routing (user starts by typing)
  *
  * Flow:
+ * 0. If leaving tab is empty (0 messages): stop its Pi process, mark for removal
  * 1. `switchTab(tabId)` — snapshot leaving tab, set target metadata, clear messages
+ * 1b. If leaving tab was empty: remove it from store + clean up terminals/draft
  * 2. If target has a sessionFile to resume:
  *    a. Clear sessionId (so ensureSession starts a fresh Pi process)
  *    b. `switchSession(sessionFile)` — handles: start process → switch file → load messages
@@ -228,8 +261,36 @@ export async function switchTabAction(tabId: string): Promise<void> {
 	const targetTab = store.tabs.find((t) => t.id === tabId);
 	if (!targetTab || targetTab.id === store.activeTabId) return;
 
+	// ── Auto-remove empty session ────────────────────────────────
+	// If the leaving tab has zero messages, it's an unused session.
+	// Stop its Pi process (while transport still routes to it), then
+	// remove the tab after switching.
+	const leavingTab = store.getActiveTab();
+	const leavingIsEmpty = leavingTab !== null && store.messages.length === 0;
+
+	if (leavingIsEmpty && leavingTab.sessionId) {
+		try {
+			if (store.isStreaming) {
+				try {
+					await getTransport().request("session.abort");
+				} catch {
+					// Continue even if abort fails
+				}
+			}
+			await getTransport().request("session.stop");
+		} catch (err) {
+			console.warn("[switchTabAction] Failed to stop empty session:", err);
+			// Continue — tab removal shouldn't be blocked by stop failure
+		}
+	}
+
 	// 1. Switch tab in store — snapshots leaving tab, clears messages
 	store.switchTab(tabId);
+
+	// 1b. Clean up the empty leaving tab (now non-active)
+	if (leavingIsEmpty && leavingTab) {
+		cleanupEmptyTab(leavingTab.id);
+	}
 
 	// 2. Resume target session if it has a session file
 	if (targetTab.sessionFile) {

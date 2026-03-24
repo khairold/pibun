@@ -23,6 +23,8 @@
 | 13 | `tabTerminalActiveIds` removed — terminal selection uses first-match | Was a per-tab cache for active terminal ID. Removed because terminals are going project-scoped (DRIFT #1). Now `switchTab`/`removeTab` select the first terminal owned by the target tab via `terminalTabs.find(t => t.ownerTabId === tabId)`. | 2026-03-24 |
 | 14 | `reorderTabs`, `setBackgroundTabStatus`, `setBackgroundTabWidget` removed | Dead code. `reorderTabs` was only used by `TabBar` (not imported anywhere). Background tab methods were no-ops since 1.3. All removed from type + implementation. | 2026-03-24 |
 | 15 | `TabBar` component is dead code | Not imported or rendered anywhere. Sidebar handles session navigation. Drag-to-reorder stripped out. Full removal deferred to Phase 3. | 2026-03-24 |
+| 16 | Empty sessions auto-removed in `switchTabAction` only | Auto-remove on switch is in `switchTabAction`. `startSession` does NOT auto-remove the leaving tab — `session.start` on the server handles stopping the old process, and the old empty tab stays in the list until the user switches away from it. Keeps `startSession` simple and avoids edge cases if `session.start` fails (no orphan removal). | 2026-03-24 |
+| 17 | `cleanupEmptyTab` helper in tabActions | Shared helper for post-switch cleanup of empty tabs: closes terminals, deletes composer draft, removes tab from store. Pi process stop must happen BEFORE the switch (while transport still routes to it). The helper only handles UI cleanup. | 2026-03-24 |
 
 ## Architecture Notes
 

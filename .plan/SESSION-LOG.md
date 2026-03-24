@@ -150,3 +150,23 @@
 - Terminal active ID selection now uses first-match instead of cached value — acceptable since terminals are going project-scoped post-Phase 3.
 
 ---
+
+## Session 6 — Phase 2.1: Auto-remove empty sessions (2026-03-24)
+
+**What happened:**
+- Added `cleanupEmptyTab` helper in `tabActions.ts` — closes terminals, deletes composer draft, removes tab from store. Designed to be called AFTER the tab is no longer active.
+- Modified `switchTabAction` to detect when the leaving tab has 0 messages. If empty and has a sessionId, stops the Pi process (while transport still routes to it) via `session.abort` + `session.stop`. After `store.switchTab`, calls `cleanupEmptyTab` to remove the now-non-active empty tab.
+- Decided NOT to add auto-remove to `startSession` — `session.start` on the server handles stopping the old process, and keeping the old empty tab avoids edge cases if `session.start` fails (no orphan removal). The empty tab gets cleaned up when the user next switches via `switchTabAction`.
+
+**Items completed:**
+- [x] 2.1 — Auto-remove empty sessions on switch
+
+**Issues encountered:**
+- None. Clean implementation — no type errors, build passes.
+
+**Handoff to next session:**
+- Next: 2.2 — Default name empty string, sidebar shows "New session" as fallback
+- The `cleanupEmptyTab` helper can be reused if auto-remove logic is later added to other entry points.
+- `startSession` still creates a new tab even if the current tab is empty (same project). Item 2.5 will address reuse.
+
+---

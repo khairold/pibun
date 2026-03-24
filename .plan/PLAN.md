@@ -3,7 +3,7 @@
 > **Spec:** Simplify from multi-tab-session to single-active-session model
 > **Status:** In Progress — Phase 1 complete
 > **Current Phase:** Phase 2 — Session Lifecycle UX
-> **Last Session:** Session 5 — 2026-03-24
+> **Last Session:** Session 6 — 2026-03-24
 
 ---
 
@@ -72,7 +72,7 @@ status tracking (`tabStatuses`, `tabWidgets`), `keepExisting` flag,
 
 **Goal:** Empty sessions auto-cleanup, proper naming, clean sidebar states.
 
-- [ ] 2.1 — Auto-remove empty sessions: when switching away from a session with zero messages, stop its Pi process and remove the tab. Implement in `switchTabAction` before switching.
+- [x] 2.1 — Auto-remove empty sessions: when switching away from a session with zero messages, stop its Pi process and remove the tab. Implement in `switchTabAction` before switching.
 - [ ] 2.2 — Default name empty string, sidebar shows "New session" as fallback (already partially done — finish wiring).
 - [ ] 2.3 — Auto-name from first user message: `syncActiveTabState` already syncs `firstMessage`. Verify display priority: Pi session name > first message > "New session".
 - [ ] 2.4 — Single active highlight: only the `activeTabId` tab gets the accent border/bg. Running indicator removed (only one session runs, and it's always the active one).
