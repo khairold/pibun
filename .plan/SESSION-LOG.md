@@ -74,3 +74,29 @@
 - `.pi/` directory is now empty but still exists — can be cleaned up later or left
 
 ---
+
+## Session 3 — Audit docs/ for staleness (2026-03-24)
+
+**What happened:**
+- Audited all 8 files in docs/ against actual codebase
+- Compared WS_PROTOCOL.md against the 42-method handler registry — found it lists only 17/42 methods and 4/7 push channels (severely stale)
+- Compared PI_INTEGRATION.md against piProcess.ts — found it's a redundant restatement of pi-mono's rpc.md, and piProcess.ts already has comprehensive TSDoc
+- Found WEB_UI.md describes aspirational v1 plan, not current reality (no tabs, terminal, git, plugins, themes)
+- Found DECISIONS.md is 100% redundant with CLAUDE.md (all content merged in Session 1)
+- Created detailed audit artifact at `.plan/audit-1.5-docs-staleness.md`
+
+**Items completed:**
+- [x] 1.5 — Audit docs/ for staleness
+
+**Issues encountered:**
+- None. Staleness was even worse than expected — WS_PROTOCOL.md was missing 60% of the methods.
+
+**Handoff to next session:**
+- Next: 1.6 — Delete docs/WS_PROTOCOL.md, docs/WEB_UI.md, docs/PI_INTEGRATION.md — their useful content becomes TSDoc in the code files they describe
+- Recommendation: Also delete docs/DECISIONS.md (100% redundant with CLAUDE.md). This would need to be added to item 1.6's scope or handled as a sub-item.
+- The audit artifact at `.plan/audit-1.5-docs-staleness.md` has per-file analysis with specific useful content to preserve as TSDoc
+- For PI_INTEGRATION.md: piProcess.ts already has full TSDoc, CLAUDE.md has the JSONL/Pi gotchas. Nothing to port.
+- For WS_PROTOCOL.md: wsProtocol.ts (933 lines) is the source of truth. Add a module-level TSDoc header summarizing the protocol structure.
+- For WEB_UI.md: no useful content to preserve — it's a v1 design doc superseded by the actual codebase.
+
+---

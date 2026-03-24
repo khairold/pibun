@@ -20,6 +20,8 @@
 | 10 | CONVENTIONS.md trimmed from ~200 to ~95 lines | Removed: Thin Bridge section (in CLAUDE.md), WebSocket Protocol section (in types), File Organization (stale after refactoring), Quick Checklist (skills handle), TypeScript contracts section (in CLAUDE.md). Kept only rules not expressed in code. | 2026-03-24 |
 | 11 | `.pi/` directory is now empty — AGENTS.md and CAPABILITY-MAP.md deleted | Content merged into CLAUDE.md. `.pi/` dir remains but has no files. `.agents/` has CONVENTIONS.md, TENSIONS.md, and skills/. | 2026-03-24 |
 | 12 | Mandatory context files reduced from 7 to 3 | CLAUDE.md + CONVENTIONS.md + TENSIONS.md. Down from CLAUDE.md + AGENTS.md + CAPABILITY-MAP.md + SOUL.md + HUMAN.md + CONVENTIONS.md + TENSIONS.md. | 2026-03-24 |
+| 13 | Audit artifact at `.plan/audit-1.5-docs-staleness.md` | Detailed staleness report: WS_PROTOCOL.md lists 17/42 methods (severely stale), PI_INTEGRATION.md is redundant with pi-mono rpc.md, WEB_UI.md is aspirational v1 plan. All three marked for deletion in 1.6. | 2026-03-24 |
+| 14 | DECISIONS.md is 100% redundant with CLAUDE.md | All 12 decisions + all gotchas already merged into CLAUDE.md in Session 1. Recommend deleting in 1.6 alongside the other three stale docs. | 2026-03-24 |
 
 ## Architecture Notes
 
