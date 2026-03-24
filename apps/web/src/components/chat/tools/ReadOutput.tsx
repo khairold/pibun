@@ -53,19 +53,19 @@ export const ReadOutput = memo(function ReadOutput({
 
 	if (isError) {
 		return (
-			<div className="overflow-hidden rounded-md border border-red-500/30">
+			<div className="overflow-hidden rounded-md border border-status-error-border">
 				<FileHeader filename={filename} path={path} rangeInfo={rangeInfo} />
-				<pre className="px-3 py-2 text-xs text-red-300">{output}</pre>
+				<pre className="px-3 py-2 text-xs text-status-error-text">{output}</pre>
 			</div>
 		);
 	}
 
 	if (isRunning) {
 		return (
-			<div className="overflow-hidden rounded-md border border-neutral-800">
+			<div className="overflow-hidden rounded-md border border-border-secondary">
 				<FileHeader filename={filename} path={path} rangeInfo={rangeInfo} />
-				<div className="px-3 py-2 text-xs text-neutral-500">
-					<span className="inline-block h-3 w-1.5 animate-pulse bg-blue-400/70" />
+				<div className="px-3 py-2 text-xs text-text-tertiary">
+					<span className="inline-block h-3 w-1.5 animate-pulse bg-accent-text/70" />
 				</div>
 			</div>
 		);
@@ -73,9 +73,9 @@ export const ReadOutput = memo(function ReadOutput({
 
 	if (!output) {
 		return (
-			<div className="overflow-hidden rounded-md border border-neutral-800">
+			<div className="overflow-hidden rounded-md border border-border-secondary">
 				<FileHeader filename={filename} path={path} rangeInfo={rangeInfo} />
-				<pre className="px-3 py-2 text-xs italic text-neutral-600">(empty file)</pre>
+				<pre className="px-3 py-2 text-xs italic text-text-muted">(empty file)</pre>
 			</div>
 		);
 	}
@@ -104,16 +104,16 @@ const FileHeader = memo(function FileHeader({
 				xmlns="http://www.w3.org/2000/svg"
 				viewBox="0 0 16 16"
 				fill="currentColor"
-				className="h-3.5 w-3.5 shrink-0 text-neutral-500"
+				className="h-3.5 w-3.5 shrink-0 text-text-tertiary"
 				aria-label="File"
 				role="img"
 			>
 				<path d="M4 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6.414A2 2 0 0 0 13.414 5L11 2.586A2 2 0 0 0 9.586 2H4Zm5 1.5v2A1.5 1.5 0 0 0 10.5 7h2L9 3.5Z" />
 			</svg>
-			<span className={cn("min-w-0 truncate text-xs", "text-blue-400")} title={path}>
+			<span className={cn("min-w-0 truncate text-xs", "text-accent-text")} title={path}>
 				{filename}
 			</span>
-			{rangeInfo && <span className="shrink-0 text-[10px] text-neutral-600">{rangeInfo}</span>}
+			{rangeInfo && <span className="shrink-0 text-[10px] text-text-muted">{rangeInfo}</span>}
 		</div>
 	);
 });

@@ -39,21 +39,21 @@ function statusLabel(status: string): string {
 function statusColor(label: string): string {
 	switch (label) {
 		case "M":
-			return "text-amber-400 bg-amber-400/10";
+			return "text-status-warning-text bg-status-warning-text/10";
 		case "A":
-			return "text-green-400 bg-green-400/10";
+			return "text-status-success-text bg-status-success/10";
 		case "D":
-			return "text-red-400 bg-red-400/10";
+			return "text-status-error-text bg-status-error/10";
 		case "R":
-			return "text-blue-400 bg-blue-400/10";
+			return "text-accent-text bg-accent-soft";
 		case "C":
-			return "text-blue-400 bg-blue-400/10";
+			return "text-accent-text bg-accent-soft";
 		case "?":
-			return "text-neutral-400 bg-neutral-400/10";
+			return "text-text-secondary bg-text-secondary/10";
 		case "!":
-			return "text-neutral-600 bg-neutral-600/10";
+			return "text-text-muted bg-text-muted/10";
 		default:
-			return "text-neutral-400 bg-neutral-400/10";
+			return "text-text-secondary bg-text-secondary/10";
 	}
 }
 
@@ -107,8 +107,8 @@ const FileItem = memo(function FileItem({ file, isSelected, onSelect }: FileItem
 			onClick={handleClick}
 			className={cn(
 				"flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-				"hover:bg-neutral-800",
-				isSelected && "bg-neutral-800 ring-1 ring-neutral-700",
+				"hover:bg-surface-secondary",
+				isSelected && "bg-surface-secondary ring-1 ring-border-primary",
 			)}
 			title={`${tooltip}\n${file.path}`}
 		>
@@ -124,13 +124,13 @@ const FileItem = memo(function FileItem({ file, isSelected, onSelect }: FileItem
 
 			{/* File path */}
 			<span className="min-w-0 flex-1 truncate">
-				{directory && <span className="text-neutral-600">{directory}</span>}
-				<span className="text-neutral-300">{fileName}</span>
+				{directory && <span className="text-text-muted">{directory}</span>}
+				<span className="text-text-secondary">{fileName}</span>
 			</span>
 
 			{/* Rename indicator */}
 			{file.originalPath && (
-				<span className="shrink-0 text-[10px] text-neutral-600" title={`from ${file.originalPath}`}>
+				<span className="shrink-0 text-[10px] text-text-muted" title={`from ${file.originalPath}`}>
 					← {file.originalPath.split("/").pop()}
 				</span>
 			)}
@@ -153,8 +153,8 @@ function DiffDisplay({
 }) {
 	if (loading) {
 		return (
-			<div className="flex items-center gap-2 p-4 text-xs text-neutral-500">
-				<div className="h-3 w-3 animate-spin rounded-full border border-neutral-600 border-t-neutral-400" />
+			<div className="flex items-center gap-2 p-4 text-xs text-text-tertiary">
+				<div className="h-3 w-3 animate-spin rounded-full border border-text-muted border-t-text-secondary" />
 				Loading diff…
 			</div>
 		);
@@ -162,7 +162,7 @@ function DiffDisplay({
 
 	if (!diff) {
 		return (
-			<div className="flex items-center justify-center p-8 text-xs text-neutral-600">
+			<div className="flex items-center justify-center p-8 text-xs text-text-muted">
 				Select a file to view its diff
 			</div>
 		);
@@ -170,7 +170,7 @@ function DiffDisplay({
 
 	if (diff.trim() === "") {
 		return (
-			<div className="flex items-center justify-center p-8 text-xs text-neutral-600">
+			<div className="flex items-center justify-center p-8 text-xs text-text-muted">
 				No diff available (file may be untracked or binary)
 			</div>
 		);
@@ -210,16 +210,16 @@ export function GitPanel() {
 	const changedCount = gitChangedFiles.length;
 
 	return (
-		<div className="flex max-h-[40vh] flex-col border-b border-neutral-800 bg-neutral-950">
+		<div className="flex max-h-[40vh] flex-col border-b border-border-secondary bg-surface-base">
 			{/* Panel header */}
-			<div className="flex shrink-0 items-center justify-between border-b border-neutral-800 px-3 py-2">
+			<div className="flex shrink-0 items-center justify-between border-b border-border-secondary px-3 py-2">
 				<div className="flex items-center gap-2">
 					{/* Git icon */}
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						viewBox="0 0 16 16"
 						fill="currentColor"
-						className="h-3.5 w-3.5 text-neutral-500"
+						className="h-3.5 w-3.5 text-text-tertiary"
 						aria-label="Git changes"
 						role="img"
 					>
@@ -229,10 +229,10 @@ export function GitPanel() {
 							clipRule="evenodd"
 						/>
 					</svg>
-					<span className="text-xs font-medium text-neutral-400">
+					<span className="text-xs font-medium text-text-secondary">
 						Changed Files
 						{changedCount > 0 && (
-							<span className="ml-1.5 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] tabular-nums text-amber-400">
+							<span className="ml-1.5 rounded-full bg-status-warning/10 px-1.5 py-0.5 text-[10px] tabular-nums text-status-warning-text">
 								{changedCount}
 							</span>
 						)}
@@ -245,7 +245,7 @@ export function GitPanel() {
 						onClick={handleRefresh}
 						disabled={gitLoading}
 						className={cn(
-							"rounded p-1 text-neutral-500 transition-colors hover:text-neutral-300",
+							"rounded p-1 text-text-tertiary transition-colors hover:text-text-secondary",
 							gitLoading && "animate-spin",
 						)}
 						title="Refresh git status"
@@ -269,7 +269,7 @@ export function GitPanel() {
 					<button
 						type="button"
 						onClick={handleClose}
-						className="rounded p-1 text-neutral-500 transition-colors hover:text-neutral-300"
+						className="rounded p-1 text-text-tertiary transition-colors hover:text-text-secondary"
 						title="Close git panel"
 					>
 						<svg
@@ -288,7 +288,7 @@ export function GitPanel() {
 
 			{/* Panel body — file list + diff preview */}
 			{!gitIsDirty || changedCount === 0 ? (
-				<div className="flex items-center justify-center py-6 text-xs text-neutral-600">
+				<div className="flex items-center justify-center py-6 text-xs text-text-muted">
 					Working tree clean — no changes to show
 				</div>
 			) : (
@@ -296,7 +296,7 @@ export function GitPanel() {
 					{/* File list (left) */}
 					<nav
 						aria-label="Changed files"
-						className="w-64 shrink-0 overflow-y-auto border-r border-neutral-800 p-1.5"
+						className="w-64 shrink-0 overflow-y-auto border-r border-border-secondary p-1.5"
 					>
 						{gitChangedFiles.map((file) => (
 							<FileItem
@@ -309,9 +309,9 @@ export function GitPanel() {
 					</nav>
 
 					{/* Diff preview (right) */}
-					<div className="min-w-0 flex-1 overflow-auto bg-neutral-900/50">
+					<div className="min-w-0 flex-1 overflow-auto bg-surface-primary/50">
 						{selectedDiffPath && (
-							<div className="border-b border-neutral-800 px-3 py-1.5 text-[11px] text-neutral-500">
+							<div className="border-b border-border-secondary px-3 py-1.5 text-[11px] text-text-tertiary">
 								{selectedDiffPath}
 							</div>
 						)}

@@ -19,8 +19,8 @@ export function StatusBar() {
 	return (
 		<div
 			className={cn(
-				"flex items-center gap-3 border-t border-neutral-800 px-4 py-1",
-				"bg-neutral-900/80 text-xs text-neutral-400",
+				"flex items-center gap-3 border-t border-border-secondary px-4 py-1",
+				"bg-surface-primary/80 text-xs text-text-secondary",
 			)}
 		>
 			{/* Extension icon */}
@@ -28,7 +28,7 @@ export function StatusBar() {
 				xmlns="http://www.w3.org/2000/svg"
 				viewBox="0 0 16 16"
 				fill="currentColor"
-				className="h-3 w-3 shrink-0 text-neutral-500"
+				className="h-3 w-3 shrink-0 text-text-tertiary"
 				aria-label="Extension status"
 				role="img"
 			>
@@ -38,11 +38,11 @@ export function StatusBar() {
 			{/* Status entries separated by dots */}
 			{entries.map(([key, text], index) => (
 				<span key={key} className="flex items-center gap-1.5">
-					{index > 0 && <span className="text-neutral-700">·</span>}
+					{index > 0 && <span className="text-text-muted">·</span>}
 					<span className="inline-flex items-center gap-1">
 						{/* Pulsing dot to indicate active status */}
-						<span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-blue-500" />
-						<span className="text-neutral-300">{text}</span>
+						<span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-accent-primary" />
+						<span className="text-text-secondary">{text}</span>
 					</span>
 				</span>
 			))}

@@ -41,7 +41,7 @@ export function AppShell() {
 	const toggleSidebar = useStore((s) => s.toggleSidebar);
 
 	return (
-		<div className="flex h-screen bg-neutral-950 text-neutral-100">
+		<div className="flex h-screen bg-surface-base text-text-primary">
 			{/* Extension UI dialog overlay (modal — blocks interaction until response) */}
 			<ExtensionDialog />
 
@@ -61,13 +61,13 @@ export function AppShell() {
 				<UpdateBanner />
 
 				{/* Toolbar — sidebar toggle + model/thinking selectors + session management */}
-				<div className="flex items-center gap-2 border-b border-neutral-800 px-4 py-2">
+				<div className="flex items-center gap-2 border-b border-border-secondary px-4 py-2">
 					{/* Sidebar toggle button — hamburger when closed, panel icon when open */}
 					<button
 						type="button"
 						onClick={toggleSidebar}
 						title={sidebarOpen ? "Hide sidebar (Ctrl+B)" : "Show sidebar (Ctrl+B)"}
-						className="rounded-md p-1.5 text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-neutral-300"
+						className="rounded-md p-1.5 text-text-tertiary transition-colors hover:bg-surface-secondary hover:text-text-secondary"
 					>
 						{sidebarOpen ? (
 							/* Panel left icon (sidebar visible) */
@@ -105,7 +105,7 @@ export function AppShell() {
 					</button>
 
 					{/* Divider between toggle and selectors */}
-					<div className="h-5 w-px bg-neutral-800" />
+					<div className="h-5 w-px bg-border-secondary" />
 
 					<ModelSelector />
 					<ThinkingSelector />
@@ -117,13 +117,13 @@ export function AppShell() {
 					<GitStatusBar />
 
 					{/* Divider between git and stats (when both visible) */}
-					<div className="h-5 w-px bg-neutral-800" />
+					<div className="h-5 w-px bg-border-secondary" />
 
 					{/* Session stats — tokens + cost */}
 					<SessionStats />
 
 					{/* Session management controls */}
-					<div className="flex items-center gap-1 border-l border-neutral-800 pl-2">
+					<div className="flex items-center gap-1 border-l border-border-secondary pl-2">
 						<CompactButton />
 						<ForkDialog />
 						<ExportDialog />

@@ -22,7 +22,9 @@ export function ConnectionBanner() {
 		<div
 			className={cn(
 				"flex items-center justify-center px-4 py-1.5 text-xs font-medium",
-				isError ? "bg-red-950 text-red-300" : "bg-yellow-950 text-yellow-300",
+				isError
+					? "bg-status-error-bg text-status-error-text"
+					: "bg-status-warning-bg text-status-warning-text",
 			)}
 		>
 			{status === "connecting" && "Connecting to server…"}

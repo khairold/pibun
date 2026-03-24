@@ -258,24 +258,28 @@ export const DiffViewer = memo(function DiffViewer({ diff, filePath, className }
 	}, []);
 
 	if (parsed.hunks.length === 0) {
-		return <div className={cn("text-xs text-neutral-600", className)}>No diff hunks found</div>;
+		return <div className={cn("text-xs text-text-muted", className)}>No diff hunks found</div>;
 	}
 
 	return (
 		<div className={cn("overflow-hidden font-mono text-[11px]", className)}>
 			{/* Stats bar */}
-			<div className="flex items-center justify-between border-b border-neutral-800 bg-neutral-900/50 px-3 py-1">
+			<div className="flex items-center justify-between border-b border-border-secondary bg-surface-primary/50 px-3 py-1">
 				<div className="flex items-center gap-3">
-					{parsed.additions > 0 && <span className="text-green-400">+{parsed.additions}</span>}
-					{parsed.deletions > 0 && <span className="text-red-400">−{parsed.deletions}</span>}
-					{lang && <span className="text-neutral-600">{lang}</span>}
+					{parsed.additions > 0 && (
+						<span className="text-status-success-text">+{parsed.additions}</span>
+					)}
+					{parsed.deletions > 0 && (
+						<span className="text-status-error-text">−{parsed.deletions}</span>
+					)}
+					{lang && <span className="text-text-muted">{lang}</span>}
 				</div>
 				<button
 					type="button"
 					onClick={handleCopy}
 					className={cn(
 						"flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] transition-colors",
-						copied ? "text-green-400" : "text-neutral-600 hover:text-neutral-400",
+						copied ? "text-status-success-text" : "text-text-muted hover:text-text-secondary",
 					)}
 				>
 					{copied ? "Copied" : "Copy"}
@@ -309,9 +313,9 @@ const HunkSection = memo(function HunkSection({ hunk, hunkIndex, tokenMap }: Hun
 	return (
 		<div>
 			{/* Hunk header */}
-			<div className="border-b border-neutral-800/50 bg-blue-950/20 px-3 py-1 text-blue-400/60">
-				<span className="select-none text-blue-400/40">@@</span>
-				{headerContext && <span className="ml-2 text-blue-300/40">{headerContext}</span>}
+			<div className="border-b border-border-muted bg-accent-soft px-3 py-1 text-accent-text/60">
+				<span className="select-none text-accent-text/40">@@</span>
+				{headerContext && <span className="ml-2 text-accent-text/40">{headerContext}</span>}
 			</div>
 
 			{/* Diff lines */}
@@ -339,15 +343,19 @@ const DiffLineRow = memo(function DiffLineRow({ line, tokens }: DiffLineRowProps
 	const isAdd = line.type === "add";
 	const isRemove = line.type === "remove";
 
-	const bgClass = isAdd ? "bg-green-950/25" : isRemove ? "bg-red-950/25" : "";
+	const bgClass = isAdd ? "bg-status-success-bg/40" : isRemove ? "bg-status-error-bg/25" : "";
 
-	const numClass = isAdd ? "text-green-500/30" : isRemove ? "text-red-500/30" : "text-neutral-700";
+	const numClass = isAdd
+		? "text-status-success/30"
+		: isRemove
+			? "text-status-error/30"
+			: "text-text-muted";
 
 	const gutterChar = isAdd ? "+" : isRemove ? "−" : " ";
 	const gutterClass = isAdd
-		? "text-green-500/50"
+		? "text-status-success/50"
 		: isRemove
-			? "text-red-500/50"
+			? "text-status-error/50"
 			: "text-transparent";
 
 	return (
@@ -403,10 +411,10 @@ const TokenizedLine = memo(function TokenizedLine({ tokens }: TokenizedLineProps
 function PlainLine({ content, type }: { content: string; type: DiffLine["type"] }) {
 	const colorClass =
 		type === "add"
-			? "text-green-300/80"
+			? "text-status-success-text/80"
 			: type === "remove"
-				? "text-red-300/80"
-				: "text-neutral-400";
+				? "text-status-error-text/80"
+				: "text-text-secondary";
 
 	return <span className={colorClass}>{content || " "}</span>;
 }

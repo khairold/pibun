@@ -58,7 +58,7 @@ const components: Components = {
 		// Inline code
 		return (
 			<code
-				className="rounded bg-neutral-800 px-1.5 py-0.5 font-mono text-[0.85em] text-neutral-200"
+				className="rounded bg-code-inline-bg px-1.5 py-0.5 font-mono text-[0.85em] text-text-primary"
 				{...props}
 			>
 				{children}
@@ -77,7 +77,7 @@ const components: Components = {
 
 	h1({ children, ...props }: React.ComponentProps<"h1"> & ExtraProps) {
 		return (
-			<h1 className="mb-3 mt-6 text-xl font-bold text-neutral-100 first:mt-0" {...props}>
+			<h1 className="mb-3 mt-6 text-xl font-bold text-text-primary first:mt-0" {...props}>
 				{children}
 			</h1>
 		);
@@ -85,7 +85,7 @@ const components: Components = {
 
 	h2({ children, ...props }: React.ComponentProps<"h2"> & ExtraProps) {
 		return (
-			<h2 className="mb-2 mt-5 text-lg font-semibold text-neutral-100 first:mt-0" {...props}>
+			<h2 className="mb-2 mt-5 text-lg font-semibold text-text-primary first:mt-0" {...props}>
 				{children}
 			</h2>
 		);
@@ -93,7 +93,7 @@ const components: Components = {
 
 	h3({ children, ...props }: React.ComponentProps<"h3"> & ExtraProps) {
 		return (
-			<h3 className="mb-2 mt-4 text-base font-semibold text-neutral-200 first:mt-0" {...props}>
+			<h3 className="mb-2 mt-4 text-base font-semibold text-text-primary first:mt-0" {...props}>
 				{children}
 			</h3>
 		);
@@ -101,7 +101,7 @@ const components: Components = {
 
 	h4({ children, ...props }: React.ComponentProps<"h4"> & ExtraProps) {
 		return (
-			<h4 className="mb-1 mt-3 text-sm font-semibold text-neutral-200 first:mt-0" {...props}>
+			<h4 className="mb-1 mt-3 text-sm font-semibold text-text-primary first:mt-0" {...props}>
 				{children}
 			</h4>
 		);
@@ -110,7 +110,7 @@ const components: Components = {
 	// ── Lists ────────────────────────────────────────────────────────────
 	ul({ children, ...props }: React.ComponentProps<"ul"> & ExtraProps) {
 		return (
-			<ul className="my-2 list-disc space-y-1 pl-6 marker:text-neutral-600" {...props}>
+			<ul className="my-2 list-disc space-y-1 pl-6 marker:text-text-muted" {...props}>
 				{children}
 			</ul>
 		);
@@ -118,7 +118,7 @@ const components: Components = {
 
 	ol({ children, ...props }: React.ComponentProps<"ol"> & ExtraProps) {
 		return (
-			<ol className="my-2 list-decimal space-y-1 pl-6 marker:text-neutral-500" {...props}>
+			<ol className="my-2 list-decimal space-y-1 pl-6 marker:text-text-tertiary" {...props}>
 				{children}
 			</ol>
 		);
@@ -139,7 +139,7 @@ const components: Components = {
 				href={href}
 				target="_blank"
 				rel="noopener noreferrer"
-				className="text-blue-400 underline decoration-blue-400/30 transition-colors hover:text-blue-300 hover:decoration-blue-300/50"
+				className="text-accent-text underline decoration-accent-text/30 transition-colors hover:text-accent-text/80 hover:decoration-accent-text/50"
 				{...props}
 			>
 				{children}
@@ -151,7 +151,7 @@ const components: Components = {
 	blockquote({ children, ...props }: React.ComponentProps<"blockquote"> & ExtraProps) {
 		return (
 			<blockquote
-				className="my-3 border-l-2 border-neutral-700 pl-4 text-neutral-400 italic"
+				className="my-3 border-l-2 border-border-primary pl-4 text-text-secondary italic"
 				{...props}
 			>
 				{children}
@@ -172,7 +172,7 @@ const components: Components = {
 
 	thead({ children, ...props }: React.ComponentProps<"thead"> & ExtraProps) {
 		return (
-			<thead className="border-b border-neutral-700" {...props}>
+			<thead className="border-b border-border-primary" {...props}>
 				{children}
 			</thead>
 		);
@@ -180,7 +180,7 @@ const components: Components = {
 
 	th({ children, ...props }: React.ComponentProps<"th"> & ExtraProps) {
 		return (
-			<th className="px-3 py-2 text-left font-semibold text-neutral-300" {...props}>
+			<th className="px-3 py-2 text-left font-semibold text-text-secondary" {...props}>
 				{children}
 			</th>
 		);
@@ -188,7 +188,7 @@ const components: Components = {
 
 	td({ children, ...props }: React.ComponentProps<"td"> & ExtraProps) {
 		return (
-			<td className="border-t border-neutral-800 px-3 py-2 text-neutral-400" {...props}>
+			<td className="border-t border-border-secondary px-3 py-2 text-text-secondary" {...props}>
 				{children}
 			</td>
 		);
@@ -196,13 +196,13 @@ const components: Components = {
 
 	// ── Horizontal rule ──────────────────────────────────────────────────
 	hr(props: React.ComponentProps<"hr"> & ExtraProps) {
-		return <hr className="my-4 border-neutral-800" {...props} />;
+		return <hr className="my-4 border-border-secondary" {...props} />;
 	},
 
 	// ── Strong/emphasis ──────────────────────────────────────────────────
 	strong({ children, ...props }: React.ComponentProps<"strong"> & ExtraProps) {
 		return (
-			<strong className="font-semibold text-neutral-100" {...props}>
+			<strong className="font-semibold text-text-primary" {...props}>
 				{children}
 			</strong>
 		);
@@ -210,7 +210,7 @@ const components: Components = {
 
 	em({ children, ...props }: React.ComponentProps<"em"> & ExtraProps) {
 		return (
-			<em className="italic text-neutral-300" {...props}>
+			<em className="italic text-text-secondary" {...props}>
 				{children}
 			</em>
 		);
@@ -219,7 +219,7 @@ const components: Components = {
 	// ── Strikethrough (GFM) ──────────────────────────────────────────────
 	del({ children, ...props }: React.ComponentProps<"del"> & ExtraProps) {
 		return (
-			<del className="text-neutral-500 line-through" {...props}>
+			<del className="text-text-tertiary line-through" {...props}>
 				{children}
 			</del>
 		);
@@ -231,7 +231,7 @@ const components: Components = {
 			<img
 				src={src}
 				alt={alt || "Image"}
-				className="my-3 max-w-full rounded-lg border border-neutral-800"
+				className="my-3 max-w-full rounded-lg border border-border-secondary"
 				loading="lazy"
 			/>
 		);

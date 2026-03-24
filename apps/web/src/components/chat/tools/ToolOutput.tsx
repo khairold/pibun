@@ -100,12 +100,12 @@ const DefaultOutput = memo(function DefaultOutput({
 		<pre
 			className={cn(
 				"overflow-x-auto px-3 py-2 text-xs leading-relaxed",
-				isError ? "text-red-300" : "text-neutral-300",
-				!output && !isRunning && "italic text-neutral-600",
+				isError ? "text-status-error-text" : "text-text-secondary",
+				!output && !isRunning && "italic text-text-muted",
 			)}
 		>
 			{output || (isRunning ? "" : "(no output)")}
-			{isRunning && <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-blue-400" />}
+			{isRunning && <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-accent-text" />}
 		</pre>
 	);
 });

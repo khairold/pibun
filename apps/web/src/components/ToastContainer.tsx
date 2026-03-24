@@ -77,9 +77,9 @@ function ErrorIcon() {
 // ============================================================================
 
 const LEVEL_STYLES: Record<Toast["level"], string> = {
-	info: "border-blue-800 bg-blue-950 text-blue-200",
-	warning: "border-amber-800 bg-amber-950 text-amber-200",
-	error: "border-red-800 bg-red-950 text-red-200",
+	info: "border-status-info bg-status-info-bg text-status-info-text",
+	warning: "border-status-warning bg-status-warning-bg text-status-warning-text",
+	error: "border-status-error bg-status-error-bg text-status-error-text",
 };
 
 const LEVEL_ICONS: Record<Toast["level"], React.ReactNode> = {
@@ -89,9 +89,9 @@ const LEVEL_ICONS: Record<Toast["level"], React.ReactNode> = {
 };
 
 const DISMISS_STYLES: Record<Toast["level"], string> = {
-	info: "hover:bg-blue-900/50 hover:text-blue-100",
-	warning: "hover:bg-amber-900/50 hover:text-amber-100",
-	error: "hover:bg-red-900/50 hover:text-red-100",
+	info: "hover:bg-status-info-bg hover:text-status-info-text",
+	warning: "hover:bg-status-warning-bg hover:text-status-warning-text",
+	error: "hover:bg-status-error-bg hover:text-status-error-text",
 };
 
 // ============================================================================

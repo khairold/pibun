@@ -41,8 +41,8 @@ export const ToolResultMessage = memo(function ToolResultMessage({
 		<div className="max-w-[85%]">
 			<div
 				className={cn(
-					"rounded-lg border bg-neutral-900/50 overflow-hidden",
-					result.isError ? "border-red-900/50" : "border-neutral-800",
+					"rounded-lg border bg-surface-primary/50 overflow-hidden",
+					result.isError ? "border-status-error-border" : "border-border-secondary",
 				)}
 			>
 				{/* Output content */}
@@ -50,19 +50,19 @@ export const ToolResultMessage = memo(function ToolResultMessage({
 					<pre
 						className={cn(
 							"overflow-x-auto px-3 py-2 text-xs leading-relaxed",
-							result.isError ? "text-red-300" : "text-neutral-300",
-							!content && "text-neutral-600 italic",
+							result.isError ? "text-status-error-text" : "text-text-secondary",
+							!content && "text-text-muted italic",
 						)}
 					>
 						{displayContent || (message.streaming ? "Running…" : "(no output)")}
 						{message.streaming && (
-							<span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-neutral-500" />
+							<span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-text-tertiary" />
 						)}
 					</pre>
 
 					{/* Fade gradient when collapsed */}
 					{isLong && !expanded && (
-						<div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-neutral-900/50 to-transparent" />
+						<div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-surface-primary/50 to-transparent" />
 					)}
 				</div>
 
@@ -72,8 +72,8 @@ export const ToolResultMessage = memo(function ToolResultMessage({
 						type="button"
 						onClick={toggleExpanded}
 						className={cn(
-							"w-full border-t border-neutral-800 px-3 py-1.5",
-							"text-xs text-neutral-500 transition-colors hover:text-neutral-300",
+							"w-full border-t border-border-secondary px-3 py-1.5",
+							"text-xs text-text-tertiary transition-colors hover:text-text-secondary",
 						)}
 					>
 						{expanded ? "Show less" : `Show all ${lines.length} lines`}

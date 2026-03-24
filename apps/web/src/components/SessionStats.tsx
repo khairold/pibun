@@ -33,8 +33,8 @@ function formatCost(cost: number): string {
 function TokenRow({ label, count }: { label: string; count: number }) {
 	return (
 		<div className="flex items-center justify-between gap-4">
-			<span className="text-neutral-500">{label}</span>
-			<span className="tabular-nums text-neutral-300">{formatTokens(count)}</span>
+			<span className="text-text-tertiary">{label}</span>
+			<span className="tabular-nums text-text-secondary">{formatTokens(count)}</span>
 		</div>
 	);
 }
@@ -45,7 +45,7 @@ function StatsDetail({ stats }: { stats: PiSessionStats }) {
 		<div className="space-y-3 p-3">
 			{/* Token breakdown */}
 			<div>
-				<div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+				<div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
 					Tokens
 				</div>
 				<div className="space-y-1 text-xs">
@@ -53,9 +53,9 @@ function StatsDetail({ stats }: { stats: PiSessionStats }) {
 					<TokenRow label="Output" count={stats.tokens.output} />
 					<TokenRow label="Cache read" count={stats.tokens.cacheRead} />
 					<TokenRow label="Cache write" count={stats.tokens.cacheWrite} />
-					<div className="flex items-center justify-between gap-4 border-t border-neutral-800 pt-1 font-medium">
-						<span className="text-neutral-400">Total</span>
-						<span className="tabular-nums text-neutral-200">
+					<div className="flex items-center justify-between gap-4 border-t border-border-secondary pt-1 font-medium">
+						<span className="text-text-secondary">Total</span>
+						<span className="tabular-nums text-text-primary">
 							{formatTokens(stats.tokens.total)}
 						</span>
 					</div>
@@ -64,35 +64,35 @@ function StatsDetail({ stats }: { stats: PiSessionStats }) {
 
 			{/* Messages breakdown */}
 			<div>
-				<div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+				<div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
 					Messages
 				</div>
 				<div className="space-y-1 text-xs">
 					<div className="flex items-center justify-between gap-4">
-						<span className="text-neutral-500">User</span>
-						<span className="tabular-nums text-neutral-300">{stats.userMessages}</span>
+						<span className="text-text-tertiary">User</span>
+						<span className="tabular-nums text-text-secondary">{stats.userMessages}</span>
 					</div>
 					<div className="flex items-center justify-between gap-4">
-						<span className="text-neutral-500">Assistant</span>
-						<span className="tabular-nums text-neutral-300">{stats.assistantMessages}</span>
+						<span className="text-text-tertiary">Assistant</span>
+						<span className="tabular-nums text-text-secondary">{stats.assistantMessages}</span>
 					</div>
 					<div className="flex items-center justify-between gap-4">
-						<span className="text-neutral-500">Tool calls</span>
-						<span className="tabular-nums text-neutral-300">{stats.toolCalls}</span>
+						<span className="text-text-tertiary">Tool calls</span>
+						<span className="tabular-nums text-text-secondary">{stats.toolCalls}</span>
 					</div>
-					<div className="flex items-center justify-between gap-4 border-t border-neutral-800 pt-1 font-medium">
-						<span className="text-neutral-400">Total</span>
-						<span className="tabular-nums text-neutral-200">{stats.totalMessages}</span>
+					<div className="flex items-center justify-between gap-4 border-t border-border-secondary pt-1 font-medium">
+						<span className="text-text-secondary">Total</span>
+						<span className="tabular-nums text-text-primary">{stats.totalMessages}</span>
 					</div>
 				</div>
 			</div>
 
 			{/* Cost */}
 			<div>
-				<div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+				<div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
 					Cost
 				</div>
-				<div className="text-sm font-medium tabular-nums text-neutral-200">
+				<div className="text-sm font-medium tabular-nums text-text-primary">
 					{formatCost(stats.cost)}
 				</div>
 			</div>
@@ -176,8 +176,8 @@ export function SessionStats() {
 				onClick={handleToggle}
 				className={cn(
 					"flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] tabular-nums transition-colors",
-					"text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300",
-					isOpen && "bg-neutral-800 text-neutral-300",
+					"text-text-tertiary hover:bg-surface-secondary hover:text-text-secondary",
+					isOpen && "bg-surface-secondary text-text-secondary",
 					isStreaming && "animate-pulse",
 				)}
 				title="Session stats"
@@ -194,7 +194,7 @@ export function SessionStats() {
 					<path d="M1 8a7 7 0 1 1 14 0A7 7 0 0 1 1 8zm7-5.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM7.25 4.5a.75.75 0 0 1 1.5 0V5h.5a.75.75 0 0 1 0 1.5H7.5a.5.5 0 0 0 0 1h1a2 2 0 1 1 0 4h-.25v.5a.75.75 0 0 1-1.5 0V11.5h-.5a.75.75 0 0 1 0-1.5h1.75a.5.5 0 0 0 0-1h-1a2 2 0 1 1 0-4h.25v-.5z" />
 				</svg>
 				<span>{formatTokens(stats.tokens.total)}</span>
-				<span className="text-neutral-600">·</span>
+				<span className="text-text-muted">·</span>
 				<span>{formatCost(stats.cost)}</span>
 			</button>
 
@@ -204,18 +204,18 @@ export function SessionStats() {
 					ref={panelRef}
 					className={cn(
 						"absolute right-0 top-full z-50 mt-1 w-56",
-						"rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl",
+						"rounded-lg border border-border-primary bg-surface-primary shadow-xl",
 					)}
 				>
 					{/* Header with refresh */}
-					<div className="flex items-center justify-between border-b border-neutral-800 px-3 py-2">
-						<span className="text-xs font-medium text-neutral-400">Session Stats</span>
+					<div className="flex items-center justify-between border-b border-border-secondary px-3 py-2">
+						<span className="text-xs font-medium text-text-secondary">Session Stats</span>
 						<button
 							type="button"
 							onClick={handleRefresh}
 							disabled={isRefreshing}
 							className={cn(
-								"rounded p-1 text-neutral-500 transition-colors hover:text-neutral-300",
+								"rounded p-1 text-text-tertiary transition-colors hover:text-text-secondary",
 								isRefreshing && "animate-spin",
 							)}
 							title="Refresh stats"

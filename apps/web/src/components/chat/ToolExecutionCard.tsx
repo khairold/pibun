@@ -70,9 +70,9 @@ export const ToolExecutionCard = memo(function ToolExecutionCard({
 		<div
 			className={cn(
 				"max-w-[85%] overflow-hidden rounded-lg border",
-				status === "running" && "border-blue-500/30",
-				status === "success" && "border-neutral-800",
-				status === "error" && "border-red-500/30",
+				status === "running" && "border-accent-primary/30",
+				status === "success" && "border-border-secondary",
+				status === "error" && "border-status-error-border",
 			)}
 		>
 			{/* Header — always visible */}
@@ -81,12 +81,14 @@ export const ToolExecutionCard = memo(function ToolExecutionCard({
 				onClick={toggleExpanded}
 				className={cn(
 					"flex w-full items-center gap-2 px-3 py-2 text-left",
-					"text-xs transition-colors hover:bg-neutral-800/50",
+					"text-xs transition-colors hover:bg-surface-secondary/50",
 				)}
 			>
 				<span className="shrink-0">{icon}</span>
-				<span className="font-medium text-blue-400">{tc.name}</span>
-				{hasArgs && <span className="min-w-0 truncate text-neutral-500">{summarizeArgs(tc)}</span>}
+				<span className="font-medium text-accent-text">{tc.name}</span>
+				{hasArgs && (
+					<span className="min-w-0 truncate text-text-tertiary">{summarizeArgs(tc)}</span>
+				)}
 
 				{/* Status badge — right side */}
 				<span className="ml-auto flex shrink-0 items-center gap-1.5">
@@ -96,7 +98,7 @@ export const ToolExecutionCard = memo(function ToolExecutionCard({
 						viewBox="0 0 16 16"
 						fill="currentColor"
 						className={cn(
-							"h-3 w-3 text-neutral-600 transition-transform duration-150",
+							"h-3 w-3 text-text-muted transition-transform duration-150",
 							expanded && "rotate-90",
 						)}
 						aria-label="Toggle details"
@@ -109,7 +111,7 @@ export const ToolExecutionCard = memo(function ToolExecutionCard({
 
 			{/* Expanded body */}
 			{expanded && (
-				<div className="border-t border-neutral-800">
+				<div className="border-t border-border-secondary">
 					{isSpecialized ? (
 						/* Specialized tool output — handles its own layout */
 						<div className="p-2">
@@ -130,11 +132,11 @@ export const ToolExecutionCard = memo(function ToolExecutionCard({
 
 			{/* Inline output preview when collapsed (one-line summary) */}
 			{!expanded && hasOutput && status !== "running" && (
-				<div className="border-t border-neutral-800/50 px-3 py-1.5">
+				<div className="border-t border-border-muted px-3 py-1.5">
 					<p
 						className={cn(
 							"truncate text-xs",
-							status === "error" ? "text-red-400/70" : "text-neutral-500",
+							status === "error" ? "text-status-error-text/70" : "text-text-tertiary",
 						)}
 					>
 						{outputLines[0]}
@@ -145,9 +147,9 @@ export const ToolExecutionCard = memo(function ToolExecutionCard({
 
 			{/* Inline running indicator when collapsed */}
 			{!expanded && status === "running" && (
-				<div className="border-t border-neutral-800/50 px-3 py-1.5">
-					<span className="flex items-center gap-1.5 text-xs text-blue-400/70">
-						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
+				<div className="border-t border-border-muted px-3 py-1.5">
+					<span className="flex items-center gap-1.5 text-xs text-accent-text/70">
+						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-accent-text" />
 						Running…
 					</span>
 				</div>
@@ -187,8 +189,8 @@ const DefaultExpandedBody = memo(function DefaultExpandedBody({
 		<>
 			{/* Args section */}
 			{hasArgs && (
-				<div className="border-b border-neutral-800/50 bg-neutral-900/30 px-3 py-2">
-					<pre className="overflow-x-auto text-xs text-neutral-500">
+				<div className="border-b border-border-muted bg-surface-primary/30 px-3 py-2">
+					<pre className="overflow-x-auto text-xs text-text-tertiary">
 						{JSON.stringify(tc.args, null, 2)}
 					</pre>
 				</div>
@@ -199,19 +201,19 @@ const DefaultExpandedBody = memo(function DefaultExpandedBody({
 				<pre
 					className={cn(
 						"overflow-x-auto px-3 py-2 text-xs leading-relaxed",
-						status === "error" ? "text-red-300" : "text-neutral-300",
-						!hasOutput && "italic text-neutral-600",
+						status === "error" ? "text-status-error-text" : "text-text-secondary",
+						!hasOutput && "italic text-text-muted",
 					)}
 				>
 					{displayOutput || (status === "running" ? "Running…" : "(no output)")}
 					{status === "running" && hasOutput && (
-						<span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-blue-400" />
+						<span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-accent-text" />
 					)}
 				</pre>
 
 				{/* Fade gradient when collapsed */}
 				{isLongOutput && !outputExpanded && (
-					<div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-neutral-900 to-transparent" />
+					<div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-surface-primary to-transparent" />
 				)}
 			</div>
 
@@ -221,8 +223,8 @@ const DefaultExpandedBody = memo(function DefaultExpandedBody({
 					type="button"
 					onClick={toggleOutputExpanded}
 					className={cn(
-						"w-full border-t border-neutral-800 px-3 py-1.5",
-						"text-xs text-neutral-500 transition-colors hover:text-neutral-300",
+						"w-full border-t border-border-secondary px-3 py-1.5",
+						"text-xs text-text-tertiary transition-colors hover:text-text-secondary",
 					)}
 				>
 					{outputExpanded ? "Show less" : `Show all ${outputLines.length} lines`}
@@ -236,14 +238,16 @@ const DefaultExpandedBody = memo(function DefaultExpandedBody({
 const StatusBadge = memo(function StatusBadge({ status }: { status: ToolStatus }) {
 	switch (status) {
 		case "running":
-			return <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />;
+			return (
+				<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-accent-text" />
+			);
 		case "success":
 			return (
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					viewBox="0 0 16 16"
 					fill="currentColor"
-					className="h-3 w-3 text-green-500"
+					className="h-3 w-3 text-status-success"
 					aria-label="Success"
 					role="img"
 				>
@@ -260,7 +264,7 @@ const StatusBadge = memo(function StatusBadge({ status }: { status: ToolStatus }
 					xmlns="http://www.w3.org/2000/svg"
 					viewBox="0 0 16 16"
 					fill="currentColor"
-					className="h-3 w-3 text-red-500"
+					className="h-3 w-3 text-status-error"
 					aria-label="Error"
 					role="img"
 				>

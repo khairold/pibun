@@ -967,3 +967,36 @@
 - Key files: `apps/web/src/components/ExportDialog.tsx`, `apps/server/src/handlers/app.ts`, `apps/desktop/src/bun/index.ts`
 
 ---
+
+## Session 84 — Phase 6 Theme CSS migration (2026-03-24)
+
+**What happened:**
+- Converted all ~40 component files from hardcoded Tailwind color classes to semantic theme tokens
+- Updated `apps/web/src/index.css` with Tailwind v4 `@theme` block defining all 40 semantic color tokens with dark theme defaults
+- Added initial theme application in `main.tsx` — reads `localStorage("pibun-theme")` or `prefers-color-scheme`, calls `applyTheme()` before React renders (prevents FOUC)
+- Added custom scrollbar styling using theme tokens (`::-webkit-scrollbar-*`)
+- Systematic migration across all component categories:
+  - **Surface**: neutral-950→surface-base, neutral-900→surface-primary, neutral-800→surface-secondary, neutral-700→surface-tertiary
+  - **Text**: neutral-100/200→text-primary, neutral-300→text-secondary, neutral-400→text-secondary (contextual), neutral-500→text-tertiary, neutral-600→text-muted
+  - **Border**: neutral-700→border-primary, neutral-800→border-secondary, neutral-800/50→border-muted
+  - **Accent**: blue-500/600→accent-primary, blue-400→accent-text, blue-600/30→accent-soft
+  - **Status**: red→status-error, green→status-success, amber/orange→status-warning, blue→status-info
+  - **Special**: indigo→thinking-*, code-bg/code-inline-bg for code blocks, user-bubble-bg/text for user messages
+- Components migrated: AppShell, ChatView, Composer, Sidebar, ModelSelector, ThinkingSelector, CodeBlock, Markdown, TabBar, SessionStats, CompactButton, ForkDialog, ExportDialog, ConnectionBanner, ErrorBanner, UpdateBanner, ToastContainer, StatusBar, GitPanel, GitStatusBar, DiffViewer, TerminalPane, NewSessionButton, all chat sub-components (AssistantMessage, UserMessage, SystemMessage, ToolCallMessage, ToolResultMessage, ToolExecutionCard), all tool outputs (BashOutput, ReadOutput, EditOutput, WriteOutput, ToolOutput), all extension dialogs (ConfirmDialog, EditorDialog, InputDialog, SelectDialog, ExtensionDialog)
+- UserMessage switched from gray (`bg-neutral-800`) to themed user-bubble tokens (`bg-user-bubble-bg`) — default is blue-500 for visual distinction
+- TerminalInstance.tsx xterm theme intentionally left as hardcoded JS — will be addressed in 6.8
+
+**Items completed:**
+- [x] 6.3 — Theme CSS: convert hardcoded Tailwind colors to CSS custom properties, apply via `data-theme` attribute on `<html>`
+
+**Issues encountered:**
+- None — clean migration. Biome format auto-fixed 7 files after class name changes affected line lengths.
+
+**Handoff to next session:**
+- Next: 6.4 — Build `ThemeSelector` component: grid of theme previews, click to apply
+- All infrastructure is ready: `@theme` tokens in CSS, `applyTheme()` utility, 5 built-in themes, `localStorage` key `pibun-theme` for persistence
+- ThemeSelector should follow same dropdown pattern as ModelSelector/ThinkingSelector (click-outside, Escape, disabled states)
+- `THEME_LIST` provides ordered theme array, each theme has `isDark`, `name`, `id`, `colors`
+- Terminal theme (xterm.js TERMINAL_THEME in TerminalInstance.tsx) needs separate handling in 6.8
+
+---

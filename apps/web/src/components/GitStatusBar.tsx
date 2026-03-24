@@ -44,8 +44,8 @@ export function GitStatusBar() {
 				onClick={handleTogglePanel}
 				className={cn(
 					"flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition-colors",
-					"text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300",
-					gitPanelOpen && "bg-neutral-800 text-neutral-300",
+					"text-text-tertiary hover:bg-surface-secondary hover:text-text-secondary",
+					gitPanelOpen && "bg-surface-secondary text-text-secondary",
 					gitLoading && "animate-pulse",
 				)}
 				title={
@@ -79,8 +79,8 @@ export function GitStatusBar() {
 					onClick={handleTogglePanel}
 					className={cn(
 						"flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] tabular-nums transition-colors",
-						"text-amber-500/80 hover:bg-neutral-800 hover:text-amber-400",
-						gitPanelOpen && "bg-neutral-800 text-amber-400",
+						"text-status-warning/80 hover:bg-surface-secondary hover:text-status-warning-text",
+						gitPanelOpen && "bg-surface-secondary text-status-warning-text",
 					)}
 					title={`${String(changedCount)} changed file${changedCount === 1 ? "" : "s"} — click to toggle git panel`}
 				>
@@ -102,7 +102,7 @@ export function GitStatusBar() {
 			{/* Clean indicator — small green dot when no changes */}
 			{gitIsRepo && !gitIsDirty && (
 				<div className="flex items-center px-1" title="Working tree clean">
-					<div className="h-1.5 w-1.5 rounded-full bg-green-500/60" />
+					<div className="h-1.5 w-1.5 rounded-full bg-status-success/60" />
 				</div>
 			)}
 		</div>

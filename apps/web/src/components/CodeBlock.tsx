@@ -54,21 +54,21 @@ export const CodeBlock = memo(function CodeBlock({ code, language, className }: 
 	return (
 		<div
 			className={cn(
-				"group relative overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900",
+				"group relative overflow-hidden rounded-lg border border-border-secondary bg-code-bg",
 				className,
 			)}
 		>
 			{/* Header bar with language label and copy button */}
-			<div className="flex items-center justify-between border-b border-neutral-800 px-3 py-1.5">
-				<span className="text-xs text-neutral-500">{displayLanguage}</span>
+			<div className="flex items-center justify-between border-b border-border-secondary px-3 py-1.5">
+				<span className="text-xs text-text-tertiary">{displayLanguage}</span>
 				<button
 					type="button"
 					onClick={handleCopy}
 					className={cn(
 						"flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors",
 						copied
-							? "text-green-400"
-							: "text-neutral-500 opacity-0 hover:text-neutral-300 group-hover:opacity-100",
+							? "text-status-success-text"
+							: "text-text-tertiary opacity-0 hover:text-text-secondary group-hover:opacity-100",
 					)}
 				>
 					{copied ? (
@@ -93,7 +93,7 @@ export const CodeBlock = memo(function CodeBlock({ code, language, className }: 
 					dangerouslySetInnerHTML={{ __html: html }}
 				/>
 			) : (
-				<pre className="overflow-x-auto p-3 text-sm leading-relaxed text-neutral-300">
+				<pre className="overflow-x-auto p-3 text-sm leading-relaxed text-text-secondary">
 					<code>{code}</code>
 				</pre>
 			)}

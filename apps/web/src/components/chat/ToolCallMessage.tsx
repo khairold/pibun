@@ -39,7 +39,7 @@ export const ToolCallMessage = memo(function ToolCallMessage({ message }: ToolCa
 	return (
 		<div
 			className={cn(
-				"max-w-[85%] rounded-lg border border-neutral-800",
+				"max-w-[85%] rounded-lg border border-border-secondary",
 				"overflow-hidden transition-colors",
 			)}
 		>
@@ -49,20 +49,20 @@ export const ToolCallMessage = memo(function ToolCallMessage({ message }: ToolCa
 				onClick={toggleExpanded}
 				className={cn(
 					"flex w-full items-center gap-2 px-3 py-2 text-left",
-					"text-xs transition-colors hover:bg-neutral-800/50",
+					"text-xs transition-colors hover:bg-surface-secondary/50",
 				)}
 			>
 				<span className="shrink-0">{icon}</span>
-				<span className="font-medium text-blue-400">{toolCall.name}</span>
+				<span className="font-medium text-accent-text">{toolCall.name}</span>
 				{hasArgs && (
-					<span className="truncate text-neutral-500">{summarizeArgs(toolCall.args)}</span>
+					<span className="truncate text-text-tertiary">{summarizeArgs(toolCall.args)}</span>
 				)}
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					viewBox="0 0 16 16"
 					fill="currentColor"
 					className={cn(
-						"ml-auto h-3 w-3 shrink-0 text-neutral-600 transition-transform",
+						"ml-auto h-3 w-3 shrink-0 text-text-muted transition-transform",
 						expanded && "rotate-90",
 					)}
 					aria-label="Toggle details"
@@ -74,8 +74,8 @@ export const ToolCallMessage = memo(function ToolCallMessage({ message }: ToolCa
 
 			{/* Args — expanded view */}
 			{expanded && hasArgs && (
-				<div className="border-t border-neutral-800 bg-neutral-900/50 px-3 py-2">
-					<pre className="overflow-x-auto text-xs text-neutral-400">
+				<div className="border-t border-border-secondary bg-surface-primary/50 px-3 py-2">
+					<pre className="overflow-x-auto text-xs text-text-secondary">
 						{JSON.stringify(toolCall.args, null, 2)}
 					</pre>
 				</div>

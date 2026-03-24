@@ -39,32 +39,32 @@ function getCategoryStyle(category: SystemCategory): {
 	switch (category) {
 		case "compaction":
 			return {
-				textClass: "text-amber-500/70",
-				dividerClass: "bg-amber-500/20",
+				textClass: "text-status-warning/70",
+				dividerClass: "bg-status-warning/20",
 				iconClass: "",
 			};
 		case "retry-progress":
 			return {
-				textClass: "text-orange-400/80",
-				dividerClass: "bg-orange-500/20",
+				textClass: "text-status-warning-text/80",
+				dividerClass: "bg-status-warning/20",
 				iconClass: "animate-spin-slow",
 			};
 		case "retry-success":
 			return {
-				textClass: "text-green-400/70",
-				dividerClass: "bg-green-500/20",
+				textClass: "text-status-success-text/70",
+				dividerClass: "bg-status-success/20",
 				iconClass: "",
 			};
 		case "retry-failed":
 			return {
-				textClass: "text-red-400/80",
-				dividerClass: "bg-red-500/20",
+				textClass: "text-status-error-text/80",
+				dividerClass: "bg-status-error/20",
 				iconClass: "",
 			};
 		default:
 			return {
-				textClass: "text-neutral-500",
-				dividerClass: "bg-neutral-800",
+				textClass: "text-text-tertiary",
+				dividerClass: "bg-surface-secondary",
 				iconClass: "",
 			};
 	}

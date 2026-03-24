@@ -57,7 +57,7 @@ export const SelectDialog = React.memo(function SelectDialog({ request }: Select
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: dialog role for modal overlay
 		<div role="dialog" aria-label={request.title} onKeyDown={handleKeyDown} tabIndex={-1}>
-			<h3 className="mb-3 text-sm font-semibold text-neutral-100">{request.title}</h3>
+			<h3 className="mb-3 text-sm font-semibold text-text-primary">{request.title}</h3>
 			<div className="max-h-64 space-y-1 overflow-y-auto">
 				{request.options.map((option, index) => (
 					<button
@@ -66,8 +66,8 @@ export const SelectDialog = React.memo(function SelectDialog({ request }: Select
 						className={cn(
 							"w-full rounded px-3 py-2 text-left text-sm transition-colors",
 							index === selectedIndex
-								? "bg-blue-600/30 text-blue-200"
-								: "text-neutral-300 hover:bg-neutral-700/50",
+								? "bg-accent-soft text-accent-text"
+								: "text-text-secondary hover:bg-surface-tertiary/50",
 						)}
 						onClick={() => handleSelect(option)}
 						onMouseEnter={() => setSelectedIndex(index)}
@@ -79,7 +79,7 @@ export const SelectDialog = React.memo(function SelectDialog({ request }: Select
 			<div className="mt-4 flex justify-end">
 				<button
 					type="button"
-					className="rounded px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-700/50 hover:text-neutral-200"
+					className="rounded px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-tertiary/50 hover:text-text-primary"
 					onClick={handleCancel}
 				>
 					Cancel

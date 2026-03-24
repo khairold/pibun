@@ -46,19 +46,19 @@ export const WriteOutput = memo(function WriteOutput({
 
 	if (isError) {
 		return (
-			<div className="overflow-hidden rounded-md border border-red-500/30">
+			<div className="overflow-hidden rounded-md border border-status-error-border">
 				<WriteHeader filename={filename} path={path} />
-				<pre className="px-3 py-2 text-xs text-red-300">{output}</pre>
+				<pre className="px-3 py-2 text-xs text-status-error-text">{output}</pre>
 			</div>
 		);
 	}
 
 	if (isRunning) {
 		return (
-			<div className="overflow-hidden rounded-md border border-neutral-800">
+			<div className="overflow-hidden rounded-md border border-border-secondary">
 				<WriteHeader filename={filename} path={path} />
-				<div className="px-3 py-2 text-xs text-neutral-500">
-					<span className="inline-block h-3 w-1.5 animate-pulse bg-blue-400/70" />
+				<div className="px-3 py-2 text-xs text-text-tertiary">
+					<span className="inline-block h-3 w-1.5 animate-pulse bg-accent-text/70" />
 				</div>
 			</div>
 		);
@@ -72,7 +72,7 @@ export const WriteOutput = memo(function WriteOutput({
 			: fileContent;
 
 	return (
-		<div className="overflow-hidden rounded-md border border-neutral-800">
+		<div className="overflow-hidden rounded-md border border-border-secondary">
 			<WriteHeader filename={filename} path={path} />
 
 			{/* File content preview */}
@@ -82,11 +82,11 @@ export const WriteOutput = memo(function WriteOutput({
 
 					{/* Fade gradient when collapsed */}
 					{isLong && !previewExpanded && (
-						<div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-neutral-900 to-transparent" />
+						<div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-surface-primary to-transparent" />
 					)}
 				</div>
 			) : (
-				<pre className="px-3 py-2 text-xs italic text-neutral-600">(empty file)</pre>
+				<pre className="px-3 py-2 text-xs italic text-text-muted">(empty file)</pre>
 			)}
 
 			{/* Expand/collapse for long files */}
@@ -95,8 +95,8 @@ export const WriteOutput = memo(function WriteOutput({
 					type="button"
 					onClick={togglePreview}
 					className={cn(
-						"w-full border-t border-neutral-800 px-3 py-1.5",
-						"text-xs text-neutral-500 transition-colors hover:text-neutral-300",
+						"w-full border-t border-border-secondary px-3 py-1.5",
+						"text-xs text-text-tertiary transition-colors hover:text-text-secondary",
 					)}
 				>
 					{previewExpanded ? "Show less" : `Show all ${contentLines.length} lines`}
@@ -105,8 +105,8 @@ export const WriteOutput = memo(function WriteOutput({
 
 			{/* Confirmation message */}
 			{output && (
-				<div className="border-t border-neutral-800/50 px-3 py-1.5">
-					<p className="text-xs text-neutral-500">{output}</p>
+				<div className="border-t border-border-muted px-3 py-1.5">
+					<p className="text-xs text-text-tertiary">{output}</p>
 				</div>
 			)}
 		</div>
@@ -127,16 +127,16 @@ const WriteHeader = memo(function WriteHeader({
 				xmlns="http://www.w3.org/2000/svg"
 				viewBox="0 0 16 16"
 				fill="currentColor"
-				className="h-3.5 w-3.5 shrink-0 text-green-500/70"
+				className="h-3.5 w-3.5 shrink-0 text-status-success/70"
 				aria-label="Write file"
 				role="img"
 			>
 				<path d="M4 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6.414A2 2 0 0 0 13.414 5L11 2.586A2 2 0 0 0 9.586 2H4Zm5 1.5v2A1.5 1.5 0 0 0 10.5 7h2L9 3.5Z" />
 			</svg>
-			<span className="min-w-0 truncate text-xs text-green-400" title={path}>
+			<span className="min-w-0 truncate text-xs text-status-success-text" title={path}>
 				{filename}
 			</span>
-			<span className="shrink-0 text-[10px] text-neutral-600">written</span>
+			<span className="shrink-0 text-[10px] text-text-muted">written</span>
 		</div>
 	);
 });

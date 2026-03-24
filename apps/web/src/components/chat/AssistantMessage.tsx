@@ -59,8 +59,8 @@ export const AssistantMessage = memo(function AssistantMessage({ message }: Assi
 						className={cn(
 							"flex items-center gap-1.5 text-xs",
 							isThinkingActive
-								? "text-indigo-400"
-								: "text-neutral-500 transition-colors hover:text-neutral-300",
+								? "text-thinking-text"
+								: "text-text-tertiary transition-colors hover:text-text-secondary",
 						)}
 					>
 						{/* Brain icon */}
@@ -94,7 +94,7 @@ export const AssistantMessage = memo(function AssistantMessage({ message }: Assi
 						</span>
 						{/* Character count (shown when collapsed and not actively thinking) */}
 						{!thinkingExpanded && !isThinkingActive && (
-							<span className="text-neutral-600">({charLabel})</span>
+							<span className="text-text-muted">({charLabel})</span>
 						)}
 					</button>
 
@@ -104,14 +104,14 @@ export const AssistantMessage = memo(function AssistantMessage({ message }: Assi
 								"mt-1.5 rounded-lg border px-3 py-2",
 								"max-h-80 overflow-y-auto",
 								isThinkingActive
-									? "border-indigo-500/30 bg-indigo-950/20"
-									: "border-neutral-800 bg-neutral-900/50",
+									? "border-thinking-border bg-thinking-bg"
+									: "border-border-secondary bg-surface-primary/50",
 							)}
 						>
-							<p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-neutral-400">
+							<p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-text-secondary">
 								{message.thinking}
 								{isThinkingActive && (
-									<span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-indigo-400" />
+									<span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-thinking-text" />
 								)}
 							</p>
 						</div>
@@ -121,18 +121,18 @@ export const AssistantMessage = memo(function AssistantMessage({ message }: Assi
 
 			{/* Main content — rendered as markdown */}
 			{(hasContent || (!hasThinking && message.streaming)) && (
-				<div className="text-sm text-neutral-100">
+				<div className="text-sm text-text-primary">
 					{hasContent && <MarkdownContent content={message.content} />}
 					{message.streaming && (
-						<span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse bg-neutral-400" />
+						<span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse bg-text-secondary" />
 					)}
 				</div>
 			)}
 
 			{/* Empty streaming state — no content and no thinking yet */}
 			{!hasContent && !hasThinking && message.streaming && (
-				<div className="text-sm text-neutral-500">
-					<span className="inline-block h-4 w-1.5 animate-pulse bg-neutral-500" />
+				<div className="text-sm text-text-tertiary">
+					<span className="inline-block h-4 w-1.5 animate-pulse bg-text-tertiary" />
 				</div>
 			)}
 		</div>

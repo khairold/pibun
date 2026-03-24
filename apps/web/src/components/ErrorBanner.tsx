@@ -35,7 +35,7 @@ export function ErrorBanner() {
 		<div
 			className={cn(
 				"flex items-center gap-2 px-4 py-1.5 text-xs font-medium",
-				"bg-red-950 text-red-300",
+				"bg-status-error-bg text-status-error-text",
 			)}
 		>
 			{/* Error icon */}
@@ -61,7 +61,7 @@ export function ErrorBanner() {
 			<button
 				type="button"
 				onClick={handleDismiss}
-				className="shrink-0 rounded p-0.5 transition-colors hover:bg-red-900/50 hover:text-red-200"
+				className="shrink-0 rounded p-0.5 transition-colors hover:bg-status-error-bg hover:text-status-error-text"
 			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"

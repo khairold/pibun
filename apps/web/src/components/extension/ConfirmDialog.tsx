@@ -47,12 +47,12 @@ export const ConfirmDialog = React.memo(function ConfirmDialog({ request }: Conf
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: dialog role for modal overlay
 		<div role="dialog" aria-label={request.title} onKeyDown={handleKeyDown} tabIndex={-1}>
-			<h3 className="mb-2 text-sm font-semibold text-neutral-100">{request.title}</h3>
-			<p className="mb-4 text-sm text-neutral-300">{request.message}</p>
+			<h3 className="mb-2 text-sm font-semibold text-text-primary">{request.title}</h3>
+			<p className="mb-4 text-sm text-text-secondary">{request.message}</p>
 			<div className="flex justify-end gap-2">
 				<button
 					type="button"
-					className="rounded px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-700/50 hover:text-neutral-200"
+					className="rounded px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-tertiary/50 hover:text-text-primary"
 					onClick={handleNo}
 				>
 					No
@@ -60,7 +60,7 @@ export const ConfirmDialog = React.memo(function ConfirmDialog({ request }: Conf
 				<button
 					ref={yesRef}
 					type="button"
-					className="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500"
+					className="rounded bg-accent-primary px-3 py-1.5 text-xs font-medium text-text-on-accent hover:bg-accent-primary-hover"
 					onClick={handleYes}
 				>
 					Yes

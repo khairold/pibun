@@ -53,14 +53,16 @@ export function UpdateBanner() {
 		<div
 			className={cn(
 				"flex items-center gap-3 px-4 py-2 text-sm",
-				isReady && "bg-green-900/40 text-green-300 border-b border-green-700/50",
-				isDownloading && "bg-blue-900/40 text-blue-300 border-b border-blue-700/50",
-				isError && "bg-red-900/40 text-red-300 border-b border-red-700/50",
-				isChecking && "bg-zinc-800 text-zinc-400 border-b border-zinc-700/50",
+				isReady &&
+					"bg-status-success-bg text-status-success-text border-b border-status-success-border",
+				isDownloading &&
+					"bg-status-info-bg text-status-info-text border-b border-accent-primary/50",
+				isError && "bg-status-error-bg text-status-error-text border-b border-status-error-border",
+				isChecking && "bg-surface-secondary text-text-secondary border-b border-border-secondary",
 				updateStatus === "update-available" &&
-					"bg-amber-900/40 text-amber-300 border-b border-amber-700/50",
+					"bg-status-warning-bg text-status-warning-text border-b border-status-warning/50",
 				updateStatus === "applying" &&
-					"bg-green-900/40 text-green-300 border-b border-green-700/50",
+					"bg-status-success-bg text-status-success-text border-b border-status-success-border",
 			)}
 		>
 			{/* Icon */}
@@ -84,9 +86,9 @@ export function UpdateBanner() {
 
 			{/* Progress bar */}
 			{isDownloading && updateProgress != null && (
-				<div className="w-24 h-1.5 bg-blue-900/60 rounded-full overflow-hidden">
+				<div className="w-24 h-1.5 bg-accent-primary/20 rounded-full overflow-hidden">
 					<div
-						className="h-full bg-blue-400 rounded-full transition-all duration-300"
+						className="h-full bg-accent-text rounded-full transition-all duration-300"
 						style={{ width: `${updateProgress}%` }}
 					/>
 				</div>
@@ -97,7 +99,7 @@ export function UpdateBanner() {
 				<button
 					type="button"
 					onClick={handleApplyUpdate}
-					className="shrink-0 rounded bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-500 transition-colors"
+					className="shrink-0 rounded bg-status-success px-3 py-1 text-xs font-medium text-text-on-accent hover:bg-status-success/80 transition-colors"
 				>
 					Restart to Update{updateVersion ? ` v${updateVersion}` : ""}
 				</button>
@@ -107,7 +109,7 @@ export function UpdateBanner() {
 				<button
 					type="button"
 					onClick={handleCheckForUpdates}
-					className="shrink-0 rounded bg-zinc-600 px-3 py-1 text-xs font-medium text-zinc-200 hover:bg-zinc-500 transition-colors"
+					className="shrink-0 rounded bg-surface-tertiary px-3 py-1 text-xs font-medium text-text-primary hover:bg-surface-tertiary/80 transition-colors"
 				>
 					Retry
 				</button>
@@ -117,7 +119,7 @@ export function UpdateBanner() {
 			<button
 				type="button"
 				onClick={dismissUpdate}
-				className="shrink-0 rounded p-0.5 hover:bg-white/10 transition-colors"
+				className="shrink-0 rounded p-0.5 hover:bg-text-on-accent/10 transition-colors"
 				aria-label="Dismiss update notification"
 			>
 				<svg

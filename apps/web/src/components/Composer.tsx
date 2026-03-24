@@ -368,8 +368,8 @@ export function Composer() {
 	return (
 		<div
 			className={cn(
-				"border-t bg-neutral-950 px-4 py-3",
-				isDragOver ? "border-blue-500" : "border-neutral-800",
+				"border-t bg-surface-base px-4 py-3",
+				isDragOver ? "border-accent-primary" : "border-border-secondary",
 			)}
 			onDragOver={handleDragOver}
 			onDragLeave={handleDragLeave}
@@ -382,7 +382,7 @@ export function Composer() {
 						{images.map((img) => (
 							<div
 								key={img.id}
-								className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900"
+								className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border-primary bg-surface-primary"
 							>
 								<img
 									src={img.previewUrl}
@@ -395,9 +395,9 @@ export function Composer() {
 									onClick={() => removeImage(img.id)}
 									className={cn(
 										"absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center",
-										"rounded-full bg-neutral-800 text-neutral-400 shadow-sm",
+										"rounded-full bg-surface-secondary text-text-secondary shadow-sm",
 										"opacity-0 transition-opacity group-hover:opacity-100",
-										"hover:bg-red-600 hover:text-white",
+										"hover:bg-status-error hover:text-text-on-accent",
 									)}
 									aria-label={`Remove image ${img.id}`}
 								>
@@ -417,7 +417,7 @@ export function Composer() {
 
 						{/* Add more indicator (when under max) */}
 						{images.length < MAX_IMAGES && (
-							<div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-neutral-700 text-neutral-600">
+							<div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-border-primary text-text-muted">
 								<span className="text-xs">+</span>
 							</div>
 						)}
@@ -426,8 +426,8 @@ export function Composer() {
 
 				{/* Drag overlay hint */}
 				{isDragOver && (
-					<div className="mb-2 flex items-center justify-center rounded-lg border-2 border-dashed border-blue-500 bg-blue-500/10 py-4">
-						<p className="text-sm text-blue-400">Drop images here</p>
+					<div className="mb-2 flex items-center justify-center rounded-lg border-2 border-dashed border-accent-primary bg-accent-soft py-4">
+						<p className="text-sm text-accent-text">Drop images here</p>
 					</div>
 				)}
 
@@ -447,12 +447,12 @@ export function Composer() {
 						disabled={!isConnected}
 						rows={1}
 						className={cn(
-							"flex-1 resize-none rounded-lg border bg-neutral-900 px-4 py-3",
-							"text-sm text-neutral-100 placeholder-neutral-500",
+							"flex-1 resize-none rounded-lg border bg-surface-primary px-4 py-3",
+							"text-sm text-text-primary placeholder-text-tertiary",
 							"outline-none transition-colors",
-							"focus:border-neutral-500",
+							"focus:border-text-tertiary",
 							"disabled:cursor-not-allowed disabled:opacity-50",
-							isStreaming ? "border-blue-700/50" : "border-neutral-700",
+							isStreaming ? "border-accent-primary/50" : "border-border-primary",
 						)}
 						style={{ maxHeight: MAX_TEXTAREA_HEIGHT }}
 					/>
@@ -470,8 +470,8 @@ export function Composer() {
 										"flex h-10 shrink-0 items-center gap-1.5 rounded-lg px-3",
 										"text-xs font-medium transition-colors",
 										canSend
-											? "bg-blue-600 text-white hover:bg-blue-500"
-											: "cursor-not-allowed bg-neutral-800 text-neutral-500",
+											? "bg-accent-primary text-text-on-accent hover:bg-accent-primary-hover"
+											: "cursor-not-allowed bg-surface-secondary text-text-tertiary",
 									)}
 									title="Steer (Enter) — redirect Pi during streaming"
 								>
@@ -496,7 +496,7 @@ export function Composer() {
 								onClick={handleAbort}
 								className={cn(
 									"flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-									"bg-red-600 text-white transition-colors hover:bg-red-500",
+									"bg-status-error text-text-on-accent transition-colors hover:bg-status-error",
 								)}
 								title="Abort (Ctrl+C)"
 							>
@@ -522,8 +522,8 @@ export function Composer() {
 								"flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
 								"transition-colors",
 								canSend
-									? "bg-blue-600 text-white hover:bg-blue-500"
-									: "cursor-not-allowed bg-neutral-800 text-neutral-500",
+									? "bg-accent-primary text-text-on-accent hover:bg-accent-primary-hover"
+									: "cursor-not-allowed bg-surface-secondary text-text-tertiary",
 							)}
 							title="Send (Enter)"
 						>
@@ -545,10 +545,10 @@ export function Composer() {
 				{/* Streaming mode hint */}
 				{isStreaming && (
 					<div className="mt-1.5">
-						<p className="text-xs text-neutral-500">
-							<span className="text-blue-400">Enter</span> to steer ·{" "}
-							<span className="text-blue-400">Ctrl+Enter</span> for follow-up ·{" "}
-							<span className="text-red-400">Ctrl+C</span> to abort
+						<p className="text-xs text-text-tertiary">
+							<span className="text-accent-text">Enter</span> to steer ·{" "}
+							<span className="text-accent-text">Ctrl+Enter</span> for follow-up ·{" "}
+							<span className="text-status-error-text">Ctrl+C</span> to abort
 						</p>
 					</div>
 				)}

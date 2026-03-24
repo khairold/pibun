@@ -29,22 +29,22 @@ export const BashOutput = memo(function BashOutput({
 	isError,
 }: BashOutputProps) {
 	return (
-		<div className="overflow-hidden rounded-md border border-neutral-800 bg-[#0d1117] font-mono">
+		<div className="overflow-hidden rounded-md border border-border-secondary bg-code-bg font-mono">
 			{/* Terminal header bar with command */}
-			<div className="flex items-center gap-2 border-b border-neutral-800/60 bg-[#161b22] px-3 py-1.5">
+			<div className="flex items-center gap-2 border-b border-border-muted bg-surface-primary px-3 py-1.5">
 				{/* Terminal dots */}
 				<div className="flex items-center gap-1">
-					<span className="inline-block h-2 w-2 rounded-full bg-neutral-700" />
-					<span className="inline-block h-2 w-2 rounded-full bg-neutral-700" />
-					<span className="inline-block h-2 w-2 rounded-full bg-neutral-700" />
+					<span className="inline-block h-2 w-2 rounded-full bg-surface-tertiary" />
+					<span className="inline-block h-2 w-2 rounded-full bg-surface-tertiary" />
+					<span className="inline-block h-2 w-2 rounded-full bg-surface-tertiary" />
 				</div>
-				<span className="text-[10px] text-neutral-500">Terminal</span>
+				<span className="text-[10px] text-text-tertiary">Terminal</span>
 			</div>
 
 			{/* Command line */}
-			<div className="border-b border-neutral-800/40 px-3 py-1.5">
-				<span className="text-xs text-green-500">$</span>
-				<span className="ml-2 text-xs text-neutral-300">{command}</span>
+			<div className="border-b border-border-muted px-3 py-1.5">
+				<span className="text-xs text-status-success">$</span>
+				<span className="ml-2 text-xs text-text-secondary">{command}</span>
 			</div>
 
 			{/* Output area */}
@@ -52,13 +52,13 @@ export const BashOutput = memo(function BashOutput({
 				<pre
 					className={cn(
 						"overflow-x-auto px-3 py-2 text-xs leading-relaxed",
-						isError ? "text-red-300" : "text-neutral-400",
-						!output && !isRunning && "italic text-neutral-600",
+						isError ? "text-status-error-text" : "text-text-secondary",
+						!output && !isRunning && "italic text-text-muted",
 					)}
 				>
 					{output || (isRunning ? "" : "(no output)")}
 					{isRunning && (
-						<span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-green-500/70" />
+						<span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-status-success/70" />
 					)}
 				</pre>
 			</div>

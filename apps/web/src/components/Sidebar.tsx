@@ -67,8 +67,8 @@ const SidebarTabItem = memo(function SidebarTabItem({
 			className={cn(
 				"group flex w-full cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-left transition-colors",
 				isActive
-					? "bg-neutral-800 text-neutral-100"
-					: "text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200",
+					? "bg-surface-secondary text-text-primary"
+					: "text-text-secondary hover:bg-surface-secondary/50 hover:text-text-primary",
 			)}
 			aria-selected={isActive}
 			aria-label={displayName}
@@ -76,11 +76,11 @@ const SidebarTabItem = memo(function SidebarTabItem({
 			{/* Streaming indicator or active dot */}
 			<span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center">
 				{tab.isStreaming ? (
-					<span className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
+					<span className="h-2 w-2 animate-pulse rounded-full bg-accent-primary" />
 				) : isActive ? (
-					<span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+					<span className="h-1.5 w-1.5 rounded-full bg-accent-primary" />
 				) : (
-					<span className="h-1.5 w-1.5 rounded-full bg-neutral-700" />
+					<span className="h-1.5 w-1.5 rounded-full bg-surface-tertiary" />
 				)}
 			</span>
 
@@ -89,13 +89,13 @@ const SidebarTabItem = memo(function SidebarTabItem({
 				<div className="flex items-center gap-1.5">
 					<span className="truncate text-sm font-medium">{displayName}</span>
 					{modelName && (
-						<span className="shrink-0 rounded bg-neutral-700/50 px-1 py-0.5 text-[10px] leading-none text-neutral-500">
+						<span className="shrink-0 rounded bg-surface-tertiary/50 px-1 py-0.5 text-[10px] leading-none text-text-tertiary">
 							{modelName}
 						</span>
 					)}
 				</div>
 				{tab.messageCount > 0 && (
-					<span className="text-xs text-neutral-500">
+					<span className="text-xs text-text-tertiary">
 						{String(tab.messageCount)} message{tab.messageCount !== 1 ? "s" : ""}
 					</span>
 				)}
@@ -113,8 +113,8 @@ const SidebarTabItem = memo(function SidebarTabItem({
 					className={cn(
 						"mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm transition-colors",
 						isActive
-							? "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-300"
-							: "text-transparent group-hover:text-neutral-500 group-hover:hover:bg-neutral-700 group-hover:hover:text-neutral-300",
+							? "text-text-tertiary hover:bg-surface-tertiary hover:text-text-secondary"
+							: "text-transparent group-hover:text-text-tertiary group-hover:hover:bg-surface-tertiary group-hover:hover:text-text-secondary",
 					)}
 					aria-label={`Close ${displayName}`}
 				>
@@ -164,13 +164,13 @@ const CwdGroup = memo(function CwdGroup({
 					xmlns="http://www.w3.org/2000/svg"
 					viewBox="0 0 16 16"
 					fill="currentColor"
-					className="h-3 w-3 text-neutral-600"
+					className="h-3 w-3 text-text-muted"
 					aria-label="Folder"
 					role="img"
 				>
 					<path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h2.879a1.5 1.5 0 0 1 1.06.44l1.122 1.12A1.5 1.5 0 0 0 9.62 4H12.5A1.5 1.5 0 0 1 14 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12.5v-9z" />
 				</svg>
-				<span className="truncate text-[10px] font-medium uppercase tracking-wider text-neutral-600">
+				<span className="truncate text-[10px] font-medium uppercase tracking-wider text-text-muted">
 					{shortPath(cwd)}
 				</span>
 			</div>
@@ -218,12 +218,12 @@ const PastSessionItem = memo(function PastSessionItem({
 			disabled={isSwitching}
 			className={cn(
 				"flex w-full flex-col gap-0.5 rounded-lg px-3 py-1.5 text-left transition-colors",
-				"text-neutral-500 hover:bg-neutral-800/50 hover:text-neutral-300",
+				"text-text-tertiary hover:bg-surface-secondary/50 hover:text-text-secondary",
 				isSwitching && "cursor-wait opacity-60",
 			)}
 		>
 			<span className="truncate text-xs">{displayName}</span>
-			<span className="text-[10px] text-neutral-600">
+			<span className="text-[10px] text-text-muted">
 				{dateStr}
 				{session.messageCount > 0 ? ` · ${String(session.messageCount)} msgs` : ""}
 			</span>
@@ -264,8 +264,8 @@ const ProjectItem = memo(function ProjectItem({
 			className={cn(
 				"group flex w-full cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-left transition-colors",
 				isActive
-					? "bg-neutral-800 text-neutral-100"
-					: "text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200",
+					? "bg-surface-secondary text-text-primary"
+					: "text-text-secondary hover:bg-surface-secondary/50 hover:text-text-primary",
 			)}
 			aria-selected={isActive}
 			aria-label={project.name}
@@ -276,7 +276,7 @@ const ProjectItem = memo(function ProjectItem({
 					xmlns="http://www.w3.org/2000/svg"
 					viewBox="0 0 16 16"
 					fill="currentColor"
-					className={cn("h-4 w-4", isActive ? "text-blue-400" : "text-neutral-600")}
+					className={cn("h-4 w-4", isActive ? "text-accent-text" : "text-text-muted")}
 					aria-label="Project folder"
 					role="img"
 				>
@@ -290,12 +290,12 @@ const ProjectItem = memo(function ProjectItem({
 					<span className="truncate text-sm font-medium">{project.name}</span>
 					{/* Session count badge */}
 					{project.sessionCount > 0 && (
-						<span className="shrink-0 rounded-full bg-neutral-700/50 px-1.5 py-0.5 text-[10px] leading-none text-neutral-500">
+						<span className="shrink-0 rounded-full bg-surface-tertiary/50 px-1.5 py-0.5 text-[10px] leading-none text-text-tertiary">
 							{String(project.sessionCount)}
 						</span>
 					)}
 				</div>
-				<span className="text-[10px] text-neutral-500">{lastOpenedStr}</span>
+				<span className="text-[10px] text-text-tertiary">{lastOpenedStr}</span>
 			</div>
 
 			{/* Remove button — visible on hover */}
@@ -309,8 +309,8 @@ const ProjectItem = memo(function ProjectItem({
 				className={cn(
 					"mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm transition-colors",
 					isActive
-						? "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-300"
-						: "text-transparent group-hover:text-neutral-500 group-hover:hover:bg-neutral-700 group-hover:hover:text-neutral-300",
+						? "text-text-tertiary hover:bg-surface-tertiary hover:text-text-secondary"
+						: "text-transparent group-hover:text-text-tertiary group-hover:hover:bg-surface-tertiary group-hover:hover:text-text-secondary",
 				)}
 				aria-label={`Remove ${project.name}`}
 			>
@@ -359,7 +359,7 @@ const AddProjectInput = memo(function AddProjectInput({ onAdd, onCancel }: AddPr
 
 	return (
 		<div className="flex flex-col gap-1 px-3 py-2">
-			<label htmlFor="add-project-path" className="text-[10px] text-neutral-500">
+			<label htmlFor="add-project-path" className="text-[10px] text-text-tertiary">
 				Enter folder path
 			</label>
 			<div className="flex items-center gap-1">
@@ -379,7 +379,7 @@ const AddProjectInput = memo(function AddProjectInput({ onAdd, onCancel }: AddPr
 						}
 					}}
 					placeholder="/path/to/project"
-					className="min-w-0 flex-1 rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-neutral-200 placeholder-neutral-600 outline-none focus:border-blue-500"
+					className="min-w-0 flex-1 rounded border border-border-primary bg-surface-secondary px-2 py-1 text-xs text-text-primary placeholder-text-muted outline-none focus:border-accent-primary"
 				/>
 				<button
 					type="button"
@@ -388,8 +388,8 @@ const AddProjectInput = memo(function AddProjectInput({ onAdd, onCancel }: AddPr
 					className={cn(
 						"rounded px-2 py-1 text-xs font-medium transition-colors",
 						value.trim()
-							? "bg-blue-600 text-white hover:bg-blue-500"
-							: "cursor-not-allowed bg-neutral-700 text-neutral-500",
+							? "bg-accent-primary text-text-on-accent hover:bg-accent-primary-hover"
+							: "cursor-not-allowed bg-surface-tertiary text-text-tertiary",
 					)}
 				>
 					Add
@@ -397,7 +397,7 @@ const AddProjectInput = memo(function AddProjectInput({ onAdd, onCancel }: AddPr
 				<button
 					type="button"
 					onClick={onCancel}
-					className="rounded px-1.5 py-1 text-xs text-neutral-500 hover:text-neutral-300"
+					className="rounded px-1.5 py-1 text-xs text-text-tertiary hover:text-text-secondary"
 				>
 					Cancel
 				</button>
@@ -699,8 +699,8 @@ export function Sidebar() {
 	const sidebarContent = (
 		<>
 			{/* Header */}
-			<div className="flex items-center justify-between border-b border-neutral-800 px-4 py-3">
-				<h1 className="text-sm font-bold tracking-tight text-neutral-200">PiBun</h1>
+			<div className="flex items-center justify-between border-b border-border-secondary px-4 py-3">
+				<h1 className="text-sm font-bold tracking-tight text-text-primary">PiBun</h1>
 				<div className="flex items-center gap-1">
 					<button
 						type="button"
@@ -710,8 +710,8 @@ export function Sidebar() {
 						className={cn(
 							"flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors",
 							!isConnected || isCreating
-								? "cursor-not-allowed text-neutral-600"
-								: "text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200",
+								? "cursor-not-allowed text-text-muted"
+								: "text-text-secondary hover:bg-surface-tertiary hover:text-text-primary",
 						)}
 					>
 						{/* Plus icon */}
@@ -731,7 +731,7 @@ export function Sidebar() {
 					<button
 						type="button"
 						onClick={() => setSidebarOpen(false)}
-						className="rounded-md p-1 text-neutral-500 hover:bg-neutral-700 hover:text-neutral-300 md:hidden"
+						className="rounded-md p-1 text-text-tertiary hover:bg-surface-tertiary hover:text-text-secondary md:hidden"
 						title="Close sidebar"
 					>
 						<svg
@@ -750,10 +750,10 @@ export function Sidebar() {
 
 			{/* ── Active Tabs Section ──────────────────────────────────── */}
 			<div className="flex items-center justify-between px-4 pt-3 pb-1">
-				<span className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+				<span className="text-xs font-medium uppercase tracking-wider text-text-tertiary">
 					Open Tabs
 				</span>
-				<span className="text-[10px] text-neutral-600">
+				<span className="text-[10px] text-text-muted">
 					{String(tabs.length)} tab{tabs.length !== 1 ? "s" : ""}
 				</span>
 			</div>
@@ -761,7 +761,7 @@ export function Sidebar() {
 			<div className="flex-1 overflow-y-auto px-2 py-1">
 				{tabs.length === 0 ? (
 					<div className="flex flex-col items-center justify-center gap-2 py-8">
-						<span className="text-xs text-neutral-600">No open tabs</span>
+						<span className="text-xs text-text-muted">No open tabs</span>
 						<button
 							type="button"
 							onClick={handleNewTab}
@@ -769,8 +769,8 @@ export function Sidebar() {
 							className={cn(
 								"rounded-md px-3 py-1 text-xs font-medium transition-colors",
 								isConnected
-									? "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
-									: "cursor-not-allowed text-neutral-600",
+									? "bg-surface-secondary text-text-secondary hover:bg-surface-tertiary"
+									: "cursor-not-allowed text-text-muted",
 							)}
 						>
 							Open a new tab
@@ -806,18 +806,18 @@ export function Sidebar() {
 				)}
 
 				{/* ── Projects Section ─────────────────────────────────── */}
-				<div className="mt-3 border-t border-neutral-800 pt-2">
+				<div className="mt-3 border-t border-border-secondary pt-2">
 					<div className="flex w-full items-center justify-between px-2 py-1">
 						<button
 							type="button"
 							onClick={() => setProjectsExpanded(!projectsExpanded)}
 							className="flex flex-1 items-center gap-1.5 text-left"
 						>
-							<span className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+							<span className="text-xs font-medium uppercase tracking-wider text-text-tertiary">
 								Projects
 							</span>
 							{projects.length > 0 && (
-								<span className="text-[10px] text-neutral-600">{String(projects.length)}</span>
+								<span className="text-[10px] text-text-muted">{String(projects.length)}</span>
 							)}
 							{/* Chevron */}
 							<svg
@@ -825,7 +825,7 @@ export function Sidebar() {
 								viewBox="0 0 16 16"
 								fill="currentColor"
 								className={cn(
-									"h-3 w-3 text-neutral-600 transition-transform",
+									"h-3 w-3 text-text-muted transition-transform",
 									projectsExpanded && "rotate-180",
 								)}
 								aria-label="Toggle projects"
@@ -847,8 +847,8 @@ export function Sidebar() {
 								className={cn(
 									"rounded p-0.5 transition-colors",
 									!isConnected || isAddingProject
-										? "cursor-not-allowed text-neutral-700"
-										: "text-neutral-600 hover:text-neutral-400",
+										? "cursor-not-allowed text-text-muted"
+										: "text-text-muted hover:text-text-secondary",
 								)}
 								title="Add Project"
 								aria-label="Add project"
@@ -871,7 +871,7 @@ export function Sidebar() {
 									onClick={() => {
 										if (isConnected) fetchProjects();
 									}}
-									className="rounded p-0.5 text-neutral-600 transition-colors hover:text-neutral-400"
+									className="rounded p-0.5 text-text-muted transition-colors hover:text-text-secondary"
 									aria-label="Refresh projects"
 								>
 									<svg
@@ -915,7 +915,7 @@ export function Sidebar() {
 								))
 							) : !showAddProjectInput ? (
 								<div className="flex flex-col items-center gap-2 py-4 px-3">
-									<span className="text-xs text-neutral-600">No projects yet</span>
+									<span className="text-xs text-text-muted">No projects yet</span>
 									<button
 										type="button"
 										onClick={handleAddProject}
@@ -923,8 +923,8 @@ export function Sidebar() {
 										className={cn(
 											"rounded-md px-3 py-1 text-xs font-medium transition-colors",
 											isConnected && !isAddingProject
-												? "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
-												: "cursor-not-allowed text-neutral-600",
+												? "bg-surface-secondary text-text-secondary hover:bg-surface-tertiary"
+												: "cursor-not-allowed text-text-muted",
 										)}
 									>
 										{isAddingProject ? "Opening…" : "Add a project"}
@@ -937,24 +937,24 @@ export function Sidebar() {
 
 				{/* ── Past Sessions Section ────────────────────────────── */}
 				{pastSessions.length > 0 && (
-					<div className="mt-3 border-t border-neutral-800 pt-2">
+					<div className="mt-3 border-t border-border-secondary pt-2">
 						<div className="flex w-full items-center justify-between px-2 py-1">
 							<button
 								type="button"
 								onClick={() => setPastSessionsExpanded(!pastSessionsExpanded)}
 								className="flex flex-1 items-center gap-1.5 text-left"
 							>
-								<span className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+								<span className="text-xs font-medium uppercase tracking-wider text-text-tertiary">
 									Past Sessions
 								</span>
-								<span className="text-[10px] text-neutral-600">{String(pastSessions.length)}</span>
+								<span className="text-[10px] text-text-muted">{String(pastSessions.length)}</span>
 								{/* Chevron */}
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									viewBox="0 0 16 16"
 									fill="currentColor"
 									className={cn(
-										"h-3 w-3 text-neutral-600 transition-transform",
+										"h-3 w-3 text-text-muted transition-transform",
 										pastSessionsExpanded && "rotate-180",
 									)}
 									aria-label="Toggle past sessions"
@@ -975,8 +975,8 @@ export function Sidebar() {
 								className={cn(
 									"rounded p-0.5 transition-colors",
 									sessionListLoading
-										? "animate-spin text-neutral-500"
-										: "text-neutral-600 hover:text-neutral-400",
+										? "animate-spin text-text-tertiary"
+										: "text-text-muted hover:text-text-secondary",
 								)}
 								aria-label="Refresh past sessions"
 							>
@@ -1020,7 +1020,7 @@ export function Sidebar() {
 			{/* Mobile backdrop — shown when sidebar is open below md breakpoint */}
 			{sidebarOpen && (
 				<div
-					className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+					className="fixed inset-0 z-40 bg-surface-overlay backdrop-blur-sm md:hidden"
 					onClick={handleBackdropClick}
 					onKeyDown={(e) => {
 						if (e.key === "Escape") handleBackdropClick();
@@ -1035,7 +1035,7 @@ export function Sidebar() {
 			<aside
 				className={cn(
 					// Base styles: flex column, sidebar colors, border
-					"z-50 flex w-64 shrink-0 flex-col border-r border-neutral-800 bg-neutral-900",
+					"z-50 flex w-64 shrink-0 flex-col border-r border-border-secondary bg-surface-primary",
 					// Mobile: fixed overlay positioned from left, slide transition
 					"fixed inset-y-0 left-0 transition-transform duration-200 ease-in-out md:relative md:z-auto md:transition-none",
 					// Open/closed state

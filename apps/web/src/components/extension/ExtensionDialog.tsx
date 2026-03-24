@@ -32,12 +32,12 @@ export const ExtensionDialog = React.memo(function ExtensionDialog() {
 	return (
 		<div
 			ref={overlayRef}
-			className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+			className="fixed inset-0 z-50 flex items-center justify-center bg-surface-overlay backdrop-blur-sm"
 			tabIndex={-1}
 		>
-			<div className="mx-4 w-full max-w-md rounded-lg border border-neutral-700 bg-neutral-850 p-5 shadow-xl">
+			<div className="mx-4 w-full max-w-md rounded-lg border border-border-primary bg-surface-primary p-5 shadow-xl">
 				{/* Extension source indicator */}
-				<div className="mb-3 flex items-center gap-1.5 text-xs text-neutral-500">
+				<div className="mb-3 flex items-center gap-1.5 text-xs text-text-tertiary">
 					<svg
 						aria-label="Extension"
 						role="img"

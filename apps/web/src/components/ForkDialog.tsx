@@ -122,8 +122,8 @@ export function ForkDialog() {
 				className={cn(
 					"flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
 					isDisabled
-						? "cursor-not-allowed text-neutral-600"
-						: "text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200",
+						? "cursor-not-allowed text-text-muted"
+						: "text-text-secondary hover:bg-surface-secondary hover:text-text-primary",
 				)}
 			>
 				{/* Git branch icon */}
@@ -146,11 +146,11 @@ export function ForkDialog() {
 
 			{/* Dropdown */}
 			{isOpen && (
-				<div className="absolute left-0 top-full z-50 mt-1 w-80 rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl">
+				<div className="absolute left-0 top-full z-50 mt-1 w-80 rounded-lg border border-border-primary bg-surface-primary shadow-xl">
 					{/* Header */}
-					<div className="border-b border-neutral-800 px-3 py-2">
-						<p className="text-xs font-medium text-neutral-300">Fork from message</p>
-						<p className="mt-0.5 text-xs text-neutral-500">
+					<div className="border-b border-border-secondary px-3 py-2">
+						<p className="text-xs font-medium text-text-secondary">Fork from message</p>
+						<p className="mt-0.5 text-xs text-text-tertiary">
 							Create a new session branching from a previous point
 						</p>
 					</div>
@@ -159,13 +159,13 @@ export function ForkDialog() {
 					<div className="max-h-64 overflow-y-auto">
 						{isLoading && (
 							<div className="flex items-center justify-center py-6">
-								<div className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-600 border-t-neutral-300" />
-								<span className="ml-2 text-xs text-neutral-500">Loading messages…</span>
+								<div className="h-4 w-4 animate-spin rounded-full border-2 border-text-muted border-t-text-secondary" />
+								<span className="ml-2 text-xs text-text-tertiary">Loading messages…</span>
 							</div>
 						)}
 
 						{!isLoading && messages.length === 0 && (
-							<div className="px-3 py-6 text-center text-xs text-neutral-500">
+							<div className="px-3 py-6 text-center text-xs text-text-tertiary">
 								No forkable messages found.
 								<br />
 								Start a conversation first.
@@ -179,11 +179,11 @@ export function ForkDialog() {
 									type="button"
 									onClick={() => handleSelect(msg.entryId)}
 									className={cn(
-										"w-full px-3 py-2 text-left transition-colors hover:bg-neutral-800",
-										index < messages.length - 1 && "border-b border-neutral-800/50",
+										"w-full px-3 py-2 text-left transition-colors hover:bg-surface-secondary",
+										index < messages.length - 1 && "border-b border-border-muted",
 									)}
 								>
-									<span className="block text-xs text-neutral-400">
+									<span className="block text-xs text-text-secondary">
 										{truncateText(msg.text, PREVIEW_MAX_CHARS)}
 									</span>
 								</button>

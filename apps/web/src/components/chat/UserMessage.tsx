@@ -18,8 +18,8 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
 		<div className="flex justify-end">
 			<div
 				className={cn(
-					"max-w-[85%] rounded-2xl bg-neutral-800 px-4 py-3",
-					"text-sm text-neutral-100",
+					"max-w-[85%] rounded-2xl bg-user-bubble-bg px-4 py-3",
+					"text-sm text-user-bubble-text",
 				)}
 			>
 				<p className="whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>

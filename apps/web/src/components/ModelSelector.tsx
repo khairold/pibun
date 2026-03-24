@@ -169,11 +169,11 @@ export function ModelSelector() {
 				disabled={!isConnected || !hasSession}
 				className={cn(
 					"flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
-					"border border-neutral-700 bg-neutral-900 transition-colors",
+					"border border-border-primary bg-surface-primary transition-colors",
 					isConnected && hasSession
-						? "text-neutral-200 hover:border-neutral-500 hover:bg-neutral-800"
-						: "cursor-not-allowed text-neutral-600",
-					isOpen && "border-neutral-500 bg-neutral-800",
+						? "text-text-primary hover:border-text-tertiary hover:bg-surface-secondary"
+						: "cursor-not-allowed text-text-muted",
+					isOpen && "border-text-tertiary bg-surface-secondary",
 				)}
 				title="Switch model (Ctrl+L)"
 			>
@@ -215,19 +215,19 @@ export function ModelSelector() {
 					ref={dropdownRef}
 					className={cn(
 						"absolute left-0 top-full z-50 mt-1 w-80",
-						"rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl",
+						"rounded-lg border border-border-primary bg-surface-primary shadow-xl",
 						"max-h-[400px] overflow-y-auto",
 					)}
 				>
 					{/* Header with refresh */}
-					<div className="flex items-center justify-between border-b border-neutral-800 px-3 py-2">
-						<span className="text-xs font-medium text-neutral-400">Available Models</span>
+					<div className="flex items-center justify-between border-b border-border-secondary px-3 py-2">
+						<span className="text-xs font-medium text-text-secondary">Available Models</span>
 						<button
 							type="button"
 							onClick={fetchModels}
 							disabled={modelsLoading}
 							className={cn(
-								"rounded p-1 text-neutral-500 transition-colors hover:text-neutral-300",
+								"rounded p-1 text-text-tertiary transition-colors hover:text-text-secondary",
 								modelsLoading && "animate-spin",
 							)}
 							title="Refresh models"
@@ -252,14 +252,14 @@ export function ModelSelector() {
 					{/* Loading state */}
 					{modelsLoading && availableModels.length === 0 && (
 						<div className="flex items-center justify-center py-8">
-							<span className="text-xs text-neutral-500">Loading models…</span>
+							<span className="text-xs text-text-tertiary">Loading models…</span>
 						</div>
 					)}
 
 					{/* Empty state */}
 					{!modelsLoading && availableModels.length === 0 && (
 						<div className="flex items-center justify-center py-8">
-							<span className="text-xs text-neutral-500">No models available</span>
+							<span className="text-xs text-text-tertiary">No models available</span>
 						</div>
 					)}
 
@@ -270,7 +270,7 @@ export function ModelSelector() {
 								<div key={provider}>
 									{/* Provider header */}
 									<div className="px-3 pb-1 pt-2">
-										<span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+										<span className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
 											{providerLabel(provider)}
 										</span>
 									</div>
@@ -286,15 +286,15 @@ export function ModelSelector() {
 												className={cn(
 													"flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors",
 													isActive
-														? "bg-blue-600/15 text-blue-400"
-														: "text-neutral-300 hover:bg-neutral-800",
+														? "bg-accent-soft text-accent-text"
+														: "text-text-secondary hover:bg-surface-secondary",
 												)}
 											>
 												{/* Active indicator */}
 												<span
 													className={cn(
 														"h-1.5 w-1.5 shrink-0 rounded-full",
-														isActive ? "bg-blue-400" : "bg-transparent",
+														isActive ? "bg-accent-text" : "bg-transparent",
 													)}
 												/>
 
@@ -305,17 +305,17 @@ export function ModelSelector() {
 															{displayName(model)}
 														</span>
 														{model.reasoning && (
-															<span className="shrink-0 rounded bg-amber-900/50 px-1 py-0.5 text-[9px] font-medium text-amber-400">
+															<span className="shrink-0 rounded bg-status-warning-bg px-1 py-0.5 text-[9px] font-medium text-status-warning-text">
 																reasoning
 															</span>
 														)}
 														{model.input.includes("image") && (
-															<span className="shrink-0 rounded bg-emerald-900/50 px-1 py-0.5 text-[9px] font-medium text-emerald-400">
+															<span className="shrink-0 rounded bg-status-success-bg px-1 py-0.5 text-[9px] font-medium text-status-success-text">
 																vision
 															</span>
 														)}
 													</div>
-													<div className="mt-0.5 text-[10px] text-neutral-500">
+													<div className="mt-0.5 text-[10px] text-text-tertiary">
 														{model.id}
 														{model.contextWindow > 0 && (
 															<>

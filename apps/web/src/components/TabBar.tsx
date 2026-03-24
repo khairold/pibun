@@ -93,26 +93,29 @@ const TabItem = memo(function TabItem({
 			onDragOver={handleDragOver}
 			onDragEnd={onDragEnd}
 			className={cn(
-				"group relative flex h-9 min-w-0 max-w-[200px] shrink-0 cursor-pointer items-center gap-1.5 border-r border-neutral-800 px-3 text-left transition-colors",
+				"group relative flex h-9 min-w-0 max-w-[200px] shrink-0 cursor-pointer items-center gap-1.5 border-r border-border-secondary px-3 text-left transition-colors",
 				isActive
-					? "bg-neutral-950 text-neutral-100"
-					: "bg-neutral-900 text-neutral-400 hover:bg-neutral-850 hover:text-neutral-200",
-				isDragOver && "border-l-2 border-l-blue-500",
+					? "bg-surface-base text-text-primary"
+					: "bg-surface-primary text-text-secondary hover:bg-surface-primary hover:text-text-primary",
+				isDragOver && "border-l-2 border-l-accent-primary",
 			)}
 			aria-selected={isActive}
 			aria-label={displayName}
 		>
 			{/* Active tab top indicator */}
-			{isActive && <span className="absolute inset-x-0 top-0 h-0.5 bg-blue-500" />}
+			{isActive && <span className="absolute inset-x-0 top-0 h-0.5 bg-accent-primary" />}
 
 			{/* Streaming indicator — pulsing blue dot */}
 			{tab.isStreaming && (
-				<span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-blue-500" />
+				<span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-accent-primary" />
 			)}
 
 			{/* Git dirty indicator — amber dot when uncommitted changes exist */}
 			{tab.gitDirty && !tab.isStreaming && (
-				<span className="h-2 w-2 shrink-0 rounded-full bg-amber-500" title="Uncommitted changes" />
+				<span
+					className="h-2 w-2 shrink-0 rounded-full bg-status-warning"
+					title="Uncommitted changes"
+				/>
 			)}
 
 			{/* Session name */}
@@ -120,7 +123,7 @@ const TabItem = memo(function TabItem({
 
 			{/* Model badge */}
 			{modelName && (
-				<span className="shrink-0 rounded bg-neutral-800 px-1 py-0.5 text-[10px] leading-none text-neutral-500">
+				<span className="shrink-0 rounded bg-surface-secondary px-1 py-0.5 text-[10px] leading-none text-text-tertiary">
 					{modelName}
 				</span>
 			)}
@@ -134,8 +137,8 @@ const TabItem = memo(function TabItem({
 					className={cn(
 						"ml-auto flex h-4 w-4 shrink-0 items-center justify-center rounded-sm transition-colors",
 						isActive
-							? "text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300"
-							: "text-transparent group-hover:text-neutral-500 group-hover:hover:bg-neutral-800 group-hover:hover:text-neutral-300",
+							? "text-text-tertiary hover:bg-surface-secondary hover:text-text-secondary"
+							: "text-transparent group-hover:text-text-tertiary group-hover:hover:bg-surface-secondary group-hover:hover:text-text-secondary",
 					)}
 					aria-label={`Close ${displayName}`}
 				>
@@ -253,7 +256,7 @@ export function TabBar() {
 	}
 
 	return (
-		<div className="flex h-9 shrink-0 items-stretch border-b border-neutral-800 bg-neutral-900">
+		<div className="flex h-9 shrink-0 items-stretch border-b border-border-secondary bg-surface-primary">
 			{/* Scrollable tab container */}
 			<div
 				ref={scrollContainerRef}
@@ -286,10 +289,10 @@ export function TabBar() {
 				disabled={!isConnected}
 				title="New Tab (Ctrl+T)"
 				className={cn(
-					"flex h-9 w-9 shrink-0 items-center justify-center border-l border-neutral-800 transition-colors",
+					"flex h-9 w-9 shrink-0 items-center justify-center border-l border-border-secondary transition-colors",
 					isConnected
-						? "text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300"
-						: "cursor-not-allowed text-neutral-700",
+						? "text-text-tertiary hover:bg-surface-secondary hover:text-text-secondary"
+						: "cursor-not-allowed text-text-muted",
 				)}
 			>
 				<svg

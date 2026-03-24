@@ -173,7 +173,7 @@ const RecentProjectItem = memo(function RecentProjectItem({
 			onClick={() => onOpen(project)}
 			className={cn(
 				"flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
-				"text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200",
+				"text-text-secondary hover:bg-surface-secondary hover:text-text-primary",
 			)}
 		>
 			{/* Folder icon */}
@@ -181,7 +181,7 @@ const RecentProjectItem = memo(function RecentProjectItem({
 				xmlns="http://www.w3.org/2000/svg"
 				viewBox="0 0 16 16"
 				fill="currentColor"
-				className="h-4 w-4 shrink-0 text-neutral-600"
+				className="h-4 w-4 shrink-0 text-text-muted"
 				aria-label="Project folder"
 				role="img"
 			>
@@ -189,7 +189,7 @@ const RecentProjectItem = memo(function RecentProjectItem({
 			</svg>
 			<div className="min-w-0 flex-1">
 				<span className="block truncate text-sm font-medium">{project.name}</span>
-				<span className="block truncate text-[11px] text-neutral-600">{project.cwd}</span>
+				<span className="block truncate text-[11px] text-text-muted">{project.cwd}</span>
 			</div>
 		</button>
 	);
@@ -221,16 +221,18 @@ function EmptyState() {
 		<div className="flex flex-1 flex-col items-center justify-center px-4">
 			<div className="w-full max-w-md text-center">
 				<div className="mb-3 text-3xl">{"\u{1F967}"}</div>
-				<p className="text-sm text-neutral-400">Send a message to start a conversation with Pi</p>
-				<p className="mt-1 text-xs text-neutral-600">A session will be created automatically</p>
+				<p className="text-sm text-text-secondary">
+					Send a message to start a conversation with Pi
+				</p>
+				<p className="mt-1 text-xs text-text-muted">A session will be created automatically</p>
 
 				{/* Recent projects */}
 				{recentProjects.length > 0 && (
 					<div className="mt-8">
-						<p className="mb-2 text-xs font-medium uppercase tracking-wider text-neutral-600">
+						<p className="mb-2 text-xs font-medium uppercase tracking-wider text-text-muted">
 							Recent Projects
 						</p>
-						<div className="flex flex-col gap-0.5 rounded-lg border border-neutral-800 bg-neutral-900/50 p-1">
+						<div className="flex flex-col gap-0.5 rounded-lg border border-border-secondary bg-surface-primary/50 p-1">
 							{recentProjects.map((project) => (
 								<RecentProjectItem key={project.id} project={project} onOpen={handleOpenProject} />
 							))}
@@ -319,24 +321,24 @@ export function ChatView() {
 			<div className="mx-auto w-full max-w-3xl px-4 pb-4">
 				{/* Streaming indicator when agent is working but no messages are streaming */}
 				{showThinking && (
-					<div className="mt-4 flex items-center gap-2 text-xs text-neutral-500">
-						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
+					<div className="mt-4 flex items-center gap-2 text-xs text-text-tertiary">
+						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-accent-text" />
 						<span>Pi is thinking{"\u2026"}</span>
 					</div>
 				)}
 
 				{/* Compaction indicator when context is being compressed */}
 				{showCompacting && (
-					<div className="mt-4 flex items-center gap-2 text-xs text-amber-500/70">
-						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+					<div className="mt-4 flex items-center gap-2 text-xs text-status-warning/70">
+						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-status-warning-text" />
 						<span>Compacting context{"\u2026"}</span>
 					</div>
 				)}
 
 				{/* Retry indicator when Pi is auto-retrying after an error */}
 				{showRetrying && (
-					<div className="mt-4 flex items-center gap-2 text-xs text-orange-400/80">
-						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-orange-400" />
+					<div className="mt-4 flex items-center gap-2 text-xs text-status-warning-text/80">
+						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-status-warning-text" />
 						<span>
 							Retrying{"\u2026"} (attempt {retryAttempt}/{retryMaxAttempts})
 						</span>
@@ -383,9 +385,9 @@ export function ChatView() {
 					className={cn(
 						"absolute bottom-4 left-1/2 z-10 -translate-x-1/2",
 						"flex items-center gap-1.5 rounded-full",
-						"border border-neutral-700 bg-neutral-800 px-3 py-1.5",
-						"text-xs text-neutral-300 shadow-lg",
-						"transition-colors hover:bg-neutral-700 hover:text-neutral-100",
+						"border border-border-primary bg-surface-secondary px-3 py-1.5",
+						"text-xs text-text-secondary shadow-lg",
+						"transition-colors hover:bg-surface-tertiary hover:text-text-primary",
 					)}
 				>
 					{/* Down arrow icon */}

@@ -52,29 +52,29 @@ export const EditorDialog = React.memo(function EditorDialog({ request }: Editor
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: dialog role for modal overlay
 		<div role="dialog" aria-label={request.title} onKeyDown={handleKeyDown} tabIndex={-1}>
-			<h3 className="mb-3 text-sm font-semibold text-neutral-100">{request.title}</h3>
+			<h3 className="mb-3 text-sm font-semibold text-text-primary">{request.title}</h3>
 			<textarea
 				ref={textareaRef}
 				value={value}
 				onChange={(e) => setValue(e.target.value)}
 				rows={12}
-				className="w-full resize-y rounded border border-neutral-700 bg-neutral-800 px-3 py-2 font-mono text-sm text-neutral-100 placeholder-neutral-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30"
+				className="w-full resize-y rounded border border-border-primary bg-surface-secondary px-3 py-2 font-mono text-sm text-text-primary placeholder-text-tertiary outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/30"
 			/>
 			<div className="mt-3 flex items-center justify-between">
-				<span className="text-xs text-neutral-500">
+				<span className="text-xs text-text-tertiary">
 					{navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}+Enter to submit
 				</span>
 				<div className="flex gap-2">
 					<button
 						type="button"
-						className="rounded px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-700/50 hover:text-neutral-200"
+						className="rounded px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-tertiary/50 hover:text-text-primary"
 						onClick={handleCancel}
 					>
 						Cancel
 					</button>
 					<button
 						type="button"
-						className="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500"
+						className="rounded bg-accent-primary px-3 py-1.5 text-xs font-medium text-text-on-accent hover:bg-accent-primary-hover"
 						onClick={handleSubmit}
 					>
 						Submit

@@ -1,1 +1,101 @@
 @import "tailwindcss";
+
+/*
+ * Semantic color tokens — Tailwind v4 @theme directive.
+ *
+ * Defines CSS custom properties at :root AND registers them with Tailwind
+ * for utility class generation. Default values match the "dark" theme.
+ *
+ * At runtime, applyTheme() overrides these via inline styles on <html>.
+ * Tailwind utilities like bg-surface-primary, text-text-secondary, etc.
+ * automatically pick up the overridden values.
+ *
+ * Token naming follows packages/contracts/src/theme.ts ThemeColors interface.
+ */
+
+@theme {
+	/* ── Surface (backgrounds) ─────────────────────────────────── */
+	--color-surface-base: #0a0a0a;
+	--color-surface-primary: #171717;
+	--color-surface-secondary: #262626;
+	--color-surface-tertiary: #404040;
+	--color-surface-overlay: rgba(23, 23, 23, 0.5);
+
+	/* ── Text ──────────────────────────────────────────────────── */
+	--color-text-primary: #f5f5f5;
+	--color-text-secondary: #d4d4d4;
+	--color-text-tertiary: #a3a3a3;
+	--color-text-muted: #525252;
+	--color-text-on-accent: #ffffff;
+
+	/* ── Border ────────────────────────────────────────────────── */
+	--color-border-primary: #404040;
+	--color-border-secondary: #262626;
+	--color-border-muted: rgba(38, 38, 38, 0.5);
+
+	/* ── Accent (interactive / active elements) ────────────────── */
+	--color-accent-primary: #3b82f6;
+	--color-accent-primary-hover: #2563eb;
+	--color-accent-soft: rgba(96, 165, 250, 0.1);
+	--color-accent-text: #60a5fa;
+
+	/* ── Status: Error ─────────────────────────────────────────── */
+	--color-status-error: #ef4444;
+	--color-status-error-bg: #450a0a;
+	--color-status-error-text: #fca5a5;
+	--color-status-error-border: rgba(239, 68, 68, 0.3);
+
+	/* ── Status: Success ───────────────────────────────────────── */
+	--color-status-success: #22c55e;
+	--color-status-success-bg: rgba(20, 83, 45, 0.4);
+	--color-status-success-text: #4ade80;
+	--color-status-success-border: rgba(21, 128, 61, 0.5);
+
+	/* ── Status: Warning ───────────────────────────────────────── */
+	--color-status-warning: #f59e0b;
+	--color-status-warning-bg: rgba(120, 53, 15, 0.5);
+	--color-status-warning-text: #fbbf24;
+
+	/* ── Status: Info ──────────────────────────────────────────── */
+	--color-status-info: #3b82f6;
+	--color-status-info-bg: rgba(37, 99, 235, 0.15);
+	--color-status-info-text: #60a5fa;
+
+	/* ── Thinking (assistant reasoning) ────────────────────────── */
+	--color-thinking-bg: rgba(99, 102, 241, 0.1);
+	--color-thinking-border: rgba(99, 102, 241, 0.3);
+	--color-thinking-text: #a5b4fc;
+
+	/* ── Code ──────────────────────────────────────────────────── */
+	--color-code-bg: #0a0a0a;
+	--color-code-inline-bg: #262626;
+
+	/* ── User message bubble ───────────────────────────────────── */
+	--color-user-bubble-bg: #3b82f6;
+	--color-user-bubble-text: #ffffff;
+
+	/* ── Scrollbar ─────────────────────────────────────────────── */
+	--color-scrollbar-thumb: #404040;
+	--color-scrollbar-track: transparent;
+}
+
+/*
+ * Custom scrollbar styling using theme tokens.
+ */
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--color-scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--color-scrollbar-thumb);
+	border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--color-border-primary);
+}

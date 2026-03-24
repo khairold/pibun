@@ -6,7 +6,7 @@
  * - xterm.js terminal instance with fit addon for auto-resize
  * - Multiple terminal tabs
  * - Resizable via drag handle
- * - Theme-matched colors (neutral-950 dark theme)
+ * - Theme-matched colors (semantic theme tokens)
  * - Terminal data flows: xterm onData → writeTerminal → server → PTY stdin
  *                        PTY stdout → server → terminal.data push → xterm.write
  */
@@ -41,10 +41,10 @@ const TerminalTabItem = memo(function TerminalTabItem({
 			tabIndex={0}
 			aria-selected={isActive}
 			className={cn(
-				"flex items-center gap-1.5 px-3 py-1.5 text-xs cursor-pointer select-none border-r border-neutral-800 transition-colors",
+				"flex items-center gap-1.5 px-3 py-1.5 text-xs cursor-pointer select-none border-r border-border-secondary transition-colors",
 				isActive
-					? "bg-neutral-900 text-neutral-100"
-					: "bg-neutral-950 text-neutral-500 hover:text-neutral-300 hover:bg-neutral-900/50",
+					? "bg-surface-primary text-text-primary"
+					: "bg-surface-base text-text-tertiary hover:text-text-secondary hover:bg-surface-primary/50",
 			)}
 			onClick={() => onSelect(tab.id)}
 			onKeyDown={(e) => {
@@ -71,9 +71,9 @@ const TerminalTabItem = memo(function TerminalTabItem({
 
 			{/* Running/exited indicator */}
 			{tab.isRunning ? (
-				<span className="h-1.5 w-1.5 rounded-full bg-green-500 shrink-0" title="Running" />
+				<span className="h-1.5 w-1.5 rounded-full bg-status-success shrink-0" title="Running" />
 			) : (
-				<span className="h-1.5 w-1.5 rounded-full bg-neutral-600 shrink-0" title="Exited" />
+				<span className="h-1.5 w-1.5 rounded-full bg-text-muted shrink-0" title="Exited" />
 			)}
 
 			{/* Close button */}
@@ -83,7 +83,7 @@ const TerminalTabItem = memo(function TerminalTabItem({
 					e.stopPropagation();
 					onClose(tab.id);
 				}}
-				className="ml-0.5 rounded p-0.5 text-neutral-600 transition-colors hover:bg-neutral-700 hover:text-neutral-300"
+				className="ml-0.5 rounded p-0.5 text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-secondary"
 				title="Close terminal"
 			>
 				<svg
@@ -144,7 +144,7 @@ function ResizeHandle({ onResize }: ResizeHandleProps) {
 
 	return (
 		<div
-			className="h-1 cursor-row-resize bg-neutral-800 hover:bg-blue-600 transition-colors shrink-0"
+			className="h-1 cursor-row-resize bg-surface-secondary hover:bg-accent-primary-hover transition-colors shrink-0"
 			onMouseDown={handleMouseDown}
 			title="Drag to resize terminal"
 		/>
@@ -206,14 +206,14 @@ export function TerminalPane() {
 	return (
 		<div
 			ref={panelRef}
-			className="flex flex-col border-t border-neutral-800 bg-neutral-950 shrink-0"
+			className="flex flex-col border-t border-border-secondary bg-surface-base shrink-0"
 			style={{ height: DEFAULT_HEIGHT }}
 		>
 			{/* Resize handle */}
 			<ResizeHandle onResize={handleResize} />
 
 			{/* Terminal tab bar */}
-			<div className="flex items-center border-b border-neutral-800 bg-neutral-950 shrink-0">
+			<div className="flex items-center border-b border-border-secondary bg-surface-base shrink-0">
 				{/* Tab list */}
 				<div className="flex items-center overflow-x-auto" role="tablist">
 					{terminalTabs.map((tab) => (
@@ -231,7 +231,7 @@ export function TerminalPane() {
 				<button
 					type="button"
 					onClick={handleNewTerminal}
-					className="px-2 py-1.5 text-neutral-500 transition-colors hover:text-neutral-300"
+					className="px-2 py-1.5 text-text-tertiary transition-colors hover:text-text-secondary"
 					title="New Terminal"
 				>
 					<svg
@@ -253,7 +253,7 @@ export function TerminalPane() {
 				<button
 					type="button"
 					onClick={handleClosePanel}
-					className="px-2 py-1.5 text-neutral-500 transition-colors hover:text-neutral-300"
+					className="px-2 py-1.5 text-text-tertiary transition-colors hover:text-text-secondary"
 					title="Close terminal panel"
 				>
 					<svg
@@ -272,11 +272,11 @@ export function TerminalPane() {
 			{/* Terminal content area */}
 			<div className="relative flex-1 min-h-0">
 				{terminalTabs.length === 0 ? (
-					<div className="flex h-full items-center justify-center text-neutral-600 text-sm">
+					<div className="flex h-full items-center justify-center text-text-muted text-sm">
 						<button
 							type="button"
 							onClick={handleNewTerminal}
-							className="flex items-center gap-2 rounded-md px-4 py-2 text-neutral-400 transition-colors hover:bg-neutral-900 hover:text-neutral-200"
+							className="flex items-center gap-2 rounded-md px-4 py-2 text-text-secondary transition-colors hover:bg-surface-primary hover:text-text-primary"
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"

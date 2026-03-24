@@ -144,11 +144,11 @@ export function ThinkingSelector() {
 				disabled={!isConnected || !hasSession}
 				className={cn(
 					"flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
-					"border border-neutral-700 bg-neutral-900 transition-colors",
+					"border border-border-primary bg-surface-primary transition-colors",
 					isConnected && hasSession
-						? "text-neutral-200 hover:border-neutral-500 hover:bg-neutral-800"
-						: "cursor-not-allowed text-neutral-600",
-					isOpen && "border-neutral-500 bg-neutral-800",
+						? "text-text-primary hover:border-text-tertiary hover:bg-surface-secondary"
+						: "cursor-not-allowed text-text-muted",
+					isOpen && "border-text-tertiary bg-surface-secondary",
 				)}
 				title="Set thinking level"
 			>
@@ -190,12 +190,12 @@ export function ThinkingSelector() {
 					ref={dropdownRef}
 					className={cn(
 						"absolute left-0 top-full z-50 mt-1 w-64",
-						"rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl",
+						"rounded-lg border border-border-primary bg-surface-primary shadow-xl",
 					)}
 				>
 					{/* Header */}
-					<div className="border-b border-neutral-800 px-3 py-2">
-						<span className="text-xs font-medium text-neutral-400">Thinking Level</span>
+					<div className="border-b border-border-secondary px-3 py-2">
+						<span className="text-xs font-medium text-text-secondary">Thinking Level</span>
 					</div>
 
 					{/* Level list */}
@@ -211,22 +211,22 @@ export function ThinkingSelector() {
 									className={cn(
 										"flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors",
 										isActive
-											? "bg-blue-600/15 text-blue-400"
-											: "text-neutral-300 hover:bg-neutral-800",
+											? "bg-accent-soft text-accent-text"
+											: "text-text-secondary hover:bg-surface-secondary",
 									)}
 								>
 									{/* Active indicator */}
 									<span
 										className={cn(
 											"h-1.5 w-1.5 shrink-0 rounded-full",
-											isActive ? "bg-blue-400" : "bg-transparent",
+											isActive ? "bg-accent-text" : "bg-transparent",
 										)}
 									/>
 
 									{/* Level info */}
 									<div className="min-w-0 flex-1">
 										<div className="text-xs font-medium">{levelInfo.label}</div>
-										<div className="mt-0.5 text-[10px] text-neutral-500">
+										<div className="mt-0.5 text-[10px] text-text-tertiary">
 											{levelInfo.description}
 										</div>
 									</div>
@@ -242,9 +242,9 @@ export function ThinkingSelector() {
 														"h-2 w-1 rounded-sm",
 														i <= levelIndex
 															? isActive
-																? "bg-blue-400"
-																: "bg-neutral-500"
-															: "bg-neutral-800",
+																? "bg-accent-text"
+																: "bg-text-tertiary"
+															: "bg-surface-secondary",
 													)}
 												/>
 											);

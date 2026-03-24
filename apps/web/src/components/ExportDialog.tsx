@@ -401,8 +401,8 @@ export function ExportDialog() {
 				className={cn(
 					"flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
 					isDisabled
-						? "cursor-not-allowed text-neutral-600"
-						: "text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200",
+						? "cursor-not-allowed text-text-muted"
+						: "text-text-secondary hover:bg-surface-secondary hover:text-text-primary",
 				)}
 			>
 				{/* Download/export icon */}
@@ -426,11 +426,11 @@ export function ExportDialog() {
 
 			{/* Dropdown — format picker */}
 			{isOpen && (
-				<div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl">
+				<div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-border-primary bg-surface-primary shadow-xl">
 					{/* Header */}
-					<div className="border-b border-neutral-800 px-3 py-2">
-						<p className="text-xs font-medium text-neutral-300">Export session</p>
-						<p className="mt-0.5 text-xs text-neutral-500">Choose a format</p>
+					<div className="border-b border-border-secondary px-3 py-2">
+						<p className="text-xs font-medium text-text-secondary">Export session</p>
+						<p className="mt-0.5 text-xs text-text-tertiary">Choose a format</p>
 					</div>
 
 					{/* Format options */}
@@ -441,16 +441,16 @@ export function ExportDialog() {
 								type="button"
 								onClick={() => handleExport(format)}
 								className={cn(
-									"flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-neutral-800",
-									index < FORMAT_OPTIONS.length - 1 && "border-b border-neutral-800/50",
+									"flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-surface-secondary",
+									index < FORMAT_OPTIONS.length - 1 && "border-b border-border-muted",
 								)}
 							>
-								<div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-neutral-800 text-xs font-bold text-neutral-400">
+								<div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-surface-secondary text-xs font-bold text-text-secondary">
 									{format.extension}
 								</div>
 								<div>
-									<p className="text-sm font-medium text-neutral-200">{format.label}</p>
-									<p className="text-xs text-neutral-500">{format.description}</p>
+									<p className="text-sm font-medium text-text-primary">{format.label}</p>
+									<p className="text-xs text-text-tertiary">{format.description}</p>
 								</div>
 							</button>
 						))}
