@@ -18,6 +18,7 @@ import type {
 	PluginPanelPosition,
 	Project,
 	SessionTab,
+	TimestampFormat,
 	WsSessionSummary,
 } from "@pibun/contracts";
 
@@ -329,6 +330,12 @@ export interface UiSlice {
 	imagePreviewUrl: string | null;
 	/** Alt text for the image preview modal. */
 	imagePreviewAlt: string;
+	/**
+	 * Timestamp format preference for in-chat timestamps (turn dividers, etc.).
+	 * Kept in Zustand so components re-render when the format changes.
+	 * Synced from settings cache by `updateSetting("timestampFormat", ...)`.
+	 */
+	timestampFormat: TimestampFormat;
 
 	/** Toggle the sidebar open/closed. */
 	toggleSidebar: () => void;
@@ -340,6 +347,8 @@ export interface UiSlice {
 	setPendingComposerText: (text: string | null) => void;
 	/** Open the image preview modal with the given URL. Null to close. */
 	setImagePreview: (url: string | null, alt?: string) => void;
+	/** Update the timestamp format preference (triggers re-render of timestamp displays). */
+	setTimestampFormat: (format: TimestampFormat) => void;
 }
 
 /** Git state — repository status for the active session's CWD. */

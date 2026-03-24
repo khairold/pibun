@@ -10,7 +10,7 @@
  */
 
 import { MarkdownContent } from "@/components/Markdown";
-import { cn } from "@/lib/utils";
+import { cn, formatTimestamp } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -335,18 +335,6 @@ interface TurnDividerProps {
 }
 
 /**
- * Format a timestamp into a short locale-aware time string.
- * Uses 12-hour format with AM/PM (e.g., "2:34 PM").
- */
-function formatTimestamp(ts: number): string {
-	const date = new Date(ts);
-	return date.toLocaleTimeString(undefined, {
-		hour: "numeric",
-		minute: "2-digit",
-	});
-}
-
-/**
  * Visual separator between user→assistant turns.
  *
  * Shows a subtle divider line with:
@@ -358,6 +346,8 @@ function formatTimestamp(ts: number): string {
  * completion summary ("✓ Worked for Xm Ys") which appears just above.
  */
 export const TurnDivider = memo(function TurnDivider({ timestamp, toolCount }: TurnDividerProps) {
+	const timestampFormat = useStore((s) => s.timestampFormat);
+
 	return (
 		<div className="flex items-center gap-2 py-1">
 			<div className="h-px flex-1 bg-border-primary/30" />
@@ -382,7 +372,9 @@ export const TurnDivider = memo(function TurnDivider({ timestamp, toolCount }: T
 						{toolCount} {toolCount === 1 ? "tool call" : "tool calls"}
 					</span>
 				)}
-				<span className="text-[10px] text-text-muted/60">{formatTimestamp(timestamp)}</span>
+				<span className="text-[10px] text-text-muted/60">
+					{formatTimestamp(timestamp, timestampFormat)}
+				</span>
 			</div>
 			<div className="h-px flex-1 bg-border-primary/30" />
 		</div>

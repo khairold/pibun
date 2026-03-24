@@ -1,11 +1,13 @@
 /**
- * General utilities — className helper, file path helpers, shortcut event bus.
+ * General utilities — className helper, file path helpers, timestamp formatting, shortcut event bus.
  *
  * Consolidates: cn.ts, fileUtils.ts, shortcuts.ts.
  * Small utilities that are always needed together.
  *
  * @module
  */
+
+import type { TimestampFormat } from "@pibun/contracts";
 
 // ============================================================================
 // className Utility
@@ -185,6 +187,67 @@ export function shortPath(path: string): string {
 	const segments = path.split("/").filter((s) => s.length > 0);
 	if (segments.length <= 2) return segments.join("/");
 	return segments.slice(-2).join("/");
+}
+
+// ============================================================================
+// Timestamp Formatting
+// ============================================================================
+
+/**
+ * Format a Unix timestamp (ms) according to a timestamp format preference.
+ *
+ * Used by TurnDivider and any other in-chat timestamp display.
+ * Pass the format from the Zustand store (`useStore(s => s.timestampFormat)`)
+ * so the component re-renders when the user changes the format in settings.
+ *
+ * Formats:
+ * - `"relative"` — "just now", "2m ago", "1h ago" (falls back to locale time for >24h)
+ * - `"locale"` — browser default locale time (e.g., "2:34 PM" or "14:34")
+ * - `"12h"` — 12-hour format with AM/PM (e.g., "2:34 PM")
+ * - `"24h"` — 24-hour format (e.g., "14:34")
+ */
+export function formatTimestamp(ts: number, format: TimestampFormat = "locale"): string {
+	const date = new Date(ts);
+
+	switch (format) {
+		case "relative":
+			return formatRelativeTimestamp(ts);
+		case "12h":
+			return date.toLocaleTimeString("en-US", {
+				hour: "numeric",
+				minute: "2-digit",
+				hour12: true,
+			});
+		case "24h":
+			return date.toLocaleTimeString("en-GB", {
+				hour: "2-digit",
+				minute: "2-digit",
+				hour12: false,
+			});
+		default:
+			return date.toLocaleTimeString(undefined, {
+				hour: "numeric",
+				minute: "2-digit",
+			});
+	}
+}
+
+/** Format a timestamp as a relative time string ("2m ago", "1h ago", etc.). */
+function formatRelativeTimestamp(ts: number): string {
+	const now = Date.now();
+	const diffMs = now - ts;
+	const diffSec = Math.floor(diffMs / 1000);
+	const diffMin = Math.floor(diffMs / 60000);
+	const diffHr = Math.floor(diffMs / 3600000);
+
+	if (diffSec < 60) return "just now";
+	if (diffMin < 60) return `${String(diffMin)}m ago`;
+	if (diffHr < 24) return `${String(diffHr)}h ago`;
+
+	return new Date(ts).toLocaleTimeString(undefined, {
+		hour: "numeric",
+		minute: "2-digit",
+	});
 }
 
 // ============================================================================

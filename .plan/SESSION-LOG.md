@@ -431,3 +431,29 @@
 - `consumeDeferredActiveTabId()` still not consumed
 
 ---
+
+## Session 15 — Timestamp format selector applied throughout UI (2026-03-24)
+
+**What happened:**
+- Implemented timestamp format selector applied throughout UI (1C.6), completing Phase 1C:
+  - **Shared utility**: Created `formatTimestamp(ts, format)` in `utils.ts` — formats Unix timestamp according to `TimestampFormat` preference (relative/locale/12h/24h). Relative format shows "just now", "Xm ago", "Xh ago", falls back to locale time for >24h.
+  - **Zustand reactivity**: Added `timestampFormat: TimestampFormat` field + `setTimestampFormat` action to `UiSlice`/`appSlice`. Components read from store so they re-render when format changes.
+  - **Sync pipeline**: `timestampFormat` synced to Zustand from 3 paths: (1) `restorePersistedUiState()` on init from localStorage cache, (2) `fetchAndApplySettings()` on server welcome, (3) `updateSetting("timestampFormat", ...)` on user change in settings dialog.
+  - **TurnDivider**: Updated to read `timestampFormat` from Zustand store and pass to shared `formatTimestamp()`. Deleted the old local `formatTimestamp` function from `ChatMessages.tsx`.
+  - **Sidebar timestamps**: Left as-is — sidebar uses `formatRelativeTime`/`formatDate` for session creation dates and project last-opened, which are conceptually different from in-chat time display.
+- Phase 1C exit criteria verified: ✅ Settings dialog with all sections, ✅ persistence across restarts, ✅ auto-compaction/auto-retry controllable, ✅ steering/follow-up modes controllable, ✅ timestamp format applied throughout UI.
+
+**Items completed:**
+- [x] 1C.6 — Add timestamp format selector (relative, locale, 12-hour, 24-hour) — apply throughout UI
+
+**Issues encountered:**
+- Biome flagged `case "locale":` before `default:` as useless switch case — removed explicit case, `default` handles locale format.
+- Import placement: initially placed `import type { TimestampFormat }` mid-file in utils.ts — moved to top with other imports.
+
+**Handoff to next session:**
+- **Phase 1C is COMPLETE.** Next: Phase 2A — Slash Commands & Command Palette
+- Start with 2A.1 — Add Pi RPC `get_commands` support
+- `formatTimestamp()` in `utils.ts` is the shared utility for all in-chat timestamps. Always pass `format` from Zustand (`useStore(s => s.timestampFormat)`) for reactivity.
+- `consumeDeferredActiveTabId()` still not consumed
+
+---

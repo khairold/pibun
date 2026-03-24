@@ -464,6 +464,9 @@ export async function fetchAndApplySettings(): Promise<void> {
 		// Persist to localStorage
 		persistSettingsToLocalStorage(cachedSettings);
 
+		// Sync timestamp format to Zustand store for reactive components
+		useStore.getState().setTimestampFormat(cachedSettings.timestampFormat);
+
 		if (settings.themeId) {
 			const currentLocalPref = localStorage.getItem(THEME_STORAGE_KEY);
 
@@ -491,6 +494,11 @@ export function updateSetting<K extends keyof WsSettingsUpdateParams>(
 	const settings = getSettings();
 	(settings as unknown as Record<string, unknown>)[key] = value;
 	cachedSettings = { ...settings };
+
+	// Sync reactive state to Zustand store (for components that re-render on format change)
+	if (key === "timestampFormat" && typeof value === "string") {
+		useStore.getState().setTimestampFormat(value as TimestampFormat);
+	}
 
 	// Persist to localStorage
 	if (key === "themeId") {
@@ -877,6 +885,10 @@ export function restorePersistedUiState(): void {
 	if (persisted.activeTabId !== undefined) {
 		_deferredActiveTabId = persisted.activeTabId;
 	}
+
+	// Sync timestamp format from settings cache to Zustand store
+	const settings = getSettings();
+	store.setTimestampFormat(settings.timestampFormat);
 }
 
 /** Deferred active tab ID — restored after tabs are created from sessions. */

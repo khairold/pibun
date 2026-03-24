@@ -64,12 +64,14 @@ export const createAppSlice: StateCreator<AppStore, [], [], AppSlice> = (set, ge
 	pendingComposerText: null,
 	imagePreviewUrl: null,
 	imagePreviewAlt: "",
+	timestampFormat: "locale",
 
 	toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 	setSidebarOpen: (open) => set({ sidebarOpen: open }),
 	setSettingsOpen: (open) => set({ settingsOpen: open }),
 	setPendingComposerText: (text) => set({ pendingComposerText: text }),
 	setImagePreview: (url, alt) => set({ imagePreviewUrl: url, imagePreviewAlt: alt ?? "" }),
+	setTimestampFormat: (format) => set({ timestampFormat: format }),
 
 	// ---- Update state ----
 	updateStatus: null,
