@@ -14,6 +14,12 @@ import {
 } from "./app.js";
 import { handleGitBranch, handleGitDiff, handleGitLog, handleGitStatus } from "./git.js";
 import {
+	handlePluginInstall,
+	handlePluginList,
+	handlePluginSetEnabled,
+	handlePluginUninstall,
+} from "./plugin.js";
+import {
 	handleProjectAdd,
 	handleProjectList,
 	handleProjectRemove,
@@ -124,4 +130,10 @@ export const handlers: HandlerRegistry = {
 	// Settings (server-side persistence)
 	"settings.get": handleSettingsGet,
 	"settings.update": handleSettingsUpdate,
+
+	// Plugin management (server-side)
+	"plugin.list": handlePluginList,
+	"plugin.install": handlePluginInstall,
+	"plugin.uninstall": handlePluginUninstall,
+	"plugin.setEnabled": handlePluginSetEnabled,
 };

@@ -5,6 +5,40 @@
 
 ---
 
+## Session 90 — Plugin loading: pluginStore + handlers (2026-03-24)
+
+**What happened:**
+- Created `apps/server/src/pluginStore.ts` — server-side plugin directory scanner and persistence:
+  - `loadPlugins()` — scans `~/.pibun/plugins/` for subdirs with `plugin.json`, validates manifests, merges enabled/disabled state from `~/.pibun/plugins-state.json`
+  - `getPlugin(id)` — load single plugin by ID
+  - `installPlugin(source)` — validates manifest at source path, copies directory to plugins dir (recursive copy via `Bun.file`/`Bun.write`), supports upgrades (removes existing before copy)
+  - `uninstallPlugin(id)` — removes plugin directory + persisted state
+  - `setPluginEnabled(id, enabled)` — persists to `plugins-state.json`
+  - `validateManifest()` — validates all required fields + panel shape (id, title, icon, position, component, defaultSize)
+  - Manifest ID must match directory name — returns error otherwise
+  - New plugins default to enabled; malformed manifests returned with `error` field (not silently dropped)
+- Created `apps/server/src/handlers/plugin.ts` — 4 WS handlers:
+  - `handlePluginList` — scans directory, returns all plugins
+  - `handlePluginInstall` — validates source + copies
+  - `handlePluginUninstall` — removes directory + state
+  - `handlePluginSetEnabled` — persists enabled/disabled
+- Registered all 4 plugin handlers in `handlers/index.ts`
+- Added `./pluginStore` subpath export to server's `package.json`
+
+**Items completed:**
+- [x] 7.3 — Plugin loading: read `~/.pibun/plugins/` directory, load manifests
+
+**Issues encountered:**
+- Biome `noDelete` suppression comment was unused (Biome doesn't flag `delete` on `Record<string, ...>` types) — removed it
+
+**Handoff to next session:**
+- Next: 7.4 — Plugin panel rendering: sandboxed iframe (web) or Electrobun BrowserView (desktop) loading plugin URL
+- The server-side plugin store is complete. 7.4 needs web-side work: a `PluginsSlice` in Zustand store, `pluginActions.ts` for fetching plugin list, and `PluginPanel` component that renders plugin content in sandboxed iframes. Follow `wireTransport.ts` pattern for fetching on `server.welcome`.
+- Plugin content URLs: relative paths in manifest should be resolved to `http://localhost:{port}/plugin/{pluginId}/{path}` — the server will need a static file serving route for plugin assets.
+- Consider: the server needs to serve plugin panel HTML/JS files. Either add a `/plugin/:id/*` route to the HTTP server, or pass the absolute `file://` path to the iframe. HTTP route is safer (no file:// access).
+
+---
+
 ## Session 89 — Plugin manifest + PanelConfig types (2026-03-24)
 
 **What happened:**

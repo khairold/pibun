@@ -8,7 +8,8 @@
 		"./piRpcManager": "./src/piRpcManager.ts",
 		"./projectStore": "./src/projectStore.ts",
 		"./settingsStore": "./src/settingsStore.ts",
-		"./terminalManager": "./src/terminalManager.ts"
+		"./terminalManager": "./src/terminalManager.ts",
+		"./pluginStore": "./src/pluginStore.ts"
 	},
 	"scripts": {
 		"dev": "bun run --watch src/index.ts",
