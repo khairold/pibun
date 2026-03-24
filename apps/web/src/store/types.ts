@@ -108,6 +108,10 @@ export interface SessionSlice {
 	retryAttempt: number;
 	/** Maximum retry attempts (0 when not retrying). */
 	retryMaxAttempts: number;
+	/** Delay in ms before the next retry attempt (0 when not retrying). */
+	retryDelayMs: number;
+	/** Timestamp (Date.now()) when the current retry delay started (0 when not retrying). */
+	retryStartedAt: number;
 	/** Session statistics (tokens, cost), null before first fetch. */
 	stats: PiSessionStats | null;
 	/** Current session display name, null if not set. */
@@ -130,7 +134,12 @@ export interface SessionSlice {
 	/** Set compacting state. */
 	setIsCompacting: (compacting: boolean) => void;
 	/** Set retrying state with attempt info. */
-	setRetrying: (retrying: boolean, attempt?: number, maxAttempts?: number) => void;
+	setRetrying: (
+		retrying: boolean,
+		attempt?: number,
+		maxAttempts?: number,
+		delayMs?: number,
+	) => void;
 	/** Set session stats. */
 	setStats: (stats: PiSessionStats | null) => void;
 	/** Set session display name. */

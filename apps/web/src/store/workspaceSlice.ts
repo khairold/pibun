@@ -213,6 +213,8 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					isRetrying: false,
 					retryAttempt: 0,
 					retryMaxAttempts: 0,
+					retryDelayMs: 0,
+					retryStartedAt: 0,
 				};
 			}
 

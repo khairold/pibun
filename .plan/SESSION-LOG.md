@@ -209,3 +209,30 @@
 - `TabStatus` and `TabStatusDot`/`TabBarStatusDot` patterns are established — reuse them for any new status states
 - `deriveTabStatus()` preserves `error` status — if you need to clear error explicitly, set `status: "idle"` directly via `store.updateTab()`
 - `consumeDeferredActiveTabId()` still not consumed
+
+---
+
+## Session 7 — Auto-retry UI with countdown progress (2026-03-24)
+
+**What happened:**
+- Implemented auto-retry UI with countdown progress bar (1B.2):
+  - Added `retryDelayMs` and `retryStartedAt` fields to store types and session slice
+  - Updated `setRetrying` to accept `delayMs` parameter, captures `Date.now()` as `retryStartedAt` when retrying with delay
+  - Updated `wireTransport.ts` to pass `event.delayMs` from `auto_retry_start` to `setRetrying`
+  - Updated workspace slice tab-switch reset to include new retry fields
+  - Created `RetryIndicator` component in ChatView.tsx — shows attempt count + animated countdown progress bar
+  - Progress bar uses `requestAnimationFrame` loop to smoothly drain over the retry delay period
+  - Shows seconds remaining as countdown text (e.g., "— 5s")
+  - Replaced the simple text-only retry indicator in ChatView footer with the new component
+- Discovery: the basic retry plumbing already existed (store fields `isRetrying`/`retryAttempt`/`retryMaxAttempts`, event handling, simple text indicator). The key gap was `delayMs` not being captured and no visual progress.
+
+**Items completed:**
+- [x] 1B.2 — Show auto-retry UI: inline indicator + countdown progress during retry delay
+
+**Issues encountered:**
+- None. The existing retry infrastructure made this a clean enhancement rather than a new feature.
+
+**Handoff to next session:**
+- Next: 1B.3 — Surface `extension_error` events as dismissible warning toasts
+- `RetryIndicator` lives in `ChatView.tsx` — if retry UI needs to appear elsewhere (e.g., status bar), extract to its own file
+- `consumeDeferredActiveTabId()` still not consumed

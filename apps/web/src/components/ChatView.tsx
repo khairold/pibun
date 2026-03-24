@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import type { Project } from "@pibun/contracts";
-import { type ReactElement, memo, useCallback, useMemo, useRef } from "react";
+import { type ReactElement, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 
 // ============================================================================
@@ -243,6 +243,70 @@ function EmptyState() {
 }
 
 // ============================================================================
+// RetryIndicator — countdown progress bar during auto-retry delay
+// ============================================================================
+
+/**
+ * Inline retry indicator shown when Pi is auto-retrying after an error.
+ * Displays attempt count and an animated countdown progress bar that
+ * drains over the retry delay period.
+ */
+function RetryIndicator({
+	attempt,
+	maxAttempts,
+	delayMs,
+	startedAt,
+}: {
+	attempt: number;
+	maxAttempts: number;
+	delayMs: number;
+	startedAt: number;
+}) {
+	const [progress, setProgress] = useState(1);
+
+	useEffect(() => {
+		if (delayMs <= 0 || startedAt <= 0) {
+			setProgress(0);
+			return;
+		}
+
+		let rafId: number;
+		const tick = () => {
+			const elapsed = Date.now() - startedAt;
+			const remaining = Math.max(0, 1 - elapsed / delayMs);
+			setProgress(remaining);
+			if (remaining > 0) {
+				rafId = requestAnimationFrame(tick);
+			}
+		};
+		rafId = requestAnimationFrame(tick);
+		return () => cancelAnimationFrame(rafId);
+	}, [delayMs, startedAt]);
+
+	const seconds = Math.max(0, Math.ceil((delayMs * progress) / 1000));
+
+	return (
+		<div className="mt-4 flex flex-col gap-1.5">
+			<div className="flex items-center gap-2 text-xs text-status-warning-text/80">
+				<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-status-warning-text" />
+				<span>
+					Retrying{"\u2026"} attempt {attempt}/{maxAttempts}
+					{delayMs > 0 && seconds > 0 && <span className="text-text-tertiary"> — {seconds}s</span>}
+				</span>
+			</div>
+			{delayMs > 0 && (
+				<div className="h-1 w-full overflow-hidden rounded-full bg-status-warning/20">
+					<div
+						className="h-full rounded-full bg-status-warning-text/50 transition-none"
+						style={{ width: `${progress * 100}%` }}
+					/>
+				</div>
+			)}
+		</div>
+	);
+}
+
+// ============================================================================
 // ChatView
 // ============================================================================
 
@@ -253,6 +317,8 @@ export function ChatView() {
 	const isRetrying = useStore((s) => s.isRetrying);
 	const retryAttempt = useStore((s) => s.retryAttempt);
 	const retryMaxAttempts = useStore((s) => s.retryMaxAttempts);
+	const retryDelayMs = useStore((s) => s.retryDelayMs);
+	const retryStartedAt = useStore((s) => s.retryStartedAt);
 
 	const virtuosoRef = useRef<VirtuosoHandle>(null);
 	const { followOutput, handleAtBottom, showScrollButton, scrollToBottom, containerProps } =
@@ -313,18 +379,27 @@ export function ChatView() {
 					</div>
 				)}
 
-				{/* Retry indicator when Pi is auto-retrying after an error */}
+				{/* Retry indicator with countdown progress */}
 				{showRetrying && (
-					<div className="mt-4 flex items-center gap-2 text-xs text-status-warning-text/80">
-						<span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-status-warning-text" />
-						<span>
-							Retrying{"\u2026"} (attempt {retryAttempt}/{retryMaxAttempts})
-						</span>
-					</div>
+					<RetryIndicator
+						attempt={retryAttempt}
+						maxAttempts={retryMaxAttempts}
+						delayMs={retryDelayMs}
+						startedAt={retryStartedAt}
+					/>
 				)}
 			</div>
 		);
-	}, [isStreaming, anyMessageStreaming, isCompacting, isRetrying, retryAttempt, retryMaxAttempts]);
+	}, [
+		isStreaming,
+		anyMessageStreaming,
+		isCompacting,
+		isRetrying,
+		retryAttempt,
+		retryMaxAttempts,
+		retryDelayMs,
+		retryStartedAt,
+	]);
 
 	// ── Empty state ──────────────────────────────────────────────────
 

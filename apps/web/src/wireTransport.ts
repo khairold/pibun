@@ -228,7 +228,7 @@ function handlePiEvent(event: PiEvent): void {
 			break;
 
 		case "auto_retry_start":
-			store.setRetrying(true, event.attempt, event.maxAttempts);
+			store.setRetrying(true, event.attempt, event.maxAttempts, event.delayMs);
 			store.appendMessage(
 				makeMessage({
 					id: nextId("system"),
