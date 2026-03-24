@@ -137,6 +137,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			firstMessage: null,
 			createdAt: Date.now(),
 			hasUnread: false,
+			sessionFile: null,
 		};
 
 		set((s) => ({
@@ -189,6 +190,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					updates.thinkingLevel = nextTab.thinkingLevel;
 					updates.isStreaming = nextTab.isStreaming;
 					updates.sessionName = nextTab.name;
+					updates.sessionFile = nextTab.sessionFile;
 					// Restore next tab's terminal state
 					updates.activeTerminalTabId = newTabTerminalActiveIds.get(nextTab.id) ?? null;
 				} else {
@@ -203,6 +205,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 					updates.thinkingLevel = "medium";
 					updates.isStreaming = false;
 					updates.sessionName = null;
+					updates.sessionFile = null;
 					updates.activeTerminalTabId = null;
 				}
 			}
@@ -246,6 +249,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 								thinkingLevel: s.thinkingLevel,
 								piSessionId: s.piSessionId,
 								name: s.sessionName ?? t.name,
+								sessionFile: s.sessionFile,
 							}
 						: t.id === tabId
 							? { ...t, hasUnread: false }
@@ -273,7 +277,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				thinkingLevel: targetTab.thinkingLevel,
 				isStreaming: targetTab.isStreaming,
 				sessionName: targetTab.name,
-				sessionFile: null, // Will be refreshed via get_state
+				sessionFile: targetTab.sessionFile,
 				stats: null, // Will be refreshed
 				agentStartedAt: 0,
 				isCompacting: false,
@@ -325,6 +329,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 							model: s.model,
 							thinkingLevel: s.thinkingLevel,
 							name: s.sessionName ?? t.name,
+							sessionFile: s.sessionFile,
 						}
 					: t,
 			),

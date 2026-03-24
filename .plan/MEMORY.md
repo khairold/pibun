@@ -18,6 +18,8 @@
 | 8 | `createNewTab` renamed to `startSession` in tabActions | Better reflects single-session semantics. All callers updated: Sidebar, TabBar, wireTransport, useKeyboardShortcuts, appActions. | 2026-03-24 |
 | 9 | Background event routing removed from `wireTransport.ts` | Single-session model: only one Pi process runs, so all events go to `handlePiEvent`. Stale events from old session during switch are silently skipped with `console.debug`. The `bgTab` branch with `hasUnread`, `setBackgroundTabStatus`, `setBackgroundTabWidget` calls is gone. | 2026-03-24 |
 | 10 | Per-tab message/status/widget caches removed | `tabMessages`, `tabStatuses`, `tabWidgets` removed from state. `saveActiveTabMessages` removed. `switchTab` now clears messages and relies on async action layer to load from Pi via `session.getMessages`. `setBackgroundTabStatus`/`setBackgroundTabWidget` are no-ops pending removal in 1.6. | 2026-03-24 |
+| 11 | `sessionFile` added to `SessionTab` | Tabs now track their Pi session file path. Saved during `switchTab` snapshot and `syncActiveTabState`. Required for session resume when switching back to a previously active tab. | 2026-03-24 |
+| 12 | `switchTabAction` uses `switchSession()` for resume | When switching to a tab with a `sessionFile`, clears `store.sessionId` (so `ensureSession` starts a fresh Pi process), then calls `switchSession(sessionFile)` which handles: start process → switch to file → load messages → refresh state. No manual stop/start orchestration. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -42,10 +44,16 @@ WebSocket → wireTransport pi.event subscriber →
   else → skip stale event with console.debug log (single-session: no background routing)
 ```
 
-### Session Switching (Current → Target)
+### Session Switching (Implemented)
 
-**Current:** Both sessions run simultaneously. Message caches swap.
-**Target:** Old session stops → tab metadata updates → new session starts → messages loaded from Pi.
+**Flow:** `switchTab()` snapshots leaving tab → clears messages → sets target metadata →
+`switchTabAction` clears `store.sessionId` → calls `switchSession(targetTab.sessionFile)` →
+`ensureSession()` starts a fresh Pi process (stops old via server) →
+`session.switchSession` loads the session file → refreshes state → loads messages.
+
+Tabs without a `sessionFile` (never started) just route transport to null. User starts by typing (triggers `ensureSession`).
+
+**Key detail:** `ensureSession()` uses `getActiveTab().cwd` for the new process CWD, so switching to a tab with a different project CWD starts the process in the right directory.
 
 ### Files Involved
 
@@ -66,6 +74,8 @@ WebSocket → wireTransport pi.event subscriber →
 - `startNewSession()` in sessionActions calls `session.new` (in-process) not `session.start` (new process). These are different Pi commands.
 - `session.switchSession` is a Pi command that switches session files within the same process. Different from stopping one process and starting another.
 - Keyboard shortcuts `Ctrl+N` calls `startNewSession()`, `Ctrl+T` calls `createNewTab()` — both need updating
+- `closeTab` in tabActions still targets dead sessions (loads messages from stopped process). Needs update in Phase 3 or removal (3.6).
+- `switchSession()` from sessionActions must have `store.sessionId` cleared to null BEFORE calling — otherwise `ensureSession()` thinks a session exists and skips starting a new process
 
 ## Technical Context
 

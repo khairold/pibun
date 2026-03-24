@@ -16,7 +16,7 @@
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import { deleteComposerDraft, fetchGitStatus } from "./appActions";
-import { loadSessionMessages, refreshSessionState } from "./sessionActions";
+import { loadSessionMessages, refreshSessionState, switchSession } from "./sessionActions";
 import { addLoadedSession } from "./workspaceActions";
 
 // ============================================================================
@@ -205,13 +205,21 @@ export async function startSession(options?: { cwd?: string }): Promise<string |
 // ============================================================================
 
 /**
- * Switch to a different tab — coordinated with transport and Pi.
+ * Switch to a different tab — single-session model.
+ *
+ * Only one Pi process runs at a time. Switching tabs requires:
+ * - Snapshotting the leaving tab's metadata
+ * - If the target had a previous session (sessionFile), resuming it:
+ *   start a new Pi process → switch to the session file → load messages
+ * - If the target has no session, just clear routing (user starts by typing)
  *
  * Flow:
- * 1. Call `tabsSlice.switchTab(tabId)` — saves current messages, restores cached state
- * 2. Set `transport.setActiveSession(targetSessionId)` — route WS requests
- * 3. If target tab has a sessionId but no cached messages → fetch from Pi
- * 4. If target tab has a sessionId → refresh session state
+ * 1. `switchTab(tabId)` — snapshot leaving tab, set target metadata, clear messages
+ * 2. If target has a sessionFile to resume:
+ *    a. Clear sessionId (so ensureSession starts a fresh Pi process)
+ *    b. `switchSession(sessionFile)` — handles: start process → switch file → load messages
+ *    c. Sync tab metadata with refreshed state
+ * 3. If target has no session: route transport to null
  */
 export async function switchTabAction(tabId: string): Promise<void> {
 	const store = useStore.getState();
@@ -223,22 +231,23 @@ export async function switchTabAction(tabId: string): Promise<void> {
 	// 1. Switch tab in store — snapshots leaving tab, clears messages
 	store.switchTab(tabId);
 
-	// 2. Route transport to target session
-	getTransport().setActiveSession(targetTab.sessionId);
+	// 2. Resume target session if it has a session file
+	if (targetTab.sessionFile) {
+		// Clear sessionId so ensureSession starts a fresh Pi process
+		// (the old process was stopped when another session started)
+		useStore.getState().setSessionId(null);
 
-	// 3. Load messages from Pi (no cache — single-session model)
-	if (targetTab.sessionId) {
-		await loadSessionMessages();
-	}
-
-	// 4. Refresh session state for live data (model, thinking, streaming status)
-	if (targetTab.sessionId) {
-		await refreshSessionState();
-		// Refresh git status for the new tab's CWD
-		fetchGitStatus();
+		// switchSession handles: ensureSession (start process) → switch to file → load messages → refresh state
+		const success = await switchSession(targetTab.sessionFile);
+		if (success) {
+			// Sync tab metadata with refreshed session state
+			useStore.getState().syncActiveTabState();
+			// Refresh git status for the session's CWD
+			fetchGitStatus();
+		}
+	} else {
+		// No session to resume — route transport to null
+		// User will start a session by typing (triggers ensureSession)
+		getTransport().setActiveSession(null);
 	}
 }
-
-// Note: Background tab status updates (streaming, waiting, error) are handled
-// inline in wireTransport.ts pi.event handler for efficiency — all status
-// fields (isStreaming, status) are updated together on each event.

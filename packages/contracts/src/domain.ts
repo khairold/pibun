@@ -63,6 +63,12 @@ export interface SessionTab {
 	createdAt: number;
 	/** True when the tab has new content since the user last viewed it. */
 	hasUnread: boolean;
+	/**
+	 * Session file path (from Pi's get_state response).
+	 * Stored per-tab so we can resume the session when switching back.
+	 * Null before a session is started or before get_state is called.
+	 */
+	sessionFile: string | null;
 }
 
 // ============================================================================

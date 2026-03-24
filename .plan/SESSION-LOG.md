@@ -89,3 +89,30 @@
 - Next: 1.4 — Simplify `switchTab` in workspaceSlice: no message save/restore. Just update `activeTabId`, set session metadata.
 - Note: 1.4 is largely done — `switchTab` already doesn't save/restore messages after this session's changes. May be a quick verification/no-op or can combine with 1.5.
 - `switchTab` still snapshots the leaving tab's metadata (streaming, messageCount, model, etc.) which is still useful for sidebar display. That stays.
+
+---
+
+## Session 4 — Phase 1.4+1.5: switchTab verification + switchTabAction simplification (2026-03-24)
+
+**What happened:**
+- Verified `switchTab` (1.4): already matches plan — no message save/restore, just metadata snapshot + clear + set target. Checked off.
+- Added `sessionFile: string | null` to `SessionTab` type in contracts — tabs now track their Pi session file path for resume.
+- Updated `workspaceSlice.ts`: `addTab` initializes `sessionFile: null`, `switchTab` snapshots `sessionFile` from store to leaving tab and restores from target tab, `syncActiveTabState` saves `sessionFile`, `removeTab` restores `sessionFile` from next tab.
+- Simplified `switchTabAction` (1.5): replaces multi-session transport routing with single-session resume flow. If target has `sessionFile`, clears `store.sessionId` and calls `switchSession()` from sessionActions which handles the full lifecycle (start process → switch to session file → load messages → refresh state). If no session, routes transport to null.
+- Removed unused imports (`loadSessionMessages`, `refreshSessionState`) from tabActions since `switchSession` handles those internally.
+
+**Items completed:**
+- [x] 1.4 — Simplify `switchTab` in workspaceSlice (verified — already done in 1.3)
+- [x] 1.5 — Simplify `switchTabAction` in tabActions
+
+**Issues encountered:**
+- None. Clean implementation — the existing `switchSession()` and `ensureSession()` functions in sessionActions already handle all the heavy lifting when `sessionId` is cleared first. No new server changes needed.
+
+**Handoff to next session:**
+- Next: 1.6 — Remove `reorderTabs`, `setBackgroundTabStatus`, `setBackgroundTabWidget`, `tabTerminalActiveIds` — all multi-session-only features.
+- `setBackgroundTabStatus`/`setBackgroundTabWidget` are already no-ops (backing state removed in 1.3). Just need to remove from type interface and implementation.
+- `reorderTabs` is dead code — no tab bar with drag-to-reorder in single-session sidebar model.
+- `tabTerminalActiveIds` is still used for saving/restoring per-tab terminal state. Consider whether this is still needed or if terminals should be project-scoped (per DRIFT.md decision #1).
+- `closeTab` still has stale-session bugs — slated for Phase 3.6, not 1.6.
+
+---
