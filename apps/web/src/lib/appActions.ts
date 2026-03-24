@@ -508,3 +508,137 @@ export function resizeTerminal(terminalId: string, cols: number, rows: number): 
 		console.error("[Terminal] Failed to resize:", err);
 	});
 }
+
+// ============================================================================
+// UI State Persistence
+// ============================================================================
+
+/**
+ * localStorage keys for persisted UI state.
+ * Theme is handled separately via THEME_STORAGE_KEY in themes.ts.
+ */
+const UI_STORAGE_KEY = "pibun-ui-state";
+
+/** Shape of persisted UI state in localStorage. */
+interface PersistedUiState {
+	sidebarOpen?: boolean;
+	activeTabId?: string | null;
+}
+
+/** Debounce delay for writing UI state to localStorage (ms). */
+const UI_PERSIST_DEBOUNCE_MS = 500;
+
+/**
+ * Read persisted UI state from localStorage.
+ * Returns null if nothing is saved or parsing fails.
+ */
+export function getPersistedUiState(): PersistedUiState | null {
+	try {
+		const raw = localStorage.getItem(UI_STORAGE_KEY);
+		if (!raw) return null;
+		return JSON.parse(raw) as PersistedUiState;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Apply persisted UI state to the Zustand store.
+ *
+ * Called once during app initialization (before React renders).
+ * Only applies values that are present in the persisted state —
+ * missing keys use the store's default values.
+ *
+ * Note: activeTabId is restored but only takes effect if tabs exist
+ * (tabs are recreated from sessions, and the persisted activeTabId
+ * will be matched after session list is loaded).
+ */
+export function restorePersistedUiState(): void {
+	const persisted = getPersistedUiState();
+	if (!persisted) return;
+
+	const store = useStore.getState();
+
+	if (persisted.sidebarOpen !== undefined) {
+		store.setSidebarOpen(persisted.sidebarOpen);
+	}
+
+	// activeTabId is saved but restored later after tabs are created.
+	// Store it for deferred restoration.
+	if (persisted.activeTabId !== undefined) {
+		_deferredActiveTabId = persisted.activeTabId;
+	}
+}
+
+/** Deferred active tab ID — restored after tabs are created from sessions. */
+let _deferredActiveTabId: string | null | undefined;
+
+/**
+ * Get the deferred active tab ID that was persisted.
+ * Returns undefined if no deferred ID is pending.
+ * Calling this clears the deferred value (one-shot).
+ */
+export function consumeDeferredActiveTabId(): string | null | undefined {
+	const id = _deferredActiveTabId;
+	_deferredActiveTabId = undefined;
+	return id;
+}
+
+/**
+ * Initialize UI state persistence — subscribe to store changes
+ * and write to localStorage on debounced timer + beforeunload.
+ *
+ * Call once during app initialization. Returns a cleanup function.
+ */
+export function initUiPersistence(): () => void {
+	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+	/** Write current UI state to localStorage immediately. */
+	function flush(): void {
+		if (debounceTimer !== null) {
+			clearTimeout(debounceTimer);
+			debounceTimer = null;
+		}
+
+		const state = useStore.getState();
+		const persisted: PersistedUiState = {
+			sidebarOpen: state.sidebarOpen,
+			activeTabId: state.activeTabId,
+		};
+
+		try {
+			localStorage.setItem(UI_STORAGE_KEY, JSON.stringify(persisted));
+		} catch {
+			// localStorage full or unavailable — ignore
+		}
+	}
+
+	/** Schedule a debounced write. */
+	function schedulePersist(): void {
+		if (debounceTimer !== null) {
+			clearTimeout(debounceTimer);
+		}
+		debounceTimer = setTimeout(flush, UI_PERSIST_DEBOUNCE_MS);
+	}
+
+	// Subscribe to relevant store fields
+	const unsubscribe = useStore.subscribe((state, prevState) => {
+		if (
+			state.sidebarOpen !== prevState.sidebarOpen ||
+			state.activeTabId !== prevState.activeTabId
+		) {
+			schedulePersist();
+		}
+	});
+
+	// Flush on page unload (tab close, navigation, reload)
+	window.addEventListener("beforeunload", flush);
+
+	return () => {
+		unsubscribe();
+		window.removeEventListener("beforeunload", flush);
+		if (debounceTimer !== null) {
+			clearTimeout(debounceTimer);
+		}
+	};
+}

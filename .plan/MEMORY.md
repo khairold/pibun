@@ -22,6 +22,7 @@
 | 11 | Pointer-aware scroll via `useChatScroll` hook, not distance-only detection | Tracks pointer/wheel/touch interaction state to distinguish user scroll intent from content-growth shifts. Uses `isInteractingRef` + `userScrolledAwayRef` dual-flag approach. Old `useAutoScroll` hook deleted (was dead code). | 2026-03-24 |
 | 12 | Individual scalar selectors are the optimal Zustand pattern — don't consolidate with `useShallow` | All 121 selectors use direct property access (`s => s.field`). `useShallow` is only needed for selectors returning new arrays/objects. Individual scalar selectors with `Object.is` comparison are cheaper than `useShallow` multi-field objects. | 2026-03-24 |
 | 13 | `ChatView.footer` uses `anyMessageStreaming` boolean instead of `messages` array | The footer callback's stability matters because it's passed as `components.Footer` to Virtuoso. Using a derived boolean prevents footer recreation on every streaming delta — it only changes when streaming starts/stops. | 2026-03-24 |
+| 14 | UI state persistence via `pibun-ui-state` localStorage key with debounced writes | Persists `sidebarOpen` and `activeTabId`. Theme already persisted via `pibun-theme` key. 500ms debounce + `beforeunload` flush. `restorePersistedUiState()` called during `initTransport()`. `activeTabId` uses deferred restoration pattern (`consumeDeferredActiveTabId()`) since tabs don't exist yet at init time. | 2026-03-24 |
 
 ## Architecture Notes
 

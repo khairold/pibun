@@ -82,3 +82,32 @@
 - Next: 1A.3 — Add debounced localStorage persistence for key UI state
 - The store pattern is validated: use individual `useStore(s => s.field)` selectors for scalars, `useMemo` for derived values
 - `useShallow` from `zustand/react/shallow` is available but not needed for current patterns
+
+---
+
+## Session 3 — UI state persistence (2026-03-24)
+
+**What happened:**
+- Added debounced localStorage persistence for key UI state to `appActions.ts`
+- Persists `sidebarOpen` and `activeTabId` under `pibun-ui-state` localStorage key
+- Theme was already persisted via `pibun-theme` key (no changes needed)
+- Implementation:
+  - `getPersistedUiState()` — reads from localStorage
+  - `restorePersistedUiState()` — applies saved state to Zustand store on init
+  - `initUiPersistence()` — subscribes to store changes, writes with 500ms debounce, flushes on `beforeunload`
+  - `consumeDeferredActiveTabId()` — deferred tab restoration (tabs don't exist at init time, exposed for future use when session list loads and recreates tabs)
+- Wired into `wireTransport.ts`:
+  - `restorePersistedUiState()` called before subscriptions (restores sidebar state immediately)
+  - `initUiPersistence()` cleanup registered alongside other cleanups
+
+**Items completed:**
+- [x] 1A.3 — Add debounced localStorage persistence for key UI state
+
+**Issues encountered:**
+- None. Theme persistence was already complete — only sidebar and activeTabId needed adding.
+- `activeTabId` restoration is deferred because tabs are created asynchronously after session list loads. The `consumeDeferredActiveTabId()` function is exported but not yet consumed — it will be wired when tab restoration from session list is implemented.
+
+**Handoff to next session:**
+- Next: 1A.4 — Add composer draft persistence per tab
+- `consumeDeferredActiveTabId()` is available in `appActions.ts` but not yet consumed. When session list loads and recreates tabs, call it to switch to the previously active tab.
+- Persistence pattern is established: subscribe to store → debounce → localStorage. Follow same pattern for composer drafts.

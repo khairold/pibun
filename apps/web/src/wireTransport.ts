@@ -18,7 +18,9 @@ import {
 	fetchGitStatus,
 	fetchPlugins,
 	fetchProjects,
+	initUiPersistence,
 	openProject,
+	restorePersistedUiState,
 } from "@/lib/appActions";
 import { forwardPiEventToPlugins, initPluginMessageBridge } from "@/lib/pluginMessageBridge";
 import {
@@ -627,6 +629,12 @@ export function initTransport(): () => void {
 
 	transport = new WsTransport();
 	const cleanups: Array<() => void> = [];
+
+	// Restore persisted UI state (sidebar, active tab) before React renders
+	restorePersistedUiState();
+
+	// Start UI state persistence (debounced localStorage writes + beforeunload flush)
+	cleanups.push(initUiPersistence());
 
 	// Plugin message bridge — listens for postMessage from plugin iframes
 	cleanups.push(initPluginMessageBridge());
