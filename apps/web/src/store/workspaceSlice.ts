@@ -13,7 +13,7 @@
  * - Projects: project directory management
  */
 
-import type { GitChangedFile, Project, SessionTab } from "@pibun/contracts";
+import type { GitChangedFile, Project, SessionTab, TabStatus } from "@pibun/contracts";
 import type { StateCreator } from "zustand";
 import type {
 	AppStore,
@@ -65,6 +65,32 @@ function sortByLastOpened(projects: Project[]): Project[] {
 	return [...projects].sort((a, b) => b.lastOpened - a.lastOpened);
 }
 
+/**
+ * Derive tab status from session state flags and current tab status.
+ *
+ * Priority order: waiting > running > (preserve error) > idle.
+ * - `waiting` — extension UI dialog is pending (Pi is blocked, needs user input)
+ * - `running` — agent is streaming (between agent_start and agent_end)
+ * - `error` — preserved from previous state (set explicitly by event handlers)
+ * - `idle` — default, no activity
+ *
+ * The `error` status is set explicitly by event handlers (auto_retry_end failure,
+ * process crash) and cleared when new activity starts (running or waiting).
+ * It's preserved through `deriveTabStatus` to prevent `syncActiveTabState`
+ * from accidentally clearing it.
+ */
+function deriveTabStatus(
+	isStreaming: boolean,
+	pendingExtensionUi: boolean,
+	currentStatus?: TabStatus,
+): TabStatus {
+	if (pendingExtensionUi) return "waiting";
+	if (isStreaming) return "running";
+	// Preserve error status until new activity starts
+	if (currentStatus === "error") return "error";
+	return "idle";
+}
+
 // ============================================================================
 // Slice
 // ============================================================================
@@ -86,6 +112,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			model: partial?.model ?? null,
 			thinkingLevel: partial?.thinkingLevel ?? "medium",
 			isStreaming: false,
+			status: "idle",
 			gitDirty: false,
 			messageCount: 0,
 			createdAt: Date.now(),
@@ -159,6 +186,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 						? {
 								...t,
 								isStreaming: s.isStreaming,
+								status: deriveTabStatus(s.isStreaming, s.pendingExtensionUi !== null, t.status),
 								messageCount: s.messages.length,
 								model: s.model,
 								thinkingLevel: s.thinkingLevel,
@@ -236,6 +264,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 							...t,
 							sessionId: s.sessionId,
 							isStreaming: s.isStreaming,
+							status: deriveTabStatus(s.isStreaming, s.pendingExtensionUi !== null, t.status),
 							messageCount: s.messages.length,
 							model: s.model,
 							thinkingLevel: s.thinkingLevel,

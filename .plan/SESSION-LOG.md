@@ -179,3 +179,33 @@
 - The `group/assistant` hover pattern is established for showing contextual actions on messages
 - Image preview modal state lives in UiSlice — any future image-click needs just call `setImagePreview(url, alt)`
 - `consumeDeferredActiveTabId()` still not consumed
+
+---
+
+## Session 6 — Tab status indicators (2026-03-24)
+
+**What happened:**
+- Implemented thread/tab status indicators (1B.1):
+  - Added `TabStatus` type (`"idle" | "running" | "waiting" | "error"`) to `@pibun/contracts` domain.ts
+  - Added `status: TabStatus` field to `SessionTab` interface (default: `"idle"`)
+  - Created `deriveTabStatus()` helper in workspaceSlice — derives status from `isStreaming` + `pendingExtensionUi`, preserves `error` status until new activity starts
+  - Updated `syncActiveTabState` and `switchTab` to compute and set `status` via `deriveTabStatus()`
+  - Updated background tab event handling in `wireTransport.ts` — now handles `agent_start` (→ running), `agent_end` (→ idle), `extension_ui_request` dialog types (→ waiting), and `auto_retry_end` failure (→ error) for background tabs
+  - Active tab `error` status set explicitly on `auto_retry_end` failure via `store.updateTab()`
+  - Removed `updateTabStreamingBySessionId()` from tabActions.ts — replaced by inline handler in wireTransport.ts that updates `isStreaming` and `status` together
+  - Created `TabStatusDot` component in Sidebar.tsx — running (blue pulse), waiting (amber pulse), error (red), idle (accent/gray)
+  - Created `TabBarStatusDot` component in TabBar.tsx — compact variant, shows git dirty indicator when idle, omits dot for idle+clean tabs
+  - Both Sidebar and TabBar now use `tab.status` instead of `tab.isStreaming` for visual indicators
+
+**Items completed:**
+- [x] 1B.1 — Add thread/tab status indicators
+
+**Issues encountered:**
+- Biome flagged `case "idle":` before `default:` as useless switch case. Removed the explicit `case "idle":` — `default` handles it.
+- `error` status preservation needed special handling: `deriveTabStatus` takes optional `currentStatus` param and preserves `error` unless new activity (running/waiting) overrides it. This prevents `syncActiveTabState` from clearing error status back to idle.
+
+**Handoff to next session:**
+- Next: 1B.2 — Show auto-retry UI (inline indicator in ChatView + progress during retry delay)
+- `TabStatus` and `TabStatusDot`/`TabBarStatusDot` patterns are established — reuse them for any new status states
+- `deriveTabStatus()` preserves `error` status — if you need to clear error explicitly, set `status: "idle"` directly via `store.updateTab()`
+- `consumeDeferredActiveTabId()` still not consumed

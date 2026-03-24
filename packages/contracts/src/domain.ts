@@ -14,6 +14,16 @@ import type { PiModel, PiThinkingLevel } from "./piProtocol.js";
 // ============================================================================
 
 /**
+ * Visual status of a session tab, derived from Pi events.
+ *
+ * - `"idle"` — no agent activity (default state, gray dot)
+ * - `"running"` — agent is processing (between agent_start and agent_end, blue pulse)
+ * - `"waiting"` — agent is blocked waiting for user input via extension UI dialog (amber pulse)
+ * - `"error"` — session encountered an error (retry failure, process exit, red dot)
+ */
+export type TabStatus = "idle" | "running" | "waiting" | "error";
+
+/**
  * A session tab in the multi-session UI.
  *
  * Each tab is an independent Pi RPC session. Tabs are managed by the
@@ -34,6 +44,8 @@ export interface SessionTab {
 	thinkingLevel: PiThinkingLevel;
 	/** True while this session's Pi agent is processing. */
 	isStreaming: boolean;
+	/** Visual status indicator for the tab (idle, running, waiting, error). */
+	status: TabStatus;
 	/** True if this session's CWD has uncommitted git changes. */
 	gitDirty: boolean;
 	/** Number of messages in this tab's conversation. */

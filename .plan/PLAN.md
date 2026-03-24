@@ -2,9 +2,9 @@
 
 > **Spec:** Audit of T3Code, Pi-mono RPC, Electrobun reference repos (2026-03-24)
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
-> **Status:** Phase 1A Complete
+> **Status:** Phase 1B in progress
 > **Current Phase:** Phase 1B — Thread Status & Activity Indicators
-> **Last Session:** Session 5 — 2026-03-24
+> **Last Session:** Session 6 — 2026-03-24
 
 ---
 
@@ -45,7 +45,7 @@
 
 ### 1B — Thread Status & Activity Indicators
 
-- [ ] 1B.1 — Add thread/tab status indicators: running (blue pulse), waiting-for-input (amber pulse), error (red), idle (gray dot). Derive from session state + extension UI pending state
+- [x] 1B.1 — Add thread/tab status indicators: running (blue pulse), waiting-for-input (amber pulse), error (red), idle (gray dot). Derive from session state + extension UI pending state
 - [ ] 1B.2 — Show auto-retry UI: inline indicator in ChatView ("Retrying… attempt 2/3") + progress during retry delay. Wire `auto_retry_start`/`auto_retry_end` events to new store fields
 - [ ] 1B.3 — Surface `extension_error` events as dismissible warning toasts (not just console.log)
 - [ ] 1B.4 — Add provider health indicator: show banner when Pi process exits unexpectedly, session start fails, or model errors occur repeatedly

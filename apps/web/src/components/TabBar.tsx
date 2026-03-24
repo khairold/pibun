@@ -16,7 +16,7 @@
 import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
-import type { SessionTab } from "@pibun/contracts";
+import type { SessionTab, TabStatus } from "@pibun/contracts";
 import { type DragEvent, type MouseEvent, memo, useCallback, useRef, useState } from "react";
 
 // ============================================================================
@@ -105,18 +105,8 @@ const TabItem = memo(function TabItem({
 			{/* Active tab top indicator */}
 			{isActive && <span className="absolute inset-x-0 top-0 h-0.5 bg-accent-primary" />}
 
-			{/* Streaming indicator — pulsing blue dot */}
-			{tab.isStreaming && (
-				<span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-accent-primary" />
-			)}
-
-			{/* Git dirty indicator — amber dot when uncommitted changes exist */}
-			{tab.gitDirty && !tab.isStreaming && (
-				<span
-					className="h-2 w-2 shrink-0 rounded-full bg-status-warning"
-					title="Uncommitted changes"
-				/>
-			)}
+			{/* Status indicator — running (blue pulse), waiting (amber pulse), error (red) */}
+			<TabBarStatusDot status={tab.status} gitDirty={tab.gitDirty} />
 
 			{/* Session name */}
 			<span className="min-w-0 truncate text-xs font-medium">{displayName}</span>
@@ -157,6 +147,54 @@ const TabItem = memo(function TabItem({
 		</div>
 	);
 });
+
+// ============================================================================
+// Tab Status Indicator (TabBar variant)
+// ============================================================================
+
+/**
+ * Status dot for TabBar tabs. Compact variant — only shown when there's
+ * something to indicate (not idle without git changes).
+ *
+ * - `running` — blue pulsing dot
+ * - `waiting` — amber pulsing dot
+ * - `error` — red dot
+ * - `idle` + gitDirty — amber dot (uncommitted changes)
+ * - `idle` + clean — no indicator (saves horizontal space in tabs)
+ */
+function TabBarStatusDot({ status, gitDirty }: { status: TabStatus; gitDirty: boolean }) {
+	switch (status) {
+		case "running":
+			return (
+				<span
+					className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-accent-primary"
+					title="Agent running"
+				/>
+			);
+		case "waiting":
+			return (
+				<span
+					className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-status-warning"
+					title="Waiting for input"
+				/>
+			);
+		case "error":
+			return (
+				<span className="h-2 w-2 shrink-0 rounded-full bg-status-error" title="Session error" />
+			);
+		default:
+			// Show git dirty indicator when idle
+			if (gitDirty) {
+				return (
+					<span
+						className="h-2 w-2 shrink-0 rounded-full bg-status-warning"
+						title="Uncommitted changes"
+					/>
+				);
+			}
+			return null;
+	}
+}
 
 // ============================================================================
 // Helpers

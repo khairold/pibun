@@ -21,7 +21,7 @@ import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
 import { cn, onShortcut } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
-import type { Project, SessionTab, WsSessionSummary } from "@pibun/contracts";
+import type { Project, SessionTab, TabStatus, WsSessionSummary } from "@pibun/contracts";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // ============================================================================
@@ -30,6 +30,35 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /** Tailwind `md` breakpoint in pixels. */
 const MD_BREAKPOINT = 768;
+
+// ============================================================================
+// Tab Status Indicator
+// ============================================================================
+
+/**
+ * Status dot for a session tab.
+ *
+ * - `running` — blue pulsing dot (agent is processing)
+ * - `waiting` — amber pulsing dot (waiting for user input via extension dialog)
+ * - `error` — red dot (session error, retry failure)
+ * - `idle` — small accent dot if active tab, gray dot otherwise
+ */
+function TabStatusDot({ status, isActive }: { status: TabStatus; isActive: boolean }) {
+	switch (status) {
+		case "running":
+			return <span className="h-2 w-2 animate-pulse rounded-full bg-accent-primary" />;
+		case "waiting":
+			return <span className="h-2 w-2 animate-pulse rounded-full bg-status-warning" />;
+		case "error":
+			return <span className="h-2 w-2 rounded-full bg-status-error" />;
+		default:
+			return isActive ? (
+				<span className="h-1.5 w-1.5 rounded-full bg-accent-primary" />
+			) : (
+				<span className="h-1.5 w-1.5 rounded-full bg-surface-tertiary" />
+			);
+	}
+}
 
 // ============================================================================
 // Tab Item (sidebar variant — more detailed than TabBar)
@@ -73,15 +102,9 @@ const SidebarTabItem = memo(function SidebarTabItem({
 			aria-selected={isActive}
 			aria-label={displayName}
 		>
-			{/* Streaming indicator or active dot */}
+			{/* Status indicator — running (blue pulse), waiting (amber pulse), error (red), idle (gray/accent) */}
 			<span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center">
-				{tab.isStreaming ? (
-					<span className="h-2 w-2 animate-pulse rounded-full bg-accent-primary" />
-				) : isActive ? (
-					<span className="h-1.5 w-1.5 rounded-full bg-accent-primary" />
-				) : (
-					<span className="h-1.5 w-1.5 rounded-full bg-surface-tertiary" />
-				)}
+				<TabStatusDot status={tab.status} isActive={isActive} />
 			</span>
 
 			{/* Tab info */}

@@ -31,12 +31,7 @@ import {
 	startNewSession,
 	startSessionInFolder,
 } from "@/lib/sessionActions";
-import {
-	closeTab,
-	createNewTab,
-	switchTabAction,
-	updateTabStreamingBySessionId,
-} from "@/lib/tabActions";
+import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
 import { emitShortcut } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
@@ -262,6 +257,10 @@ function handlePiEvent(event: PiEvent): void {
 					}),
 				);
 				store.setLastError(`Retry failed: ${event.finalError}`);
+				// Mark active tab as error — will be preserved by deriveTabStatus
+				if (store.activeTabId) {
+					store.updateTab(store.activeTabId, { status: "error" });
+				}
 			}
 			break;
 
@@ -667,16 +666,50 @@ export function initTransport(): () => void {
 				// Sync active tab metadata with current streaming state
 				store.syncActiveTabState();
 			} else {
-				// Event is for a background tab — update tab's streaming indicator only
-				if (data.event.type === "agent_start") {
-					updateTabStreamingBySessionId(data.sessionId, true);
-				} else if (data.event.type === "agent_end") {
-					updateTabStreamingBySessionId(data.sessionId, false);
-					// Optimistically mark background tab as git-dirty — agent likely modified files.
-					// Actual status will be fetched when the tab becomes active.
-					const bgTab = store.tabs.find((t) => t.sessionId === data.sessionId);
-					if (bgTab) {
-						store.updateTab(bgTab.id, { gitDirty: true });
+				// Event is for a background tab — update tab status indicators
+				const bgTab = store.tabs.find((t) => t.sessionId === data.sessionId);
+				if (bgTab) {
+					switch (data.event.type) {
+						case "agent_start":
+							store.updateTab(bgTab.id, {
+								isStreaming: true,
+								status: "running",
+							});
+							break;
+
+						case "agent_end":
+							store.updateTab(bgTab.id, {
+								isStreaming: false,
+								status: "idle",
+								gitDirty: true, // Optimistically mark dirty — agent likely modified files
+							});
+							break;
+
+						case "extension_ui_request": {
+							// Background tab needs user input — show waiting indicator
+							const extEvent = data.event;
+							if (
+								extEvent.method === "select" ||
+								extEvent.method === "confirm" ||
+								extEvent.method === "input" ||
+								extEvent.method === "editor"
+							) {
+								store.updateTab(bgTab.id, { status: "waiting" });
+							}
+							break;
+						}
+
+						case "auto_retry_end": {
+							// If retry failed, mark tab as error
+							const retryEvent = data.event;
+							if (!retryEvent.success && retryEvent.finalError) {
+								store.updateTab(bgTab.id, {
+									isStreaming: false,
+									status: "error",
+								});
+							}
+							break;
+						}
 					}
 				}
 			}

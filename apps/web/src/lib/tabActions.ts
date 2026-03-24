@@ -230,20 +230,6 @@ export async function switchTabAction(tabId: string): Promise<void> {
 	}
 }
 
-// ============================================================================
-// Background Tab Updates
-// ============================================================================
-
-/**
- * Update a tab's streaming state by session ID.
- *
- * Called when Pi events arrive for non-active tabs so the tab bar
- * streaming indicator stays accurate.
- */
-export function updateTabStreamingBySessionId(sessionId: string, isStreaming: boolean): void {
-	const store = useStore.getState();
-	const tab = store.tabs.find((t) => t.sessionId === sessionId);
-	if (tab) {
-		store.updateTab(tab.id, { isStreaming });
-	}
-}
+// Note: Background tab status updates (streaming, waiting, error) are handled
+// inline in wireTransport.ts pi.event handler for efficiency — all status
+// fields (isStreaming, status) are updated together on each event.
