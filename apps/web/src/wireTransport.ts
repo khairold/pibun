@@ -576,11 +576,14 @@ function handleMenuAction(data: WsMenuActionData): void {
 				});
 			break;
 
-		case "file.new-tab":
-			createNewTab().catch((err: unknown) => {
+		case "file.new-tab": {
+			// Create new tab in the active tab's CWD (project-scoped)
+			const activeTab = store.tabs.find((t) => t.id === store.activeTabId);
+			createNewTab(activeTab?.cwd ? { cwd: activeTab.cwd } : undefined).catch((err: unknown) => {
 				console.error("[Menu] Failed to create new tab:", err);
 			});
 			break;
+		}
 
 		case "file.close-tab": {
 			if (store.tabs.length > 1 && store.activeTabId) {

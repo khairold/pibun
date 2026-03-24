@@ -1651,6 +1651,28 @@ export function Sidebar() {
 		});
 	}, []);
 
+	/**
+	 * Create a new session inside a specific project.
+	 * Always creates a fresh tab + Pi session, even if a tab already exists for this CWD.
+	 */
+	const handleNewSessionInProject = useCallback(
+		async (project: Project) => {
+			if (!isConnected || isCreating) return;
+			setIsCreating(true);
+			try {
+				useStore.getState().setActiveProjectId(project.id);
+				await createNewTab({ cwd: project.cwd });
+				// Auto-close sidebar on mobile after creating
+				if (isMobileWidth()) {
+					setSidebarOpen(false);
+				}
+			} finally {
+				setIsCreating(false);
+			}
+		},
+		[isConnected, isCreating, setSidebarOpen],
+	);
+
 	const handleNewTab = useCallback(async () => {
 		if (!isConnected || isCreating) return;
 		setIsCreating(true);
@@ -2052,30 +2074,6 @@ export function Sidebar() {
 			<div className="flex items-center justify-between border-b border-border-secondary px-4 py-3">
 				<h1 className="text-sm font-bold tracking-tight text-text-primary">PiBun</h1>
 				<div className="flex items-center gap-1">
-					<button
-						type="button"
-						onClick={handleNewTab}
-						disabled={!isConnected || isCreating}
-						title="New Session (Ctrl+T)"
-						className={cn(
-							"flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors",
-							!isConnected || isCreating
-								? "cursor-not-allowed text-text-muted"
-								: "text-text-secondary hover:bg-surface-tertiary hover:text-text-primary",
-						)}
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 16 16"
-							fill="currentColor"
-							className="h-3.5 w-3.5"
-							aria-label="New session"
-							role="img"
-						>
-							<path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2z" />
-						</svg>
-						{isCreating ? "Creating…" : "New Session"}
-					</button>
 					{/* Close sidebar button — visible on mobile */}
 					<button
 						type="button"
@@ -2283,17 +2281,24 @@ export function Sidebar() {
 											)}
 										</div>
 
-										{/* New session in this project */}
+										{/* New session in this project — always creates a fresh session */}
 										{group.project && (
 											<button
 												type="button"
-												onClick={() => {
-													if (group.project) {
-														handleOpenProject(group.project);
+												onClick={(e) => {
+													e.stopPropagation();
+													if (group.project && isConnected && !isCreating) {
+														handleNewSessionInProject(group.project);
 													}
 												}}
-												className="flex h-4 w-4 shrink-0 items-center justify-center rounded-sm text-transparent transition-colors group-hover/project:text-text-muted group-hover/project:hover:text-text-secondary"
-												title="New session in this project"
+												disabled={!isConnected || isCreating}
+												className={cn(
+													"flex h-4 w-4 shrink-0 items-center justify-center rounded-sm transition-colors",
+													!isConnected || isCreating
+														? "cursor-not-allowed text-transparent"
+														: "text-transparent group-hover/project:text-text-muted group-hover/project:hover:text-text-secondary",
+												)}
+												title="New session in this project (Ctrl+T)"
 												aria-label="New session"
 											>
 												<svg

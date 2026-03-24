@@ -619,7 +619,10 @@ export const handleSessionListSessions: WsHandler<"session.listSessions"> = asyn
 	_params: undefined,
 	_ctx: HandlerContext,
 ): Promise<WsMethodResultMap["session.listSessions"]> => {
-	const sessions = await listSessions(process.cwd());
+	// List sessions across ALL project directories (not just server CWD).
+	// This matches Pi's `/resume` behavior and ensures past sessions show
+	// under each project group in the sidebar.
+	const sessions = await listSessions();
 	return { sessions };
 };
 

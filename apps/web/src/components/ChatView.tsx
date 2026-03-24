@@ -381,9 +381,11 @@ function EmptyState() {
 			<div className="w-full max-w-md text-center">
 				<div className="mb-3 text-3xl">{"\u{1F967}"}</div>
 				<p className="text-sm text-text-secondary">
-					Send a message to start a conversation with Pi
+					Pick a project from the sidebar to start or resume a session
 				</p>
-				<p className="mt-1 text-xs text-text-muted">A session will be created automatically</p>
+				<p className="mt-1 text-xs text-text-muted">
+					Or send a message — a session will be created automatically
+				</p>
 
 				{/* Recent projects */}
 				{recentProjects.length > 0 && (

@@ -165,9 +165,13 @@ export function useKeyboardShortcuts(): void {
 					if (isConnected) {
 						e.preventDefault();
 						emitShortcut("newTab");
-						createNewTab().catch((err: unknown) => {
-							console.error("[Shortcut] Failed to create new tab:", err);
-						});
+						// Create new tab in the active tab's CWD (project-scoped)
+						const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
+						createNewTab(activeTab?.cwd ? { cwd: activeTab.cwd } : undefined).catch(
+							(err: unknown) => {
+								console.error("[Shortcut] Failed to create new tab:", err);
+							},
+						);
 					}
 					break;
 				}
