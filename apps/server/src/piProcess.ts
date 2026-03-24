@@ -15,7 +15,7 @@
  * - `onError` — Process-level error (parse failure, stream error)
  * - `onStderr` — Stderr data received
  *
- * @see docs/PI_INTEGRATION.md — Pi RPC protocol reference
+ * @see reference/pi-mono/packages/coding-agent/docs/rpc.md — Authoritative Pi RPC protocol reference
  * @see packages/shared/src/jsonl.ts — JSONL parser
  */
 

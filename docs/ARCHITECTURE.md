@@ -4,106 +4,93 @@
 
 PiBun is a Bun monorepo with three apps and two shared packages. The server spawns Pi as a subprocess (RPC mode), translates its JSONL events into WebSocket pushes, and the React UI renders them. Electrobun wraps everything into a native desktop app.
 
-## Monorepo Structure
+```
+┌─────────────┐     WebSocket      ┌──────────────┐     stdio/JSONL     ┌─────────┐
+│  React UI   │ ◄──────────────────►│  Bun Server  │ ◄──────────────────►│ pi --rpc│
+│  (Vite)     │                     │              │                     │         │
+│  Chat, Tools│                     │ piRpcManager  │                     │ LLM API │
+│  Sessions   │                     │ wsServer      │                     │ Tools   │
+└─────────────┘                     └──────────────┘                     └─────────┘
+         ▲                                  ▲
+         └──────── Electrobun webview ──────┘
+```
+
+## Monorepo Layout
 
 ```
 pibun/
 ├── apps/
-│   ├── server/          # Bun server — Pi RPC bridge + WebSocket
-│   ├── web/             # React/Vite UI
+│   ├── server/          # Bun HTTP + WebSocket server — Pi RPC bridge
+│   ├── web/             # React 19 + Vite + Zustand + Tailwind CSS v4
 │   └── desktop/         # Electrobun native wrapper
-│
 ├── packages/
 │   ├── contracts/       # Shared TypeScript types (no runtime logic)
-│   └── shared/          # Shared runtime utilities
-│
-├── package.json         # Workspace root
-└── turbo.json           # Build orchestration
+│   └── shared/          # Shared runtime utilities (@pibun/shared/jsonl)
+├── docs/                # ARCHITECTURE.md, DESKTOP.md, CODE_SIGNING.md, ROADMAP.md
+└── reference/           # Read-only reference repos (pi-mono, t3code, electrobun)
 ```
 
 ## Package Roles
 
 ### `apps/server`
 
-Bun/Node server. Two responsibilities:
+Bun HTTP + WebSocket server. Two modules:
 
-1. **Pi RPC Manager** — Spawns and manages `pi --mode rpc` subprocesses. One Pi process per session. Reads JSONL events from stdout, writes commands to stdin.
-2. **WebSocket Server** — Accepts browser connections. Routes client requests to the correct Pi process. Pushes Pi events to connected clients. Also serves the built web app as static files in production.
+- **PiRpcManager** (`piRpcManager.ts`) — Maps session IDs to PiProcess instances. One `pi --mode rpc` subprocess per session. Handles spawn, lifecycle, and cleanup.
+- **PiProcess** (`piProcess.ts`) — Wraps a single Pi subprocess. Reads JSONL from stdout, writes commands to stdin. Provides typed command methods and event listeners.
+- **WebSocket Server** (`server.ts`) — Accepts browser connections. Routes client requests (42 methods across session, app, git, terminal, project, settings, plugin domains) to the correct Pi process via handler functions. Pushes Pi events to connected clients on 7 push channels.
+- **Handlers** (`handlers/`) — One file per domain. Translate WebSocket requests into Pi RPC commands. Most are thin pass-throughs; session handlers have real logic.
 
-No orchestration engine, no event sourcing, no projectors. Pi handles session state, model management, compaction, and retries internally. The server is a thin bridge.
+Pi handles session state, model management, compaction, and retries internally. The server is a thin bridge.
 
 ### `apps/web`
 
-React + Vite SPA. Connects to the server via WebSocket. Responsibilities:
+React 19 + Vite SPA. Connects to the server via WebSocket.
 
-- Render streaming conversations (text deltas, thinking blocks)
-- Render tool calls and their output (bash, read, edit, write)
-- Session controls (new, switch, fork, compact)
-- Model and thinking level selection
-- Message composer with image paste support
-- Message queue (steer and follow-up)
-
-State management via Zustand. No Effect, no Schema — plain TypeScript.
+- **WireTransport** (`wireTransport.ts`) — Singleton that subscribes to WebSocket push channels and maps Pi events to Zustand store actions.
+- **Store** (`store/`) — Zustand store with typed slices: session, messages, models, tabs, terminal, git, plugins, projects, settings, UI state, notifications, updates, extension UI, connection.
+- **Components** (`components/`) — Chat view with streaming text/thinking/tool output, sidebar with session list, composer with image paste, model selector, terminal, extension UI dialogs, settings panel.
+- **Lib** (`lib/`) — Action modules (session, tab, git, project, plugin, settings, terminal) that call WsTransport methods and update the store. Theme engine with CSS variable injection. Shiki highlighter setup.
 
 ### `apps/desktop`
 
-Electrobun native app. Wraps the server + web into a single desktop application:
+Electrobun native app. Embeds server in-process (same Bun event loop, no child process).
 
-- Starts the server on a random port at launch
+- Starts server on a random port at launch
 - Opens a native webview pointing at the server
-- Native menus, window management
-- Auto-update support (future)
+- Native menus forwarded via WebSocket push (`menu.action` channel)
+- PTY-based terminal via `bun-pty` native library
+- See [DESKTOP.md](DESKTOP.md) for Electrobun specifics and distribution
 
 ### `packages/contracts`
 
-Shared TypeScript types and constants. No runtime code. Contains:
+Types-only package. Zero runtime code. Three domains:
 
-- Pi RPC event types (mirroring Pi's JSONL protocol)
-- Pi RPC command types
-- WebSocket protocol types (client ↔ server)
-- Session and model type definitions
+- **Pi protocol types** — Events, commands, responses mirroring Pi's JSONL protocol
+- **WebSocket protocol types** (`wsProtocol.ts`) — All 42 method params/results, 7 push channels, request/response envelopes. Single source of truth for the client ↔ server contract.
+- **Domain types** — Session tabs, projects, themes, settings, plugins, git types
 
 ### `packages/shared`
 
-Shared runtime utilities used by both server and web:
+Shared runtime utilities with explicit subpath exports:
 
-- JSONL parser (strict LF splitting — Pi docs warn against `readline`)
-- Common helpers
+- `@pibun/shared/jsonl` — JSONL parser (strict LF splitting, never readline)
 
-Uses explicit subpath exports (e.g., `@pibun/shared/jsonl`). No barrel index.
+## Data Flow
 
-## Key Design Decisions
+1. User types in Composer → calls `sessionActions.sendPrompt()`
+2. `sendPrompt` sends `session.prompt` via WsTransport
+3. Server handler receives request, calls `piProcess.prompt()`
+4. Pi subprocess processes prompt, streams JSONL events on stdout
+5. PiProcess parses JSONL, emits typed events
+6. Server pushes events to WebSocket clients on `pi.event` channel
+7. WireTransport receives push, dispatches to Zustand store
+8. React components re-render from store state (streaming text, tool output, etc.)
 
-### Why RPC mode, not SDK?
+## Multi-Session Model
 
-Pi offers both an in-process SDK and a subprocess RPC mode. We chose RPC because:
-
-- **Process isolation** — Pi crash ≠ server crash
-- **Same pattern as T3 Code** — proven architecture with Codex
-- **Language agnostic** — the server could be rewritten in any language later
-- **Clean boundary** — Pi manages its own state; we just pipe events through
-
-### Why not Effect/Schema?
-
-T3 Code uses Effect heavily for the server. We're starting with plain TypeScript because:
-
-- Simpler onboarding — fewer concepts to learn
-- Pi's RPC protocol is simple enough that raw types suffice
-- Can add Effect later if complexity warrants it
-
-### Why Electrobun, not Electron?
-
-- **Bun-native** — PiBun already uses Bun as its runtime
-- **Native webview** — no bundled Chromium, much smaller binaries
-- **Modern** — designed for the Bun ecosystem from day one
-
-### Why not fork T3 Code?
-
-~60% of T3 Code's server is Codex-specific protocol plumbing (approval flows, collaboration modes, plan mode instructions, thread/turn mapping, model normalization). The orchestration layer (event sourcing with decider/projector) adds complexity that isn't needed when Pi already manages its own state. Starting fresh with Pi's clean RPC protocol is faster than ripping out Codex internals.
-
-## What We Keep From T3 Code (As Reference)
-
-- WebSocket transport pattern (`WsTransport` class with reconnect, pending requests, push subscriptions)
-- Zustand store structure for UI state
-- Chat rendering approach (streaming text deltas, collapsible tool output)
-- General UX patterns (sidebar, composer, model selector)
+- **Tab IDs** are client-generated (UI concept, can exist before session starts)
+- **Session IDs** come from Pi (assigned when `pi --mode rpc` spawns)
+- `SessionTab.sessionId` links a tab to its Pi session
+- `PiRpcManager` maps session ID → PiProcess instance
+- `WsRequest.sessionId` routes each request to the correct process

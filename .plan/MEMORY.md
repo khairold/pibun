@@ -22,6 +22,8 @@
 | 12 | Mandatory context files reduced from 7 to 3 | CLAUDE.md + CONVENTIONS.md + TENSIONS.md. Down from CLAUDE.md + AGENTS.md + CAPABILITY-MAP.md + SOUL.md + HUMAN.md + CONVENTIONS.md + TENSIONS.md. | 2026-03-24 |
 | 13 | Audit artifact at `.plan/audit-1.5-docs-staleness.md` | Detailed staleness report: WS_PROTOCOL.md lists 17/42 methods (severely stale), PI_INTEGRATION.md is redundant with pi-mono rpc.md, WEB_UI.md is aspirational v1 plan. All three marked for deletion in 1.6. | 2026-03-24 |
 | 14 | DECISIONS.md is 100% redundant with CLAUDE.md | All 12 decisions + all gotchas already merged into CLAUDE.md in Session 1. Recommend deleting in 1.6 alongside the other three stale docs. | 2026-03-24 |
+| 15 | Phase 1 complete — docs/ reduced from 8 to 4 files | Deleted: WS_PROTOCOL.md, PI_INTEGRATION.md, WEB_UI.md, DECISIONS.md. Kept: ARCHITECTURE.md (rewritten), DESKTOP.md, CODE_SIGNING.md, ROADMAP.md. TSDoc updated in wsProtocol.ts, piProcess.ts, piRpcManager.ts, server.ts, wireTransport.ts. | 2026-03-24 |
+| 16 | ARCHITECTURE.md rewritten as current-state doc | ~85 lines. Covers: overview diagram, monorepo layout, package roles (with key files), data flow, multi-session model. No aspirational content, no redundancy with CLAUDE.md decisions/gotchas. | 2026-03-24 |
 
 ## Architecture Notes
 

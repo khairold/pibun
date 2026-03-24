@@ -5,7 +5,21 @@
  * Simple request/response + push model. No Effect Schema, no tagged unions.
  * Method strings like "session.prompt" discriminate request types.
  *
- * See docs/WS_PROTOCOL.md for the full protocol specification.
+ * ## Protocol Overview
+ *
+ * Three message shapes flow over the WebSocket:
+ *
+ * - **WsRequest** (browser → server): `{ id, method, params?, sessionId? }`
+ *   Every request gets exactly one WsResponse back, correlated by `id`.
+ *
+ * - **WsResponse** (server → browser): `{ id, result? }` or `{ id, error }`
+ *
+ * - **WsPush** (server → browser, unsolicited): `{ type: "push", channel, data }`
+ *   Push channels: pi.event, pi.response, server.welcome, server.error,
+ *   menu.action, terminal.data, terminal.exit
+ *
+ * This file is the single source of truth. All 42 methods and 7 push channels
+ * are defined here with full TypeScript types. The compiler enforces correctness.
  */
 
 import type { GitDiffResult, GitLogResult, GitStatusResult } from "./gitTypes.js";

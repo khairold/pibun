@@ -8,7 +8,7 @@
  * Uses Bun.serve() native API. WebSocket connections carry per-connection
  * data (WsConnectionData) set during the upgrade.
  *
- * @see docs/WS_PROTOCOL.md — WebSocket protocol specification
+ * @see packages/contracts/src/wsProtocol.ts — WebSocket protocol types (single source of truth)
  * @see docs/ARCHITECTURE.md — System architecture
  */
 

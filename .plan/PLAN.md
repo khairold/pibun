@@ -2,8 +2,8 @@
 
 > **Spec:** Audit findings from 2026-03-24 session + "deep modules" principle
 > **Status:** In Progress
-> **Current Phase:** Phase 1 — Context Document Consolidation
-> **Last Session:** Session 3 — 2026-03-24
+> **Current Phase:** Phase 2 — Deep Contracts Package
+> **Last Session:** Session 4 — 2026-03-24
 
 ---
 
@@ -49,9 +49,9 @@ With a 1M token context window, the entire codebase (~532K tokens) fits in one s
 - [x] 1.3 — Trim CONVENTIONS.md: remove sections that duplicate type-level knowledge (WS message format examples — the types already enforce this), keep only rules that AREN'T expressed in code
 - [x] 1.4 — Delete AGENTS.md, CAPABILITY-MAP.md, SOUL.md, HUMAN.md (content now lives in CLAUDE.md)
 - [x] 1.5 — Audit docs/ for staleness: compare WS_PROTOCOL.md method list against actual 42-method handler registry, check PI_INTEGRATION.md against current piProcess.ts
-- [ ] 1.6 — Delete docs/WS_PROTOCOL.md, docs/WEB_UI.md, docs/PI_INTEGRATION.md — their useful content becomes TSDoc in the code files they describe (wsProtocol.ts, piProcess.ts, wireTransport.ts)
-- [ ] 1.7 — Update docs/ARCHITECTURE.md to be the single "how this codebase works" doc (~100 lines, current state not aspirational)
-- [ ] 1.8 — Verify: a fresh agent session reads only CLAUDE.md + CONVENTIONS.md + TENSIONS.md and has full context to work
+- [x] 1.6 — Delete docs/WS_PROTOCOL.md, docs/WEB_UI.md, docs/PI_INTEGRATION.md, docs/DECISIONS.md — their useful content becomes TSDoc in the code files they describe (wsProtocol.ts, piProcess.ts, wireTransport.ts)
+- [x] 1.7 — Update docs/ARCHITECTURE.md to be the single "how this codebase works" doc (~100 lines, current state not aspirational)
+- [x] 1.8 — Verify: a fresh agent session reads only CLAUDE.md + CONVENTIONS.md + TENSIONS.md and has full context to work
 
 **Exit criteria:** `bun run typecheck && bun run lint` passes. Only 3 context files remain mandatory. No information loss — everything is either in code (TSDoc) or in the 3 remaining files.
 

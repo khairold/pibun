@@ -35,7 +35,7 @@ pibun/
 ├── CLAUDE.md                # ← You are here
 ├── .agents/                 # CONVENTIONS.md, TENSIONS.md
 ├── .plan/                   # PLAN.md, MEMORY.md, DRIFT.md, SESSION-LOG.md
-├── docs/                    # ARCHITECTURE.md, DECISIONS.md, DESKTOP.md, CODE_SIGNING.md, ROADMAP.md
+├── docs/                    # ARCHITECTURE.md, DESKTOP.md, CODE_SIGNING.md, ROADMAP.md
 ├── reference/               # Read-only reference repos (not committed)
 │   ├── pi-mono/             # Authoritative Pi source
 │   ├── t3code/              # WebSocket patterns, UI structure
@@ -139,7 +139,7 @@ Read these before building analogous features. Don't copy code — understand th
 | SDK usage | `packages/coding-agent/docs/sdk.md` |
 | All docs | `packages/coding-agent/docs/` |
 
-**When `docs/PI_INTEGRATION.md` and pi-mono disagree, pi-mono wins.**
+**When in doubt about Pi RPC behavior, pi-mono source wins.**
 
 **⚠️ Do NOT use `packages/web-ui/`** — Pi's own web UI (mini-lit) is NOT a reference for PiBun. We build our own React UI.
 
@@ -171,7 +171,6 @@ Read these before building analogous features. Don't copy code — understand th
 | Document | When to Read |
 |----------|-------------|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the codebase works — package roles, design decisions |
-| [docs/DECISIONS.md](docs/DECISIONS.md) | Full decision log with rationale + detailed gotchas |
 | [docs/DESKTOP.md](docs/DESKTOP.md) | Electrobun integration, distribution, native features |
 | [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md) | macOS code signing & notarization setup |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Delivery history and parking lot |

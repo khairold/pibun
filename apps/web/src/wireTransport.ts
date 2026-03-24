@@ -2,7 +2,7 @@
  * Wire WsTransport → Zustand store.
  *
  * Creates the transport singleton and subscribes to push channels:
- * - `pi.event` → dispatches Pi events to store actions (event→state mapping from WEB_UI.md)
+ * - `pi.event` → dispatches Pi events to store actions (event→state mapping below)
  * - `server.welcome` → logs server info
  * - `server.error` → logs errors
  * - Transport state changes → connection slice
@@ -119,7 +119,7 @@ function makeMessage(
 /**
  * Route a Pi event to the appropriate Zustand store actions.
  *
- * Event → State mapping (from WEB_UI.md):
+ * Event → State mapping:
  * - agent_start → isStreaming = true
  * - agent_end → isStreaming = false
  * - message_start → append ChatMessage (user or assistant)

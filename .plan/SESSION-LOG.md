@@ -100,3 +100,35 @@
 - For WEB_UI.md: no useful content to preserve — it's a v1 design doc superseded by the actual codebase.
 
 ---
+
+## Session 4 — Complete Phase 1: Delete stale docs + rewrite ARCHITECTURE.md (2026-03-24)
+
+**What happened:**
+- Deleted 4 stale/redundant docs: WS_PROTOCOL.md (17/42 methods, severely stale), PI_INTEGRATION.md (redundant with pi-mono rpc.md), WEB_UI.md (aspirational v1 plan), DECISIONS.md (100% redundant with CLAUDE.md)
+- Updated TSDoc references in 5 source files: wsProtocol.ts (added protocol overview TSDoc header replacing WS_PROTOCOL.md reference), piProcess.ts and piRpcManager.ts (reference pi-mono instead of PI_INTEGRATION.md), server.ts (reference wsProtocol.ts instead of WS_PROTOCOL.md), wireTransport.ts (removed WEB_UI.md references)
+- Updated CLAUDE.md: removed DECISIONS.md from docs table, removed PI_INTEGRATION.md reference, updated docs/ description in monorepo structure
+- Updated README.md: removed 3 deleted doc links, added CODE_SIGNING.md, updated status from "Planning phase" to "Active development"
+- Rewrote ARCHITECTURE.md as current-state doc (~85 lines): overview diagram, monorepo layout, package roles with key files, data flow description, multi-session model explanation
+- Verified Phase 1 exit criteria: only 3 mandatory context files, build passes, no information loss
+
+**Items completed:**
+- [x] 1.6 — Delete docs/WS_PROTOCOL.md, docs/WEB_UI.md, docs/PI_INTEGRATION.md, docs/DECISIONS.md
+- [x] 1.7 — Update docs/ARCHITECTURE.md to be the single "how this codebase works" doc
+- [x] 1.8 — Verify: a fresh agent session reads only CLAUDE.md + CONVENTIONS.md + TENSIONS.md and has full context
+
+**Issues encountered:**
+- None. The audit artifact from Session 3 made this mechanical.
+
+**Phase 1 complete.** Exit criteria met:
+- `bun run typecheck && bun run lint` passes ✅
+- Only 3 mandatory context files remain (CLAUDE.md, CONVENTIONS.md, TENSIONS.md) ✅
+- No information loss — all useful content preserved as TSDoc or in CLAUDE.md ✅
+- docs/ reduced from 8 → 4 files (ARCHITECTURE.md, DESKTOP.md, CODE_SIGNING.md, ROADMAP.md)
+
+**Handoff to next session:**
+- Next: Phase 2 — Deep Contracts Package
+- Start with 2.1: Merge piTypes.ts + piEvents.ts + piCommands.ts + piResponses.ts → piProtocol.ts
+- Read MEMORY.md for import path gotchas (imports will break massively during merges)
+- Run typecheck after each merge, fix all imports before moving to next merge
+
+---

@@ -30,12 +30,10 @@ Inspired by [T3 Code](https://github.com/pingdotgg/t3code), but purpose-built fo
 | Document | Description |
 |----------|-------------|
 | [Architecture](docs/ARCHITECTURE.md) | System design and package roles |
-| [Pi Integration](docs/PI_INTEGRATION.md) | How we talk to Pi via RPC |
-| [WebSocket Protocol](docs/WS_PROTOCOL.md) | Browser ↔ server message contract |
-| [Web UI](docs/WEB_UI.md) | React app design and components |
-| [Desktop](docs/DESKTOP.md) | Electrobun integration plan |
-| [Roadmap](docs/ROADMAP.md) | Phased delivery plan |
+| [Desktop](docs/DESKTOP.md) | Electrobun integration and distribution |
+| [Code Signing](docs/CODE_SIGNING.md) | macOS code signing & notarization |
+| [Roadmap](docs/ROADMAP.md) | Delivery history and parking lot |
 
 ## Status
 
-📋 Planning phase — documentation only, no code yet.
+🚧 Active development — functional desktop app with chat, terminal, git, plugins, themes.

@@ -11,7 +11,7 @@
  * One Pi RPC process per session. The manager owns the lifecycle of all
  * processes and ensures cleanup on crash or intentional shutdown.
  *
- * @see docs/PI_INTEGRATION.md — Pi RPC protocol reference
+ * @see reference/pi-mono/packages/coding-agent/docs/rpc.md — Authoritative Pi RPC protocol reference
  * @see apps/server/src/piProcess.ts — Individual process wrapper
  */
 
