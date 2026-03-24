@@ -1142,6 +1142,196 @@ function groupTabsByCwd(tabs: SessionTab[]): Array<[string, SessionTab[]]> {
 }
 
 // ============================================================================
+// Sidebar Update Footer
+// ============================================================================
+
+/**
+ * SidebarUpdateFooter — compact auto-update status at the bottom of the sidebar.
+ *
+ * Shows download progress, "restart to update" prompt, and error states.
+ * Only visible when there's active update activity (not shown for "no-update" or
+ * when dismissed). Complements the top-level UpdateBanner with a persistent,
+ * always-visible indicator in the sidebar.
+ */
+function SidebarUpdateFooter() {
+	const updateStatus = useStore((s) => s.updateStatus);
+	const updateMessage = useStore((s) => s.updateMessage);
+	const updateVersion = useStore((s) => s.updateVersion);
+	const updateProgress = useStore((s) => s.updateProgress);
+
+	const handleApplyUpdate = useCallback(() => {
+		getTransport()
+			.request("app.applyUpdate")
+			.catch((err: unknown) => {
+				const msg = err instanceof Error ? err.message : String(err);
+				useStore.getState().setLastError(`Failed to apply update: ${msg}`);
+			});
+	}, []);
+
+	const handleCheckForUpdates = useCallback(() => {
+		getTransport()
+			.request("app.checkForUpdates")
+			.catch((err: unknown) => {
+				const msg = err instanceof Error ? err.message : String(err);
+				useStore.getState().setLastError(`Failed to check for updates: ${msg}`);
+			});
+	}, []);
+
+	// Only show for active update states
+	if (!updateStatus || updateStatus === "no-update" || updateStatus === "checking") {
+		return null;
+	}
+
+	const isDownloading = updateStatus === "downloading" || updateStatus === "download-progress";
+	const isReady = updateStatus === "update-ready";
+	const isApplying = updateStatus === "applying";
+	const isError = updateStatus === "error";
+
+	return (
+		<div className="shrink-0 border-t border-border-secondary">
+			{/* Download progress bar (full-width, thin) */}
+			{isDownloading && (
+				<div className="h-1 w-full bg-accent-primary/20">
+					<div
+						className="h-full bg-accent-primary transition-all duration-300"
+						style={{ width: `${String(updateProgress ?? 0)}%` }}
+					/>
+				</div>
+			)}
+
+			<div className="flex items-center gap-2 px-3 py-2">
+				{/* Status icon */}
+				{isDownloading && (
+					<svg
+						className="h-3.5 w-3.5 shrink-0 animate-spin text-accent-primary"
+						viewBox="0 0 16 16"
+						fill="none"
+						aria-label="Downloading update"
+						role="img"
+					>
+						<circle
+							cx="8"
+							cy="8"
+							r="6"
+							stroke="currentColor"
+							strokeWidth="2"
+							strokeLinecap="round"
+							strokeDasharray="28"
+							strokeDashoffset="8"
+						/>
+					</svg>
+				)}
+				{isReady && (
+					<svg
+						className="h-3.5 w-3.5 shrink-0 text-status-success"
+						viewBox="0 0 16 16"
+						fill="currentColor"
+						aria-label="Update ready"
+						role="img"
+					>
+						<path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm11.78-1.72a.75.75 0 0 0-1.06-1.06L7.25 8.69 5.28 6.72a.75.75 0 0 0-1.06 1.06l2.5 2.5a.75.75 0 0 0 1.06 0l4-4z" />
+					</svg>
+				)}
+				{isApplying && (
+					<svg
+						className="h-3.5 w-3.5 shrink-0 animate-spin text-status-success"
+						viewBox="0 0 16 16"
+						fill="none"
+						aria-label="Applying update"
+						role="img"
+					>
+						<circle
+							cx="8"
+							cy="8"
+							r="6"
+							stroke="currentColor"
+							strokeWidth="2"
+							strokeLinecap="round"
+							strokeDasharray="28"
+							strokeDashoffset="8"
+						/>
+					</svg>
+				)}
+				{isError && (
+					<svg
+						className="h-3.5 w-3.5 shrink-0 text-status-error"
+						viewBox="0 0 16 16"
+						fill="currentColor"
+						aria-label="Update error"
+						role="img"
+					>
+						<path d="M2.343 13.657A8 8 0 1 1 13.657 2.343 8 8 0 0 1 2.343 13.657zM6.03 4.97a.75.75 0 0 0-1.06 1.06L6.94 8 4.97 9.97a.75.75 0 1 0 1.06 1.06L8 9.06l1.97 1.97a.75.75 0 1 0 1.06-1.06L9.06 8l1.97-1.97a.75.75 0 1 0-1.06-1.06L8 6.94 6.03 4.97z" />
+					</svg>
+				)}
+
+				{/* Text content */}
+				<div className="min-w-0 flex-1">
+					{isDownloading && (
+						<div className="flex items-baseline gap-1">
+							<span className="truncate text-xs text-text-secondary">
+								Downloading{updateVersion ? ` v${updateVersion}` : ""}
+							</span>
+							{updateProgress != null && (
+								<span className="shrink-0 text-[10px] text-text-muted">
+									{String(Math.round(updateProgress))}%
+								</span>
+							)}
+						</div>
+					)}
+					{isReady && (
+						<span className="truncate text-xs font-medium text-status-success">
+							Update{updateVersion ? ` v${updateVersion}` : ""} ready
+						</span>
+					)}
+					{isApplying && (
+						<span className="truncate text-xs text-text-secondary">Installing update…</span>
+					)}
+					{isError && <span className="truncate text-xs text-status-error">Update failed</span>}
+				</div>
+
+				{/* Action buttons */}
+				{isReady && (
+					<button
+						type="button"
+						onClick={handleApplyUpdate}
+						className="shrink-0 rounded-md bg-status-success px-2 py-0.5 text-[11px] font-medium text-text-on-accent transition-colors hover:bg-status-success/80"
+					>
+						Restart
+					</button>
+				)}
+				{isError && (
+					<button
+						type="button"
+						onClick={handleCheckForUpdates}
+						className="shrink-0 rounded-md bg-surface-tertiary px-2 py-0.5 text-[11px] font-medium text-text-secondary transition-colors hover:bg-surface-tertiary/80"
+					>
+						Retry
+					</button>
+				)}
+			</div>
+
+			{/* Update available — not yet downloading */}
+			{updateStatus === "update-available" && (
+				<div className="flex items-center gap-2 px-3 py-2">
+					<svg
+						className="h-3.5 w-3.5 shrink-0 text-status-warning"
+						viewBox="0 0 16 16"
+						fill="currentColor"
+						aria-label="Update available"
+						role="img"
+					>
+						<path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm6.5-.25A.75.75 0 0 1 8 7h.01a.75.75 0 0 1 0 1.5H8a.75.75 0 0 1-.75-.75zM8 10a.75.75 0 0 1 .75.75v.01a.75.75 0 0 1-1.5 0v-.01A.75.75 0 0 1 8 10z" />
+					</svg>
+					<span className="min-w-0 flex-1 truncate text-xs text-status-warning-text">
+						{updateMessage}
+					</span>
+				</div>
+			)}
+		</div>
+	);
+}
+
+// ============================================================================
 // Sidebar Component
 // ============================================================================
 
@@ -1900,6 +2090,9 @@ export function Sidebar() {
 				{/* ── Plugin Sidebar Panels ─────────────────────────────── */}
 				<PluginSidebarPanels />
 			</div>
+
+			{/* ── Update Footer ────────────────────────────────────────── */}
+			<SidebarUpdateFooter />
 		</>
 	);
 

@@ -1232,3 +1232,32 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 42 — Sidebar update footer + bsdiff verification (2026-03-24)
+
+**What happened:**
+- Implemented sidebar update footer for compact auto-update status (4B.5):
+  - **`SidebarUpdateFooter` component**: New component in `Sidebar.tsx` (deep modules). Renders at the bottom of the sidebar, below the scrollable content area. Shows compact update status:
+    - **Downloading**: Thin full-width progress bar (accent color on accent/20 track) + spinning icon + "Downloading vX.Y.Z" + progress percentage
+    - **Update ready**: Green check icon + "Update vX.Y.Z ready" + green "Restart" button that calls `app.applyUpdate`
+    - **Applying**: Spinning icon + "Installing update…"
+    - **Error**: Red × icon + "Update failed" + "Retry" button that calls `app.checkForUpdates`
+    - **Update available**: Warning icon + update message (transient — auto-transitions to downloading)
+    - Hidden for `no-update`, `checking`, and null status (sidebar stays clean by default)
+  - **Bsdiff patches**: Verified already handled by Electrobun's `Updater.downloadUpdate()` — it internally checks for patch files (bsdiff) and falls back to full tarball. No PiBun code changes needed.
+  - **Existing infrastructure reused**: `UpdateBanner` (top-level) remains for high-visibility notification. `SidebarUpdateFooter` adds always-visible persistent indicator in the sidebar. Both read from the same `UpdateSlice` state. No new store fields, contracts, or server changes.
+- Only 1 file modified: `Sidebar.tsx` (new component + wired into `sidebarContent` fragment).
+
+**Items completed:**
+- [x] 4B.5 — Enhance auto-update: show download progress in sidebar footer, prompt for restart when ready, use Electrobun's bsdiff patches
+
+**Issues encountered:**
+- Biome formatting: multi-line `if` condition and short JSX elements collapsed to single lines. Fixed with `bun run format`.
+
+**Handoff to next session:**
+- Next: 4C.1 — Add multi-select to sidebar: Ctrl/Cmd+click to toggle, Shift+click for range select
+- `SidebarUpdateFooter` lives in `Sidebar.tsx` at function declaration line ~1156. It reads `updateStatus`, `updateMessage`, `updateVersion`, `updateProgress` from Zustand.
+- The `UpdateBanner` in `AppShell` and `SidebarUpdateFooter` in `Sidebar` both show update status — they complement each other (banner is dismissible, footer is persistent).
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

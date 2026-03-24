@@ -4,7 +4,7 @@
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
 > **Status:** Phase 4 in progress
 > **Current Phase:** Phase 4 — Desktop Native Features
-> **Last Session:** Session 41 — 2026-03-24
+> **Last Session:** Session 42 — 2026-03-24
 
 ---
 
@@ -139,7 +139,7 @@
 - [x] 4B.2 — Tray status indicator: change icon/color based on active session state (idle, working, error)
 - [x] 4B.3 — Add Electrobun navigation rules to prevent webview from navigating away from PiBun
 - [x] 4B.4 — Add Electrobun window focus/blur events: dim status bar when unfocused, track focus for notification suppression
-- [ ] 4B.5 — Enhance auto-update: show download progress in sidebar footer, prompt for restart when ready, use Electrobun's bsdiff patches
+- [x] 4B.5 — Enhance auto-update: show download progress in sidebar footer, prompt for restart when ready, use Electrobun's bsdiff patches
 
 ### 4C — Multi-Select & Bulk Operations
 
