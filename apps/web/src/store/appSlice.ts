@@ -50,11 +50,13 @@ export const createAppSlice: StateCreator<AppStore, [], [], AppSlice> = (set, ge
 	connectionStatus: "connecting",
 	reconnectAttempt: 0,
 	lastError: null,
+	providerHealth: null,
 
 	setConnectionStatus: (status) => set({ connectionStatus: status }),
 	setReconnectAttempt: (attempt) => set({ reconnectAttempt: attempt }),
 	setLastError: (error) => set({ lastError: error }),
 	clearLastError: () => set({ lastError: null }),
+	setProviderHealth: (issue) => set({ providerHealth: issue }),
 
 	// ---- UI state ----
 	sidebarOpen: isDesktopWidth(),

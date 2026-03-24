@@ -258,3 +258,29 @@
 **Handoff to next session:**
 - Next: 1B.4 — Add provider health indicator (banner when Pi process exits unexpectedly, session start fails, or model errors occur repeatedly)
 - `consumeDeferredActiveTabId()` still not consumed
+
+---
+
+## Session 9 — Provider health indicator (2026-03-24)
+
+**What happened:**
+- Implemented provider health indicator across all layers (1B.4):
+  - **Contracts**: Added `session.status` push channel with `WsSessionStatusData` type (sessionId, status, message, exitCode). Updated `WS_CHANNELS`, `WsChannelDataMap`.
+  - **Server**: Wired `PiRpcManager.onSessionEvent()` crash events → `session.status` push to owning WS connection. Includes last 200 chars of stderr in crash message. Cleans up session from connection tracking after crash.
+  - **Store**: Added `ProviderHealthIssue` type with 3 kinds: `process_crashed`, `session_start_failed`, `repeated_model_errors`. Added `providerHealth` field + `setProviderHealth` action to ConnectionSlice.
+  - **wireTransport**: Subscribes to `session.status` push → sets `providerHealth` for crashes (also clears streaming state, nullifies crashed session on tab). Enhanced `auto_retry_end` failure → sets `providerHealth` with `repeated_model_errors` instead of just `setLastError`. Auto-clears health on `agent_start` (successful activity).
+  - **sessionActions**: `ensureSession()` and `startSessionInFolder()` now set `providerHealth` on failure + clear it on success. `startNewSession()` clears health on success.
+  - **HealthBanner component**: Persistent amber/red banner in `ErrorBanner.tsx`. Shows kind label + message. "New Session" button for crash/start failures. Dismiss button. Does NOT auto-dismiss (unlike ErrorBanner's 10s timeout). Added to AppShell above ErrorBanner.
+
+**Items completed:**
+- [x] 1B.4 — Add provider health indicator
+
+**Issues encountered:**
+- `exactOptionalPropertyTypes` prevented using `sessionId: undefined` in `updateTab()` — used `null` instead (SessionTab.sessionId is `string | null`, not optional).
+- Biome formatter wanted ternary expressions on one line — ran `bun run format` to fix.
+
+**Handoff to next session:**
+- Next: 1B.5 — Add completion summary after agent finishes
+- `HealthBanner` is in `ErrorBanner.tsx` — if it grows further, consider extracting to its own file
+- Health auto-clears on `agent_start` — this means any successful prompt clears prior health issues
+- `consumeDeferredActiveTabId()` still not consumed

@@ -142,6 +142,8 @@ export const WS_CHANNELS = {
 	terminalData: "terminal.data",
 	/** Terminal exited (process finished). */
 	terminalExit: "terminal.exit",
+	/** Session lifecycle status (crashed, stopped unexpectedly). */
+	sessionStatus: "session.status",
 } as const;
 
 /** Union of all push channel strings. */
@@ -809,6 +811,23 @@ export interface WsTerminalExitPush {
 	signal?: number | string;
 }
 
+/**
+ * Data for `session.status` push — session lifecycle events from the server.
+ *
+ * Sent when a Pi process exits unexpectedly (crash) so the client can show
+ * a persistent health banner. Not sent for expected stops (user-initiated).
+ */
+export interface WsSessionStatusData {
+	/** Which session this status change applies to. */
+	sessionId: string;
+	/** Type of status change. */
+	status: "crashed";
+	/** Human-readable description of what happened. */
+	message: string;
+	/** Process exit code (for crashes). */
+	exitCode?: number;
+}
+
 // ============================================================================
 // Channel → Data Type Map
 // ============================================================================
@@ -826,6 +845,7 @@ export interface WsChannelDataMap {
 	"app.update": WsAppUpdateData;
 	"terminal.data": WsTerminalDataPush;
 	"terminal.exit": WsTerminalExitPush;
+	"session.status": WsSessionStatusData;
 }
 
 // ============================================================================

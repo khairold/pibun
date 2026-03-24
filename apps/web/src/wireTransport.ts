@@ -45,6 +45,7 @@ import type {
 	PiTextContent,
 	WsMenuActionData,
 	WsPiEventData,
+	WsSessionStatusData,
 } from "@pibun/contracts";
 
 // ============================================================================
@@ -140,6 +141,10 @@ function handlePiEvent(event: PiEvent): void {
 		// ── Agent lifecycle ────────────────────────────────────────────
 		case "agent_start":
 			store.setIsStreaming(true);
+			// Clear any previous health issue — agent is working
+			if (store.providerHealth) {
+				store.setProviderHealth(null);
+			}
 			break;
 
 		case "agent_end":
@@ -256,11 +261,17 @@ function handlePiEvent(event: PiEvent): void {
 						content: `❌ Retry failed after ${event.attempt} attempts: ${event.finalError}`,
 					}),
 				);
-				store.setLastError(`Retry failed: ${event.finalError}`);
 				// Mark active tab as error — will be preserved by deriveTabStatus
 				if (store.activeTabId) {
 					store.updateTab(store.activeTabId, { status: "error" });
 				}
+				// Set persistent health issue for repeated model errors
+				store.setProviderHealth({
+					kind: "repeated_model_errors",
+					message: `Retry failed after ${event.attempt} attempts: ${event.finalError}`,
+					sessionId: store.sessionId,
+					detectedAt: Date.now(),
+				});
 			}
 			break;
 
@@ -763,6 +774,39 @@ export function initTransport(): () => void {
 			const tab = store.getTerminalTabByTerminalId(data.terminalId);
 			if (tab) {
 				store.updateTerminalTab(tab.id, { isRunning: false });
+			}
+		}),
+	);
+
+	// session.status → provider health (Pi process crash)
+	cleanups.push(
+		transport.subscribe("session.status", (data: WsSessionStatusData) => {
+			if (data.status === "crashed") {
+				const store = useStore.getState();
+
+				// Clear streaming state for the crashed session's tab
+				const crashedTab = store.tabs.find((t) => t.sessionId === data.sessionId);
+				if (crashedTab) {
+					store.updateTab(crashedTab.id, {
+						isStreaming: false,
+						status: "error",
+						sessionId: null,
+					});
+				}
+
+				// If the crashed session is the active one, clear session state
+				if (store.sessionId === data.sessionId) {
+					store.setSessionId(null);
+					store.setIsStreaming(false);
+				}
+
+				// Set the persistent health issue
+				store.setProviderHealth({
+					kind: "process_crashed",
+					message: data.message,
+					sessionId: data.sessionId,
+					detectedAt: Date.now(),
+				});
 			}
 		}),
 	);

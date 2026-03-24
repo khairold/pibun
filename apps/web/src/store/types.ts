@@ -71,6 +71,23 @@ export interface ChatMessage {
 // Store Slices
 // ============================================================================
 
+/**
+ * Provider health issue — persistent problem requiring user attention.
+ *
+ * Unlike `lastError` (auto-dismissing after 10s), health issues persist
+ * until manually dismissed or the underlying issue is resolved.
+ */
+export interface ProviderHealthIssue {
+	/** Category of the health issue. */
+	kind: "process_crashed" | "session_start_failed" | "repeated_model_errors";
+	/** Human-readable description. */
+	message: string;
+	/** Session ID affected, if applicable. */
+	sessionId: string | null;
+	/** Unix timestamp when the issue was detected. */
+	detectedAt: number;
+}
+
 /** Connection state — mirrors WsTransport lifecycle. */
 export interface ConnectionSlice {
 	/** Current WebSocket transport state. */
@@ -79,6 +96,11 @@ export interface ConnectionSlice {
 	reconnectAttempt: number;
 	/** Last error message to display to the user, null when no error. */
 	lastError: string | null;
+	/**
+	 * Persistent provider health issue. Null when healthy.
+	 * Not auto-dismissed — must be cleared manually or by starting a new session.
+	 */
+	providerHealth: ProviderHealthIssue | null;
 
 	/** Update the connection status. */
 	setConnectionStatus: (status: TransportState) => void;
@@ -88,6 +110,8 @@ export interface ConnectionSlice {
 	setLastError: (error: string) => void;
 	/** Clear the displayed error. */
 	clearLastError: () => void;
+	/** Set a provider health issue (persistent until dismissed). */
+	setProviderHealth: (issue: ProviderHealthIssue | null) => void;
 }
 
 /** Session state — Pi agent session info. */

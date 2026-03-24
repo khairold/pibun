@@ -168,6 +168,35 @@ export function createServer(options: ServerOptions): PiBunServer {
 		}
 	});
 
+	// Wire Pi process crash events → WS push to owning connection
+	config.rpcManager.onSessionEvent((sessionId, event) => {
+		if (event.type !== "crashed") return;
+
+		// Find the connection that owns this session and notify it
+		for (const ws of connections) {
+			if (ws.data.sessionIds.has(sessionId)) {
+				const stderrSnippet = event.stderr ? event.stderr.slice(-200).trim() : "";
+				const message = stderrSnippet
+					? `Pi process crashed (exit code ${event.exitCode}): ${stderrSnippet}`
+					: `Pi process crashed unexpectedly (exit code ${event.exitCode})`;
+
+				sendPush(ws, "session.status", {
+					sessionId,
+					status: "crashed",
+					message,
+					exitCode: event.exitCode,
+				});
+
+				// Clean up session from connection tracking
+				ws.data.sessionIds.delete(sessionId);
+				if (ws.data.sessionId === sessionId) {
+					ws.data.sessionId = null;
+				}
+				break;
+			}
+		}
+	});
+
 	const server = Bun.serve<WsConnectionData>({
 		port: config.port,
 		hostname: config.hostname,

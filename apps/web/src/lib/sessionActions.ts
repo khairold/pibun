@@ -223,9 +223,18 @@ async function ensureSession(): Promise<boolean> {
 		// Ensure a tab exists and associate it with this session
 		ensureTabExists();
 		linkSessionToActiveTab(result.sessionId);
+		// Clear any previous health issue — session started successfully
+		useStore.getState().setProviderHealth(null);
 		return true;
 	} catch (err) {
-		setLastError(`Failed to start session: ${errorMessage(err)}`);
+		const msg = `Failed to start session: ${errorMessage(err)}`;
+		setLastError(msg);
+		useStore.getState().setProviderHealth({
+			kind: "session_start_failed",
+			message: msg,
+			sessionId: null,
+			detectedAt: Date.now(),
+		});
 		return false;
 	}
 }
@@ -281,6 +290,8 @@ export async function startNewSession(): Promise<boolean> {
 		// Clear local messages — Pi starts a fresh session internally
 		store.clearMessages();
 		store.setIsStreaming(false);
+		// Clear any previous health issue — new session started successfully
+		store.setProviderHealth(null);
 		// Refresh state to pick up new session info
 		await refreshSessionState();
 		return true;
@@ -470,6 +481,8 @@ export async function startSessionInFolder(cwd: string): Promise<boolean> {
 		ensureTabExists();
 		linkSessionToActiveTab(result.sessionId);
 		store.setIsStreaming(false);
+		// Clear any previous health issue — session started successfully
+		store.setProviderHealth(null);
 
 		// Refresh state to pick up new session info (model, thinking, etc.)
 		await refreshSessionState();
@@ -479,7 +492,14 @@ export async function startSessionInFolder(cwd: string): Promise<boolean> {
 		store.addToast(`Opened folder: ${cwd}`, "info");
 		return true;
 	} catch (err) {
-		store.setLastError(`Failed to start session in folder: ${errorMessage(err)}`);
+		const msg = `Failed to start session in folder: ${errorMessage(err)}`;
+		store.setLastError(msg);
+		store.setProviderHealth({
+			kind: "session_start_failed",
+			message: msg,
+			sessionId: null,
+			detectedAt: Date.now(),
+		});
 		return false;
 	}
 }

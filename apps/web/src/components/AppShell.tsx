@@ -14,7 +14,7 @@ import { ChatView } from "@/components/ChatView";
 import { CompactButton } from "@/components/CompactButton";
 import { Composer } from "@/components/Composer";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
-import { ErrorBanner } from "@/components/ErrorBanner";
+import { ErrorBanner, HealthBanner } from "@/components/ErrorBanner";
 import { ExportDialog } from "@/components/ExportDialog";
 import { ForkDialog } from "@/components/ForkDialog";
 import { GitPanel } from "@/components/GitPanel";
@@ -65,6 +65,7 @@ export function AppShell() {
 					<TabBar />
 
 					<ConnectionBanner />
+					<HealthBanner />
 					<ErrorBanner />
 					<UpdateBanner />
 
