@@ -18,6 +18,7 @@ import {
 	fetchGitStatus,
 	fetchPlugins,
 	fetchProjects,
+	initComposerDraftPersistence,
 	initUiPersistence,
 	openProject,
 	restorePersistedUiState,
@@ -635,6 +636,9 @@ export function initTransport(): () => void {
 
 	// Start UI state persistence (debounced localStorage writes + beforeunload flush)
 	cleanups.push(initUiPersistence());
+
+	// Start composer draft persistence (restore from localStorage + beforeunload flush)
+	cleanups.push(initComposerDraftPersistence());
 
 	// Plugin message bridge — listens for postMessage from plugin iframes
 	cleanups.push(initPluginMessageBridge());

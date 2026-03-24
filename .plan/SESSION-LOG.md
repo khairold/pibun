@@ -111,3 +111,37 @@
 - Next: 1A.4 — Add composer draft persistence per tab
 - `consumeDeferredActiveTabId()` is available in `appActions.ts` but not yet consumed. When session list loads and recreates tabs, call it to switch to the previously active tab.
 - Persistence pattern is established: subscribe to store → debounce → localStorage. Follow same pattern for composer drafts.
+
+---
+
+## Session 4 — Composer draft persistence per tab (2026-03-24)
+
+**What happened:**
+- Read T3Code's `composerDraftStore.ts` for reference — it's 1800+ lines with Effect/Schema, far too complex for PiBun. Adopted the core idea (per-thread drafts in localStorage) but with a much simpler architecture.
+- Implemented composer draft persistence as a module-level `Map<tabId, Draft>` in `appActions.ts` (not in Zustand — avoids re-render noise during typing):
+  - `getComposerDraft(tabId)` — read from in-memory map
+  - `saveComposerDraft(tabId, draft)` — write to map + schedule debounced localStorage write (300ms)
+  - `clearComposerDraft(tabId)` — remove draft (on send)
+  - `deleteComposerDraft(tabId)` — remove draft (on tab close)
+  - `restoreComposerDrafts()` — hydrate map from localStorage on init
+  - `initComposerDraftPersistence()` — init + beforeunload flush, returns cleanup
+- Modified `Composer.tsx`:
+  - Added `activeTabId` selector for tab-switch detection
+  - Added `valueRef`/`imagesRef` refs to capture current state for tab-switch save without exhaustive-deps issues
+  - Tab-switch effect: saves draft for leaving tab (from refs), restores draft for arriving tab
+  - Change effect: saves draft on every text/image change (reactive, calls `saveComposerDraft` which debounces to localStorage)
+  - `clearInput()` now also calls `clearComposerDraft(activeTabId)`
+- Wired into `wireTransport.ts`: `initComposerDraftPersistence()` called during transport init
+- Wired into `tabActions.ts`: `deleteComposerDraft(tabId)` called on tab close (before `removeTab`)
+- Images persist as `{ id, data, mimeType, previewUrl }` — same shape Composer uses internally, so restore is zero-transform
+
+**Items completed:**
+- [x] 1A.4 — Add composer draft persistence per tab
+
+**Issues encountered:**
+- Biome's `useExhaustiveDependencies` flagged the tab-switch effect for depending on `value`/`images.map`. Fixed by using refs (`valueRef`/`imagesRef`) for the save path, keeping the effect dep list clean (`[activeTabId, resizeTextarea]`).
+
+**Handoff to next session:**
+- Next: 1A.5 — Implement message copy button on assistant messages
+- Composer draft pattern is established. Draft data lives in `appActions.ts` module scope (not Zustand). If future features need to read drafts outside Composer (e.g., tab badge showing "has draft"), expose a `hasDraft(tabId)` function.
+- `consumeDeferredActiveTabId()` still not consumed — will be needed when session list loads and recreates tabs.

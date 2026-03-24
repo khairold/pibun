@@ -16,7 +16,7 @@
 
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
-import { fetchGitStatus } from "./appActions";
+import { deleteComposerDraft, fetchGitStatus } from "./appActions";
 import { loadSessionMessages, refreshSessionState } from "./sessionActions";
 
 // ============================================================================
@@ -91,6 +91,9 @@ export async function closeTab(tabId: string): Promise<void> {
 	// Check if the next tab has cached messages BEFORE removal
 	// (removeTab deletes the closed tab's cache but not others')
 	const nextTabHasCache = nextTab ? (store.tabMessages.get(nextTab.id)?.length ?? 0) > 0 : false;
+
+	// ── Clean up composer draft for the closed tab ──────────────
+	deleteComposerDraft(tabId);
 
 	// ── Remove the tab ───────────────────────────────────────────
 	// The store handles: adjacent tab switching, session state restore,

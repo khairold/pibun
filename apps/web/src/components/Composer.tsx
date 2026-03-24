@@ -10,8 +10,15 @@
  * - Auto-starts Pi session on first prompt if none exists
  * - Image paste from clipboard (Ctrl+V / Cmd+V)
  * - Image preview strip with remove buttons
+ * - Draft persistence per tab (text + images survive tab switch and page reload)
  */
 
+import {
+	type PersistedImageAttachment,
+	clearComposerDraft,
+	getComposerDraft,
+	saveComposerDraft,
+} from "@/lib/appActions";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
@@ -99,6 +106,7 @@ export function Composer() {
 	const setSessionId = useStore((s) => s.setSessionId);
 	const setLastError = useStore((s) => s.setLastError);
 	const addToast = useStore((s) => s.addToast);
+	const activeTabId = useStore((s) => s.activeTabId);
 
 	const [value, setValue] = useState("");
 	const [isSending, setIsSending] = useState(false);
@@ -108,6 +116,15 @@ export function Composer() {
 
 	const pendingComposerText = useStore((s) => s.pendingComposerText);
 	const setPendingComposerText = useStore((s) => s.setPendingComposerText);
+
+	// Track previous tab ID and current draft values for tab-switch persistence.
+	// Refs avoid exhaustive-deps issues — we read current state at switch time,
+	// not reactively (the separate save-on-change effect handles reactive saves).
+	const prevTabIdRef = useRef<string | null>(activeTabId);
+	const valueRef = useRef(value);
+	const imagesRef = useRef(images);
+	valueRef.current = value;
+	imagesRef.current = images;
 
 	const isConnected = connectionStatus === "open";
 	const hasContent = value.trim().length > 0 || images.length > 0;
@@ -135,17 +152,72 @@ export function Composer() {
 		}
 	}, [pendingComposerText, setPendingComposerText, resizeTextarea]);
 
-	/** Reset textarea and images after sending. */
+	// ── Draft persistence: save on tab switch, restore on tab activate ──
+	// Uses refs for value/images to avoid running on every keystroke.
+	// The separate save-on-change effect handles continuous persistence.
+	useEffect(() => {
+		const prevTabId = prevTabIdRef.current;
+		prevTabIdRef.current = activeTabId;
+
+		// Save draft for the tab we're leaving (read from refs — current state)
+		if (prevTabId && prevTabId !== activeTabId) {
+			const currentImages: PersistedImageAttachment[] = imagesRef.current.map((img) => ({
+				id: img.id,
+				data: img.data,
+				mimeType: img.mimeType,
+				previewUrl: img.previewUrl,
+			}));
+			saveComposerDraft(prevTabId, { text: valueRef.current, images: currentImages });
+		}
+
+		// Restore draft for the tab we're switching to
+		if (activeTabId) {
+			const draft = getComposerDraft(activeTabId);
+			if (draft) {
+				setValue(draft.text);
+				setImages(
+					draft.images.map((img) => ({
+						id: img.id,
+						data: img.data,
+						mimeType: img.mimeType,
+						previewUrl: img.previewUrl,
+					})),
+				);
+			} else {
+				setValue("");
+				setImages([]);
+			}
+			// Resize textarea to fit restored content
+			requestAnimationFrame(resizeTextarea);
+		}
+	}, [activeTabId, resizeTextarea]);
+
+	// ── Draft persistence: save on every text/image change (debounced via module) ──
+	useEffect(() => {
+		if (!activeTabId) return;
+		const currentImages: PersistedImageAttachment[] = images.map((img) => ({
+			id: img.id,
+			data: img.data,
+			mimeType: img.mimeType,
+			previewUrl: img.previewUrl,
+		}));
+		saveComposerDraft(activeTabId, { text: value, images: currentImages });
+	}, [activeTabId, value, images]);
+
+	/** Reset textarea and images after sending. Also clears the persisted draft. */
 	const clearInput = useCallback(() => {
 		setValue("");
 		setImages([]);
+		if (activeTabId) {
+			clearComposerDraft(activeTabId);
+		}
 		requestAnimationFrame(() => {
 			const textarea = textareaRef.current;
 			if (textarea) {
 				textarea.style.height = "auto";
 			}
 		});
-	}, []);
+	}, [activeTabId]);
 
 	/** Add images from a FileList (paste or drop). */
 	const addImagesFromFiles = useCallback(

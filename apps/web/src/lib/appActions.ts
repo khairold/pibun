@@ -510,6 +510,173 @@ export function resizeTerminal(terminalId: string, cols: number, rows: number): 
 }
 
 // ============================================================================
+// Composer Draft Persistence
+// ============================================================================
+
+/**
+ * Composer draft persistence — saves text + images per tab to localStorage.
+ *
+ * Drafts survive tab switches and page reloads. Images are stored as base64
+ * data URLs (same format the Composer already uses for preview rendering).
+ *
+ * Architecture:
+ * - In-memory `Map<tabId, ComposerDraft>` for fast read/write (no re-renders)
+ * - Debounced localStorage sync (300ms + beforeunload flush)
+ * - Composer reads draft on mount and when activeTabId changes
+ * - Composer writes draft on every text/image change (to memory map — cheap)
+ * - Draft is cleared when message is sent
+ * - Draft is deleted when tab is closed
+ *
+ * Images are persisted as `{ id, data, mimeType, previewUrl }` — the same
+ * shape the Composer uses internally. This means up to ~10 base64 images
+ * per tab in localStorage. For typical screenshots this is 50-200KB each,
+ * well within localStorage's 5-10MB limit. If storage is full, writes
+ * silently fail (the in-memory map still works for tab switching).
+ */
+
+const DRAFTS_STORAGE_KEY = "pibun-composer-drafts";
+
+/** Debounce delay for writing drafts to localStorage (ms). */
+const DRAFTS_PERSIST_DEBOUNCE_MS = 300;
+
+/** Persisted image attachment shape (matches Composer's ImageAttachment). */
+export interface PersistedImageAttachment {
+	id: string;
+	data: string;
+	mimeType: string;
+	previewUrl: string;
+}
+
+/** A composer draft for a single tab. */
+export interface ComposerDraft {
+	text: string;
+	images: PersistedImageAttachment[];
+}
+
+/** In-memory draft storage — fast reads/writes, no re-renders. */
+const _drafts = new Map<string, ComposerDraft>();
+
+/** Debounce timer for localStorage writes. */
+let _draftsPersistTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Write all drafts to localStorage immediately. */
+function flushDrafts(): void {
+	if (_draftsPersistTimer !== null) {
+		clearTimeout(_draftsPersistTimer);
+		_draftsPersistTimer = null;
+	}
+
+	try {
+		// Convert map to plain object for JSON serialization
+		const obj: Record<string, ComposerDraft> = {};
+		for (const [tabId, draft] of _drafts) {
+			// Only persist non-empty drafts
+			if (draft.text.length > 0 || draft.images.length > 0) {
+				obj[tabId] = draft;
+			}
+		}
+		if (Object.keys(obj).length > 0) {
+			localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(obj));
+		} else {
+			localStorage.removeItem(DRAFTS_STORAGE_KEY);
+		}
+	} catch {
+		// localStorage full or unavailable — in-memory map still works
+	}
+}
+
+/** Schedule a debounced write of drafts to localStorage. */
+function scheduleDraftsPersist(): void {
+	if (_draftsPersistTimer !== null) {
+		clearTimeout(_draftsPersistTimer);
+	}
+	_draftsPersistTimer = setTimeout(flushDrafts, DRAFTS_PERSIST_DEBOUNCE_MS);
+}
+
+/**
+ * Get the draft for a tab. Returns null if no draft exists.
+ * Reads from the in-memory map (fast, no parse).
+ */
+export function getComposerDraft(tabId: string): ComposerDraft | null {
+	return _drafts.get(tabId) ?? null;
+}
+
+/**
+ * Save a draft for a tab. Writes to in-memory map immediately
+ * and schedules a debounced localStorage write.
+ */
+export function saveComposerDraft(tabId: string, draft: ComposerDraft): void {
+	if (draft.text.length === 0 && draft.images.length === 0) {
+		// Empty draft — remove it
+		if (_drafts.has(tabId)) {
+			_drafts.delete(tabId);
+			scheduleDraftsPersist();
+		}
+		return;
+	}
+	_drafts.set(tabId, draft);
+	scheduleDraftsPersist();
+}
+
+/**
+ * Clear the draft for a tab (e.g., after sending a message).
+ */
+export function clearComposerDraft(tabId: string): void {
+	if (_drafts.has(tabId)) {
+		_drafts.delete(tabId);
+		scheduleDraftsPersist();
+	}
+}
+
+/**
+ * Delete the draft for a removed tab.
+ * Same as clearComposerDraft but semantically distinct (tab is gone).
+ */
+export function deleteComposerDraft(tabId: string): void {
+	clearComposerDraft(tabId);
+}
+
+/**
+ * Restore drafts from localStorage into the in-memory map.
+ * Called once during app initialization.
+ */
+export function restoreComposerDrafts(): void {
+	try {
+		const raw = localStorage.getItem(DRAFTS_STORAGE_KEY);
+		if (!raw) return;
+		const obj = JSON.parse(raw) as Record<string, ComposerDraft>;
+		for (const [tabId, draft] of Object.entries(obj)) {
+			if (draft && (draft.text?.length > 0 || draft.images?.length > 0)) {
+				_drafts.set(tabId, {
+					text: draft.text ?? "",
+					images: Array.isArray(draft.images) ? draft.images : [],
+				});
+			}
+		}
+	} catch {
+		// Corrupted data — start fresh
+	}
+}
+
+/**
+ * Initialize composer draft persistence.
+ * Restores from localStorage and registers beforeunload flush.
+ * Returns a cleanup function.
+ */
+export function initComposerDraftPersistence(): () => void {
+	restoreComposerDrafts();
+	window.addEventListener("beforeunload", flushDrafts);
+
+	return () => {
+		window.removeEventListener("beforeunload", flushDrafts);
+		if (_draftsPersistTimer !== null) {
+			clearTimeout(_draftsPersistTimer);
+			_draftsPersistTimer = null;
+		}
+	};
+}
+
+// ============================================================================
 // UI State Persistence
 // ============================================================================
 
