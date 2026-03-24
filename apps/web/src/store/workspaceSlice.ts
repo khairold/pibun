@@ -51,6 +51,12 @@ function defaultTabName(index: number): string {
 	return `Session ${String(index + 1)}`;
 }
 
+/** Extract the first user message text from a messages array. */
+function getFirstUserMessage(messages: readonly ChatMessage[]): string | null {
+	const first = messages.find((m) => m.type === "user" && m.content.trim());
+	return first ? first.content.trim() : null;
+}
+
 // ============================================================================
 // Terminal helpers
 // ============================================================================
@@ -120,6 +126,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			status: "idle",
 			gitDirty: false,
 			messageCount: 0,
+			firstMessage: null,
 			createdAt: Date.now(),
 			hasUnread: false,
 		};
@@ -250,6 +257,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 								isStreaming: s.isStreaming,
 								status: deriveTabStatus(s.isStreaming, s.pendingExtensionUi !== null, t.status),
 								messageCount: s.messages.length,
+								firstMessage: getFirstUserMessage(s.messages) ?? t.firstMessage,
 								model: s.model,
 								thinkingLevel: s.thinkingLevel,
 								sessionId: s.sessionId,
@@ -352,6 +360,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 							isStreaming: s.isStreaming,
 							status: deriveTabStatus(s.isStreaming, s.pendingExtensionUi !== null, t.status),
 							messageCount: s.messages.length,
+							firstMessage: getFirstUserMessage(s.messages) ?? t.firstMessage,
 							model: s.model,
 							thinkingLevel: s.thinkingLevel,
 							name: s.sessionName ?? t.name,

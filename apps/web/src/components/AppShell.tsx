@@ -96,8 +96,6 @@ export function AppShell() {
 			{/* Main chat area + right plugin panel */}
 			<div className="flex min-w-0 flex-1">
 				<main className="flex min-w-0 flex-1 flex-col">
-
-
 					<ConnectionBanner />
 					<HealthBanner />
 					<ErrorBanner />

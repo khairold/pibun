@@ -50,6 +50,8 @@ export interface SessionTab {
 	gitDirty: boolean;
 	/** Number of messages in this tab's conversation. */
 	messageCount: number;
+	/** Text of the first user message, for display when no name is set. */
+	firstMessage: string | null;
 	/** Unix timestamp when this tab was created. */
 	createdAt: number;
 	/** True when the tab has new content since the user last viewed it. */
