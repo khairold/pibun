@@ -5,6 +5,40 @@
 
 ---
 
+## Session 87 — Phase 6 System preference + Shiki theme matching (2026-03-24)
+
+**What happened:**
+- Implemented system preference detection (6.6 + 6.7) and Shiki theme matching (6.8)
+- Added `ThemePreference` type to contracts: `ThemeId | "system"` — "system" follows OS dark/light mode
+- Updated `PiBunSettings.themeId` from `ThemeId | null` to `ThemePreference | null`
+- Added "System" option to ThemeSelector with split light/dark swatch preview, positioned at top of dropdown
+- Added `watchSystemPreference()` to `themes.ts` — uses `matchMedia("prefers-color-scheme: light")` change listener
+- ThemeSelector watches system preference when "system" is active, auto-switches theme on OS change
+- Desktop (macOS): native WebKit webview fires `matchMedia` events on System Settings → Appearance changes automatically — no Electrobun-specific code needed
+- Made Shiki highlighter theme dynamic: `setShikiTheme()` loads themes on demand, updates module state, notifies listeners
+- Added `subscribeShikiTheme()` + `getShikiTheme()` for `useSyncExternalStore` compatibility
+- Created `useShikiTheme()` hook in `hooks/useShikiTheme.ts`
+- `applyTheme()` now calls `setShikiTheme(theme.shikiTheme)` via dynamic import (fire-and-forget)
+- CodeBlock and DiffViewer include `shikiTheme` as `useEffect` trigger dependency — code re-highlights on theme switch
+- Added helper functions to `themes.ts`: `resolveTheme()`, `getSavedPreference()`, `THEME_STORAGE_KEY` export
+- Updated `main.tsx` to default to "system" preference on first visit
+- Updated `settingsActions.ts` to handle `ThemePreference` type
+
+**Items completed:**
+- [x] 6.6 — System preference detection: `prefers-color-scheme` → auto-select light/dark
+- [x] 6.7 — Desktop: respect macOS appearance changes (light → dark mode switch)
+- [x] 6.8 — Shiki theme matching: switch code highlighting theme to match app theme
+
+**Issues encountered:**
+- Biome `useExhaustiveDependencies` flagged `shikiTheme` as unnecessary in CodeBlock/DiffViewer effects — it's an intentional trigger dep (the functions read module-level state internally). Suppressed with `biome-ignore` comments.
+
+**Handoff to next session:**
+- Next: 6.9 — Verify: switch themes, code blocks re-highlight, persists across restart, system preference respected
+- This is a verification item — write automated checks confirming: (1) all 5 themes apply correctly, (2) "system" follows OS preference, (3) code blocks use matching Shiki theme, (4) theme persists in localStorage + server settings, (5) system preference changes trigger live theme switch
+- TerminalInstance.tsx still has hardcoded `TERMINAL_THEME` — not part of 6.8 (xterm.js, not Shiki) but could be improved later
+
+---
+
 ## Session 86 — Phase 6 Persist theme choice (2026-03-24)
 
 **What happened:**

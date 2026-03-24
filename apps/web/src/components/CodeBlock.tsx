@@ -6,6 +6,7 @@
  * and language label.
  */
 
+import { useShikiTheme } from "@/hooks/useShikiTheme";
 import { cn } from "@/lib/cn";
 import { highlightCode } from "@/lib/highlighter";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -23,8 +24,12 @@ export const CodeBlock = memo(function CodeBlock({ code, language, className }: 
 	const [html, setHtml] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
 	const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const shikiTheme = useShikiTheme();
 
-	// Highlight code asynchronously
+	// Highlight code asynchronously — re-runs when code, language, or Shiki theme changes.
+	// shikiTheme is an intentional trigger dep: not used directly in the callback,
+	// but highlightCode() reads the module-level currentTheme internally.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: shikiTheme triggers re-highlight on theme switch
 	useEffect(() => {
 		let cancelled = false;
 		highlightCode(code, language).then((result) => {
@@ -33,7 +38,7 @@ export const CodeBlock = memo(function CodeBlock({ code, language, className }: 
 		return () => {
 			cancelled = true;
 		};
-	}, [code, language]);
+	}, [code, language, shikiTheme]);
 
 	const handleCopy = useCallback(() => {
 		navigator.clipboard.writeText(code);

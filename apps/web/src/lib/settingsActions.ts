@@ -8,9 +8,8 @@
  */
 
 import { getTransport } from "@/wireTransport";
-import { applyTheme, getThemeById } from "./themes";
-
-const THEME_STORAGE_KEY = "pibun-theme";
+import type { ThemePreference } from "@pibun/contracts";
+import { THEME_STORAGE_KEY, applyTheme, resolveTheme } from "./themes";
 
 /**
  * Fetch settings from the server and apply them.
@@ -26,12 +25,11 @@ export async function fetchAndApplySettings(): Promise<void> {
 		const { settings } = result;
 
 		if (settings.themeId) {
-			const currentLocalTheme = localStorage.getItem(THEME_STORAGE_KEY);
+			const currentLocalPref = localStorage.getItem(THEME_STORAGE_KEY);
 
-			// Server has a saved theme — apply it if different from current
-			if (settings.themeId !== currentLocalTheme) {
-				const theme = getThemeById(settings.themeId);
-				applyTheme(theme);
+			// Server has a saved preference — apply it if different from current
+			if (settings.themeId !== currentLocalPref) {
+				applyTheme(resolveTheme(settings.themeId));
 				localStorage.setItem(THEME_STORAGE_KEY, settings.themeId);
 			}
 		}
@@ -42,16 +40,16 @@ export async function fetchAndApplySettings(): Promise<void> {
 }
 
 /**
- * Persist theme choice to the server.
+ * Persist theme preference to the server.
  *
  * Called from ThemeSelector after applying a theme locally.
  * Fire-and-forget — doesn't block the UI on server response.
  */
-export function persistThemeToServer(themeId: string): void {
+export function persistThemeToServer(preference: ThemePreference): void {
 	try {
 		const transport = getTransport();
 		// Fire-and-forget — don't await, don't block UI
-		transport.request("settings.update", { themeId }).catch(() => {
+		transport.request("settings.update", { themeId: preference }).catch(() => {
 			// Silent failure — localStorage is the primary store in browser mode
 		});
 	} catch {

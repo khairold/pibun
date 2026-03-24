@@ -6,7 +6,7 @@
  * act as a backup that syncs on connect.
  */
 
-import type { ThemeId } from "./theme.js";
+import type { ThemePreference } from "./theme.js";
 
 /**
  * Application settings that persist across app restarts.
@@ -15,6 +15,10 @@ import type { ThemeId } from "./theme.js";
  * files (unknown fields are preserved on load, new fields get defaults).
  */
 export interface PiBunSettings {
-	/** Active theme ID. Defaults to system preference detection. */
-	themeId: ThemeId | null;
+	/**
+	 * User's theme preference. Can be a specific theme ID (e.g., "dark",
+	 * "light") or "system" to follow the OS dark/light mode setting.
+	 * Null means no preference saved — falls back to system detection.
+	 */
+	themeId: ThemePreference | null;
 }

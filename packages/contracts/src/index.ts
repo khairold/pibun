@@ -143,7 +143,7 @@ export type { SessionTab } from "./sessionTab.js";
 export type { Project, ProjectModelPreference } from "./project.js";
 
 // Theme types (custom theming system)
-export type { Theme, ThemeColors, ThemeId } from "./theme.js";
+export type { Theme, ThemeColors, ThemeId, ThemePreference } from "./theme.js";
 
 // Settings types (application preferences)
 export type { PiBunSettings } from "./settings.js";

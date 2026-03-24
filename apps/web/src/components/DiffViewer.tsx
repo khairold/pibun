@@ -12,6 +12,7 @@
  * potential reuse in "Diff review mode" (parking lot feature).
  */
 
+import { useShikiTheme } from "@/hooks/useShikiTheme";
 import { cn } from "@/lib/cn";
 import { inferLanguageFromPath } from "@/lib/fileUtils";
 import { type ThemedToken, tokenizeCode } from "@/lib/highlighter";
@@ -220,6 +221,7 @@ export const DiffViewer = memo(function DiffViewer({ diff, filePath, className }
 	const [tokenMap, setTokenMap] = useState<Map<string, ThemedToken[]> | null>(null);
 	const [copied, setCopied] = useState(false);
 	const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const shikiTheme = useShikiTheme();
 
 	const parsed = useMemo(() => parseDiff(diff), [diff]);
 	const effectivePath = filePath ?? parsed.filePath;
@@ -227,7 +229,10 @@ export const DiffViewer = memo(function DiffViewer({ diff, filePath, className }
 	const totalLines = parsed.hunks.reduce((sum, h) => sum + h.lines.length, 0);
 	const shouldHighlight = lang !== "" && totalLines <= MAX_HIGHLIGHT_LINES;
 
-	// Tokenize asynchronously — re-runs when parsed hunks or language change
+	// Tokenize asynchronously — re-runs when parsed hunks, language, or Shiki theme change.
+	// shikiTheme is an intentional trigger dep: tokenizeDiffHunks → tokenizeCode reads
+	// the module-level currentTheme internally.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: shikiTheme triggers re-tokenize on theme switch
 	useEffect(() => {
 		if (!shouldHighlight) {
 			setTokenMap(null);
@@ -241,7 +246,7 @@ export const DiffViewer = memo(function DiffViewer({ diff, filePath, className }
 		return () => {
 			cancelled = true;
 		};
-	}, [parsed.hunks, lang, shouldHighlight]);
+	}, [parsed.hunks, lang, shouldHighlight, shikiTheme]);
 
 	const handleCopy = useCallback(() => {
 		navigator.clipboard.writeText(diff);

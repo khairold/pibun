@@ -9,7 +9,8 @@
  * @module
  */
 
-import type { Theme, ThemeId } from "@pibun/contracts";
+import type { Theme, ThemeId, ThemePreference } from "@pibun/contracts";
+import type { BundledTheme } from "shiki/bundle/web";
 
 // ============================================================================
 // Dark (default) — matches the current hardcoded neutral palette
@@ -436,6 +437,10 @@ export function getSystemPreferredThemeId(): ThemeId {
 /**
  * Apply a theme's color tokens as CSS custom properties on the document.
  * Also sets `data-theme` attribute for potential CSS selectors.
+ *
+ * Additionally updates the Shiki code highlighting theme to match.
+ * The Shiki theme is loaded asynchronously — code blocks will re-render
+ * when the new theme is ready.
  */
 export function applyTheme(theme: Theme): void {
 	const root = document.documentElement;
@@ -445,4 +450,68 @@ export function applyTheme(theme: Theme): void {
 	for (const [token, value] of Object.entries(theme.colors)) {
 		root.style.setProperty(`--color-${token}`, value);
 	}
+
+	// Update Shiki code highlighting theme (async, fire-and-forget).
+	// Import dynamically to avoid circular dependency at module load time
+	// (highlighter.ts doesn't depend on themes.ts).
+	import("./highlighter").then(({ setShikiTheme }) => {
+		setShikiTheme(theme.shikiTheme as BundledTheme);
+	});
+}
+
+// ============================================================================
+// System preference detection
+// ============================================================================
+
+/** The localStorage key for the user's theme preference. */
+export const THEME_STORAGE_KEY = "pibun-theme";
+
+/**
+ * Resolve a theme preference to a concrete theme.
+ *
+ * - If preference is "system", returns light/dark based on OS `prefers-color-scheme`.
+ * - If preference is a specific ThemeId, returns that theme.
+ * - Falls back to the default theme if the ID is unknown.
+ */
+export function resolveTheme(preference: ThemePreference): Theme {
+	if (preference === "system") {
+		return getThemeById(getSystemPreferredThemeId());
+	}
+	return getThemeById(preference);
+}
+
+/**
+ * Read the saved theme preference from localStorage.
+ *
+ * Returns `null` if nothing is saved (first visit).
+ */
+export function getSavedPreference(): ThemePreference | null {
+	if (typeof window === "undefined") return null;
+	const saved = localStorage.getItem(THEME_STORAGE_KEY);
+	return saved as ThemePreference | null;
+}
+
+/**
+ * Watch for OS dark/light mode changes via `matchMedia`.
+ *
+ * The callback fires whenever the system's `prefers-color-scheme` changes
+ * (e.g., macOS switches to/from Dark Mode). The callback receives the
+ * ThemeId that the system now prefers ("light" or "dark").
+ *
+ * In desktop mode (Electrobun's native WebKit webview on macOS), this
+ * fires automatically when the user toggles System Settings → Appearance.
+ *
+ * @returns An unsubscribe function to stop watching.
+ */
+export function watchSystemPreference(callback: (themeId: ThemeId) => void): () => void {
+	if (typeof window === "undefined") return () => {};
+
+	const mql = window.matchMedia("(prefers-color-scheme: light)");
+
+	function handler(e: MediaQueryListEvent): void {
+		callback(e.matches ? "light" : "dark");
+	}
+
+	mql.addEventListener("change", handler);
+	return () => mql.removeEventListener("change", handler);
 }

@@ -145,3 +145,12 @@ export interface Theme {
  * Used for type-safe theme references and persistence.
  */
 export type ThemeId = "light" | "dark" | "dimmed" | "high-contrast-dark" | "high-contrast-light";
+
+/**
+ * User's theme preference — either a specific theme ID or "system" to
+ * follow the OS dark/light mode setting.
+ *
+ * When "system" is selected, the app watches `prefers-color-scheme` and
+ * auto-switches between "light" and "dark" themes as the OS changes.
+ */
+export type ThemePreference = ThemeId | "system";

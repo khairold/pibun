@@ -1,25 +1,35 @@
 /**
- * ThemeSelector — dropdown with a grid of theme previews.
+ * ThemeSelector — dropdown with theme previews + "System" auto option.
  *
- * Shows a palette icon as trigger. Opens a dropdown with a 2-column grid
- * of theme preview cards. Each card shows the theme's name and a mini
- * color swatch preview. Clicking a theme applies it immediately.
+ * Shows a palette icon as trigger. Opens a dropdown with:
+ * 1. "System" option — follows OS dark/light mode via `prefers-color-scheme`
+ * 2. Grid of theme preview cards for manual selection
  *
- * Theme is persisted to localStorage. System preference detection handled
- * separately (6.6).
+ * When "System" is active, a `matchMedia` listener watches for OS appearance
+ * changes and auto-switches between "light" and "dark" themes in real time.
+ * In desktop mode (Electrobun native webview), this fires when macOS
+ * switches between Light and Dark Mode in System Settings.
  */
 
 import { cn } from "@/lib/cn";
 import { persistThemeToServer } from "@/lib/settingsActions";
-import { THEME_LIST, applyTheme, getThemeById } from "@/lib/themes";
-import type { Theme, ThemeId } from "@pibun/contracts";
+import {
+	THEME_LIST,
+	THEME_STORAGE_KEY,
+	applyTheme,
+	getThemeById,
+	resolveTheme,
+	watchSystemPreference,
+} from "@/lib/themes";
+import type { Theme, ThemeId, ThemePreference } from "@pibun/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/** Read the active theme ID from localStorage or default to "dark". */
-function getActiveThemeId(): ThemeId {
-	const saved = localStorage.getItem("pibun-theme");
-	if (saved) return saved as ThemeId;
-	return "dark";
+/** Read the active theme preference from localStorage. */
+function getActivePreference(): ThemePreference {
+	const saved = localStorage.getItem(THEME_STORAGE_KEY);
+	if (saved) return saved as ThemePreference;
+	// No saved preference → default to "system" (follow OS)
+	return "system";
 }
 
 /**
@@ -97,20 +107,99 @@ function ThemePreview({ theme, isActive }: { theme: Theme; isActive: boolean }) 
 	);
 }
 
+/**
+ * "System" option preview — shows a split light/dark swatch.
+ */
+function SystemPreview({ isActive }: { isActive: boolean }) {
+	return (
+		<div
+			className={cn(
+				"flex flex-col gap-1.5 rounded-lg border p-2.5 transition-all",
+				isActive
+					? "border-accent-primary ring-1 ring-accent-primary"
+					: "border-border-primary hover:border-text-tertiary",
+			)}
+		>
+			{/* Split swatch: light left / dark right */}
+			<div className="flex h-8 overflow-hidden rounded-md">
+				{/* Light half */}
+				<div className="flex flex-1 items-center justify-center bg-white">
+					<span className="text-[8px] font-bold leading-none text-neutral-900">Aa</span>
+				</div>
+				{/* Dark half */}
+				<div className="flex flex-1 items-center justify-center bg-neutral-900">
+					<span className="text-[8px] font-bold leading-none text-neutral-100">Aa</span>
+				</div>
+			</div>
+
+			{/* Label */}
+			<div className="flex items-center gap-1.5">
+				{isActive && (
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 16 16"
+						fill="currentColor"
+						className="h-3 w-3 shrink-0 text-accent-text"
+						aria-label="Active theme"
+						role="img"
+					>
+						<path
+							fillRule="evenodd"
+							d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207z"
+							clipRule="evenodd"
+						/>
+					</svg>
+				)}
+				<span
+					className={cn(
+						"text-xs font-medium",
+						isActive ? "text-accent-text" : "text-text-secondary",
+					)}
+				>
+					System
+				</span>
+				{/* Auto badge */}
+				<span className="ml-auto text-[9px] text-text-muted">Auto</span>
+			</div>
+		</div>
+	);
+}
+
 export function ThemeSelector() {
 	const [isOpen, setIsOpen] = useState(false);
-	const [activeThemeId, setActiveThemeId] = useState<ThemeId>(getActiveThemeId);
+	const [activePreference, setActivePreference] = useState<ThemePreference>(getActivePreference);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 	const triggerRef = useRef<HTMLButtonElement>(null);
 
-	// ── Select a theme ────────────────────────────────────────────────
-	const handleSelect = useCallback((theme: Theme) => {
-		// Apply immediately
+	// ── Watch system preference changes when "system" is active ───────
+	useEffect(() => {
+		if (activePreference !== "system") return;
+
+		const unsubscribe = watchSystemPreference((systemThemeId: ThemeId) => {
+			// OS changed dark/light mode — apply the matching theme
+			const theme = getThemeById(systemThemeId);
+			applyTheme(theme);
+		});
+
+		return unsubscribe;
+	}, [activePreference]);
+
+	// ── Select a specific theme ───────────────────────────────────────
+	const handleSelectTheme = useCallback((theme: Theme) => {
 		applyTheme(theme);
-		setActiveThemeId(theme.id as ThemeId);
-		localStorage.setItem("pibun-theme", theme.id);
-		// Also persist to server for desktop mode (fire-and-forget)
-		persistThemeToServer(theme.id);
+		setActivePreference(theme.id as ThemePreference);
+		localStorage.setItem(THEME_STORAGE_KEY, theme.id);
+		persistThemeToServer(theme.id as ThemePreference);
+		setIsOpen(false);
+	}, []);
+
+	// ── Select "System" ───────────────────────────────────────────────
+	const handleSelectSystem = useCallback(() => {
+		setActivePreference("system");
+		localStorage.setItem(THEME_STORAGE_KEY, "system");
+		persistThemeToServer("system");
+		// Apply the theme that matches the current OS preference
+		applyTheme(resolveTheme("system"));
 		setIsOpen(false);
 	}, []);
 
@@ -153,15 +242,20 @@ export function ThemeSelector() {
 	// ── Listen for external theme changes (e.g., cross-tab, server sync) ──
 	useEffect(() => {
 		function handleStorage(e: StorageEvent) {
-			if (e.key === "pibun-theme" && e.newValue) {
-				const theme = getThemeById(e.newValue);
-				applyTheme(theme);
-				setActiveThemeId(theme.id as ThemeId);
+			if (e.key === THEME_STORAGE_KEY && e.newValue) {
+				const pref = e.newValue as ThemePreference;
+				setActivePreference(pref);
+				applyTheme(resolveTheme(pref));
 			}
 		}
 		window.addEventListener("storage", handleStorage);
 		return () => window.removeEventListener("storage", handleStorage);
 	}, []);
+
+	/** Check if a specific theme ID is the effectively active theme. */
+	const isThemeActive = (themeId: string): boolean => {
+		return activePreference === themeId;
+	};
 
 	return (
 		<div className="relative">
@@ -207,7 +301,7 @@ export function ThemeSelector() {
 				</svg>
 			</button>
 
-			{/* Dropdown panel — grid of theme previews */}
+			{/* Dropdown panel — System option + theme grid */}
 			{isOpen && (
 				<div
 					ref={dropdownRef}
@@ -221,16 +315,29 @@ export function ThemeSelector() {
 						<span className="text-xs font-medium text-text-secondary">Theme</span>
 					</div>
 
-					{/* Theme grid — single column for clarity */}
+					{/* Theme list — System option first, then built-in themes */}
 					<div className="flex flex-col gap-2 p-2">
+						{/* System option */}
+						<button
+							type="button"
+							onClick={handleSelectSystem}
+							className="w-full cursor-pointer text-left"
+						>
+							<SystemPreview isActive={activePreference === "system"} />
+						</button>
+
+						{/* Divider */}
+						<div className="border-t border-border-secondary" />
+
+						{/* Built-in themes */}
 						{THEME_LIST.map((theme) => (
 							<button
 								key={theme.id}
 								type="button"
-								onClick={() => handleSelect(theme)}
+								onClick={() => handleSelectTheme(theme)}
 								className="w-full cursor-pointer text-left"
 							>
-								<ThemePreview theme={theme} isActive={theme.id === activeThemeId} />
+								<ThemePreview theme={theme} isActive={isThemeActive(theme.id)} />
 							</button>
 						))}
 					</div>
