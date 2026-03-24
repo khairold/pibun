@@ -700,14 +700,18 @@ export function initTransport(): () => void {
 				// Sync active tab metadata with current streaming state
 				store.syncActiveTabState();
 			} else {
-				// Event is for a background tab — update tab status indicators
+				// Event is for a background tab — update tab status indicators + unread
 				const bgTab = store.tabs.find((t) => t.sessionId === data.sessionId);
 				if (bgTab) {
+					// Mark background tab as having unread content on any meaningful event
+					const unreadUpdate = bgTab.hasUnread ? {} : { hasUnread: true };
+
 					switch (data.event.type) {
 						case "agent_start":
 							store.updateTab(bgTab.id, {
 								isStreaming: true,
 								status: "running",
+								...unreadUpdate,
 							});
 							break;
 
@@ -716,6 +720,7 @@ export function initTransport(): () => void {
 								isStreaming: false,
 								status: "idle",
 								gitDirty: true, // Optimistically mark dirty — agent likely modified files
+								...unreadUpdate,
 							});
 							break;
 
@@ -728,7 +733,7 @@ export function initTransport(): () => void {
 								extEvent.method === "input" ||
 								extEvent.method === "editor"
 							) {
-								store.updateTab(bgTab.id, { status: "waiting" });
+								store.updateTab(bgTab.id, { status: "waiting", ...unreadUpdate });
 							}
 							break;
 						}
@@ -740,10 +745,19 @@ export function initTransport(): () => void {
 								store.updateTab(bgTab.id, {
 									isStreaming: false,
 									status: "error",
+									...unreadUpdate,
 								});
 							}
 							break;
 						}
+
+						default:
+							// Other events (text_delta, message_start, tool_execution_*, etc.)
+							// just mark unread without status change
+							if (!bgTab.hasUnread) {
+								store.updateTab(bgTab.id, { hasUnread: true });
+							}
+							break;
 					}
 				}
 			}

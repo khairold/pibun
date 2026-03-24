@@ -4,7 +4,7 @@
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
 > **Status:** Phase 3 in progress
 > **Current Phase:** Phase 3 — Activity Timeline & Diff
-> **Last Session:** Session 31 — 2026-03-24
+> **Last Session:** Session 32 — 2026-03-24
 
 ---
 
@@ -113,7 +113,7 @@
 - [x] 3.5 — Add diff data pipeline: server handler to read Pi session file + git diff between turns, new WS method `session.getTurnDiff`
 - [x] 3.6 — Build DiffPanel component: side panel (toggled via Ctrl/Cmd+D) showing per-turn diffs with file tree and stacked/split view toggle
 - [x] 3.7 — Add checkpoint info: associate turn boundaries with git state, show "Revert to this point" UI (calls Pi `fork` to branch from that turn's user message)
-- [ ] 3.8 — Add unread/visited tracking per tab: store `lastVisitedAt` timestamp, show unread dot in sidebar/tab bar when new content arrives while tab is inactive
+- [x] 3.8 — Add unread/visited tracking per tab: store `lastVisitedAt` timestamp, show unread dot in sidebar/tab bar when new content arrives while tab is inactive
 - [ ] 3.9 — Show project favicon in sidebar: server endpoint `GET /api/project-favicon?cwd=<path>` resolves nearest favicon/icon from project directory
 
 **Exit criteria:** Chat shows grouped tool activity per turn. Users can view diffs per turn. Unread indicators work across tabs.

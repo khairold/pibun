@@ -52,6 +52,8 @@ export interface SessionTab {
 	messageCount: number;
 	/** Unix timestamp when this tab was created. */
 	createdAt: number;
+	/** True when the tab has new content since the user last viewed it. */
+	hasUnread: boolean;
 }
 
 // ============================================================================

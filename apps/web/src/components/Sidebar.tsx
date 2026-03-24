@@ -111,6 +111,13 @@ const SidebarTabItem = memo(function SidebarTabItem({
 			<div className="min-w-0 flex-1">
 				<div className="flex items-center gap-1.5">
 					<span className="truncate text-sm font-medium">{displayName}</span>
+					{/* Unread indicator — shown on inactive tabs with new content */}
+					{!isActive && tab.hasUnread && (
+						<span
+							className="h-2 w-2 shrink-0 rounded-full bg-accent-primary"
+							title="New activity"
+						/>
+					)}
 					{modelName && (
 						<span className="shrink-0 rounded bg-surface-tertiary/50 px-1 py-0.5 text-[10px] leading-none text-text-tertiary">
 							{modelName}

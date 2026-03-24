@@ -945,3 +945,27 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 32 — Unread/visited tracking per tab (2026-03-24)
+
+**What happened:**
+- Implemented unread tracking per tab (3.8):
+  - **Contracts domain.ts**: Added `hasUnread: boolean` field to `SessionTab` interface. Simpler than the planned `lastVisitedAt` timestamp — a boolean is sufficient since we only need "has new content since last viewed" not "when was it last viewed".
+  - **workspaceSlice.ts**: `hasUnread: false` in initial tab creation. `switchTab` clears `hasUnread` on the target tab by spreading `{ hasUnread: false }` during the tab map update (same pass that saves current tab state).
+  - **wireTransport.ts**: Background tab event handler now marks `hasUnread: true` on any Pi event for a background tab. `agent_start`, `agent_end`, `extension_ui_request`, and `auto_retry_end` spread `unreadUpdate` into their existing `updateTab` calls. A `default` case handles all other events (`text_delta`, `message_start`, `tool_execution_*`, etc.) — only calls `updateTab` when `hasUnread` is currently false to avoid unnecessary re-renders.
+  - **Sidebar.tsx**: Unread accent dot shown after tab display name on inactive tabs (`!isActive && tab.hasUnread`). Positioned between the name and model badge.
+  - **TabBar.tsx**: Small unread accent dot shown after session name on inactive tabs. Same condition: `!isActive && tab.hasUnread`.
+- Minimal change set: 5 files modified (domain.ts, workspaceSlice.ts, wireTransport.ts, Sidebar.tsx, TabBar.tsx). Zero new components — just a boolean field + conditional dot rendering.
+
+**Items completed:**
+- [x] 3.8 — Add unread/visited tracking per tab
+
+**Issues encountered:**
+- None. Clean implementation — the boolean approach is simpler and more efficient than timestamp-based comparison.
+
+**Handoff to next session:**
+- Next: 3.9 — Show project favicon in sidebar (LAST item in Phase 3)
+- `hasUnread` is a simple boolean — if more sophisticated tracking is needed later (e.g., "3 new messages" count), extend to `unreadCount: number` and increment in the background tab handler.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

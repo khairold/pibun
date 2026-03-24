@@ -116,6 +116,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			gitDirty: false,
 			messageCount: 0,
 			createdAt: Date.now(),
+			hasUnread: false,
 		};
 
 		set((s) => ({
@@ -181,6 +182,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				newTabMessages.set(s.activeTabId, [...s.messages]);
 
 				// Update the current tab's snapshot with current session state
+				// Clear hasUnread on the target tab (user is now viewing it)
 				const updatedTabs = s.tabs.map((t) =>
 					t.id === s.activeTabId
 						? {
@@ -193,7 +195,9 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 								sessionId: s.sessionId,
 								name: s.sessionName ?? t.name,
 							}
-						: t,
+						: t.id === tabId
+							? { ...t, hasUnread: false }
+							: t,
 				);
 
 				return {

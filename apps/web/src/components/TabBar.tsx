@@ -111,6 +111,14 @@ const TabItem = memo(function TabItem({
 			{/* Session name */}
 			<span className="min-w-0 truncate text-xs font-medium">{displayName}</span>
 
+			{/* Unread indicator — shown on inactive tabs with new content */}
+			{!isActive && tab.hasUnread && (
+				<span
+					className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent-primary"
+					title="New activity"
+				/>
+			)}
+
 			{/* Model badge */}
 			{modelName && (
 				<span className="shrink-0 rounded bg-surface-secondary px-1 py-0.5 text-[10px] leading-none text-text-tertiary">
