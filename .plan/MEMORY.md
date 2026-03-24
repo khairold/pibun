@@ -44,27 +44,25 @@
 | 34 | `.pi/` directory deleted — was empty since Session 2 | AGENTS.md and CAPABILITY-MAP.md were deleted in Session 2; dir lingered empty. Cleaned up in 6.2. | 2026-03-24 |
 | 35 | CONVENTIONS.md now has File Organization section | Tables showing key files per package. Guidelines: extend deep files rather than creating new ones. Added in 6.3. | 2026-03-24 |
 | 36 | ARCHITECTURE.md updated with post-refactoring structure | Reflects: 2 handler files (session + appHandlers), 3 store slices, 7 lib files, 3 chat files, 4 contracts files. | 2026-03-24 |
+| 37 | Refactoring complete — 135 → 91 source files (−33%) | All 6 phases done. Dev servers verified. Context docs: 7→3 files (−57%). Estimated tool call savings: ~40 fewer reads per full-codebase session. | 2026-03-24 |
 
 ## Architecture Notes
 
-### Current file counts (in progress)
-- contracts/: 4 files ✅ DONE (was 12 → 9 after piProtocol merge → 4 after domain merge. index.ts: 15 lines)
-- server src (non-test): 19 files, 4460 lines
-- server handlers/: 4 files ✅ DONE (was 10 → 4. session + appHandlers + types + index. dispatch.test.ts separate)
-- web store/: 5 files ✅ DONE (was 15 → 5. appSlice + sessionSlice + workspaceSlice + types + index)
-- web lib/: 7 files ✅ DONE (was 13 → 7. appActions + sessionActions + tabActions + themes + highlighter + pluginMessageBridge + utils)
-- web components/: 45 files, 9361 lines
-- web components/chat/: 3 files ✅ DONE (was 6 + tools/5 = 11 → 3. ChatMessages + ToolCards + ToolOutput)
-- desktop src/: 6 files, 1631 lines
-- Total source: 95 files (down from ~135)
+### Final file counts (refactoring complete)
 
-### Target file counts (after refactoring)
-- contracts/: 4 files (piProtocol, wsProtocol, domain, index)
-- server handlers/: 4 files (session, appHandlers, types, index)
-- web store/: 5 files (appSlice, sessionSlice, workspaceSlice, types, index)
-- web lib/: 7 files (sessionActions, tabActions, appActions, themes, highlighter, pluginMessageBridge, utils — wireTransport stays at src/ top level)
-- web components/chat/: 3 files (ChatMessages, ToolCards, ToolOutput) ✅ DONE
-- Context docs: 3 mandatory (CLAUDE.md, CONVENTIONS.md, TENSIONS.md)
+| Area | Before | After | Δ |
+|------|--------|-------|---|
+| **contracts/** | 12 files | 4 files (2,683 lines) | −67% |
+| **server handlers/** | 10 files | 4 files (1,286 lines) | −60% |
+| **server src/ (non-test)** | ~25 files | 25 files (10,027 lines) | — |
+| **web store/** | 15 files | 5 files (1,331 lines) | −67% |
+| **web lib/** | 13 files | 7 files (2,582 lines) | −46% |
+| **web components/** | 51 files | 37 files (9,309 lines) | −27% |
+| **web components/chat/** | 11 files | 3 files (1,350 lines) | −73% |
+| **desktop src/** | 6 files | 6 files (1,631 lines) | — |
+| **Total source files** | ~135 | 91 | −33% |
+| **Mandatory context docs** | 7 files (870 lines) | 3 files (385 lines) | −57% |
+| **docs/** | 8 files | 4 files | −50% |
 
 ### What stays untouched
 - piProcess.ts, piRpcManager.ts, server.ts — already deep

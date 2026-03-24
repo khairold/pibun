@@ -451,3 +451,41 @@
 - These are the last 3 items in the plan. After 6.7, the refactoring is complete.
 
 ---
+
+## Session 16 — Complete Phase 6: Smoke test + commit + final counts (2026-03-24)
+
+**What happened:**
+- Smoke tested both dev servers: `bun run dev:server` starts on port 24242, `bun run dev:web` (Vite) starts on port 5173 — both confirmed working
+- Created summary git commit documenting the full refactoring: 135 → 91 source files (−33%), 7 → 3 context docs (−57%), 8 → 4 docs files (−50%)
+- Documented final before/after file counts in MEMORY.md with a comparison table
+
+**Items completed:**
+- [x] 6.5 — Smoke test dev servers (both start successfully)
+- [x] 6.6 — Git commit with consolidation summary
+- [x] 6.7 — Final file counts documented in MEMORY.md
+
+**Phase 6 complete. All 6 phases complete.** Exit criteria met:
+- App runs (both dev servers start) ✅
+- Types check (`bun run typecheck` — 5 packages, 116 files) ✅
+- Lint passes (`biome check` — 116 files, no issues) ✅
+- Conventions and architecture docs reflect reality ✅
+- Git history is clean ✅
+
+**Refactoring summary:**
+| Area | Before | After | Δ |
+|------|--------|-------|---|
+| Source files | ~135 | 91 | −33% |
+| Context docs | 7 (870 lines) | 3 (385 lines) | −57% |
+| docs/ | 8 | 4 | −50% |
+| contracts/ | 12 | 4 | −67% |
+| store/ | 15 | 5 | −67% |
+| lib/ | 13 | 7 | −46% |
+| chat components | 11 | 3 | −73% |
+| handlers/ | 10 | 4 | −60% |
+
+**Issues encountered:**
+- None. All three items were straightforward.
+
+**Project complete.** No more items in any phase. Parking lot has 5 deferred items for future consideration.
+
+---

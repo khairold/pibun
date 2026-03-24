@@ -127,9 +127,9 @@ With a 1M token context window, the entire codebase (~532K tokens) fits in one s
 - [x] 6.2 — Delete any empty directories left from consolidation
 - [x] 6.3 — Update CONVENTIONS.md file organization section to reflect new structure
 - [x] 6.4 — Update docs/ARCHITECTURE.md monorepo structure section to reflect new file counts
-- [ ] 6.5 — Run `bun run dev:server` and `bun run dev:web` — smoke test that the app still works
-- [ ] 6.6 — Git commit with summary of what was consolidated and file count reduction
-- [ ] 6.7 — Final count: document before/after file counts in MEMORY.md
+- [x] 6.5 — Run `bun run dev:server` and `bun run dev:web` — smoke test that the app still works
+- [x] 6.6 — Git commit with summary of what was consolidated and file count reduction
+- [x] 6.7 — Final count: document before/after file counts in MEMORY.md
 
 **Exit criteria:** App runs. Types check. Lint passes. Conventions and architecture docs reflect reality. Git history is clean.
 
