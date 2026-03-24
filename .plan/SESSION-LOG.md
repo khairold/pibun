@@ -1154,3 +1154,31 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 39 — Tray status indicator (2026-03-24)
+
+**What happened:**
+- Implemented tray status indicator that changes icon/color based on aggregate session state (4B.2):
+  - **`AggregateTrayState` type**: `"idle" | "working" | "error"` — derived from all tracked sessions with priority: working > error > idle. If ANY session is working → working. If ANY has error (and none working) → error. Otherwise → idle.
+  - **`deriveAggregateState()` function**: Iterates `sessionStates` map, returns highest-priority state found.
+  - **`generateCirclePng()` function**: Programmatic PNG generation — creates 32x32 RGBA PNGs with anti-aliased colored circles on transparent background. Raw PNG encoding: builds pixel data (with distance-based anti-aliasing at circle edges), compresses via `node:zlib` `deflateSync`, constructs PNG chunks (signature + IHDR + IDAT + IEND) with proper CRC32 checksums. No external image library needed.
+  - **`generateStatusIcons()`**: Creates blue (working) and red (error) circle PNGs in `$TMPDIR/pibun-tray-icons/` at tray init time. Returns paths map or null on failure.
+  - **`updateTrayStatusIcon()`**: Called from `refreshTrayMenu()` on every state change. Compares new aggregate state to `currentAggregateState` — only calls `tray.setImage()` when state actually changes. Idle → original app icon. Working/Error → generated colored dot.
+  - **Module state additions**: `currentAggregateState`, `idleIconPath`, `statusIconPaths` for tracking.
+  - **Cleanup**: `currentAggregateState` reset to "idle" and `statusIconPaths` nullified on tray cleanup.
+  - **Color choices**: Working = Tailwind blue-500 (`#3B82F6`), Error = Tailwind red-500 (`#EF4444`) — consistent with PiBun's theme.
+- Only 1 file modified: `apps/desktop/src/bun/tray.ts`. Self-contained enhancement — no contracts, server, or web changes.
+
+**Items completed:**
+- [x] 4B.2 — Tray status indicator: change icon/color based on active session state (idle, working, error)
+
+**Issues encountered:**
+- Biome import ordering: `node:os` must sort before `node:path` alphabetically. Fixed.
+
+**Handoff to next session:**
+- Next: 4B.3 — Add Electrobun navigation rules to prevent webview from navigating away from PiBun
+- The generated status PNGs are simple colored circles that replace the entire tray icon. A more polished version could overlay a badge on the app icon, but that requires image compositing (Canvas API or sharp library). The colored dots are visually clear and functional.
+- `generateCirclePng()` could be reused for any runtime-generated PNG needs. The inline PNG encoder handles RGBA images up to any size.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

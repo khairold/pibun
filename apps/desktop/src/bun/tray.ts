@@ -11,11 +11,24 @@
  * Menu actions are forwarded to the React app via the `menu.action` push channel,
  * same pattern as the native application menu.
  *
+ * ## Tray Status Indicator
+ *
+ * The tray icon changes based on the aggregate session state:
+ * - **Idle** (no sessions, or all idle): default PiBun app icon
+ * - **Working** (any session is working): blue-tinted status icon
+ * - **Error** (any session errored, none working): red-tinted status icon
+ *
+ * Status icons are 32x32 PNGs (16x16@2x retina) generated at init time to a
+ * temp directory. Each is a simple colored circle — we can't composite over the
+ * app icon without an image library, so the status dots replace the icon entirely.
+ * The idle state restores the original app icon.
+ *
  * @see reference/electrobun/templates/tray-app/ — Electrobun tray example
  * @see apps/desktop/src/bun/menu.ts — Application menu (same forwarding pattern)
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import type { PiEvent } from "@pibun/contracts";
 import type { PiRpcManager } from "@pibun/server/piRpcManager";
@@ -37,12 +50,30 @@ interface TraySessionInfo {
 	state: "idle" | "working" | "error";
 }
 
+/**
+ * Aggregate tray state derived from all active sessions.
+ * Priority: working > error > idle (if ANY session is working, tray shows working).
+ */
+type AggregateTrayState = "idle" | "working" | "error";
+
 // ============================================================================
 // Constants
 // ============================================================================
 
 /** Tray menu action prefix for opening a specific session. */
 const TRAY_SESSION_ACTION_PREFIX = "tray.session:";
+
+/** Size of generated status indicator PNGs (32x32 = 16x16@2x retina). */
+const STATUS_ICON_SIZE = 32;
+
+/**
+ * Status icon colors (RGBA).
+ * Working = blue (matches PiBun's accent blue), Error = red.
+ */
+const STATUS_COLORS: Record<"working" | "error", [number, number, number, number]> = {
+	working: [59, 130, 246, 255], // Tailwind blue-500
+	error: [239, 68, 68, 255], // Tailwind red-500
+};
 
 // ============================================================================
 // Module State
@@ -59,6 +90,15 @@ let serverRef: PiBunServer | null = null;
 
 /** Cleanup functions for event subscriptions. */
 const cleanups: Array<() => void> = [];
+
+/** Current aggregate tray state — used to avoid redundant `setImage` calls. */
+let currentAggregateState: AggregateTrayState = "idle";
+
+/** Path to the default (idle) tray icon — the PiBun app icon. */
+let idleIconPath = "";
+
+/** Paths to generated status indicator icons. Null until `generateStatusIcons()` runs. */
+let statusIconPaths: Record<"working" | "error", string> | null = null;
 
 // ============================================================================
 // Tray Icon Path
@@ -85,6 +125,182 @@ function resolveTrayIconPath(): string {
 
 	// Development mode: use icon from the source tree
 	return resolve(import.meta.dir, "../../icon.iconset/icon_16x16@2x.png");
+}
+
+// ============================================================================
+// Status Icon Generation
+// ============================================================================
+
+/**
+ * Generate a minimal valid PNG file with a colored filled circle.
+ *
+ * Creates a 32x32 RGBA PNG (16x16@2x retina) with a circle of the given color
+ * on a transparent background. Uses raw PNG encoding — no external image library.
+ *
+ * PNG structure: signature + IHDR + IDAT (zlib-compressed scanlines) + IEND.
+ * Each scanline is filter byte (0 = None) + 4 bytes per pixel (RGBA).
+ */
+function generateCirclePng(color: [number, number, number, number]): Buffer {
+	const size = STATUS_ICON_SIZE;
+	const [r, g, b, a] = color;
+
+	// Build raw scanline data: filter byte + RGBA pixels per row
+	const rawData: number[] = [];
+	const center = size / 2;
+	const radius = size / 2 - 1; // Small margin for anti-alias room
+	const radiusSq = radius * radius;
+
+	for (let y = 0; y < size; y++) {
+		rawData.push(0); // Filter: None
+		for (let x = 0; x < size; x++) {
+			const dx = x + 0.5 - center;
+			const dy = y + 0.5 - center;
+			const distSq = dx * dx + dy * dy;
+
+			if (distSq <= radiusSq) {
+				// Inside the circle — full color
+				rawData.push(r, g, b, a);
+			} else if (distSq <= (radius + 1) * (radius + 1)) {
+				// Edge pixel — anti-aliased alpha
+				const dist = Math.sqrt(distSq);
+				const edgeAlpha = Math.max(0, Math.min(1, radius + 1 - dist));
+				rawData.push(r, g, b, Math.round(a * edgeAlpha));
+			} else {
+				// Outside — transparent
+				rawData.push(0, 0, 0, 0);
+			}
+		}
+	}
+
+	// Compress with zlib (Bun provides this via Node compat)
+	const { deflateSync } = require("node:zlib");
+	const compressed = deflateSync(Buffer.from(rawData)) as Buffer;
+
+	// Build PNG
+	const chunks: Buffer[] = [];
+
+	// PNG signature
+	chunks.push(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+
+	// IHDR chunk
+	const ihdr = Buffer.alloc(13);
+	ihdr.writeUInt32BE(size, 0); // width
+	ihdr.writeUInt32BE(size, 4); // height
+	ihdr.writeUInt8(8, 8); // bit depth
+	ihdr.writeUInt8(6, 9); // color type: RGBA
+	ihdr.writeUInt8(0, 10); // compression
+	ihdr.writeUInt8(0, 11); // filter
+	ihdr.writeUInt8(0, 12); // interlace
+	chunks.push(pngChunk("IHDR", ihdr));
+
+	// IDAT chunk (compressed pixel data)
+	chunks.push(pngChunk("IDAT", compressed));
+
+	// IEND chunk
+	chunks.push(pngChunk("IEND", Buffer.alloc(0)));
+
+	return Buffer.concat(chunks);
+}
+
+/**
+ * Build a PNG chunk: length (4 bytes) + type (4 bytes) + data + CRC (4 bytes).
+ */
+function pngChunk(type: string, data: Buffer): Buffer {
+	const typeBytes = Buffer.from(type, "ascii");
+	const length = Buffer.alloc(4);
+	length.writeUInt32BE(data.length, 0);
+
+	// CRC32 over type + data
+	const crcData = Buffer.concat([typeBytes, data]);
+	const crc = Buffer.alloc(4);
+	crc.writeUInt32BE(crc32(crcData), 0);
+
+	return Buffer.concat([length, typeBytes, data, crc]);
+}
+
+/**
+ * CRC32 computation for PNG chunk validation.
+ * Standard CRC-32 with polynomial 0xEDB88320 (reflected).
+ */
+function crc32(data: Buffer): number {
+	let crc = 0xffffffff;
+	for (let i = 0; i < data.length; i++) {
+		crc ^= data[i] ?? 0;
+		for (let j = 0; j < 8; j++) {
+			crc = crc & 1 ? (crc >>> 1) ^ 0xedb88320 : crc >>> 1;
+		}
+	}
+	return (crc ^ 0xffffffff) >>> 0;
+}
+
+/**
+ * Generate status indicator PNG icons and write to temp directory.
+ * Creates colored circle PNGs for "working" (blue) and "error" (red) states.
+ * Returns the directory path, or null if generation fails.
+ */
+function generateStatusIcons(): Record<"working" | "error", string> | null {
+	try {
+		const dir = resolve(tmpdir(), "pibun-tray-icons");
+		if (!existsSync(dir)) {
+			mkdirSync(dir, { recursive: true });
+		}
+
+		const paths: Record<string, string> = {};
+		for (const [state, color] of Object.entries(STATUS_COLORS)) {
+			const pngData = generateCirclePng(color as [number, number, number, number]);
+			const filePath = resolve(dir, `tray-${state}.png`);
+			writeFileSync(filePath, pngData);
+			paths[state] = filePath;
+		}
+
+		console.log(`[Tray] Status icons generated in ${dir}`);
+		return paths as Record<"working" | "error", string>;
+	} catch (err) {
+		console.warn("[Tray] Failed to generate status icons:", err);
+		return null;
+	}
+}
+
+// ============================================================================
+// Aggregate State & Icon Switching
+// ============================================================================
+
+/**
+ * Derive the aggregate tray state from all active sessions.
+ * Priority: working > error > idle.
+ * If ANY session is working → working. If ANY is errored (and none working) → error.
+ * Otherwise → idle.
+ */
+function deriveAggregateState(): AggregateTrayState {
+	let hasError = false;
+	for (const session of sessionStates.values()) {
+		if (session.state === "working") return "working";
+		if (session.state === "error") hasError = true;
+	}
+	return hasError ? "error" : "idle";
+}
+
+/**
+ * Update the tray icon to reflect the current aggregate session state.
+ * Only calls `setImage` when the state actually changes to avoid flicker.
+ */
+function updateTrayStatusIcon(): void {
+	if (!trayInstance) return;
+
+	const newState = deriveAggregateState();
+	if (newState === currentAggregateState) return;
+
+	currentAggregateState = newState;
+
+	if (newState === "idle") {
+		// Restore the default PiBun app icon
+		trayInstance.setImage(idleIconPath);
+	} else if (statusIconPaths) {
+		// Switch to colored status indicator
+		trayInstance.setImage(statusIconPaths[newState]);
+	}
+
+	console.log(`[Tray] Status icon → ${newState}`);
 }
 
 // ============================================================================
@@ -155,12 +371,13 @@ function buildTrayMenu(): Array<Record<string, unknown>> {
 }
 
 /**
- * Refresh the tray menu with current session states.
- * Safe to call frequently — just rebuilds the menu config.
+ * Refresh the tray menu and status icon with current session states.
+ * Safe to call frequently — `updateTrayStatusIcon` skips redundant `setImage` calls.
  */
 function refreshTrayMenu(): void {
 	if (!trayInstance) return;
 	trayInstance.setMenu(buildTrayMenu() as Parameters<Tray["setMenu"]>[0]);
+	updateTrayStatusIcon();
 }
 
 // ============================================================================
@@ -271,6 +488,7 @@ export function initTray(server: PiBunServer, rpcManager: PiRpcManager): () => v
 
 	// Create tray icon
 	const iconPath = resolveTrayIconPath();
+	idleIconPath = iconPath;
 	console.log(`[Tray] Icon path: ${iconPath}`);
 
 	try {
@@ -285,6 +503,9 @@ export function initTray(server: PiBunServer, rpcManager: PiRpcManager): () => v
 		console.warn("[Tray] Failed to create system tray:", err);
 		return () => {};
 	}
+
+	// Generate colored status indicator icons for working/error states
+	statusIconPaths = generateStatusIcons();
 
 	// Initialize session states from any existing sessions
 	for (const session of rpcManager.getActiveSessions()) {
@@ -343,6 +564,8 @@ export function initTray(server: PiBunServer, rpcManager: PiRpcManager): () => v
 		}
 		cleanups.length = 0;
 		sessionStates.clear();
+		currentAggregateState = "idle";
+		statusIconPaths = null;
 		if (trayInstance) {
 			trayInstance.remove();
 			trayInstance = null;
