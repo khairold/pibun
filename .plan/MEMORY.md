@@ -34,7 +34,8 @@
 | 24 | workspaceSlice.ts combines TabsSlice + TerminalSlice + GitSlice + PluginsSlice + ProjectsSlice | Combined type `WorkspaceSlice` defined locally. Largest merge — 5 slices into 1 (~350 lines). Includes all helpers inline (nextTabId, sortByLastOpened, terminalTabCounter). store/index.ts now spreads 3 slice creators total (app, session, workspace). | 2026-03-24 |
 | 25 | store/index.ts already correct after Session 10 | 3 slices (app, session, workspace). types.ts unchanged — individual slice interfaces remain as named types for documentation/readability. Item 3.4 was a verification, not work. | 2026-03-24 |
 | 26 | appActions.ts merges 5 action files (git + project + plugin + settings + terminal) | ~480 lines. All follow the same pattern: getTransport → request → update store. `errorMessage()` helper shared across project/git/terminal sections. Imports tabActions for `createNewTab`/`switchTabAction` (project open). Imports themes for settings. | 2026-03-24 |
-| 27 | utils.ts merges 3 utility files (cn + fileUtils + shortcuts) | ~200 lines. `cn()` className helper, file extension→language maps, shortcut event bus. All small, always needed together. | 2026-03-24 |
+| 27 | utils.ts merges 3 utility files (cn + fileUtils + shortcuts) | ~200 lines. `cn()` className helper, file extension→language maps, shortcut event bus. All small, always needed together. |
+| 28 | Phase 3 complete — store/ has 5 files, lib/ has 7 files | store: appSlice, sessionSlice, workspaceSlice, types, index. lib: appActions, sessionActions, tabActions, themes, highlighter, pluginMessageBridge, utils. Down from 15 store files and 13 lib files. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -42,8 +43,8 @@
 - contracts/: 4 files ✅ DONE (was 12 → 9 after piProtocol merge → 4 after domain merge. index.ts: 15 lines)
 - server src (non-test): 19 files, 4460 lines
 - server handlers/: 8 files + types + index = 10 files
-- web store/: 5 files ✅ DONE (was 15 → 12 after appSlice → 9 after sessionSlice → 5 after workspaceSlice merge)
-- web lib/: 7 files ✅ DONE (was 13 → 7 after appActions + utils merges)
+- web store/: 5 files ✅ DONE (was 15 → 5. appSlice + sessionSlice + workspaceSlice + types + index)
+- web lib/: 7 files ✅ DONE (was 13 → 7. appActions + sessionActions + tabActions + themes + highlighter + pluginMessageBridge + utils)
 - web components/: 45 files, 9361 lines
 - web components/chat/: 6 files + tools/5 files = 11 files
 - desktop src/: 6 files, 1631 lines

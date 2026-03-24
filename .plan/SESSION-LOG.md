@@ -321,3 +321,32 @@
 - Items 3.7-3.9 should be quick verifications. Phase 3 is nearly complete.
 
 ---
+
+## Session 12 — Complete Phase 3: verify keep-as-is + imports + full build (2026-03-24)
+
+**What happened:**
+- Verified item 3.7: all 5 keep-as-is files exist with expected line counts (sessionActions 533, tabActions 246, themes 527, highlighter 208, pluginMessageBridge 323)
+- Verified item 3.8: grep for all 8 deleted file import paths (cn, fileUtils, shortcuts, gitActions, projectActions, pluginActions, settingsActions, terminalActions) and all 12 deleted store slice imports — zero stale imports found
+- Verified item 3.9: `bun run typecheck && bun run lint` — 5 packages pass, 129 files checked. `bun run build` — all 5 packages build successfully including desktop.
+
+**Items completed:**
+- [x] 3.7 — Keep as-is: sessionActions.ts, tabActions.ts, themes.ts, highlighter.ts, pluginMessageBridge.ts (verified)
+- [x] 3.8 — Update all component imports (already clean from Session 11, verified)
+- [x] 3.9 — Verify: full build passes
+
+**Phase 3 complete.** Exit criteria met:
+- store/ has 5 files (3 slices + types + index) ✅
+- lib/ has 7 files (down from 13) ✅
+- All components compile ✅
+- `bun run typecheck && bun run lint && bun run build` passes ✅
+
+**Issues encountered:**
+- None. All three items were verification-only — no code changes needed.
+
+**Handoff to next session:**
+- Next: Phase 4 — Deep Server Handlers
+- Start with 4.1: Add `piPassthrough` helper
+- Read server handlers/ to understand the pass-through boilerplate pattern before creating the helper
+- session.ts stays as-is (541 lines, real logic). Everything else merges into appHandlers.ts.
+
+---
