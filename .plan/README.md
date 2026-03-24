@@ -1,6 +1,13 @@
 # .plan/
 
-No active plan.
+**Active plan: v3 — Feature Parity & Polish**
+
+| File | Description |
+|------|-------------|
+| `PLAN.md` | v3 plan — 60 items across 5 phases (feature parity + polish) |
+| `MEMORY.md` | v3 shared context (builds on v2 archive) |
+| `DRIFT.md` | v3 spec drift log |
+| `SESSION-LOG.md` | v3 session history |
 
 ## Archive
 
@@ -12,5 +19,3 @@ No active plan.
 | `archive/SESSION-LOG-v{1,2}.md` | Session-by-session logs |
 | `archive/DRIFT-v{1,2}.md` | Spec drift logs |
 | `archive/STATUS-v{1,2}.md` | Autopilot status snapshots |
-
-To start a new plan, use the `phased-plan` skill.
