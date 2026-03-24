@@ -17,6 +17,9 @@ export default defineConfig({
 				target: "ws://localhost:24242",
 				ws: true,
 			},
+			"/api": {
+				target: "http://localhost:24242",
+			},
 			"/plugin": {
 				target: "http://localhost:24242",
 			},

@@ -240,6 +240,11 @@ export function createServer(options: ServerOptions): PiBunServer {
 				return new Response("WebSocket upgrade failed", { status: 400 });
 			}
 
+			// Project favicon: /api/project-favicon?cwd=<path>
+			if (url.pathname === "/api/project-favicon") {
+				return serveProjectFavicon(url.searchParams.get("cwd"));
+			}
+
 			// Plugin asset serving: /plugin/{id}/{path}
 			if (url.pathname.startsWith("/plugin/")) {
 				return servePluginAsset(url.pathname);
@@ -555,6 +560,94 @@ function servePluginAsset(pathname: string): Response {
 			"X-Frame-Options": "SAMEORIGIN",
 		},
 	});
+}
+
+// ============================================================================
+// Project Favicon
+// ============================================================================
+
+/**
+ * Well-known favicon/icon file names to search for in project directories.
+ * Ordered by preference: SVG > PNG > ICO > JPEG.
+ * Searches in root, then common subdirectories (public/, src/, assets/, .github/).
+ */
+const FAVICON_CANDIDATES = [
+	// Root directory
+	"favicon.svg",
+	"favicon.png",
+	"favicon.ico",
+	"logo.svg",
+	"logo.png",
+	"icon.svg",
+	"icon.png",
+	// public/ directory (common in web projects)
+	"public/favicon.svg",
+	"public/favicon.png",
+	"public/favicon.ico",
+	"public/logo.svg",
+	"public/logo.png",
+	"public/icon.svg",
+	"public/icon.png",
+	// src/ directory
+	"src/favicon.svg",
+	"src/favicon.png",
+	"src/logo.svg",
+	"src/logo.png",
+	"src/icon.svg",
+	"src/icon.png",
+	// assets/ directory
+	"assets/favicon.svg",
+	"assets/favicon.png",
+	"assets/logo.svg",
+	"assets/logo.png",
+	"assets/icon.svg",
+	"assets/icon.png",
+	// .github/ directory (GitHub repo icon)
+	".github/logo.svg",
+	".github/logo.png",
+	".github/icon.svg",
+	".github/icon.png",
+];
+
+/**
+ * Serve a project's favicon/icon file.
+ *
+ * Searches the project directory for well-known favicon file names
+ * in order of preference. Returns the first match as a binary response
+ * with appropriate content type and caching headers.
+ *
+ * Returns 404 if no favicon found, 400 if no cwd provided.
+ * Path traversal prevented by only accepting candidate filenames (no user path input).
+ */
+function serveProjectFavicon(cwd: string | null): Response {
+	if (!cwd) {
+		return new Response("Missing cwd parameter", { status: 400 });
+	}
+
+	// Resolve and validate the directory exists
+	const resolvedCwd = resolve(cwd);
+	if (!existsSync(resolvedCwd)) {
+		return new Response("Directory not found", { status: 404 });
+	}
+
+	// Search candidates in order of preference
+	for (const candidate of FAVICON_CANDIDATES) {
+		const filePath = join(resolvedCwd, candidate);
+		if (existsSync(filePath)) {
+			const file = Bun.file(filePath);
+			const ext = extname(filePath);
+			const contentType = MIME_TYPES[ext] ?? "application/octet-stream";
+			return new Response(file, {
+				headers: {
+					"Content-Type": contentType,
+					// Cache for 1 hour — favicons rarely change
+					"Cache-Control": "public, max-age=3600",
+				},
+			});
+		}
+	}
+
+	return new Response("No favicon found", { status: 404 });
 }
 
 // ============================================================================

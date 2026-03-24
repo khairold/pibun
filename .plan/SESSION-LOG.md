@@ -969,3 +969,30 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 33 — Project favicon in sidebar (2026-03-24)
+
+**What happened:**
+- Implemented project favicon display in sidebar (3.9), completing Phase 3:
+  - **Server HTTP endpoint**: Added `GET /api/project-favicon?cwd=<path>` to `server.ts` fetch handler. Searches `FAVICON_CANDIDATES` (37 candidate paths across root, public/, src/, assets/, .github/) for common favicon files (favicon.svg, favicon.png, favicon.ico, logo.svg, logo.png, icon.svg, icon.png). Returns first match with appropriate MIME type and `Cache-Control: public, max-age=3600`. Returns 404 if no favicon found, 400 if no cwd param. Directory traversal prevented by only using hardcoded candidate paths (no user path components).
+  - **`ProjectFavicon` component**: New memoized component in Sidebar.tsx. Renders `<img>` pointing to `/api/project-favicon?cwd=<encoded_cwd>`. On load error, falls back to SVG folder icon (using `FOLDER_ICON_PATH` constant). `hasError` state + `onError` handler. Accepts `cwd`, `isActive`, `className` props.
+  - **Sidebar integration**: `ProjectItem` now shows `ProjectFavicon` instead of hardcoded folder SVG. `CwdGroup` header also shows `ProjectFavicon`. Both pass `className="h-4 w-4"` / `className="h-3 w-3"` for size.
+  - **Vite dev proxy**: Added `/api` route to `vite.config.ts` proxy config — proxies to `http://localhost:24242` so favicon requests work in dev mode.
+  - **Helper function**: `faviconUrl(cwd)` builds the URL with `encodeURIComponent`.
+- Phase 3 exit criteria verified: ✅ Chat shows grouped tool activity per turn. ✅ Users can view diffs per turn. ✅ Unread indicators work across tabs. ✅ Project favicons shown in sidebar.
+
+**Items completed:**
+- [x] 3.9 — Show project favicon in sidebar
+
+**Issues encountered:**
+- Biome's `useExhaustiveDependencies` flagged `cwd` prop in a `useEffect([cwd])` for resetting error state. Removed the useEffect — since `ProjectFavicon` is used within keyed parent components (`ProjectItem` keyed by `project.id`, `CwdGroup` keyed by `cwd`), the component remounts when cwd changes, naturally resetting state.
+
+**Handoff to next session:**
+- **Phase 3 is COMPLETE.** Next: Phase 4 — Desktop Native Features
+- Start with 4A.1 — Add Electrobun context menu support
+- `ProjectFavicon` is in Sidebar.tsx (same file — follows deep modules convention). If needed elsewhere, it can be extracted.
+- The `/api/` prefix is now proxied in Vite dev mode — use it for any future HTTP API endpoints.
+- Browser caching handles favicon performance (1h cache). No client-side favicon cache needed.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

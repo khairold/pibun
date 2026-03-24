@@ -22,7 +22,15 @@ import { cn, onShortcut } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
 import type { Project, SessionTab, TabStatus, WsSessionSummary } from "@pibun/contracts";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	type SyntheticEvent,
+	memo,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 
 // ============================================================================
 // Constants
@@ -30,6 +38,67 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /** Tailwind `md` breakpoint in pixels. */
 const MD_BREAKPOINT = 768;
+
+// ============================================================================
+// Project Favicon
+// ============================================================================
+
+/** Build the URL for a project's favicon. Uses the same origin as the app. */
+function faviconUrl(cwd: string): string {
+	return `/api/project-favicon?cwd=${encodeURIComponent(cwd)}`;
+}
+
+/** Folder icon SVG path — reused as fallback when no favicon is available. */
+const FOLDER_ICON_PATH =
+	"M2 3.5A1.5 1.5 0 0 1 3.5 2h2.879a1.5 1.5 0 0 1 1.06.44l1.122 1.12A1.5 1.5 0 0 0 9.62 4H12.5A1.5 1.5 0 0 1 14 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12.5v-9z";
+
+/**
+ * Project favicon with folder icon fallback.
+ *
+ * Attempts to load the project's favicon from the server endpoint.
+ * On error (404 or load failure), falls back to a folder SVG icon.
+ * Uses the `cwd` as key — favicon URL is cached by the browser (1h Cache-Control).
+ */
+const ProjectFavicon = memo(function ProjectFavicon({
+	cwd,
+	isActive,
+	className,
+}: {
+	cwd: string;
+	isActive: boolean;
+	className?: string;
+}) {
+	const [hasError, setHasError] = useState(false);
+
+	const handleError = useCallback((e: SyntheticEvent<HTMLImageElement>) => {
+		e.currentTarget.style.display = "none";
+		setHasError(true);
+	}, []);
+
+	if (hasError) {
+		return (
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 16 16"
+				fill="currentColor"
+				className={cn(className, isActive ? "text-accent-text" : "text-text-muted")}
+				aria-label="Project folder"
+				role="img"
+			>
+				<path d={FOLDER_ICON_PATH} />
+			</svg>
+		);
+	}
+
+	return (
+		<img
+			src={faviconUrl(cwd)}
+			alt=""
+			className={cn(className, "rounded-sm object-contain")}
+			onError={handleError}
+		/>
+	);
+});
 
 // ============================================================================
 // Tab Status Indicator
@@ -187,19 +256,9 @@ const CwdGroup = memo(function CwdGroup({
 }: CwdGroupProps) {
 	return (
 		<div className="mb-1">
-			{/* CWD label */}
+			{/* CWD label with favicon */}
 			<div className="flex items-center gap-1.5 px-3 pb-1">
-				{/* Folder icon */}
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					viewBox="0 0 16 16"
-					fill="currentColor"
-					className="h-3 w-3 text-text-muted"
-					aria-label="Folder"
-					role="img"
-				>
-					<path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h2.879a1.5 1.5 0 0 1 1.06.44l1.122 1.12A1.5 1.5 0 0 0 9.62 4H12.5A1.5 1.5 0 0 1 14 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12.5v-9z" />
-				</svg>
+				<ProjectFavicon cwd={cwd} isActive={false} className="h-3 w-3" />
 				<span className="truncate text-[10px] font-medium uppercase tracking-wider text-text-muted">
 					{shortPath(cwd)}
 				</span>
@@ -300,18 +359,9 @@ const ProjectItem = memo(function ProjectItem({
 			aria-selected={isActive}
 			aria-label={project.name}
 		>
-			{/* Folder icon */}
+			{/* Project favicon (falls back to folder icon) */}
 			<span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					viewBox="0 0 16 16"
-					fill="currentColor"
-					className={cn("h-4 w-4", isActive ? "text-accent-text" : "text-text-muted")}
-					aria-label="Project folder"
-					role="img"
-				>
-					<path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h2.879a1.5 1.5 0 0 1 1.06.44l1.122 1.12A1.5 1.5 0 0 0 9.62 4H12.5A1.5 1.5 0 0 1 14 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12.5v-9z" />
-				</svg>
+				<ProjectFavicon cwd={project.cwd} isActive={isActive} className="h-4 w-4" />
 			</span>
 
 			{/* Project info */}
