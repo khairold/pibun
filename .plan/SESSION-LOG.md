@@ -111,3 +111,25 @@
 - After 1.8, Phase 1 is complete. Mark phase done and EXIT.
 
 ---
+
+## Session 4 — Verify Phase 1 (2026-03-24)
+
+**What happened:**
+- Ran `bun run typecheck` — all 5 packages pass (0 errors)
+- Ran `bun run build` — all 5 packages build successfully
+- Verified Phase 1 exit criteria: terminals keyed by project path, same-project switch preserves terminals, cross-project switch swaps terminal set, type checks pass
+
+**Items completed:**
+- [x] 1.8 — Verify: `bun run typecheck && bun run build`
+
+**Issues encountered:**
+- None. Clean pass on first attempt.
+
+**Handoff to next session:**
+- Phase 1 COMPLETE. Phase 2 begins: Content Tab Bar + Full-Size Terminals
+- Next: 2.1 — Create `ContentTabBar` component
+- Key context: `activeContentTab` and `projectContentTabs` already exist in the store (added in 1.6-1.7). Phase 2 needs to build the UI that uses them.
+- Read MEMORY.md "Architecture Notes > Current Terminal Infrastructure" for what stays vs what gets replaced
+- `TerminalPane.tsx` (605 lines) gets REPLACED by `ContentTabBar` + `TerminalView`. `TerminalInstance.tsx` (664 lines) is KEPT.
+
+---

@@ -2,8 +2,8 @@
 
 > **Spec:** Main content area with tab bar: session chat + project-scoped terminals
 > **Status:** In Progress
-> **Current Phase:** Phase 1 — Rekey Terminal State (Session → Project)
-> **Last Session:** Session 3 — 2026-03-24
+> **Current Phase:** Phase 2 — Content Tab Bar + Full-Size Terminals
+> **Last Session:** Session 4 — 2026-03-24
 
 ---
 
@@ -60,9 +60,9 @@ Workspaces map to projects.
 - [x] 1.5 — Update `switchTab` in workspaceSlice: when switching to a session in the same project, preserve active terminal selection. When switching to a different project, select that project's first terminal (or null).
 - [x] 1.6 — Add `activeContentTab` state to workspaceSlice: `"chat" | string` (string = terminal tab ID). Defaults to `"chat"`. This tracks which content tab is displayed in the main area.
 - [x] 1.7 — Add `projectContentTabs: Record<string, string>` to workspaceSlice: maps project path → last active content tab. On project switch, save current, restore target's. On session switch within same project, preserve.
-- [ ] 1.8 — Verify: `bun run typecheck && bun run build`. Existing terminal functionality still works (bottom panel, same project filtering).
+- [x] 1.8 — Verify: `bun run typecheck && bun run build`. Existing terminal functionality still works (bottom panel, same project filtering).
 
-**Exit criteria:** Terminals keyed by project path. Switching sessions within same project keeps terminals. Switching projects swaps terminal set. Type checks pass.
+**Exit criteria:** Terminals keyed by project path. Switching sessions within same project keeps terminals. Switching projects swaps terminal set. Type checks pass. ✅ ALL MET
 
 ---
 
