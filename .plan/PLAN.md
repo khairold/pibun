@@ -4,7 +4,7 @@
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
 > **Status:** Phase 1C in progress
 > **Current Phase:** Phase 1C — Settings & Preferences
-> **Last Session:** Session 12 — 2026-03-24
+> **Last Session:** Session 13 — 2026-03-24
 
 ---
 
@@ -57,9 +57,9 @@
 ### 1C — Settings & Preferences
 
 - [x] 1C.1 — Create settings page/dialog (accessible via Ctrl/Cmd+, or menu): theme selector, default model, default thinking level, auto-compaction toggle, timestamp format
-- [ ] 1C.2 — Add `settings.get`/`settings.update` persistence to `~/.pibun/settings.json` on server (already have handlers — wire to UI)
-- [ ] 1C.3 — Wire `set_auto_compaction` toggle to Pi RPC (server handler + UI toggle in settings)
-- [ ] 1C.4 — Wire `set_auto_retry` toggle to Pi RPC (server handler + UI toggle in settings)
+- [x] 1C.2 — Add `settings.get`/`settings.update` persistence to `~/.pibun/settings.json` on server (already have handlers — wire to UI)
+- [x] 1C.3 — Wire `set_auto_compaction` toggle to Pi RPC (server handler + UI toggle in settings)
+- [x] 1C.4 — Wire `set_auto_retry` toggle to Pi RPC (server handler + UI toggle in settings)
 - [ ] 1C.5 — Wire `set_steering_mode` and `set_follow_up_mode` to Pi RPC (server handlers + UI in settings: all vs one-at-a-time)
 - [ ] 1C.6 — Add timestamp format selector (relative, locale, 12-hour, 24-hour) — apply throughout UI
 

@@ -10,6 +10,7 @@
  * we just clear our local message cache and re-fetch.
  */
 
+import { getSettings } from "@/lib/appActions";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { getTransport } from "@/wireTransport";
@@ -30,6 +31,26 @@ import type {
 function errorMessage(err: unknown): string {
 	if (err instanceof Error) return err.message;
 	return String(err);
+}
+
+/**
+ * Apply saved settings to a newly started Pi session.
+ *
+ * Sends Pi RPC commands for `autoCompaction` and `autoRetry` if the user
+ * has explicitly set them (non-null). Fire-and-forget — failures are silent.
+ */
+async function applySettingsToNewSession(): Promise<void> {
+	const settings = getSettings();
+	const transport = getTransport();
+
+	if (settings.autoCompaction !== null) {
+		transport
+			.request("session.setAutoCompaction", { enabled: settings.autoCompaction })
+			.catch(() => {});
+	}
+	if (settings.autoRetry !== null) {
+		transport.request("session.setAutoRetry", { enabled: settings.autoRetry }).catch(() => {});
+	}
 }
 
 // ============================================================================
@@ -225,6 +246,8 @@ async function ensureSession(): Promise<boolean> {
 		linkSessionToActiveTab(result.sessionId);
 		// Clear any previous health issue — session started successfully
 		useStore.getState().setProviderHealth(null);
+		// Apply saved auto-compaction/auto-retry settings to new Pi process
+		applySettingsToNewSession();
 		return true;
 	} catch (err) {
 		const msg = `Failed to start session: ${errorMessage(err)}`;
@@ -486,6 +509,8 @@ export async function startSessionInFolder(cwd: string): Promise<boolean> {
 
 		// Refresh state to pick up new session info (model, thinking, etc.)
 		await refreshSessionState();
+		// Apply saved auto-compaction/auto-retry settings to new Pi process
+		applySettingsToNewSession();
 		// Load any existing messages (e.g., if resuming a session)
 		await loadSessionMessages();
 

@@ -18,6 +18,8 @@ import type {
 	WsSessionFollowUpParams,
 	WsSessionForkParams,
 	WsSessionPromptParams,
+	WsSessionSetAutoCompactionParams,
+	WsSessionSetAutoRetryParams,
 	WsSessionSetModelParams,
 	WsSessionSetNameParams,
 	WsSessionSetThinkingParams,
@@ -290,6 +292,28 @@ export const handleSessionSetThinking: WsHandler<"session.setThinking"> = async 
 ): Promise<WsOkResult> => {
 	const process = getProcess(ctx);
 	return sendAndAck(process, { type: "set_thinking_level", level: params.level });
+};
+
+/**
+ * session.setAutoCompaction — Enable or disable automatic context compaction.
+ */
+export const handleSessionSetAutoCompaction: WsHandler<"session.setAutoCompaction"> = async (
+	params: WsSessionSetAutoCompactionParams,
+	ctx: HandlerContext,
+): Promise<WsOkResult> => {
+	const process = getProcess(ctx);
+	return sendAndAck(process, { type: "set_auto_compaction", enabled: params.enabled });
+};
+
+/**
+ * session.setAutoRetry — Enable or disable automatic retry on transient errors.
+ */
+export const handleSessionSetAutoRetry: WsHandler<"session.setAutoRetry"> = async (
+	params: WsSessionSetAutoRetryParams,
+	ctx: HandlerContext,
+): Promise<WsOkResult> => {
+	const process = getProcess(ctx);
+	return sendAndAck(process, { type: "set_auto_retry", enabled: params.enabled });
 };
 
 /**

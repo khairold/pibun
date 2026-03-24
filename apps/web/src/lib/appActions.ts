@@ -503,8 +503,36 @@ export function updateSetting<K extends keyof WsSettingsUpdateParams>(
 		transport.request("settings.update", params).catch(() => {
 			// Silent failure — localStorage is the primary store
 		});
+
+		// Apply to active Pi session via RPC (fire-and-forget).
+		// Only sends if a session is active — safe to call regardless.
+		applySettingToPiSession(transport, key, value);
 	} catch {
 		// Transport not ready — skip server persistence
+	}
+}
+
+/**
+ * Forward a setting change to the active Pi session via RPC.
+ *
+ * Maps PiBun settings to Pi RPC commands:
+ * - `autoCompaction` → `session.setAutoCompaction`
+ * - `autoRetry` → `session.setAutoRetry`
+ *
+ * Fire-and-forget: failures are silently ignored (Pi session may not be running).
+ */
+function applySettingToPiSession<K extends keyof WsSettingsUpdateParams>(
+	transport: ReturnType<typeof getTransport>,
+	key: K,
+	value: WsSettingsUpdateParams[K],
+): void {
+	const store = useStore.getState();
+	if (!store.sessionId) return;
+
+	if (key === "autoCompaction" && typeof value === "boolean") {
+		transport.request("session.setAutoCompaction", { enabled: value }).catch(() => {});
+	} else if (key === "autoRetry" && typeof value === "boolean") {
+		transport.request("session.setAutoRetry", { enabled: value }).catch(() => {});
 	}
 }
 

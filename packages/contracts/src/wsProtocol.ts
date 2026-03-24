@@ -64,6 +64,8 @@ export const WS_METHODS = {
 	sessionSetModel: "session.setModel",
 	sessionSetThinking: "session.setThinking",
 	sessionGetModels: "session.getModels",
+	sessionSetAutoCompaction: "session.setAutoCompaction",
+	sessionSetAutoRetry: "session.setAutoRetry",
 
 	// Session management
 	sessionNew: "session.new",
@@ -201,6 +203,16 @@ export interface WsSessionSetModelParams {
 /** Params for `session.setThinking` — set thinking level. */
 export interface WsSessionSetThinkingParams {
 	level: PiThinkingLevel;
+}
+
+/** Params for `session.setAutoCompaction` — enable/disable auto-compaction. */
+export interface WsSessionSetAutoCompactionParams {
+	enabled: boolean;
+}
+
+/** Params for `session.setAutoRetry` — enable/disable auto-retry. */
+export interface WsSessionSetAutoRetryParams {
+	enabled: boolean;
 }
 
 /** Params for `session.compact` — compact context window. */
@@ -450,6 +462,8 @@ export interface WsMethodParamsMap {
 	"session.setModel": WsSessionSetModelParams;
 	"session.setThinking": WsSessionSetThinkingParams;
 	"session.getModels": undefined;
+	"session.setAutoCompaction": WsSessionSetAutoCompactionParams;
+	"session.setAutoRetry": WsSessionSetAutoRetryParams;
 	"session.new": undefined;
 	"session.compact": WsSessionCompactParams;
 	"session.fork": WsSessionForkParams;
@@ -686,6 +700,8 @@ export interface WsMethodResultMap {
 	"session.setModel": WsOkResult;
 	"session.setThinking": WsOkResult;
 	"session.getModels": WsSessionGetModelsResult;
+	"session.setAutoCompaction": WsOkResult;
+	"session.setAutoRetry": WsOkResult;
 	"session.new": WsSessionNewResult;
 	"session.compact": WsOkResult;
 	"session.fork": WsSessionForkResult;

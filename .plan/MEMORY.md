@@ -33,6 +33,7 @@
 | 22 | Completion summary via `agentStartedAt` timestamp + system message on `agent_end` | `agentStartedAt` field added to SessionSlice — set on `agent_start` (Date.now()), cleared on `agent_end`. On `agent_end`, a `"✓ Worked for Xm Ys"` system message is appended. Duration formatted by `formatDuration()` in wireTransport.ts: `<1s`, `Xs`, or `Xm Ys`. New `"completion"` category in SystemMessage uses muted text + border-secondary divider lines for a subtle turn boundary feel. `agentStartedAt` reset on tab switch and session reset. | 2026-03-24 |
 | 23 | Turn dividers via `turn_divider` ChatItem kind — inserted by `groupMessages()` | `groupMessages()` now tracks tool call count per turn and inserts `turn_divider` items before each user message (except the first). `TurnDivider` component shows: locale-aware timestamp + tool count badge with wrench icon (only when toolCount > 0). Uses `bg-border-primary/30` for subtle divider lines that don't compete with the completion summary above. `formatTimestamp()` helper uses `toLocaleTimeString()` with `hour: "numeric", minute: "2-digit"` for short time format. Component lives in `ChatMessages.tsx` alongside other message renderers. | 2026-03-24 |
 | 24 | Settings dialog via `SettingsDialog.tsx` — modal overlay with 4 sections | Accessible via Ctrl/Cmd+, keyboard shortcut or gear icon in toolbar. Sections: Appearance (theme selector with swatches), Agent Behavior (auto-compaction + auto-retry toggles), Display (timestamp format picker: relative/locale/12h/24h), Keyboard Shortcuts (reference table). `settingsOpen` state added to `UiSlice`. Settings persist via `updateSetting()` in `appActions.ts` — writes to in-memory cache + localStorage + server fire-and-forget. `PiBunSettings` extended with `autoCompaction`, `autoRetry`, `timestampFormat` fields. `WsSettingsUpdateParams` extended to match. Server `settingsStore.ts` updated to load/save new fields. Default model and thinking level UI deferred to 1C.3-1C.5 (require Pi RPC wiring). | 2026-03-24 |
+| 25 | Auto-compaction and auto-retry wired end-to-end: UI toggle → `updateSetting()` → server persistence + Pi RPC | `session.setAutoCompaction` and `session.setAutoRetry` WS methods added (contracts + server handlers + handler registry). `updateSetting()` in `appActions.ts` now calls `applySettingToPiSession()` which sends Pi RPC to active session (fire-and-forget). `applySettingsToNewSession()` in `sessionActions.ts` sends saved settings to newly started Pi processes (called after `ensureSession()` and `startSessionInFolder()`). Settings with `null` value mean "use Pi default" and are not sent. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -48,8 +49,8 @@ apps/desktop/         — Electrobun main process, menu, notifications, updater,
 ### Key Missing Server Methods (for v3)
 - `session.getCommands` → Pi `get_commands` (for command palette)
 - `session.bash` → Pi `bash` + `abort_bash` (server-side execution)
-- `session.setAutoCompaction` → Pi `set_auto_compaction`
-- `session.setAutoRetry` → Pi `set_auto_retry`
+- ~~`session.setAutoCompaction` → Pi `set_auto_compaction`~~ ✅ Done (Session 13)
+- ~~`session.setAutoRetry` → Pi `set_auto_retry`~~ ✅ Done (Session 13)
 - `session.setSteeringMode` → Pi `set_steering_mode`
 - `session.setFollowUpMode` → Pi `set_follow_up_mode`
 - `session.cycleModel` → Pi `cycle_model`

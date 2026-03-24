@@ -45,6 +45,8 @@ import {
 	handleSessionListSessions,
 	handleSessionNew,
 	handleSessionPrompt,
+	handleSessionSetAutoCompaction,
+	handleSessionSetAutoRetry,
 	handleSessionSetModel,
 	handleSessionSetName,
 	handleSessionSetThinking,
@@ -83,6 +85,8 @@ export const handlers: HandlerRegistry = {
 	"session.setModel": handleSessionSetModel,
 	"session.setThinking": handleSessionSetThinking,
 	"session.getModels": handleSessionGetModels,
+	"session.setAutoCompaction": handleSessionSetAutoCompaction,
+	"session.setAutoRetry": handleSessionSetAutoRetry,
 
 	// Session management
 	"session.new": handleSessionNew,

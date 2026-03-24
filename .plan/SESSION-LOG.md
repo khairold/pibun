@@ -378,3 +378,30 @@
 - Default model and default thinking level UI were omitted from the settings dialog — they need Pi RPC methods (`set_auto_compaction`, `set_auto_retry`) to be wired first (1C.3, 1C.4)
 - `formatTimestamp()` in `ChatMessages.tsx` does not yet read from `getTimestampFormat()` — will be wired in 1C.6
 - `consumeDeferredActiveTabId()` still not consumed
+
+## Session 13 — Settings persistence + auto-compaction/auto-retry Pi RPC wiring (2026-03-24)
+
+**What happened:**
+- Verified 1C.2 (settings persistence) was already fully wired end-to-end: UI → `updateSetting()` → cache + localStorage + server (`~/.pibun/settings.json`). No code changes needed — marked complete.
+- Implemented 1C.3 and 1C.4 (auto-compaction and auto-retry Pi RPC wiring):
+  - **Contracts**: Added `session.setAutoCompaction` and `session.setAutoRetry` WS methods with `WsSessionSetAutoCompactionParams` / `WsSessionSetAutoRetryParams` types. Updated `WS_METHODS`, `WsMethodParamsMap`, `WsMethodResultMap`.
+  - **Server**: Added `handleSessionSetAutoCompaction` and `handleSessionSetAutoRetry` handlers in `session.ts` — thin bridge to Pi `set_auto_compaction` / `set_auto_retry` RPC commands via `sendAndAck`. Registered in handler index.
+  - **UI → Pi RPC on toggle**: Extended `updateSetting()` in `appActions.ts` with `applySettingToPiSession()` — when `autoCompaction` or `autoRetry` changes, sends Pi RPC to active session (fire-and-forget).
+  - **Apply on session start**: Added `applySettingsToNewSession()` in `sessionActions.ts` — sends saved non-null settings to newly started Pi processes. Called after `ensureSession()` and `startSessionInFolder()`.
+
+**Items completed:**
+- [x] 1C.2 — Settings persistence to `~/.pibun/settings.json` (already wired, verified)
+- [x] 1C.3 — Wire `set_auto_compaction` toggle to Pi RPC
+- [x] 1C.4 — Wire `set_auto_retry` toggle to Pi RPC
+
+**Issues encountered:**
+- None. The existing settings infrastructure made this straightforward. All Pi RPC command types were already defined in contracts.
+
+**Handoff to next session:**
+- Next: 1C.5 — Wire `set_steering_mode` and `set_follow_up_mode` to Pi RPC (server handlers + UI in settings)
+- Pattern established: WS method in contracts → server handler using `sendAndAck` → `applySettingToPiSession()` for live toggle → `applySettingsToNewSession()` for session start
+- `PiSteeringMode` ("all" | "one-at-a-time") and `PiFollowUpMode` ("all" | "one-at-a-time") types already exist in `piProtocol.ts`
+- 1C.5 will need UI additions to SettingsDialog (steering mode and follow-up mode dropdowns/toggles in Agent Behavior section)
+- `consumeDeferredActiveTabId()` still not consumed
+
+---
