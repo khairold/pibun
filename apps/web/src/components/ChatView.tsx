@@ -214,15 +214,17 @@ function groupMessages(messages: readonly ChatMessage[]): TimelineEntry[] {
 const MessageItem = memo(function MessageItem({
 	message,
 	onContextMenu,
+	cwd,
 }: {
 	message: ChatMessage;
 	onContextMenu?: ((e: React.MouseEvent, message: ChatMessage) => void) | undefined;
+	cwd?: string | undefined;
 }) {
 	switch (message.type) {
 		case "user":
 			return <UserMessage message={message} onContextMenu={onContextMenu} />;
 		case "assistant":
-			return <AssistantMessage message={message} onContextMenu={onContextMenu} />;
+			return <AssistantMessage message={message} onContextMenu={onContextMenu} cwd={cwd} />;
 		case "tool_call":
 			return <ToolCallMessage message={message} />;
 		case "tool_result":
@@ -238,9 +240,11 @@ const MessageItem = memo(function MessageItem({
 const TimelineEntryRenderer = memo(function TimelineEntryRenderer({
 	entry,
 	onMessageContextMenu,
+	cwd,
 }: {
 	entry: TimelineEntry;
 	onMessageContextMenu?: ((e: React.MouseEvent, message: ChatMessage) => void) | undefined;
+	cwd?: string | undefined;
 }) {
 	switch (entry.kind) {
 		case "work-group":
@@ -260,7 +264,7 @@ const TimelineEntryRenderer = memo(function TimelineEntryRenderer({
 		case "completion-summary":
 			return <CompletionSummary content={entry.content} />;
 		case "message":
-			return <MessageItem message={entry.message} onContextMenu={onMessageContextMenu} />;
+			return <MessageItem message={entry.message} onContextMenu={onMessageContextMenu} cwd={cwd} />;
 	}
 });
 
@@ -476,6 +480,14 @@ export function ChatView() {
 	const retryMaxAttempts = useStore((s) => s.retryMaxAttempts);
 	const retryDelayMs = useStore((s) => s.retryDelayMs);
 	const retryStartedAt = useStore((s) => s.retryStartedAt);
+	const tabs = useStore((s) => s.tabs);
+	const activeTabId = useStore((s) => s.activeTabId);
+
+	// Active tab's CWD — used for resolving relative file path links in markdown
+	const activeCwd = useMemo(
+		() => tabs.find((t) => t.id === activeTabId)?.cwd ?? undefined,
+		[tabs, activeTabId],
+	);
 
 	const virtuosoRef = useRef<VirtuosoHandle>(null);
 	const { followOutput, handleAtBottom, showScrollButton, scrollToBottom, containerProps } =
@@ -524,9 +536,15 @@ export function ChatView() {
 		(index: number) => {
 			const entry = entries[index];
 			if (!entry) return null;
-			return <TimelineEntryRenderer entry={entry} onMessageContextMenu={onMessageContextMenu} />;
+			return (
+				<TimelineEntryRenderer
+					entry={entry}
+					onMessageContextMenu={onMessageContextMenu}
+					cwd={activeCwd}
+				/>
+			);
 		},
-		[entries, onMessageContextMenu],
+		[entries, onMessageContextMenu, activeCwd],
 	);
 
 	/** Compute stable key per entry for reconciliation. */

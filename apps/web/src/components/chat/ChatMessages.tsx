@@ -57,6 +57,8 @@ export const UserMessage = memo(function UserMessage({ message, onContextMenu }:
 interface AssistantMessageProps {
 	message: ChatMessage;
 	onContextMenu?: ((e: React.MouseEvent, message: ChatMessage) => void) | undefined;
+	/** Working directory for resolving relative file path links in markdown. */
+	cwd?: string | undefined;
 }
 
 /**
@@ -65,10 +67,12 @@ interface AssistantMessageProps {
  *   character count indicator, visual distinction with indigo tint
  * - Streaming cursor (blinking block) while message is actively streaming
  * - Content rendered as markdown with syntax-highlighted code blocks (Shiki)
+ * - File path links are clickable and open in the user's code editor
  */
 export const AssistantMessage = memo(function AssistantMessage({
 	message,
 	onContextMenu,
+	cwd,
 }: AssistantMessageProps) {
 	const [thinkingExpanded, setThinkingExpanded] = useState(false);
 	const [copied, setCopied] = useState(false);
@@ -201,7 +205,7 @@ export const AssistantMessage = memo(function AssistantMessage({
 			{/* Main content — rendered as markdown */}
 			{(hasContent || (!hasThinking && message.streaming)) && (
 				<div className="text-sm text-text-primary">
-					{hasContent && <MarkdownContent content={message.content} />}
+					{hasContent && <MarkdownContent content={message.content} cwd={cwd} />}
 					{message.streaming && (
 						<span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse bg-text-secondary" />
 					)}
