@@ -58,14 +58,20 @@ export interface ToolGroupEntry {
  * - `"message"` → UserMessage / AssistantMessage / SystemMessage
  * - `"tool-group"` → ToolExecutionCard (single tool_call + tool_result, fallback)
  * - `"work-group"` → WorkGroup (collapsible group of tool executions per turn)
- * - `"turn-divider"` → TurnDivider (timestamp + tool count badge)
+ * - `"turn-divider"` → TurnDivider (timestamp + elapsed time + tool count badge)
  * - `"completion-summary"` → CompletionSummary ("✓ Worked for Xm Ys")
  */
 export type TimelineEntry =
 	| { kind: "message"; message: ChatMessage }
 	| { kind: "tool-group"; toolCall: ChatMessage; toolResult: ChatMessage | null }
 	| { kind: "work-group"; id: string; entries: ToolGroupEntry[] }
-	| { kind: "turn-divider"; id: string; timestamp: number; toolCount: number }
+	| {
+			kind: "turn-divider";
+			id: string;
+			timestamp: number;
+			toolCount: number;
+			elapsedMs: number | null;
+	  }
 	| { kind: "completion-summary"; id: string; timestamp: number; content: string };
 
 /** Prefix used to identify completion summary system messages. */
@@ -88,6 +94,8 @@ function groupMessages(messages: readonly ChatMessage[]): TimelineEntry[] {
 	let seenFirstUser = false;
 	/** Tool call count accumulated in the current turn. */
 	let turnToolCount = 0;
+	/** Timestamp of the previous user message (to compute elapsed time between turns). */
+	let prevUserTimestamp: number | null = null;
 	/** Counter for generating unique IDs. */
 	let dividerCounter = 0;
 	let workGroupCounter = 0;
@@ -102,15 +110,18 @@ function groupMessages(messages: readonly ChatMessage[]): TimelineEntry[] {
 		// Insert turn divider before each user message (except the first)
 		if (msg.type === "user") {
 			if (seenFirstUser) {
+				const elapsedMs = prevUserTimestamp !== null ? msg.timestamp - prevUserTimestamp : null;
 				items.push({
 					kind: "turn-divider",
 					id: `turn-divider-${String(++dividerCounter)}`,
 					timestamp: msg.timestamp,
 					toolCount: turnToolCount,
+					elapsedMs: elapsedMs !== null && elapsedMs > 0 ? elapsedMs : null,
 				});
 			}
 			seenFirstUser = true;
 			turnToolCount = 0;
+			prevUserTimestamp = msg.timestamp;
 		}
 
 		if (msg.type === "tool_call") {
@@ -197,7 +208,13 @@ const TimelineEntryRenderer = memo(function TimelineEntryRenderer({
 		case "tool-group":
 			return <ToolExecutionCard toolCall={entry.toolCall} toolResult={entry.toolResult} />;
 		case "turn-divider":
-			return <TurnDivider timestamp={entry.timestamp} toolCount={entry.toolCount} />;
+			return (
+				<TurnDivider
+					timestamp={entry.timestamp}
+					toolCount={entry.toolCount}
+					elapsedMs={entry.elapsedMs}
+				/>
+			);
 		case "completion-summary":
 			return <CompletionSummary content={entry.content} />;
 		case "message":

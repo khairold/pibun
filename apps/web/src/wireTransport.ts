@@ -32,7 +32,7 @@ import {
 	startSessionInFolder,
 } from "@/lib/sessionActions";
 import { closeTab, createNewTab, switchTabAction } from "@/lib/tabActions";
-import { emitShortcut } from "@/lib/utils";
+import { emitShortcut, formatDuration } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { WsTransport } from "@/transport";
@@ -86,15 +86,6 @@ function nextId(prefix: string): string {
  * - 60s+: "Xm Ys" (e.g., "2m 15s")
  * - Under 1s: "<1s"
  */
-function formatDuration(ms: number): string {
-	const totalSeconds = Math.round(ms / 1000);
-	if (totalSeconds < 1) return "<1s";
-	if (totalSeconds < 60) return `${totalSeconds}s`;
-	const minutes = Math.floor(totalSeconds / 60);
-	const seconds = totalSeconds % 60;
-	return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
-}
-
 /** Extract text content from Pi tool result content blocks. */
 function extractText(content: readonly (PiTextContent | PiImageContent)[]): string {
 	return content

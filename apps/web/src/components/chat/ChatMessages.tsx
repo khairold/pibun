@@ -10,7 +10,7 @@
  */
 
 import { MarkdownContent } from "@/components/Markdown";
-import { cn, formatTimestamp } from "@/lib/utils";
+import { cn, formatDuration, formatTimestamp } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -349,6 +349,8 @@ interface TurnDividerProps {
 	timestamp: number;
 	/** Number of tool calls in the preceding assistant turn. */
 	toolCount: number;
+	/** Elapsed wall-clock time (ms) since the previous user message, or null if not available. */
+	elapsedMs: number | null;
 }
 
 /**
@@ -356,13 +358,18 @@ interface TurnDividerProps {
  *
  * Shows a subtle divider line with:
  * - Timestamp of the turn boundary
+ * - Elapsed time since the previous turn (wall-clock duration)
  * - Tool call count badge from the preceding assistant turn (if any)
  *
  * Designed to be a low-contrast, non-intrusive visual break that helps
  * users orient in long conversations without competing with the
  * completion summary ("✓ Worked for Xm Ys") which appears just above.
  */
-export const TurnDivider = memo(function TurnDivider({ timestamp, toolCount }: TurnDividerProps) {
+export const TurnDivider = memo(function TurnDivider({
+	timestamp,
+	toolCount,
+	elapsedMs,
+}: TurnDividerProps) {
 	const timestampFormat = useStore((s) => s.timestampFormat);
 
 	return (
@@ -387,6 +394,11 @@ export const TurnDivider = memo(function TurnDivider({ timestamp, toolCount }: T
 							/>
 						</svg>
 						{toolCount} {toolCount === 1 ? "tool call" : "tool calls"}
+					</span>
+				)}
+				{elapsedMs !== null && (
+					<span className="rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] text-text-muted">
+						{formatDuration(elapsedMs)}
 					</span>
 				)}
 				<span className="text-[10px] text-text-muted/60">

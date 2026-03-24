@@ -803,3 +803,28 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 27 — Turn divider elapsed time + formatDuration extraction (2026-03-24)
+
+**What happened:**
+- Enhanced turn dividers with elapsed time between turns (3.3):
+  - **`formatDuration()` extracted to `utils.ts`**: Moved from `wireTransport.ts` (module-local) to `utils.ts` (shared). Same implementation: `<1s`, `Xs`, `Xm Ys`. Now used by both `wireTransport.ts` (completion summary) and `TurnDivider` (elapsed time badge). `wireTransport.ts` updated to import from `@/lib/utils`.
+  - **`turn-divider` TimelineEntry extended**: Added `elapsedMs: number | null` field. `null` when there's no previous user message or elapsed is ≤ 0.
+  - **`groupMessages()` updated**: Tracks `prevUserTimestamp` — set to each user message's timestamp. Computes `elapsedMs = msg.timestamp - prevUserTimestamp` for each turn divider (wall-clock time between consecutive user messages).
+  - **`TurnDivider` component updated**: New prop `elapsedMs: number | null`. Renders as a pill badge (`rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] text-text-muted`) between the tool count badge and the timestamp. Only shown when `elapsedMs !== null`. Uses `formatDuration()` for display.
+  - **`TimelineEntryRenderer` updated**: Passes `elapsedMs` prop to `TurnDivider`.
+- Minimal change set: 3 files modified (`ChatView.tsx`, `ChatMessages.tsx`, `utils.ts`) + 1 file import updated (`wireTransport.ts`).
+
+**Items completed:**
+- [x] 3.3 — Add turn dividers with timestamp, elapsed time, and collapsed tool count badge
+
+**Issues encountered:**
+- Biome formatting: long JSX prop line and ternary expression needed multi-line format. Fixed with `bun run format`.
+
+**Handoff to next session:**
+- Next: 3.4 — Track per-turn file changes: collect file paths from Edit/Write tool calls, display as "Changed files" badge on turn divider
+- `formatDuration()` is now a shared utility in `utils.ts` — use it anywhere that needs human-readable duration formatting.
+- Turn dividers now show: [tool count badge] [elapsed time badge] [timestamp]. All three are optional (only shown when relevant data exists).
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

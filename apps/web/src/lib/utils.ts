@@ -251,6 +251,26 @@ function formatRelativeTimestamp(ts: number): string {
 }
 
 // ============================================================================
+// Duration Formatting
+// ============================================================================
+
+/**
+ * Format a duration in milliseconds as a human-readable string.
+ *
+ * - `<1s` for under 1 second
+ * - `Xs` for under 60 seconds
+ * - `Xm Ys` for 60+ seconds (omits seconds if exactly 0)
+ */
+export function formatDuration(ms: number): string {
+	const totalSeconds = Math.round(ms / 1000);
+	if (totalSeconds < 1) return "<1s";
+	if (totalSeconds < 60) return `${totalSeconds}s`;
+	const minutes = Math.floor(totalSeconds / 60);
+	const seconds = totalSeconds % 60;
+	return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+}
+
+// ============================================================================
 // Shortcut Event Bus
 // ============================================================================
 
