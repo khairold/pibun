@@ -198,6 +198,13 @@ export function useKeyboardShortcuts(): void {
 					}
 					break;
 				}
+				case ",": {
+					// Ctrl/Cmd+, — toggle settings dialog
+					e.preventDefault();
+					const uiState = useStore.getState();
+					uiState.setSettingsOpen(!uiState.settingsOpen);
+					break;
+				}
 				case "`": {
 					// Ctrl/Cmd+` — toggle terminal panel
 					e.preventDefault();

@@ -13,7 +13,14 @@
 
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
-import type { PiThinkingLevel, Project, ThemePreference } from "@pibun/contracts";
+import type {
+	PiBunSettings,
+	PiThinkingLevel,
+	Project,
+	ThemePreference,
+	TimestampFormat,
+	WsSettingsUpdateParams,
+} from "@pibun/contracts";
 import { createNewTab, switchTabAction } from "./tabActions";
 import { THEME_STORAGE_KEY, applyTheme, resolveTheme } from "./themes";
 
@@ -382,6 +389,59 @@ export function resolvePluginComponentUrl(pluginId: string, component: string): 
 // Settings Actions
 // ============================================================================
 
+/** localStorage key for non-theme settings (timestamp format, etc.). */
+const SETTINGS_STORAGE_KEY = "pibun-settings";
+
+/** Default settings values (matches server defaults). */
+const DEFAULT_SETTINGS: PiBunSettings = {
+	themeId: null,
+	autoCompaction: null,
+	autoRetry: null,
+	timestampFormat: "locale",
+};
+
+/**
+ * In-memory cache of settings. Initialized from localStorage on first read.
+ * Updated by `fetchAndApplySettings()` and `updateSetting()`.
+ */
+let cachedSettings: PiBunSettings = { ...DEFAULT_SETTINGS };
+let settingsInitialized = false;
+
+/**
+ * Get the current settings (from cache).
+ * Call `fetchAndApplySettings()` first to ensure server sync.
+ */
+export function getSettings(): PiBunSettings {
+	if (!settingsInitialized) {
+		// Hydrate from localStorage on first access
+		try {
+			const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
+			if (saved) {
+				const parsed = JSON.parse(saved) as Partial<PiBunSettings>;
+				cachedSettings = { ...DEFAULT_SETTINGS, ...parsed };
+			}
+		} catch {
+			// Corrupted localStorage — use defaults
+		}
+		// Also apply theme from its own key
+		const themeId = localStorage.getItem(THEME_STORAGE_KEY);
+		if (themeId) {
+			cachedSettings.themeId = themeId as ThemePreference;
+		}
+		settingsInitialized = true;
+	}
+	return cachedSettings;
+}
+
+/**
+ * Persist settings to localStorage (non-theme fields).
+ * Theme is persisted separately via THEME_STORAGE_KEY for backward compatibility.
+ */
+function persistSettingsToLocalStorage(settings: PiBunSettings): void {
+	const { themeId: _, ...rest } = settings;
+	localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(rest));
+}
+
 /**
  * Fetch settings from the server and apply them.
  *
@@ -394,6 +454,13 @@ export async function fetchAndApplySettings(): Promise<void> {
 		const transport = getTransport();
 		const result = await transport.request("settings.get");
 		const { settings } = result;
+
+		// Update cached settings
+		cachedSettings = { ...DEFAULT_SETTINGS, ...settings };
+		settingsInitialized = true;
+
+		// Persist to localStorage
+		persistSettingsToLocalStorage(cachedSettings);
 
 		if (settings.themeId) {
 			const currentLocalPref = localStorage.getItem(THEME_STORAGE_KEY);
@@ -411,21 +478,52 @@ export async function fetchAndApplySettings(): Promise<void> {
 }
 
 /**
+ * Update a single setting field. Persists to localStorage immediately
+ * and to the server fire-and-forget.
+ */
+export function updateSetting<K extends keyof WsSettingsUpdateParams>(
+	key: K,
+	value: WsSettingsUpdateParams[K],
+): void {
+	// Update cache
+	const settings = getSettings();
+	(settings as unknown as Record<string, unknown>)[key] = value;
+	cachedSettings = { ...settings };
+
+	// Persist to localStorage
+	if (key === "themeId") {
+		localStorage.setItem(THEME_STORAGE_KEY, String(value ?? ""));
+	}
+	persistSettingsToLocalStorage(cachedSettings);
+
+	// Persist to server (fire-and-forget)
+	try {
+		const transport = getTransport();
+		const params: WsSettingsUpdateParams = { [key]: value };
+		transport.request("settings.update", params).catch(() => {
+			// Silent failure — localStorage is the primary store
+		});
+	} catch {
+		// Transport not ready — skip server persistence
+	}
+}
+
+/**
+ * Get the timestamp format from settings.
+ * Convenience accessor for components that render timestamps.
+ */
+export function getTimestampFormat(): TimestampFormat {
+	return getSettings().timestampFormat;
+}
+
+/**
  * Persist theme preference to the server.
  *
  * Called from ThemeSelector after applying a theme locally.
  * Fire-and-forget — doesn't block the UI on server response.
  */
 export function persistThemeToServer(preference: ThemePreference): void {
-	try {
-		const transport = getTransport();
-		// Fire-and-forget — don't await, don't block UI
-		transport.request("settings.update", { themeId: preference }).catch(() => {
-			// Silent failure — localStorage is the primary store in browser mode
-		});
-	} catch {
-		// Transport not ready — skip server persistence
-	}
+	updateSetting("themeId", preference);
 }
 
 // ============================================================================

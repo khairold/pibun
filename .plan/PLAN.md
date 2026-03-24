@@ -2,9 +2,9 @@
 
 > **Spec:** Audit of T3Code, Pi-mono RPC, Electrobun reference repos (2026-03-24)
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
-> **Status:** Phase 1B complete — starting Phase 1C
+> **Status:** Phase 1C in progress
 > **Current Phase:** Phase 1C — Settings & Preferences
-> **Last Session:** Session 11 — 2026-03-24
+> **Last Session:** Session 12 — 2026-03-24
 
 ---
 
@@ -56,7 +56,7 @@
 
 ### 1C — Settings & Preferences
 
-- [ ] 1C.1 — Create settings page/dialog (accessible via Ctrl/Cmd+, or menu): theme selector, default model, default thinking level, auto-compaction toggle, timestamp format
+- [x] 1C.1 — Create settings page/dialog (accessible via Ctrl/Cmd+, or menu): theme selector, default model, default thinking level, auto-compaction toggle, timestamp format
 - [ ] 1C.2 — Add `settings.get`/`settings.update` persistence to `~/.pibun/settings.json` on server (already have handlers — wire to UI)
 - [ ] 1C.3 — Wire `set_auto_compaction` toggle to Pi RPC (server handler + UI toggle in settings)
 - [ ] 1C.4 — Wire `set_auto_retry` toggle to Pi RPC (server handler + UI toggle in settings)

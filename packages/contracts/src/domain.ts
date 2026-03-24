@@ -257,7 +257,33 @@ export interface PiBunSettings {
 	 * Null means no preference saved — falls back to system detection.
 	 */
 	themeId: ThemePreference | null;
+
+	/**
+	 * Whether Pi auto-compaction is enabled.
+	 * Null means use Pi's default (usually enabled).
+	 */
+	autoCompaction: boolean | null;
+
+	/**
+	 * Whether Pi auto-retry is enabled on transient errors.
+	 * Null means use Pi's default (usually enabled).
+	 */
+	autoRetry: boolean | null;
+
+	/**
+	 * Timestamp display format throughout the UI.
+	 * - `"relative"` — "2m ago", "1h ago"
+	 * - `"locale"` — browser locale default (e.g., "3:42:15 PM")
+	 * - `"12h"` — 12-hour clock (e.g., "3:42 PM")
+	 * - `"24h"` — 24-hour clock (e.g., "15:42")
+	 */
+	timestampFormat: TimestampFormat;
 }
+
+/**
+ * Supported timestamp display formats.
+ */
+export type TimestampFormat = "relative" | "locale" | "12h" | "24h";
 
 // ============================================================================
 // Plugin

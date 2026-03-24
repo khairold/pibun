@@ -27,6 +27,9 @@ const SETTINGS_FILE = join(PIBUN_CONFIG_DIR, "settings.json");
 /** Default settings when no file exists. */
 const DEFAULT_SETTINGS: PiBunSettings = {
 	themeId: null,
+	autoCompaction: null,
+	autoRetry: null,
+	timestampFormat: "locale",
 };
 
 // ============================================================================
@@ -65,6 +68,12 @@ export async function loadSettings(): Promise<PiBunSettings> {
 		return {
 			...DEFAULT_SETTINGS,
 			themeId: typeof raw.themeId === "string" ? (raw.themeId as PiBunSettings["themeId"]) : null,
+			autoCompaction: typeof raw.autoCompaction === "boolean" ? raw.autoCompaction : null,
+			autoRetry: typeof raw.autoRetry === "boolean" ? raw.autoRetry : null,
+			...(typeof raw.timestampFormat === "string" &&
+				["relative", "locale", "12h", "24h"].includes(raw.timestampFormat) && {
+					timestampFormat: raw.timestampFormat as PiBunSettings["timestampFormat"],
+				}),
 		};
 	} catch {
 		return { ...DEFAULT_SETTINGS };
@@ -94,6 +103,15 @@ export async function updateSettings(updates: Partial<PiBunSettings>): Promise<P
 
 	if (updates.themeId !== undefined) {
 		current.themeId = updates.themeId;
+	}
+	if (updates.autoCompaction !== undefined) {
+		current.autoCompaction = updates.autoCompaction;
+	}
+	if (updates.autoRetry !== undefined) {
+		current.autoRetry = updates.autoRetry;
+	}
+	if (updates.timestampFormat !== undefined) {
+		current.timestampFormat = updates.timestampFormat;
 	}
 
 	await saveSettings(current);

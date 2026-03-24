@@ -24,6 +24,7 @@ import { ModelSelector } from "@/components/ModelSelector";
 import { PluginManager } from "@/components/PluginManager";
 import { PluginBottomPanels, PluginRightPanels } from "@/components/PluginPanel";
 import { SessionStats } from "@/components/SessionStats";
+import { SettingsDialog } from "@/components/SettingsDialog";
 import { Sidebar } from "@/components/Sidebar";
 import { StatusBar } from "@/components/StatusBar";
 import { TabBar } from "@/components/TabBar";
@@ -36,6 +37,33 @@ import { ExtensionDialog } from "@/components/extension";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useWindowTitle } from "@/hooks/useWindowTitle";
 import { useStore } from "@/store";
+
+function SettingsButton() {
+	const setSettingsOpen = useStore((s) => s.setSettingsOpen);
+	return (
+		<button
+			type="button"
+			onClick={() => setSettingsOpen(true)}
+			className="flex items-center gap-1.5 rounded-md border border-border-primary bg-surface-primary px-2 py-1 text-xs font-medium text-text-primary transition-colors hover:border-text-tertiary hover:bg-surface-secondary"
+			title="Settings (Ctrl+,)"
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 16 16"
+				fill="currentColor"
+				className="h-3.5 w-3.5"
+				aria-label="Settings"
+				role="img"
+			>
+				<path
+					fillRule="evenodd"
+					d="M6.955 1.45A.5.5 0 0 1 7.452 1h1.096a.5.5 0 0 1 .497.45l.17 1.699c.484.12.94.312 1.356.562l1.321-.832a.5.5 0 0 1 .67.065l.774.775a.5.5 0 0 1 .066.67l-.832 1.32c.25.417.443.873.563 1.357l1.699.17a.5.5 0 0 1 .45.496v1.096a.5.5 0 0 1-.45.497l-1.699.17c-.12.484-.312.94-.562 1.356l.832 1.321a.5.5 0 0 1-.066.67l-.774.774a.5.5 0 0 1-.67.066l-1.32-.832c-.417.25-.873.443-1.357.563l-.17 1.699a.5.5 0 0 1-.497.45H7.452a.5.5 0 0 1-.497-.45l-.17-1.699a4.973 4.973 0 0 1-1.356-.562l-1.321.832a.5.5 0 0 1-.67-.066l-.774-.774a.5.5 0 0 1-.066-.67l.832-1.32a4.972 4.972 0 0 1-.563-1.357l-1.699-.17A.5.5 0 0 1 1 8.548V7.452a.5.5 0 0 1 .45-.497l1.699-.17c.12-.484.312-.94.562-1.356l-.832-1.321a.5.5 0 0 1 .066-.67l.774-.774a.5.5 0 0 1 .67-.066l1.32.832c.417-.25.873-.443 1.357-.563l.17-1.699zM8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"
+					clipRule="evenodd"
+				/>
+			</svg>
+		</button>
+	);
+}
 
 export function AppShell() {
 	useKeyboardShortcuts();
@@ -51,6 +79,9 @@ export function AppShell() {
 
 			{/* Image preview modal — full-size overlay on image click */}
 			<ImagePreviewModal />
+
+			{/* Settings dialog — modal overlay */}
+			<SettingsDialog />
 
 			{/* Toast notifications — fixed bottom-right overlay */}
 			<ToastContainer />
@@ -138,6 +169,7 @@ export function AppShell() {
 							<ExportDialog />
 							<PluginManager />
 							<ThemeSelector />
+							<SettingsButton />
 						</div>
 					</div>
 

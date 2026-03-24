@@ -314,6 +314,8 @@ export interface ProjectsSlice {
 export interface UiSlice {
 	/** Whether the sidebar is visible. Defaults to true on desktop, false on mobile. */
 	sidebarOpen: boolean;
+	/** Whether the settings dialog is open. */
+	settingsOpen: boolean;
 	/**
 	 * Text to insert into the Composer. Set by plugin `sendPrompt` (sendImmediately=false).
 	 * Composer watches this field and picks up the text, then clears it.
@@ -332,6 +334,8 @@ export interface UiSlice {
 	toggleSidebar: () => void;
 	/** Set the sidebar open state explicitly. */
 	setSidebarOpen: (open: boolean) => void;
+	/** Set the settings dialog open state. */
+	setSettingsOpen: (open: boolean) => void;
 	/** Set pending text to insert into the Composer. Null to clear. */
 	setPendingComposerText: (text: string | null) => void;
 	/** Open the image preview modal with the given URL. Null to close. */

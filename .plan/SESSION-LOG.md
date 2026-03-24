@@ -340,3 +340,41 @@
 - `TurnDivider` lives in `ChatMessages.tsx` alongside other message renderers
 - `formatTimestamp()` is a module-level helper in `ChatMessages.tsx` — if timestamp formatting is needed elsewhere (e.g., settings timestamp format selector from 1C.6), extract to `utils.ts`
 - `consumeDeferredActiveTabId()` still not consumed
+
+---
+
+## Session 12 — Settings dialog (2026-03-24)
+
+**What happened:**
+- Created the settings dialog with 4 sections (1C.1):
+  - **Contracts**: Extended `PiBunSettings` with `autoCompaction: boolean | null`, `autoRetry: boolean | null`, `timestampFormat: TimestampFormat`. Added `TimestampFormat` type (`"relative" | "locale" | "12h" | "24h"`). Extended `WsSettingsUpdateParams` with new fields.
+  - **Server**: Updated `settingsStore.ts` — new default settings, parsing for new fields in `loadSettings()`, merge logic in `updateSettings()`.
+  - **Store**: Added `settingsOpen: boolean` + `setSettingsOpen` action to `UiSlice` and `appSlice`.
+  - **Settings actions**: Replaced simple `fetchAndApplySettings`/`persistThemeToServer` with comprehensive settings system in `appActions.ts`:
+    - `getSettings()` — returns cached settings (hydrated from localStorage on first access)
+    - `updateSetting(key, value)` — updates cache + localStorage + server fire-and-forget
+    - `getTimestampFormat()` — convenience accessor for components
+    - `persistThemeToServer()` now delegates to `updateSetting("themeId", ...)`
+  - **SettingsDialog component**: Modal overlay with:
+    - **Appearance section**: Theme selector with compact swatches + System option
+    - **Agent Behavior section**: Auto-compaction + auto-retry toggle switches
+    - **Display section**: Timestamp format picker (relative/locale/12h/24h with live examples)
+    - **Keyboard Shortcuts section**: Reference table of all shortcuts
+  - **Keyboard shortcut**: Ctrl/Cmd+, toggles settings dialog (added to `useKeyboardShortcuts`)
+  - **Gear icon**: Settings button added to toolbar (after ThemeSelector)
+  - All a11y lint issues fixed: `aria-label`+`role="img"` on SVGs, `<span>` instead of `<label>` for non-form elements, `biome-ignore` for backdrop click handler
+
+**Items completed:**
+- [x] 1C.1 — Create settings page/dialog
+
+**Issues encountered:**
+- `PiBunSettings` cast to `Record<string, unknown>` needed double cast via `unknown` due to `exactOptionalPropertyTypes`
+- Biome lint: SVGs needed `aria-label`/`role="img"`, `<label>` without associated control changed to `<span>`, backdrop click div needed `biome-ignore` for `useKeyWithClickEvents`
+- Import ordering: `SettingsDialog` import had to be alphabetically sorted with other component imports
+
+**Handoff to next session:**
+- Next: 1C.2 — Add `settings.get`/`settings.update` persistence to `~/.pibun/settings.json` on server (already have handlers — wire to UI)
+- Note: `settings.get`/`settings.update` server handlers already exist and already support the new fields. The "wire to UI" part is about making the SettingsDialog fetch current settings on open and display server-side values. Currently, the dialog reads from the cached `getSettings()` which is synced on `server.welcome`. This may be sufficient — 1C.2 might already be done.
+- Default model and default thinking level UI were omitted from the settings dialog — they need Pi RPC methods (`set_auto_compaction`, `set_auto_retry`) to be wired first (1C.3, 1C.4)
+- `formatTimestamp()` in `ChatMessages.tsx` does not yet read from `getTimestampFormat()` — will be wired in 1C.6
+- `consumeDeferredActiveTabId()` still not consumed

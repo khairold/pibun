@@ -29,6 +29,7 @@ import type {
 	PiBunSettings,
 	Plugin,
 	Project,
+	TimestampFormat,
 } from "./domain.js";
 import type {
 	PiAgentMessage,
@@ -383,6 +384,12 @@ export interface WsAppSaveExportFileParams {
 export interface WsSettingsUpdateParams {
 	/** Theme ID to persist. Pass `null` to clear (use system default). */
 	themeId?: string | null;
+	/** Whether auto-compaction is enabled. `null` to use Pi default. */
+	autoCompaction?: boolean | null;
+	/** Whether auto-retry is enabled. `null` to use Pi default. */
+	autoRetry?: boolean | null;
+	/** Timestamp display format. */
+	timestampFormat?: TimestampFormat;
 }
 
 // ============================================================================
