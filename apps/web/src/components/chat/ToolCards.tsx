@@ -1,20 +1,23 @@
 /**
- * ToolExecutionCard — unified card combining a tool call and its result.
+ * ToolCards — renderers for tool call and result messages.
  *
- * Renders as a single visual unit:
- * - Header: tool icon + name + args summary + status badge
- * - Body (expandable): full args details + execution output
+ * - ToolCallMessage — standalone tool call card (collapsed header with args)
+ * - ToolResultMessage — standalone tool result card (collapsible output)
+ * - ToolExecutionCard — unified card combining a tool call and its result,
+ *   with status badges (running/success/error), expandable output, and
+ *   specialized rendering for bash/read/edit/write tools
  *
- * States:
- * - Running: result is null or result.streaming === true → blue border, spinner
- * - Success: result finalized, no error → green check
- * - Error: result finalized, isError === true → red border, error icon
+ * In practice, ChatView groups adjacent tool_call + tool_result messages
+ * into ToolExecutionCard. The standalone ToolCallMessage and ToolResultMessage
+ * are used only for orphan messages (tool_call without result, or vice versa).
  */
 
-import { ToolOutput } from "@/components/chat/tools/ToolOutput";
+import { ToolOutput } from "@/components/chat/ToolOutput";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/store/types";
 import { memo, useCallback, useState } from "react";
+
+// ==== ToolCallMessage ====
 
 /** Icons for common Pi tools. */
 const TOOL_ICONS: Record<string, string> = {
@@ -26,7 +29,169 @@ const TOOL_ICONS: Record<string, string> = {
 	grep: "🔎",
 };
 
-/** Maximum output lines to show before collapsing. */
+interface ToolCallMessageProps {
+	message: ChatMessage;
+}
+
+/** Standalone tool call card — shows tool name and args in a collapsible card. */
+export const ToolCallMessage = memo(function ToolCallMessage({ message }: ToolCallMessageProps) {
+	const [expanded, setExpanded] = useState(false);
+	const toolCall = message.toolCall;
+
+	const toggleExpanded = useCallback(() => {
+		setExpanded((prev) => !prev);
+	}, []);
+
+	if (!toolCall) return null;
+
+	const icon = TOOL_ICONS[toolCall.name] ?? "🔧";
+	const hasArgs = Object.keys(toolCall.args).length > 0;
+
+	return (
+		<div
+			className={cn(
+				"max-w-[85%] rounded-lg border border-border-secondary",
+				"overflow-hidden transition-colors",
+			)}
+		>
+			{/* Header — always visible */}
+			<button
+				type="button"
+				onClick={toggleExpanded}
+				className={cn(
+					"flex w-full items-center gap-2 px-3 py-2 text-left",
+					"text-xs transition-colors hover:bg-surface-secondary/50",
+				)}
+			>
+				<span className="shrink-0">{icon}</span>
+				<span className="font-medium text-accent-text">{toolCall.name}</span>
+				{hasArgs && (
+					<span className="truncate text-text-tertiary">
+						{summarizeToolCallArgs(toolCall.args)}
+					</span>
+				)}
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+					className={cn(
+						"ml-auto h-3 w-3 shrink-0 text-text-muted transition-transform",
+						expanded && "rotate-90",
+					)}
+					aria-label="Toggle details"
+					role="img"
+				>
+					<path d="M6.22 4.22a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06l-3.25 3.25a.75.75 0 0 1-1.06-1.06L8.94 8 6.22 5.28a.75.75 0 0 1 0-1.06z" />
+				</svg>
+			</button>
+
+			{/* Args — expanded view */}
+			{expanded && hasArgs && (
+				<div className="border-t border-border-secondary bg-surface-primary/50 px-3 py-2">
+					<pre className="overflow-x-auto text-xs text-text-secondary">
+						{JSON.stringify(toolCall.args, null, 2)}
+					</pre>
+				</div>
+			)}
+		</div>
+	);
+});
+
+/** Produce a one-line summary of tool arguments for the collapsed view. */
+function summarizeToolCallArgs(args: Record<string, unknown>): string {
+	const entries = Object.entries(args);
+	if (entries.length === 0) return "";
+
+	const first = entries[0];
+	if (!first) return "";
+
+	const [key, value] = first;
+	if (typeof value === "string") {
+		const display = value.length > 60 ? `${value.slice(0, 57)}…` : value;
+		return entries.length === 1 ? display : `${key}: ${display}`;
+	}
+
+	return `${entries.length} arg${entries.length === 1 ? "" : "s"}`;
+}
+
+// ==== ToolResultMessage ====
+
+/** Maximum lines to show before collapsing. */
+const RESULT_COLLAPSE_THRESHOLD = 8;
+
+interface ToolResultMessageProps {
+	message: ChatMessage;
+}
+
+/** Standalone tool result card — shows raw output with collapse for long content. */
+export const ToolResultMessage = memo(function ToolResultMessage({
+	message,
+}: ToolResultMessageProps) {
+	const [expanded, setExpanded] = useState(false);
+	const result = message.toolResult;
+
+	const toggleExpanded = useCallback(() => {
+		setExpanded((prev) => !prev);
+	}, []);
+
+	if (!result) return null;
+
+	const content = result.content;
+	const lines = content.split("\n");
+	const isLong = lines.length > RESULT_COLLAPSE_THRESHOLD;
+	const displayContent =
+		!expanded && isLong ? lines.slice(0, RESULT_COLLAPSE_THRESHOLD).join("\n") : content;
+
+	return (
+		<div className="max-w-[85%]">
+			<div
+				className={cn(
+					"rounded-lg border bg-surface-primary/50 overflow-hidden",
+					result.isError ? "border-status-error-border" : "border-border-secondary",
+				)}
+			>
+				{/* Output content */}
+				<div className="relative">
+					<pre
+						className={cn(
+							"overflow-x-auto px-3 py-2 text-xs leading-relaxed",
+							result.isError ? "text-status-error-text" : "text-text-secondary",
+							!content && "text-text-muted italic",
+						)}
+					>
+						{displayContent || (message.streaming ? "Running…" : "(no output)")}
+						{message.streaming && (
+							<span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-text-tertiary" />
+						)}
+					</pre>
+
+					{/* Fade gradient when collapsed */}
+					{isLong && !expanded && (
+						<div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-surface-primary/50 to-transparent" />
+					)}
+				</div>
+
+				{/* Expand/collapse toggle */}
+				{isLong && (
+					<button
+						type="button"
+						onClick={toggleExpanded}
+						className={cn(
+							"w-full border-t border-border-secondary px-3 py-1.5",
+							"text-xs text-text-tertiary transition-colors hover:text-text-secondary",
+						)}
+					>
+						{expanded ? "Show less" : `Show all ${lines.length} lines`}
+					</button>
+				)}
+			</div>
+		</div>
+	);
+});
+
+// ==== ToolExecutionCard ====
+
+/** Maximum output lines to show before collapsing in the default body. */
 const OUTPUT_COLLAPSE_THRESHOLD = 12;
 
 interface ToolExecutionCardProps {
@@ -45,6 +210,14 @@ function getToolStatus(toolResult: ChatMessage | null): ToolStatus {
 /** Tool names that have specialized output renderers. */
 const SPECIALIZED_TOOLS = new Set(["bash", "read", "edit", "write"]);
 
+/**
+ * Unified card combining a tool call and its result.
+ *
+ * States:
+ * - Running: result is null or result.streaming === true → blue border, spinner
+ * - Success: result finalized, no error → green check
+ * - Error: result finalized, isError === true → red border, error icon
+ */
 export const ToolExecutionCard = memo(function ToolExecutionCard({
 	toolCall,
 	toolResult,
@@ -87,7 +260,7 @@ export const ToolExecutionCard = memo(function ToolExecutionCard({
 				<span className="shrink-0">{icon}</span>
 				<span className="font-medium text-accent-text">{tc.name}</span>
 				{hasArgs && (
-					<span className="min-w-0 truncate text-text-tertiary">{summarizeArgs(tc)}</span>
+					<span className="min-w-0 truncate text-text-tertiary">{summarizeCardArgs(tc)}</span>
 				)}
 
 				{/* Status badge — right side */}
@@ -274,8 +447,8 @@ const StatusBadge = memo(function StatusBadge({ status }: { status: ToolStatus }
 	}
 });
 
-/** Produce a one-line summary of tool arguments for the header. */
-function summarizeArgs(tc: { name: string; args: Record<string, unknown> }): string {
+/** Produce a one-line summary of tool arguments for the ToolExecutionCard header. */
+function summarizeCardArgs(tc: { name: string; args: Record<string, unknown> }): string {
 	const entries = Object.entries(tc.args);
 	if (entries.length === 0) return "";
 
@@ -288,26 +461,14 @@ function summarizeArgs(tc: { name: string; args: Record<string, unknown> }): str
 			}
 			break;
 		}
-		case "read": {
-			const path = tc.args.path;
-			if (typeof path === "string") return path;
-			break;
-		}
-		case "edit": {
-			const path = tc.args.path;
-			if (typeof path === "string") return path;
-			break;
-		}
+		case "read":
+		case "edit":
 		case "write": {
 			const path = tc.args.path;
 			if (typeof path === "string") return path;
 			break;
 		}
-		case "glob": {
-			const pattern = tc.args.pattern;
-			if (typeof pattern === "string") return pattern;
-			break;
-		}
+		case "glob":
 		case "grep": {
 			const pattern = tc.args.pattern;
 			if (typeof pattern === "string") return pattern;

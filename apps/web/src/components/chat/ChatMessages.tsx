@@ -1,11 +1,11 @@
 /**
- * AssistantMessage — renders an assistant response in the chat.
+ * ChatMessages — renderers for the three non-tool message types.
  *
- * Features:
- * - Streaming cursor (blinking block) while message is actively streaming
- * - Thinking section: auto-expands while thinking is streaming, collapsible toggle,
- *   character count indicator, visual distinction with indigo tint
- * - Content rendered as markdown with syntax-highlighted code blocks (Shiki)
+ * - UserMessage — user prompts (right-aligned bubble)
+ * - AssistantMessage — streaming text with thinking section + markdown
+ * - SystemMessage — compaction/retry notices (centered dividers)
+ *
+ * These are stable rendering components consumed by ChatView.tsx.
  */
 
 import { MarkdownContent } from "@/components/Markdown";
@@ -13,10 +13,41 @@ import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/store/types";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
+// ==== UserMessage ====
+
+interface UserMessageProps {
+	message: ChatMessage;
+}
+
+/** Renders a user prompt as a right-aligned bubble with pre-wrapped text. */
+export const UserMessage = memo(function UserMessage({ message }: UserMessageProps) {
+	return (
+		<div className="flex justify-end">
+			<div
+				className={cn(
+					"max-w-[85%] rounded-2xl bg-user-bubble-bg px-4 py-3",
+					"text-sm text-user-bubble-text",
+				)}
+			>
+				<p className="whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>
+			</div>
+		</div>
+	);
+});
+
+// ==== AssistantMessage ====
+
 interface AssistantMessageProps {
 	message: ChatMessage;
 }
 
+/**
+ * Renders an assistant response with:
+ * - Thinking section: auto-expands while thinking is streaming, collapsible toggle,
+ *   character count indicator, visual distinction with indigo tint
+ * - Streaming cursor (blinking block) while message is actively streaming
+ * - Content rendered as markdown with syntax-highlighted code blocks (Shiki)
+ */
 export const AssistantMessage = memo(function AssistantMessage({ message }: AssistantMessageProps) {
 	const [thinkingExpanded, setThinkingExpanded] = useState(false);
 	/** Whether the user has explicitly toggled thinking (overrides auto-expand). */
@@ -135,6 +166,85 @@ export const AssistantMessage = memo(function AssistantMessage({ message }: Assi
 					<span className="inline-block h-4 w-1.5 animate-pulse bg-text-tertiary" />
 				</div>
 			)}
+		</div>
+	);
+});
+
+// ==== SystemMessage ====
+
+interface SystemMessageProps {
+	message: ChatMessage;
+}
+
+type SystemCategory =
+	| "compaction"
+	| "retry-progress"
+	| "retry-success"
+	| "retry-failed"
+	| "default";
+
+/** Detect message category for styling. */
+function getCategory(content: string): SystemCategory {
+	if (content.includes("compaction")) return "compaction";
+	if (content.startsWith("✅ Retry succeeded")) return "retry-success";
+	if (content.startsWith("❌ Retry failed")) return "retry-failed";
+	if (content.startsWith("🔄 Retrying")) return "retry-progress";
+	return "default";
+}
+
+/** Get styling classes for a system message category. */
+function getCategoryStyle(category: SystemCategory): {
+	textClass: string;
+	dividerClass: string;
+	iconClass: string;
+} {
+	switch (category) {
+		case "compaction":
+			return {
+				textClass: "text-status-warning/70",
+				dividerClass: "bg-status-warning/20",
+				iconClass: "",
+			};
+		case "retry-progress":
+			return {
+				textClass: "text-status-warning-text/80",
+				dividerClass: "bg-status-warning/20",
+				iconClass: "animate-spin-slow",
+			};
+		case "retry-success":
+			return {
+				textClass: "text-status-success-text/70",
+				dividerClass: "bg-status-success/20",
+				iconClass: "",
+			};
+		case "retry-failed":
+			return {
+				textClass: "text-status-error-text/80",
+				dividerClass: "bg-status-error/20",
+				iconClass: "",
+			};
+		default:
+			return {
+				textClass: "text-text-tertiary",
+				dividerClass: "bg-surface-secondary",
+				iconClass: "",
+			};
+	}
+}
+
+/**
+ * Renders system notices (compaction, retry, errors) as subtle centered
+ * text with divider-like appearance and category-specific colors.
+ */
+export const SystemMessage = memo(function SystemMessage({ message }: SystemMessageProps) {
+	const category = getCategory(message.content);
+	const style = getCategoryStyle(category);
+
+	return (
+		<div className="flex items-center gap-3 py-1">
+			<div className={cn("h-px flex-1", style.dividerClass)} />
+			<span className={cn("shrink-0 text-xs", style.textClass)}>{message.content}</span>
+			<div className={cn("h-px flex-1", style.dividerClass)} />
 		</div>
 	);
 });

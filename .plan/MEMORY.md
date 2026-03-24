@@ -39,6 +39,8 @@
 | 29 | piPassthrough helper added to handlers/types.ts | `getProcess(ctx)`, `assertSuccess(response)`, `piPassthrough(ctx, command)` — reusable helpers for Pi RPC forwarding. Exported from handlers/index.ts. session.ts has its own local copies (could be migrated later). | 2026-03-24 |
 | 30 | Non-session handlers are NOT Pi RPC pass-throughs | app/git/plugin/project/settings/terminal handlers call server-side services (gitService, pluginStore, projectStore, settingsStore, TerminalManager, desktop hooks). None call `process.sendCommand`. The `piPassthrough` helper applies only to session.ts patterns. | 2026-03-24 |
 | 31 | Phase 4 complete — handlers/ has 4 non-test files | session.ts (541), appHandlers.ts (~370), types.ts (~100), index.ts (~120). Down from 10 files (8 handler + types + index). dispatch.test.ts unchanged. | 2026-03-24 |
+| 32 | Phase 5 complete — chat/ has 3 files, tools/ eliminated | ChatMessages.tsx (~240 lines: User+Assistant+System), ToolCards.tsx (~450 lines: ToolCall+ToolResult+ToolExecutionCard), ToolOutput.tsx (~540 lines: dispatcher+Bash+Read+Edit+Write+Default). Down from 6+5=11 files. | 2026-03-24 |
+| 33 | ToolOutput.tsx import path changed from `@/components/chat/tools/ToolOutput` to `@/components/chat/ToolOutput` | ToolExecutionCard (now in ToolCards.tsx) imports ToolOutput — path updated since tools/ subdir is gone. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -49,7 +51,7 @@
 - web store/: 5 files ✅ DONE (was 15 → 5. appSlice + sessionSlice + workspaceSlice + types + index)
 - web lib/: 7 files ✅ DONE (was 13 → 7. appActions + sessionActions + tabActions + themes + highlighter + pluginMessageBridge + utils)
 - web components/: 45 files, 9361 lines
-- web components/chat/: 6 files + tools/5 files = 11 files
+- web components/chat/: 3 files ✅ DONE (was 6 + tools/5 = 11 → 3. ChatMessages + ToolCards + ToolOutput)
 - desktop src/: 6 files, 1631 lines
 - Total source: ~135 files, ~33K lines
 
@@ -58,7 +60,7 @@
 - server handlers/: 4 files (session, appHandlers, types, index)
 - web store/: 5 files (appSlice, sessionSlice, workspaceSlice, types, index)
 - web lib/: 7 files (sessionActions, tabActions, appActions, themes, highlighter, pluginMessageBridge, utils — wireTransport stays at src/ top level)
-- web components/chat/: 3 files (ChatMessages, ToolCards, ToolOutput)
+- web components/chat/: 3 files (ChatMessages, ToolCards, ToolOutput) ✅ DONE
 - Context docs: 3 mandatory (CLAUDE.md, CONVENTIONS.md, TENSIONS.md)
 
 ### What stays untouched

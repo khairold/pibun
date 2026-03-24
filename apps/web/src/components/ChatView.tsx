@@ -20,12 +20,8 @@
  * user has scrolled up.
  */
 
-import { AssistantMessage } from "@/components/chat/AssistantMessage";
-import { SystemMessage } from "@/components/chat/SystemMessage";
-import { ToolCallMessage } from "@/components/chat/ToolCallMessage";
-import { ToolExecutionCard } from "@/components/chat/ToolExecutionCard";
-import { ToolResultMessage } from "@/components/chat/ToolResultMessage";
-import { UserMessage } from "@/components/chat/UserMessage";
+import { AssistantMessage, SystemMessage, UserMessage } from "@/components/chat/ChatMessages";
+import { ToolCallMessage, ToolExecutionCard, ToolResultMessage } from "@/components/chat/ToolCards";
 import { openProject } from "@/lib/appActions";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";

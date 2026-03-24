@@ -389,3 +389,40 @@
 - These are stable rendering components that rarely change
 
 ---
+
+## Session 14 — Complete Phase 5: Deep Chat Components (2026-03-24)
+
+**What happened:**
+- Created `ChatMessages.tsx` (~240 lines) by merging 3 files: UserMessage.tsx, AssistantMessage.tsx, SystemMessage.tsx
+- Created `ToolCards.tsx` (~450 lines) by merging 3 files: ToolCallMessage.tsx, ToolResultMessage.tsx, ToolExecutionCard.tsx
+- Created `ToolOutput.tsx` (~540 lines) by merging 5 files: BashOutput.tsx, ReadOutput.tsx, EditOutput.tsx, WriteOutput.tsx, ToolOutput.tsx (dispatcher)
+- Updated ChatView.tsx imports: 6 individual imports → 2 consolidated imports
+- Deleted 11 old files and removed the empty `tools/` subdirectory
+- Renamed duplicate helper functions: `summarizeArgs` → `summarizeToolCallArgs` (ToolCallMessage) and `summarizeCardArgs` (ToolExecutionCard) to avoid name collisions in same file
+- Renamed `COLLAPSE_THRESHOLD` constants to be unique per section: `RESULT_COLLAPSE_THRESHOLD`, `EDIT_COLLAPSE_THRESHOLD`, `WRITE_PREVIEW_COLLAPSE_THRESHOLD`
+
+**Items completed:**
+- [x] 5.1 — Merge UserMessage + AssistantMessage + SystemMessage → ChatMessages.tsx
+- [x] 5.2 — Merge ToolCallMessage + ToolResultMessage + ToolExecutionCard → ToolCards.tsx
+- [x] 5.3 — Merge BashOutput + ReadOutput + EditOutput + WriteOutput + ToolOutput → ToolOutput.tsx
+- [x] 5.4 — Update ChatView.tsx imports
+- [x] 5.5 — Verify: `bun run typecheck && bun run lint` passes
+
+**Phase 5 complete.** Exit criteria met:
+- components/chat/ has 3 files (down from 6) ✅
+- components/chat/tools/ eliminated (merged into ToolOutput.tsx) ✅
+- ChatView renders correctly (typecheck passes) ✅
+- `bun run typecheck && bun run lint` passes ✅
+
+**Issues encountered:**
+- None. Straightforward merges. TOOL_ICONS constant shared between ToolCallMessage and ToolExecutionCard — now defined once in ToolCards.tsx.
+
+**Handoff to next session:**
+- Next: Phase 6 — Cleanup and Verification
+- Start with 6.1: Run full build
+- 6.2: Delete empty directories (tools/ already removed, check for others)
+- 6.3-6.4: Update CONVENTIONS.md and ARCHITECTURE.md to reflect new structure
+- 6.5: Smoke test with dev servers
+- 6.6-6.7: Git commit and final count
+
+---

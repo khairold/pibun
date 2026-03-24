@@ -2,8 +2,8 @@
 
 > **Spec:** Audit findings from 2026-03-24 session + "deep modules" principle
 > **Status:** In Progress
-> **Current Phase:** Phase 5 — Deep Chat Components
-> **Last Session:** Session 13 — 2026-03-24
+> **Current Phase:** Phase 6 — Cleanup and Verification
+> **Last Session:** Session 14 — 2026-03-24
 
 ---
 
@@ -109,11 +109,11 @@ With a 1M token context window, the entire codebase (~532K tokens) fits in one s
 
 **Goal:** Consolidate 10 chat component files into 3. These are stable, rarely change, and are always rendered together.
 
-- [ ] 5.1 — Merge UserMessage.tsx + AssistantMessage.tsx + SystemMessage.tsx → `ChatMessages.tsx`. Simple renderers for the 3 non-tool message types.
-- [ ] 5.2 — Merge ToolCallMessage.tsx + ToolResultMessage.tsx + ToolExecutionCard.tsx → `ToolCards.tsx`. Tool rendering pipeline.
-- [ ] 5.3 — Merge BashOutput.tsx + ReadOutput.tsx + EditOutput.tsx + WriteOutput.tsx + ToolOutput.tsx dispatcher → `ToolOutput.tsx`. Each tool output renderer is ~60 lines; keep them as named exports in one file.
-- [ ] 5.4 — Update ChatView.tsx imports to use the 3 new files
-- [ ] 5.5 — Verify: `bun run typecheck && bun run lint && bun run build` all pass
+- [x] 5.1 — Merge UserMessage.tsx + AssistantMessage.tsx + SystemMessage.tsx → `ChatMessages.tsx`. Simple renderers for the 3 non-tool message types.
+- [x] 5.2 — Merge ToolCallMessage.tsx + ToolResultMessage.tsx + ToolExecutionCard.tsx → `ToolCards.tsx`. Tool rendering pipeline.
+- [x] 5.3 — Merge BashOutput.tsx + ReadOutput.tsx + EditOutput.tsx + WriteOutput.tsx + ToolOutput.tsx dispatcher → `ToolOutput.tsx`. Each tool output renderer is ~60 lines; keep them as named exports in one file.
+- [x] 5.4 — Update ChatView.tsx imports to use the 3 new files
+- [x] 5.5 — Verify: `bun run typecheck && bun run lint && bun run build` all pass
 
 **Exit criteria:** components/chat/ has 3 files (down from 6). components/chat/tools/ eliminated (merged into ToolOutput.tsx). ChatView renders correctly.
 
