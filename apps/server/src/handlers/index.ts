@@ -42,6 +42,7 @@ import {
 	handleSessionStop,
 	handleSessionSwitchSession,
 } from "./session.js";
+import { handleSettingsGet, handleSettingsUpdate } from "./settings.js";
 import {
 	handleTerminalClose,
 	handleTerminalCreate,
@@ -119,4 +120,8 @@ export const handlers: HandlerRegistry = {
 	"app.openFolderDialog": handleAppOpenFolderDialog,
 	"app.setWindowTitle": handleAppSetWindowTitle,
 	"app.saveExportFile": handleAppSaveExportFile,
+
+	// Settings (server-side persistence)
+	"settings.get": handleSettingsGet,
+	"settings.update": handleSettingsUpdate,
 };

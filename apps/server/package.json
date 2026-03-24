@@ -7,6 +7,7 @@
 		"./server": "./src/server.ts",
 		"./piRpcManager": "./src/piRpcManager.ts",
 		"./projectStore": "./src/projectStore.ts",
+		"./settingsStore": "./src/settingsStore.ts",
 		"./terminalManager": "./src/terminalManager.ts"
 	},
 	"scripts": {

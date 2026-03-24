@@ -145,6 +145,9 @@ export type { Project, ProjectModelPreference } from "./project.js";
 // Theme types (custom theming system)
 export type { Theme, ThemeColors, ThemeId } from "./theme.js";
 
+// Settings types (application preferences)
+export type { PiBunSettings } from "./settings.js";
+
 // Git types (git integration)
 export type {
 	GitChangedFile,
@@ -225,6 +228,9 @@ export type {
 	WsProjectListResult,
 	WsProjectRemoveParams,
 	WsProjectUpdateParams,
+	WsSettingsGetResult,
+	WsSettingsUpdateParams,
+	WsSettingsUpdateResult,
 	WsTypedPush,
 	WsTypedRequest,
 	WsTypedResponse,

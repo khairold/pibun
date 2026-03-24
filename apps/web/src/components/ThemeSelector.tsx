@@ -10,6 +10,7 @@
  */
 
 import { cn } from "@/lib/cn";
+import { persistThemeToServer } from "@/lib/settingsActions";
 import { THEME_LIST, applyTheme, getThemeById } from "@/lib/themes";
 import type { Theme, ThemeId } from "@pibun/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -108,6 +109,8 @@ export function ThemeSelector() {
 		applyTheme(theme);
 		setActiveThemeId(theme.id as ThemeId);
 		localStorage.setItem("pibun-theme", theme.id);
+		// Also persist to server for desktop mode (fire-and-forget)
+		persistThemeToServer(theme.id);
 		setIsOpen(false);
 	}, []);
 
@@ -147,7 +150,7 @@ export function ThemeSelector() {
 		return () => document.removeEventListener("keydown", handleKeyDown);
 	}, [isOpen]);
 
-	// ── Listen for external theme changes (e.g., system pref) ─────────
+	// ── Listen for external theme changes (e.g., cross-tab, server sync) ──
 	useEffect(() => {
 		function handleStorage(e: StorageEvent) {
 			if (e.key === "pibun-theme" && e.newValue) {

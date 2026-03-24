@@ -20,6 +20,7 @@ import {
 	startNewSession,
 	startSessionInFolder,
 } from "@/lib/sessionActions";
+import { fetchAndApplySettings } from "@/lib/settingsActions";
 import { emitShortcut } from "@/lib/shortcuts";
 import {
 	closeTab,
@@ -669,6 +670,8 @@ export function initTransport(): () => void {
 			fetchProjects();
 			// Fetch initial git status for the active session
 			fetchGitStatus();
+			// Fetch server-persisted settings (theme, etc.) and apply
+			fetchAndApplySettings();
 		}),
 	);
 

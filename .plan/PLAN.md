@@ -3,7 +3,7 @@
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
 > **Status:** Phase 6 in progress
 > **Current Phase:** Phase 6 — Custom Themes
-> **Last Session:** Session 85 — 2026-03-24
+> **Last Session:** Session 86 — 2026-03-24
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -133,7 +133,7 @@
 - [x] 6.2 — Built-in themes: light (default), dark, dimmed, high-contrast dark, high-contrast light
 - [x] 6.3 — Theme CSS: convert hardcoded Tailwind colors to CSS custom properties, apply via `data-theme` attribute on `<html>`
 - [x] 6.4 — Build `ThemeSelector` component: grid of theme previews, click to apply
-- [ ] 6.5 — Persist theme choice: `localStorage` in browser, `~/.pibun/settings.json` in desktop
+- [x] 6.5 — Persist theme choice: `localStorage` in browser, `~/.pibun/settings.json` in desktop
 - [ ] 6.6 — System preference detection: `prefers-color-scheme` → auto-select light/dark
 - [ ] 6.7 — Desktop: respect macOS appearance changes (light → dark mode switch)
 - [ ] 6.8 — Shiki theme matching: switch code highlighting theme to match app theme

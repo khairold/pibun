@@ -5,6 +5,36 @@
 
 ---
 
+## Session 86 — Phase 6 Persist theme choice (2026-03-24)
+
+**What happened:**
+- Implemented dual-persistence for theme choice: `localStorage` (browser) + `~/.pibun/settings.json` (server/desktop)
+- Added `PiBunSettings` type to `packages/contracts/src/settings.ts` with `themeId: ThemeId | null`
+- Created `apps/server/src/settingsStore.ts` — reads/writes `~/.pibun/settings.json`, follows same pattern as `projectStore.ts` (load/save/update, ensureConfigDir, default fallbacks)
+- Added 2 WS methods to contracts: `settings.get` (load) and `settings.update` (merge + save)
+- Added `WsSettingsUpdateParams`, `WsSettingsGetResult`, `WsSettingsUpdateResult` types to `wsProtocol.ts`
+- Created `apps/server/src/handlers/settings.ts` with `handleSettingsGet` and `handleSettingsUpdate` handlers
+- Registered both handlers in `handlers/index.ts`
+- Added `./settingsStore` subpath export to `@pibun/server`
+- Created `apps/web/src/lib/settingsActions.ts` with `fetchAndApplySettings()` (fetches from server on connect, applies if different) and `persistThemeToServer()` (fire-and-forget save)
+- Wired `fetchAndApplySettings()` to `server.welcome` subscription in `wireTransport.ts`
+- Updated `ThemeSelector` to call `persistThemeToServer()` after local apply
+- Fixed `exactOptionalPropertyTypes` compat in settings handler using explicit `Partial<PiBunSettings>` construction with type assertion
+
+**Items completed:**
+- [x] 6.5 — Persist theme choice: `localStorage` in browser, `~/.pibun/settings.json` in desktop
+
+**Issues encountered:**
+- `exactOptionalPropertyTypes` type error in settings handler: conditional spread `{ themeId: params.themeId }` where `params.themeId` is `string | null` isn't assignable to `ThemeId | null`. Fixed by building `Partial<PiBunSettings>` explicitly with type assertion (same pattern as MEMORY #52).
+
+**Handoff to next session:**
+- Next: 6.6 — System preference detection: `prefers-color-scheme` → auto-select light/dark
+- `getSystemPreferredThemeId()` already exists in `themes.ts` — used in `main.tsx` fallback
+- Need: `matchMedia` listener for live system preference changes, auto-switch when "system" is selected, possible "Auto" option in ThemeSelector
+- Consider: should `PiBunSettings.themeId = null` mean "follow system"? Currently it means "no preference saved". The `main.tsx` already falls back to system preference when no saved theme exists. May just need a `matchMedia` change listener + ThemeSelector "System" option.
+
+---
+
 ## Session 83 — Phase 6 Theme type + built-in themes (2026-03-24)
 
 **What happened:**

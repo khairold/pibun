@@ -19,6 +19,7 @@ import type {
 	PiThinkingLevel,
 } from "./index.js";
 import type { Project } from "./project.js";
+import type { PiBunSettings } from "./settings.js";
 
 // ============================================================================
 // Method Names
@@ -85,6 +86,10 @@ export const WS_METHODS = {
 	appOpenFolderDialog: "app.openFolderDialog",
 	appSetWindowTitle: "app.setWindowTitle",
 	appSaveExportFile: "app.saveExportFile",
+
+	// Settings (server-side persistence)
+	settingsGet: "settings.get",
+	settingsUpdate: "settings.update",
 } as const;
 
 /** Union of all WebSocket method strings. */
@@ -339,6 +344,21 @@ export interface WsAppSaveExportFileParams {
 }
 
 // ============================================================================
+// Settings Parameters
+// ============================================================================
+
+/**
+ * Params for `settings.update` — update application settings.
+ *
+ * Only provided fields are merged into existing settings.
+ * Omitted fields are unchanged.
+ */
+export interface WsSettingsUpdateParams {
+	/** Theme ID to persist. Pass `null` to clear (use system default). */
+	themeId?: string | null;
+}
+
+// ============================================================================
 // Method → Params Type Map
 // ============================================================================
 
@@ -393,6 +413,8 @@ export interface WsMethodParamsMap {
 	"app.openFolderDialog": undefined;
 	"app.setWindowTitle": WsAppSetWindowTitleParams;
 	"app.saveExportFile": WsAppSaveExportFileParams;
+	"settings.get": undefined;
+	"settings.update": WsSettingsUpdateParams;
 }
 
 // ============================================================================
@@ -549,6 +571,20 @@ export interface WsAppSaveExportFileResult {
 }
 
 // ============================================================================
+// Settings Results
+// ============================================================================
+
+/** Result for `settings.get` — current application settings. */
+export interface WsSettingsGetResult {
+	settings: PiBunSettings;
+}
+
+/** Result for `settings.update` — updated settings returned for confirmation. */
+export interface WsSettingsUpdateResult {
+	settings: PiBunSettings;
+}
+
+// ============================================================================
 // Method → Result Type Map
 // ============================================================================
 
@@ -595,6 +631,8 @@ export interface WsMethodResultMap {
 	"app.openFolderDialog": WsAppOpenFolderDialogResult;
 	"app.setWindowTitle": WsOkResult;
 	"app.saveExportFile": WsAppSaveExportFileResult;
+	"settings.get": WsSettingsGetResult;
+	"settings.update": WsSettingsUpdateResult;
 }
 
 // ============================================================================
