@@ -39,7 +39,7 @@ Bun HTTP + WebSocket server. Two modules:
 - **PiRpcManager** (`piRpcManager.ts`) — Maps session IDs to PiProcess instances. One `pi --mode rpc` subprocess per session. Handles spawn, lifecycle, and cleanup.
 - **PiProcess** (`piProcess.ts`) — Wraps a single Pi subprocess. Reads JSONL from stdout, writes commands to stdin. Provides typed command methods and event listeners.
 - **WebSocket Server** (`server.ts`) — Accepts browser connections. Routes client requests (42 methods across session, app, git, terminal, project, settings, plugin domains) to the correct Pi process via handler functions. Pushes Pi events to connected clients on 7 push channels.
-- **Handlers** (`handlers/`) — One file per domain. Translate WebSocket requests into Pi RPC commands. Most are thin pass-throughs; session handlers have real logic.
+- **Handlers** (`handlers/`) — Two handler files: `session.ts` (Pi RPC session lifecycle, event forwarding) and `appHandlers.ts` (app/git/plugin/project/settings/terminal — server-side service calls). Plus `types.ts` (shared helpers including `piPassthrough`) and `index.ts` (dispatch registry mapping 42 methods).
 
 Pi handles session state, model management, compaction, and retries internally. The server is a thin bridge.
 
@@ -48,9 +48,9 @@ Pi handles session state, model management, compaction, and retries internally. 
 React 19 + Vite SPA. Connects to the server via WebSocket.
 
 - **WireTransport** (`wireTransport.ts`) — Singleton that subscribes to WebSocket push channels and maps Pi events to Zustand store actions.
-- **Store** (`store/`) — Zustand store with typed slices: session, messages, models, tabs, terminal, git, plugins, projects, settings, UI state, notifications, updates, extension UI, connection.
-- **Components** (`components/`) — Chat view with streaming text/thinking/tool output, sidebar with session list, composer with image paste, model selector, terminal, extension UI dialogs, settings panel.
-- **Lib** (`lib/`) — Action modules (session, tab, git, project, plugin, settings, terminal) that call WsTransport methods and update the store. Theme engine with CSS variable injection. Shiki highlighter setup.
+- **Store** (`store/`) — Zustand store with 3 deep slices: `appSlice` (connection+ui+update+notifications), `sessionSlice` (session+messages+models+extensionUi), `workspaceSlice` (tabs+terminal+git+plugins+projects). Plus `types.ts` (all slice interfaces) and `index.ts` (store creation).
+- **Components** (`components/`) — 37 component files. Chat rendering in 3 deep files (`ChatMessages`, `ToolCards`, `ToolOutput`). Top-level components: Sidebar, Composer, ChatView, TabBar, ModelSelector, TerminalPane, GitPanel, etc. Extension UI dialogs in `extension/`.
+- **Lib** (`lib/`) — 7 action/utility files: `appActions` (git+project+plugin+settings+terminal), `sessionActions`, `tabActions`, `themes` (CSS variable injection), `highlighter` (Shiki setup), `pluginMessageBridge`, `utils` (cn+fileUtils+shortcuts).
 
 ### `apps/desktop`
 
@@ -66,9 +66,9 @@ Electrobun native app. Embeds server in-process (same Bun event loop, no child p
 
 Types-only package. Zero runtime code. Three domains:
 
-- **Pi protocol types** — Events, commands, responses mirroring Pi's JSONL protocol
-- **WebSocket protocol types** (`wsProtocol.ts`) — All 42 method params/results, 7 push channels, request/response envelopes. Single source of truth for the client ↔ server contract.
-- **Domain types** — Session tabs, projects, themes, settings, plugins, git types
+- **`piProtocol.ts`** — All Pi RPC types in one file: events, commands, responses, content blocks, messages, model types
+- **`wsProtocol.ts`** — All 42 method params/results, 7 push channels, request/response envelopes. Single source of truth for the client ↔ server contract.
+- **`domain.ts`** — All app domain types: session tabs, projects, themes, settings, plugins, git types
 
 ### `packages/shared`
 

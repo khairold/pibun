@@ -41,6 +41,9 @@
 | 31 | Phase 4 complete — handlers/ has 4 non-test files | session.ts (541), appHandlers.ts (~370), types.ts (~100), index.ts (~120). Down from 10 files (8 handler + types + index). dispatch.test.ts unchanged. | 2026-03-24 |
 | 32 | Phase 5 complete — chat/ has 3 files, tools/ eliminated | ChatMessages.tsx (~240 lines: User+Assistant+System), ToolCards.tsx (~450 lines: ToolCall+ToolResult+ToolExecutionCard), ToolOutput.tsx (~540 lines: dispatcher+Bash+Read+Edit+Write+Default). Down from 6+5=11 files. | 2026-03-24 |
 | 33 | ToolOutput.tsx import path changed from `@/components/chat/tools/ToolOutput` to `@/components/chat/ToolOutput` | ToolExecutionCard (now in ToolCards.tsx) imports ToolOutput — path updated since tools/ subdir is gone. | 2026-03-24 |
+| 34 | `.pi/` directory deleted — was empty since Session 2 | AGENTS.md and CAPABILITY-MAP.md were deleted in Session 2; dir lingered empty. Cleaned up in 6.2. | 2026-03-24 |
+| 35 | CONVENTIONS.md now has File Organization section | Tables showing key files per package. Guidelines: extend deep files rather than creating new ones. Added in 6.3. | 2026-03-24 |
+| 36 | ARCHITECTURE.md updated with post-refactoring structure | Reflects: 2 handler files (session + appHandlers), 3 store slices, 7 lib files, 3 chat files, 4 contracts files. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -53,7 +56,7 @@
 - web components/: 45 files, 9361 lines
 - web components/chat/: 3 files ✅ DONE (was 6 + tools/5 = 11 → 3. ChatMessages + ToolCards + ToolOutput)
 - desktop src/: 6 files, 1631 lines
-- Total source: ~135 files, ~33K lines
+- Total source: 95 files (down from ~135)
 
 ### Target file counts (after refactoring)
 - contracts/: 4 files (piProtocol, wsProtocol, domain, index)

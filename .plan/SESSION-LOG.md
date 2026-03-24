@@ -426,3 +426,28 @@
 - 6.6-6.7: Git commit and final count
 
 ---
+
+## Session 15 — Phase 6: Build verification + cleanup + doc updates (2026-03-24)
+
+**What happened:**
+- Ran full build (`typecheck && lint && build`) — all 5 packages pass, 116 files checked
+- Found and deleted empty `.pi/` directory (lingered since Session 2 when AGENTS.md and CAPABILITY-MAP.md were deleted)
+- Added File Organization section to CONVENTIONS.md — tables showing key files per package, guidelines for extending deep files rather than creating new ones
+- Updated ARCHITECTURE.md to reflect post-refactoring structure: 2 handler files (session + appHandlers), 3 store slices (app + session + workspace), 7 lib files, 3 chat component files, 4 contracts files with named files
+
+**Items completed:**
+- [x] 6.1 — Run full build: typecheck + lint + build all pass
+- [x] 6.2 — Delete empty directories (removed `.pi/`)
+- [x] 6.3 — Update CONVENTIONS.md file organization section
+- [x] 6.4 — Update docs/ARCHITECTURE.md monorepo structure section
+
+**Issues encountered:**
+- None. All items were straightforward verification and documentation updates.
+
+**Handoff to next session:**
+- Next: 6.5 — Run `bun run dev:server` and `bun run dev:web` — smoke test that the app still works
+- Then: 6.6 — Git commit with consolidation summary
+- Then: 6.7 — Document final before/after file counts in MEMORY.md
+- These are the last 3 items in the plan. After 6.7, the refactoring is complete.
+
+---

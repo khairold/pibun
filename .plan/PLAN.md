@@ -3,7 +3,7 @@
 > **Spec:** Audit findings from 2026-03-24 session + "deep modules" principle
 > **Status:** In Progress
 > **Current Phase:** Phase 6 — Cleanup and Verification
-> **Last Session:** Session 14 — 2026-03-24
+> **Last Session:** Session 15 — 2026-03-24
 
 ---
 
@@ -123,10 +123,10 @@ With a 1M token context window, the entire codebase (~532K tokens) fits in one s
 
 **Goal:** Final pass. Remove dead code, verify everything, update conventions.
 
-- [ ] 6.1 — Run full build: `bun run typecheck && bun run lint && bun run build`
-- [ ] 6.2 — Delete any empty directories left from consolidation
-- [ ] 6.3 — Update CONVENTIONS.md file organization section to reflect new structure
-- [ ] 6.4 — Update docs/ARCHITECTURE.md monorepo structure section to reflect new file counts
+- [x] 6.1 — Run full build: `bun run typecheck && bun run lint && bun run build`
+- [x] 6.2 — Delete any empty directories left from consolidation
+- [x] 6.3 — Update CONVENTIONS.md file organization section to reflect new structure
+- [x] 6.4 — Update docs/ARCHITECTURE.md monorepo structure section to reflect new file counts
 - [ ] 6.5 — Run `bun run dev:server` and `bun run dev:web` — smoke test that the app still works
 - [ ] 6.6 — Git commit with summary of what was consolidated and file count reduction
 - [ ] 6.7 — Final count: document before/after file counts in MEMORY.md

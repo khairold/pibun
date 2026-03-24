@@ -91,6 +91,27 @@ case "tool_execution_update":
 
 ---
 
+## File Organization
+
+The codebase follows "deep modules" — fewer files, richer interfaces, self-contained units.
+
+| Package | Key Files |
+|---------|-----------|
+| `packages/contracts/src/` | `piProtocol.ts` (Pi RPC types), `domain.ts` (app domain types), `wsProtocol.ts` (WS protocol), `index.ts` (barrel) — **4 files** |
+| `apps/server/src/handlers/` | `session.ts` (Pi RPC session logic), `appHandlers.ts` (app/git/plugin/project/settings/terminal), `types.ts` (handler helpers), `index.ts` (registry) — **4 files** |
+| `apps/web/src/store/` | `appSlice.ts` (connection+ui+update+notifications), `sessionSlice.ts` (session+messages+models+extensionUi), `workspaceSlice.ts` (tabs+terminal+git+plugins+projects), `types.ts`, `index.ts` — **5 files** |
+| `apps/web/src/lib/` | `appActions.ts` (git+project+plugin+settings+terminal), `sessionActions.ts`, `tabActions.ts`, `themes.ts`, `highlighter.ts`, `pluginMessageBridge.ts`, `utils.ts` — **7 files** |
+| `apps/web/src/components/chat/` | `ChatMessages.tsx` (User+Assistant+System), `ToolCards.tsx` (ToolCall+ToolResult+ToolExecutionCard), `ToolOutput.tsx` (Bash+Read+Edit+Write+Default) — **3 files** |
+
+✅ When adding new functionality, extend existing deep files rather than creating new ones
+✅ Keep contracts types-only (no runtime logic except `WS_METHODS`/`WS_CHANNELS` constants)
+✅ Action files follow the pattern: getTransport → request → update store
+
+❌ Don't create one-file-per-function modules — merge related functionality
+❌ Don't split a domain across multiple files unless files exceed ~600 lines with distinct concerns
+
+---
+
 ## Git
 
 ✅ Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`
