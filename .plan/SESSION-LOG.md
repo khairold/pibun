@@ -1261,3 +1261,41 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 43 — Multi-select sidebar + bulk context menu (2026-03-24)
+
+**What happened:**
+- Implemented multi-select for sidebar tabs (4C.1):
+  - **`selectedTabIds` state**: `Set<string>` in Sidebar component, cleaned up when tabs change (removed tabs pruned from selection).
+  - **`lastClickedTabIdRef`**: Ref tracks the anchor for Shift+click range selection.
+  - **`handleTabClick` handler**: Dispatches based on modifier keys:
+    - **Ctrl/Cmd+click**: Toggle individual tab in/out of selection
+    - **Shift+click**: Range select from last-clicked to current using `tabs` array indices
+    - **Plain click**: Clear selection, switch to tab
+  - **Visual feedback**: Selected tabs show `bg-accent-primary/15 ring-1 ring-accent-primary/30` (subtle accent highlight with ring). Overrides both active and inactive tab styles.
+  - **Selection indicator**: Open Tabs header shows "N selected · Clear" link when selection is active (clickable to clear).
+  - **Escape key**: Clears selection when multi-select is active.
+  - **Props threading**: `isSelected` and `onClick` (with MouseEvent) added to `SidebarTabItem` and `CwdGroup` — flows through both grouped and flat tab rendering.
+- Implemented multi-select context menu (4C.2):
+  - **Native context menu**: When right-clicking a tab that's in an active multi-selection (size > 1), shows "Delete Selected (N)" and "Mark All Unread" instead of single-tab actions.
+  - **HTML fallback context menu**: `HtmlContextMenu` extended with `multiSelectCount`, `onDeleteSelected`, `onMarkAllUnread` props. Renders multi-select menu items when `multiSelectCount > 1`, otherwise renders normal single-tab items.
+  - **`DeleteMultiConfirmDialog` component**: Confirmation dialog for bulk deletion. Shows count and warning text. Same visual pattern as single `DeleteConfirmDialog`.
+  - **`deletingTabIds` state**: Separate from `deletingTabId` — holds array of tab IDs for bulk delete. `handleConfirmDeleteMulti` closes tabs sequentially to avoid race conditions, then clears selection.
+  - **Smart context menu selection**: If right-clicking an unselected tab while multi-select is active, clears the multi-selection and shows single-tab menu. Only shows multi-select menu when the right-clicked tab is part of the selection.
+- Only 1 file modified: `Sidebar.tsx`. No contracts, server, or store changes needed — all state is local to the Sidebar component.
+
+**Items completed:**
+- [x] 4C.1 — Add multi-select to sidebar: Ctrl/Cmd+click to toggle, Shift+click for range select
+- [x] 4C.2 — Multi-select context menu: Delete Selected (N), Mark All Unread
+
+**Issues encountered:**
+- Biome formatting: multi-line ternary for `effectiveSelection` and `<h3>` tag collapsed to single lines. Fixed with `bun run format`.
+
+**Handoff to next session:**
+- Next: 4C.3 — Add session drag-to-reorder in sidebar (within project groups)
+- This is the LAST item in Phase 4. After completing it, verify exit criteria and mark phase complete.
+- Multi-select state is local to `Sidebar` component (not in Zustand). If other components need to know about selection in the future, consider promoting to store.
+- The `handleTabClick` range-select uses the flat `tabs` array for index calculation. This works correctly for both grouped (CwdGroup) and flat rendering because the same `tabs` array is the source of truth.
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

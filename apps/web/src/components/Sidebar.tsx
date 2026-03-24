@@ -166,6 +166,10 @@ interface ContextMenuState {
  * - **Copy Session ID** — copies session ID to clipboard
  * - **Mark Unread** — sets hasUnread on the tab
  * - **Delete** — closes the tab (stops session + removes)
+ *
+ * When `multiSelectCount > 0`, shows bulk actions instead:
+ * - **Delete Selected (N)** — deletes all selected tabs
+ * - **Mark All Unread** — marks all selected tabs as unread
  */
 function HtmlContextMenu({
 	menu,
@@ -174,6 +178,9 @@ function HtmlContextMenu({
 	onClose,
 	onRename,
 	onDelete,
+	multiSelectCount,
+	onDeleteSelected,
+	onMarkAllUnread,
 }: {
 	menu: ContextMenuState;
 	tab: SessionTab;
@@ -181,6 +188,9 @@ function HtmlContextMenu({
 	onClose: () => void;
 	onRename: () => void;
 	onDelete: () => void;
+	multiSelectCount: number;
+	onDeleteSelected: () => void;
+	onMarkAllUnread: () => void;
 }) {
 	const menuRef = useRef<HTMLDivElement>(null);
 	const addToast = useStore((s) => s.addToast);
@@ -237,109 +247,28 @@ function HtmlContextMenu({
 		onDelete();
 	}, [onClose, onDelete]);
 
+	const handleDeleteSelected = useCallback(() => {
+		onClose();
+		onDeleteSelected();
+	}, [onClose, onDeleteSelected]);
+
+	const handleMarkAllUnread = useCallback(() => {
+		onClose();
+		onMarkAllUnread();
+	}, [onClose, onMarkAllUnread]);
+
 	return (
 		<div
 			ref={menuRef}
 			className="fixed z-[100] min-w-[160px] rounded-lg border border-border-primary bg-surface-secondary py-1 shadow-lg"
 			style={{ left: menu.x, top: menu.y }}
 		>
-			{/* Rename */}
-			<button
-				type="button"
-				onClick={handleRename}
-				disabled={!tab.sessionId}
-				className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
-			>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					viewBox="0 0 16 16"
-					fill="currentColor"
-					className="h-3.5 w-3.5"
-					aria-hidden="true"
-				>
-					<path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L3.22 10.303a1 1 0 0 0-.258.442l-.96 3.425a.25.25 0 0 0 .305.305l3.425-.96a1 1 0 0 0 .442-.258l7.79-7.79a1.75 1.75 0 0 0 0-2.475l-.476-.479z" />
-				</svg>
-				Rename
-			</button>
-
-			{/* Separator */}
-			<div className="my-1 border-t border-border-primary" />
-
-			{/* Copy Path */}
-			<button
-				type="button"
-				onClick={handleCopyPath}
-				disabled={!tab.cwd}
-				className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
-			>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					viewBox="0 0 16 16"
-					fill="currentColor"
-					className="h-3.5 w-3.5"
-					aria-hidden="true"
-				>
-					<path d={FOLDER_ICON_PATH} />
-				</svg>
-				Copy Path
-			</button>
-
-			{/* Copy Session ID */}
-			<button
-				type="button"
-				onClick={handleCopySessionId}
-				disabled={!tab.sessionId}
-				className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
-			>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					viewBox="0 0 16 16"
-					fill="currentColor"
-					className="h-3.5 w-3.5"
-					aria-hidden="true"
-				>
-					<path
-						fillRule="evenodd"
-						d="M10.986 3H12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h1.014A2.25 2.25 0 0 1 7.25 1h1.5a2.25 2.25 0 0 1 2.236 2ZM9.5 4v-.75a.75.75 0 0 0-.75-.75h-1.5a.75.75 0 0 0-.75.75V4h3Z"
-						clipRule="evenodd"
-					/>
-				</svg>
-				Copy Session ID
-			</button>
-
-			{/* Separator */}
-			<div className="my-1 border-t border-border-primary" />
-
-			{/* Mark Unread */}
-			<button
-				type="button"
-				onClick={handleMarkUnread}
-				className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
-			>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					viewBox="0 0 16 16"
-					fill="currentColor"
-					className="h-3.5 w-3.5"
-					aria-hidden="true"
-				>
-					<path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />
-					<path
-						fillRule="evenodd"
-						d="M1.38 8.28a.87.87 0 0 1 0-.566 7.003 7.003 0 0 1 13.238.006.87.87 0 0 1 0 .566A7.003 7.003 0 0 1 1.379 8.28ZM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-						clipRule="evenodd"
-					/>
-				</svg>
-				Mark Unread
-			</button>
-
-			{/* Delete */}
-			{canClose && (
+			{multiSelectCount > 1 ? (
 				<>
-					<div className="my-1 border-t border-border-primary" />
+					{/* Multi-select: Delete Selected */}
 					<button
 						type="button"
-						onClick={handleDelete}
+						onClick={handleDeleteSelected}
 						className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-status-error transition-colors hover:bg-status-error/10"
 					>
 						<svg
@@ -355,8 +284,152 @@ function HtmlContextMenu({
 								clipRule="evenodd"
 							/>
 						</svg>
-						Delete
+						Delete Selected ({String(multiSelectCount)})
 					</button>
+
+					<div className="my-1 border-t border-border-primary" />
+
+					{/* Multi-select: Mark All Unread */}
+					<button
+						type="button"
+						onClick={handleMarkAllUnread}
+						className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="h-3.5 w-3.5"
+							aria-hidden="true"
+						>
+							<path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />
+							<path
+								fillRule="evenodd"
+								d="M1.38 8.28a.87.87 0 0 1 0-.566 7.003 7.003 0 0 1 13.238.006.87.87 0 0 1 0 .566A7.003 7.003 0 0 1 1.379 8.28ZM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+								clipRule="evenodd"
+							/>
+						</svg>
+						Mark All Unread
+					</button>
+				</>
+			) : (
+				<>
+					{/* Rename */}
+					<button
+						type="button"
+						onClick={handleRename}
+						disabled={!tab.sessionId}
+						className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="h-3.5 w-3.5"
+							aria-hidden="true"
+						>
+							<path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L3.22 10.303a1 1 0 0 0-.258.442l-.96 3.425a.25.25 0 0 0 .305.305l3.425-.96a1 1 0 0 0 .442-.258l7.79-7.79a1.75 1.75 0 0 0 0-2.475l-.476-.479z" />
+						</svg>
+						Rename
+					</button>
+
+					{/* Separator */}
+					<div className="my-1 border-t border-border-primary" />
+
+					{/* Copy Path */}
+					<button
+						type="button"
+						onClick={handleCopyPath}
+						disabled={!tab.cwd}
+						className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="h-3.5 w-3.5"
+							aria-hidden="true"
+						>
+							<path d={FOLDER_ICON_PATH} />
+						</svg>
+						Copy Path
+					</button>
+
+					{/* Copy Session ID */}
+					<button
+						type="button"
+						onClick={handleCopySessionId}
+						disabled={!tab.sessionId}
+						className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="h-3.5 w-3.5"
+							aria-hidden="true"
+						>
+							<path
+								fillRule="evenodd"
+								d="M10.986 3H12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h1.014A2.25 2.25 0 0 1 7.25 1h1.5a2.25 2.25 0 0 1 2.236 2ZM9.5 4v-.75a.75.75 0 0 0-.75-.75h-1.5a.75.75 0 0 0-.75.75V4h3Z"
+								clipRule="evenodd"
+							/>
+						</svg>
+						Copy Session ID
+					</button>
+
+					{/* Separator */}
+					<div className="my-1 border-t border-border-primary" />
+
+					{/* Mark Unread */}
+					<button
+						type="button"
+						onClick={handleMarkUnread}
+						className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="h-3.5 w-3.5"
+							aria-hidden="true"
+						>
+							<path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />
+							<path
+								fillRule="evenodd"
+								d="M1.38 8.28a.87.87 0 0 1 0-.566 7.003 7.003 0 0 1 13.238.006.87.87 0 0 1 0 .566A7.003 7.003 0 0 1 1.379 8.28ZM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+								clipRule="evenodd"
+							/>
+						</svg>
+						Mark Unread
+					</button>
+
+					{/* Delete */}
+					{canClose && (
+						<>
+							<div className="my-1 border-t border-border-primary" />
+							<button
+								type="button"
+								onClick={handleDelete}
+								className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-status-error transition-colors hover:bg-status-error/10"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 16 16"
+									fill="currentColor"
+									className="h-3.5 w-3.5"
+									aria-hidden="true"
+								>
+									<path
+										fillRule="evenodd"
+										d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 1 5.357 15h5.285a1.5 1.5 0 0 1 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z"
+										clipRule="evenodd"
+									/>
+								</svg>
+								Delete
+							</button>
+						</>
+					)}
 				</>
 			)}
 		</div>
@@ -428,6 +501,71 @@ function DeleteConfirmDialog({
 						className="rounded-md bg-status-error px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-status-error/80"
 					>
 						Delete
+					</button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+/**
+ * Confirmation dialog for bulk thread deletion.
+ *
+ * Shows count of threads to be deleted and asks for confirmation.
+ * Closes on Escape, outside click, or explicit Cancel/Delete actions.
+ */
+function DeleteMultiConfirmDialog({
+	count,
+	onConfirm,
+	onCancel,
+}: {
+	count: number;
+	onConfirm: () => void;
+	onCancel: () => void;
+}) {
+	const dialogRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		function handleClick(e: globalThis.MouseEvent) {
+			if (dialogRef.current && !dialogRef.current.contains(e.target as Node)) {
+				onCancel();
+			}
+		}
+		function handleKeyDown(e: KeyboardEvent) {
+			if (e.key === "Escape") onCancel();
+		}
+		document.addEventListener("mousedown", handleClick);
+		document.addEventListener("keydown", handleKeyDown);
+		return () => {
+			document.removeEventListener("mousedown", handleClick);
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [onCancel]);
+
+	return (
+		<div className="fixed inset-0 z-[110] flex items-center justify-center bg-surface-overlay/50">
+			<div
+				ref={dialogRef}
+				className="mx-4 w-full max-w-[280px] rounded-xl border border-border-primary bg-surface-secondary p-4 shadow-lg"
+			>
+				<h3 className="text-sm font-medium text-text-primary">Delete {String(count)} threads?</h3>
+				<p className="mt-1 text-xs text-text-secondary">
+					This will stop all selected sessions and close their tabs. This cannot be undone.
+				</p>
+				<div className="mt-3 flex items-center justify-end gap-2">
+					<button
+						type="button"
+						onClick={onCancel}
+						className="rounded-md px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+					>
+						Cancel
+					</button>
+					<button
+						type="button"
+						onClick={onConfirm}
+						className="rounded-md bg-status-error px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-status-error/80"
+					>
+						Delete {String(count)}
 					</button>
 				</div>
 			</div>
@@ -611,7 +749,9 @@ function HtmlProjectContextMenu({
 interface SidebarTabItemProps {
 	tab: SessionTab;
 	isActive: boolean;
+	isSelected: boolean;
 	onSwitch: (tabId: string) => void;
+	onClick: (tabId: string, e: ReactMouseEvent) => void;
 	onClose: (tabId: string) => void;
 	canClose: boolean;
 	onContextMenu: (tabId: string, x: number, y: number) => void;
@@ -624,7 +764,9 @@ interface SidebarTabItemProps {
 const SidebarTabItem = memo(function SidebarTabItem({
 	tab,
 	isActive,
+	isSelected,
 	onSwitch,
+	onClick,
 	onClose,
 	canClose,
 	onContextMenu,
@@ -668,8 +810,8 @@ const SidebarTabItem = memo(function SidebarTabItem({
 		<div
 			role="tab"
 			tabIndex={0}
-			onClick={() => {
-				if (!isRenaming) onSwitch(tab.id);
+			onClick={(e) => {
+				if (!isRenaming) onClick(tab.id, e);
 			}}
 			onKeyDown={(e) => {
 				if (!isRenaming && (e.key === "Enter" || e.key === " ")) {
@@ -680,11 +822,13 @@ const SidebarTabItem = memo(function SidebarTabItem({
 			onContextMenu={handleContextMenu}
 			className={cn(
 				"group flex w-full cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-left transition-colors",
-				isActive
-					? "bg-surface-secondary text-text-primary"
-					: "text-text-secondary hover:bg-surface-secondary/50 hover:text-text-primary",
+				isSelected
+					? "bg-accent-primary/15 text-text-primary ring-1 ring-accent-primary/30"
+					: isActive
+						? "bg-surface-secondary text-text-primary"
+						: "text-text-secondary hover:bg-surface-secondary/50 hover:text-text-primary",
 			)}
-			aria-selected={isActive}
+			aria-selected={isActive || isSelected}
 			aria-label={displayName}
 		>
 			{/* Status indicator — running (blue pulse), waiting (amber pulse), error (red), idle (gray/accent) */}
@@ -780,7 +924,9 @@ interface CwdGroupProps {
 	cwd: string;
 	tabs: SessionTab[];
 	activeTabId: string | null;
+	selectedTabIds: ReadonlySet<string>;
 	onSwitchTab: (tabId: string) => void;
+	onTabClick: (tabId: string, e: ReactMouseEvent) => void;
 	onCloseTab: (tabId: string) => void;
 	canClose: boolean;
 	onContextMenu: (tabId: string, x: number, y: number) => void;
@@ -794,7 +940,9 @@ const CwdGroup = memo(function CwdGroup({
 	cwd,
 	tabs,
 	activeTabId,
+	selectedTabIds,
 	onSwitchTab,
+	onTabClick,
 	onCloseTab,
 	canClose,
 	onContextMenu,
@@ -819,7 +967,9 @@ const CwdGroup = memo(function CwdGroup({
 						key={tab.id}
 						tab={tab}
 						isActive={tab.id === activeTabId}
+						isSelected={selectedTabIds.has(tab.id)}
 						onSwitch={onSwitchTab}
+						onClick={onTabClick}
 						onClose={onCloseTab}
 						canClose={canClose}
 						onContextMenu={onContextMenu}
@@ -1356,11 +1506,27 @@ export function Sidebar() {
 	const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 	const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
 	const [deletingTabId, setDeletingTabId] = useState<string | null>(null);
+	const [deletingTabIds, setDeletingTabIds] = useState<string[] | null>(null);
 	const [projectContextMenu, setProjectContextMenu] = useState<ProjectContextMenuState | null>(
 		null,
 	);
 	const addToast = useStore((s) => s.addToast);
 	const updateTab = useStore((s) => s.updateTab);
+
+	// ── Multi-select state ───────────────────────────────────────
+	const [selectedTabIds, setSelectedTabIds] = useState<Set<string>>(new Set());
+	const lastClickedTabIdRef = useRef<string | null>(null);
+
+	// Clear selection when tabs change (e.g., tab closed, reordered)
+	// Only clear selected IDs that no longer exist
+	useEffect(() => {
+		setSelectedTabIds((prev) => {
+			if (prev.size === 0) return prev;
+			const tabIdSet = new Set(tabs.map((t) => t.id));
+			const filtered = new Set([...prev].filter((id) => tabIdSet.has(id)));
+			return filtered.size === prev.size ? prev : filtered;
+		});
+	}, [tabs]);
 
 	const isConnected = connectionStatus === "open";
 
@@ -1390,6 +1556,18 @@ export function Sidebar() {
 			}
 		});
 	}, [toggleSidebar]);
+
+	// Escape clears multi-select
+	useEffect(() => {
+		if (selectedTabIds.size === 0) return;
+		function handleKeyDown(e: KeyboardEvent) {
+			if (e.key === "Escape") {
+				setSelectedTabIds(new Set());
+			}
+		}
+		document.addEventListener("keydown", handleKeyDown);
+		return () => document.removeEventListener("keydown", handleKeyDown);
+	}, [selectedTabIds.size]);
 
 	// Auto-close sidebar on resize from mobile to desktop (and vice versa)
 	useEffect(() => {
@@ -1506,6 +1684,54 @@ export function Sidebar() {
 		[setSidebarOpen],
 	);
 
+	/**
+	 * Handle tab click with multi-select support.
+	 *
+	 * - **Plain click**: Clear selection, switch to tab
+	 * - **Ctrl/Cmd+click**: Toggle individual tab in selection
+	 * - **Shift+click**: Range select from last clicked tab to this one
+	 */
+	const handleTabClick = useCallback(
+		(tabId: string, e: ReactMouseEvent) => {
+			const isMetaClick = e.metaKey || e.ctrlKey;
+			const isShiftClick = e.shiftKey;
+
+			if (isMetaClick) {
+				// Toggle selection of this tab
+				setSelectedTabIds((prev) => {
+					const next = new Set(prev);
+					if (next.has(tabId)) {
+						next.delete(tabId);
+					} else {
+						next.add(tabId);
+					}
+					return next;
+				});
+				lastClickedTabIdRef.current = tabId;
+			} else if (isShiftClick && lastClickedTabIdRef.current) {
+				// Range select: from last clicked to current
+				const allTabIds = tabs.map((t) => t.id);
+				const lastIdx = allTabIds.indexOf(lastClickedTabIdRef.current);
+				const currentIdx = allTabIds.indexOf(tabId);
+				if (lastIdx !== -1 && currentIdx !== -1) {
+					const start = Math.min(lastIdx, currentIdx);
+					const end = Math.max(lastIdx, currentIdx);
+					const rangeIds = allTabIds.slice(start, end + 1);
+					setSelectedTabIds(new Set(rangeIds));
+				}
+				// Don't update lastClickedTabIdRef on shift-click (anchor stays)
+			} else {
+				// Plain click — clear selection and switch
+				if (selectedTabIds.size > 0) {
+					setSelectedTabIds(new Set());
+				}
+				lastClickedTabIdRef.current = tabId;
+				handleSwitchTab(tabId);
+			}
+		},
+		[tabs, selectedTabIds.size, handleSwitchTab],
+	);
+
 	const handleCloseTab = useCallback((tabId: string) => {
 		closeTab(tabId).catch((err: unknown) => {
 			console.error("[Sidebar] Failed to close tab:", err);
@@ -1552,53 +1778,98 @@ export function Sidebar() {
 			const tab = tabs.find((t) => t.id === tabId);
 			if (!tab) return;
 
-			const items: ContextMenuItem[] = [
-				{ label: "Rename", action: "rename", enabled: !!tab.sessionId },
-				{ type: "separator" },
-				{ label: "Copy Path", action: "copy-path", enabled: !!tab.cwd },
-				{ label: "Copy Session ID", action: "copy-session-id", enabled: !!tab.sessionId },
-				{ type: "separator" },
-				{ label: "Mark Unread", action: "mark-unread" },
-			];
+			// Determine the effective selection: if right-clicked tab is in selection, use selection.
+			// Otherwise, treat as single-item context menu (clear selection).
+			const effectiveSelection =
+				selectedTabIds.has(tabId) && selectedTabIds.size > 1 ? selectedTabIds : new Set<string>();
+			const isMultiSelect = effectiveSelection.size > 1;
 
-			if (tabs.length > 1) {
-				items.push({ type: "separator" });
-				items.push({ label: "Delete", action: "delete", data: { tabId } });
-			}
+			if (isMultiSelect) {
+				// ── Multi-select context menu ──────────────────────
+				const count = effectiveSelection.size;
+				const items: ContextMenuItem[] = [
+					{
+						label: `Delete Selected (${String(count)})`,
+						action: "delete-selected",
+					},
+					{ type: "separator" },
+					{ label: "Mark All Unread", action: "mark-all-unread" },
+				];
 
-			// Try native context menu (desktop). On error, fall back to HTML.
-			showNativeContextMenu(items, (data) => {
-				switch (data.action) {
-					case "rename":
-						setRenamingTabId(tabId);
-						break;
-					case "copy-path":
-						if (tab.cwd) {
-							navigator.clipboard.writeText(tab.cwd).then(() => {
-								addToast("Path copied to clipboard", "info");
-							});
-						}
-						break;
-					case "copy-session-id":
-						if (tab.sessionId) {
-							navigator.clipboard.writeText(tab.sessionId).then(() => {
-								addToast("Session ID copied to clipboard", "info");
-							});
-						}
-						break;
-					case "mark-unread":
-						updateTab(tabId, { hasUnread: true });
-						break;
-					case "delete":
-						setDeletingTabId(tabId);
-						break;
+				const handleMultiAction = (data: { action: string }) => {
+					switch (data.action) {
+						case "delete-selected":
+							setDeletingTabIds([...effectiveSelection]);
+							break;
+						case "mark-all-unread":
+							for (const id of effectiveSelection) {
+								updateTab(id, { hasUnread: true });
+							}
+							setSelectedTabIds(new Set());
+							break;
+					}
+				};
+
+				showNativeContextMenu(items, handleMultiAction).catch(() => {
+					setContextMenu({ tabId, x, y });
+				});
+			} else {
+				// ── Single-item context menu ───────────────────────
+				// Clear multi-select if right-clicking an unselected tab
+				if (selectedTabIds.size > 0 && !selectedTabIds.has(tabId)) {
+					setSelectedTabIds(new Set());
 				}
-			}).catch(() => {
-				// Native menu not available — show HTML context menu
-				setContextMenu({ tabId, x, y });
-			});
+
+				const items: ContextMenuItem[] = [
+					{ label: "Rename", action: "rename", enabled: !!tab.sessionId },
+					{ type: "separator" },
+					{ label: "Copy Path", action: "copy-path", enabled: !!tab.cwd },
+					{
+						label: "Copy Session ID",
+						action: "copy-session-id",
+						enabled: !!tab.sessionId,
+					},
+					{ type: "separator" },
+					{ label: "Mark Unread", action: "mark-unread" },
+				];
+
+				if (tabs.length > 1) {
+					items.push({ type: "separator" });
+					items.push({ label: "Delete", action: "delete", data: { tabId } });
+				}
+
+				showNativeContextMenu(items, (data) => {
+					switch (data.action) {
+						case "rename":
+							setRenamingTabId(tabId);
+							break;
+						case "copy-path":
+							if (tab.cwd) {
+								navigator.clipboard.writeText(tab.cwd).then(() => {
+									addToast("Path copied to clipboard", "info");
+								});
+							}
+							break;
+						case "copy-session-id":
+							if (tab.sessionId) {
+								navigator.clipboard.writeText(tab.sessionId).then(() => {
+									addToast("Session ID copied to clipboard", "info");
+								});
+							}
+							break;
+						case "mark-unread":
+							updateTab(tabId, { hasUnread: true });
+							break;
+						case "delete":
+							setDeletingTabId(tabId);
+							break;
+					}
+				}).catch(() => {
+					setContextMenu({ tabId, x, y });
+				});
+			}
 		},
-		[tabs, addToast, updateTab],
+		[tabs, selectedTabIds, addToast, updateTab],
 	);
 
 	const handleCloseContextMenu = useCallback(() => {
@@ -1626,6 +1897,27 @@ export function Sidebar() {
 
 	const handleCancelDelete = useCallback(() => {
 		setDeletingTabId(null);
+	}, []);
+
+	const handleConfirmDeleteMulti = useCallback(() => {
+		if (!deletingTabIds || deletingTabIds.length === 0) return;
+		const ids = [...deletingTabIds];
+		setDeletingTabIds(null);
+		setSelectedTabIds(new Set());
+		// Close tabs sequentially to avoid race conditions
+		(async () => {
+			for (const id of ids) {
+				try {
+					await closeTab(id);
+				} catch (err) {
+					console.error(`[Sidebar] Failed to delete tab ${id}:`, err);
+				}
+			}
+		})();
+	}, [deletingTabIds]);
+
+	const handleCancelDeleteMulti = useCallback(() => {
+		setDeletingTabIds(null);
 	}, []);
 
 	/**
@@ -1817,9 +2109,19 @@ export function Sidebar() {
 				<span className="text-xs font-medium uppercase tracking-wider text-text-tertiary">
 					Open Tabs
 				</span>
-				<span className="text-[10px] text-text-muted">
-					{String(tabs.length)} tab{tabs.length !== 1 ? "s" : ""}
-				</span>
+				{selectedTabIds.size > 0 ? (
+					<button
+						type="button"
+						onClick={() => setSelectedTabIds(new Set())}
+						className="text-[10px] text-accent-text transition-colors hover:text-accent-primary"
+					>
+						{String(selectedTabIds.size)} selected · Clear
+					</button>
+				) : (
+					<span className="text-[10px] text-text-muted">
+						{String(tabs.length)} tab{tabs.length !== 1 ? "s" : ""}
+					</span>
+				)}
 			</div>
 
 			<div className="flex-1 overflow-y-auto px-2 py-1">
@@ -1848,7 +2150,9 @@ export function Sidebar() {
 							cwd={cwd}
 							tabs={groupTabs}
 							activeTabId={activeTabId}
+							selectedTabIds={selectedTabIds}
 							onSwitchTab={handleSwitchTab}
+							onTabClick={handleTabClick}
 							onCloseTab={handleCloseTab}
 							canClose={tabs.length > 1}
 							onContextMenu={handleTabContextMenu}
@@ -1866,7 +2170,9 @@ export function Sidebar() {
 								key={tab.id}
 								tab={tab}
 								isActive={tab.id === activeTabId}
+								isSelected={selectedTabIds.has(tab.id)}
 								onSwitch={handleSwitchTab}
+								onClick={handleTabClick}
 								onClose={handleCloseTab}
 								canClose={tabs.length > 1}
 								onContextMenu={handleTabContextMenu}
@@ -2102,6 +2408,9 @@ export function Sidebar() {
 	const contextMenuProject = projectContextMenu
 		? projects.find((p) => p.id === projectContextMenu.projectId)
 		: null;
+	// Multi-select count for HTML context menu — only if the right-clicked tab is in the selection
+	const htmlContextMenuMultiCount =
+		contextMenu && selectedTabIds.has(contextMenu.tabId) ? selectedTabIds.size : 0;
 
 	return (
 		<>
@@ -2142,15 +2451,36 @@ export function Sidebar() {
 					onClose={handleCloseContextMenu}
 					onRename={() => handleContextMenuRename(contextMenu.tabId)}
 					onDelete={() => handleContextMenuDelete(contextMenu.tabId)}
+					multiSelectCount={htmlContextMenuMultiCount}
+					onDeleteSelected={() => {
+						handleCloseContextMenu();
+						setDeletingTabIds([...selectedTabIds]);
+					}}
+					onMarkAllUnread={() => {
+						handleCloseContextMenu();
+						for (const id of selectedTabIds) {
+							updateTab(id, { hasUnread: true });
+						}
+						setSelectedTabIds(new Set());
+					}}
 				/>
 			)}
 
-			{/* Delete confirmation dialog */}
+			{/* Delete confirmation dialog (single) */}
 			{deletingTab && (
 				<DeleteConfirmDialog
 					tab={deletingTab}
 					onConfirm={handleConfirmDelete}
 					onCancel={handleCancelDelete}
+				/>
+			)}
+
+			{/* Delete confirmation dialog (multi) */}
+			{deletingTabIds && deletingTabIds.length > 0 && (
+				<DeleteMultiConfirmDialog
+					count={deletingTabIds.length}
+					onConfirm={handleConfirmDeleteMulti}
+					onCancel={handleCancelDeleteMulti}
 				/>
 			)}
 
