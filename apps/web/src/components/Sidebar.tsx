@@ -292,14 +292,26 @@ function unifiedSessionKey(entry: UnifiedSession): string {
 	return entry.kind === "active" ? `tab-${entry.tab.id}` : `past-${entry.session.sessionPath}`;
 }
 
-/** Get display name: session name → first message → short ID fallback. */
+/**
+ * Get display name for a session entry.
+ *
+ * Priority for active tabs:
+ *   1. Pi session name (`tab.name`, synced from `store.sessionName`) — if Pi explicitly names it
+ *   2. First user message (`tab.firstMessage`) — auto-detected, truncated to ~100 chars
+ *   3. "New session" — fallback for brand-new empty sessions
+ *
+ * Priority for past sessions (from disk):
+ *   1. Pi session name (`s.name`)
+ *   2. First user message (`s.firstMessage`)
+ *   3. Short session ID — fallback for very old sessions without metadata
+ */
 function unifiedSessionName(entry: UnifiedSession): string {
 	if (entry.kind === "active") {
 		const tab = entry.tab;
 		return tab.name || tab.firstMessage || "New session";
 	}
 	const s = entry.session;
-	return s.name ?? s.firstMessage ?? formatSessionId(s.sessionId);
+	return s.name || s.firstMessage || formatSessionId(s.sessionId);
 }
 
 /** Get message count for a unified session. */

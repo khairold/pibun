@@ -170,3 +170,26 @@
 - `startSession` still creates a new tab even if the current tab is empty (same project). Item 2.5 will address reuse.
 
 ---
+
+## Session 7 — Session naming: default + auto-name (2026-03-24)
+
+**What happened:**
+- Verified 2.2: `defaultTabName()` already returns `""`, `unifiedSessionName()` already falls to `"New session"` — full chain was already wired from Session 0.
+- Verified 2.3: `syncActiveTabState()` already syncs `firstMessage` via `getFirstUserMessage()`. Display priority confirmed: Pi session name > first message > "New session".
+- Improved `getFirstUserMessage()`: now truncates to 100 chars and collapses whitespace/newlines to single spaces. Prevents storing huge multi-line strings in tab state.
+- Fixed `unifiedSessionName()` for past sessions: changed from `??` (nullish coalescing) to `||` (logical OR) for consistency with active tabs. Both branches now treat empty string as falsy.
+- Added comprehensive TSDoc to `unifiedSessionName()` documenting the priority chain.
+
+**Items completed:**
+- [x] 2.2 — Default name empty string, sidebar shows "New session" as fallback
+- [x] 2.3 — Auto-name from first user message (verified + improved truncation)
+
+**Issues encountered:**
+- None. Both items were already mostly wired — just needed verification, truncation improvement, and documentation.
+
+**Handoff to next session:**
+- Next: 2.4 — Single active highlight: only `activeTabId` gets accent border/bg, remove running indicator
+- The `SessionItem` component in Sidebar.tsx has an `isRunning` pulse indicator that should be removed (only one session runs = always the active one, no need for separate indicator)
+- Also check `isActive` styling — the accent `border-l-2 border-accent-primary` is already correct
+
+---

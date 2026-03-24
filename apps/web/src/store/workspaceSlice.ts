@@ -61,10 +61,19 @@ function defaultTabName(): string {
 	return "";
 }
 
-/** Extract the first user message text from a messages array. */
+/**
+ * Extract the first user message text from a messages array.
+ *
+ * Used for auto-naming sessions in the sidebar when no Pi session name is set.
+ * Truncated to 100 chars and collapsed to a single line for sidebar display.
+ * Display priority: Pi session name → firstMessage → "New session".
+ */
 function getFirstUserMessage(messages: readonly ChatMessage[]): string | null {
 	const first = messages.find((m) => m.type === "user" && m.content.trim());
-	return first ? first.content.trim() : null;
+	if (!first) return null;
+	// Collapse whitespace/newlines to single spaces, trim, cap at 100 chars
+	const text = first.content.trim().replace(/\s+/g, " ");
+	return text.length > 100 ? `${text.slice(0, 100)}…` : text;
 }
 
 // ============================================================================
