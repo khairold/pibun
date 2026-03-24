@@ -1,9 +1,9 @@
 # PiBun v2 — Build Plan
 
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
-> **Status:** Phase 5 in progress
-> **Current Phase:** Phase 5 — Session Export & Sharing
-> **Last Session:** Session 81 — 2026-03-23
+> **Status:** Phase 5 complete — moving to Phase 6
+> **Current Phase:** Phase 6 — Custom Themes
+> **Last Session:** Session 82 — 2026-03-24
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -119,9 +119,9 @@
 - [x] 5.5 — Desktop: native "Save As…" dialog for export destination
 - [x] 5.6 — Browser: trigger download via blob URL
 - [x] 5.7 — Keyboard shortcut: Ctrl+Shift+E export dialog
-- [ ] 5.8 — Verify: export a conversation in all 3 formats, verify content is complete and readable
+- [x] 5.8 — Verify: export a conversation in all 3 formats, verify content is complete and readable
 
-**Exit criteria:** All 3 export formats work. HTML is self-contained and styled. Markdown is clean. JSON is complete.
+**Exit criteria:** All 3 export formats work. HTML is self-contained and styled. Markdown is clean. JSON is complete. ✅ ALL VERIFIED — 89/89 automated checks passed.
 
 ---
 

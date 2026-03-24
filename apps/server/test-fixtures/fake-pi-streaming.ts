@@ -18,12 +18,23 @@
  * - FAKE_PI_INSTANCE_ID     — Identifier for logging (helps trace multi-session tests)
  */
 
+import { mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 const streamDelayMs = Number(process.env.FAKE_PI_STREAM_DELAY_MS ?? "10");
 const streamChunks = Number(process.env.FAKE_PI_STREAM_CHUNKS ?? "5");
 const crashAfterMs = process.env.FAKE_PI_CRASH_AFTER_MS;
 const exitCode = Number(process.env.FAKE_PI_EXIT_CODE ?? "1");
 const stderrMsg = process.env.FAKE_PI_STDERR;
 const instanceId = process.env.FAKE_PI_INSTANCE_ID ?? "unknown";
+
+// Track conversation messages for get_messages
+const conversationMessages: Array<{
+	role: string;
+	content: string;
+	timestamp: number;
+}> = [];
 
 function emit(event: Record<string, unknown>): void {
 	process.stdout.write(`${JSON.stringify(event)}\n`);
@@ -62,12 +73,14 @@ async function handlePrompt(message: string, commandId: string | undefined): Pro
 	emit({ type: "turn_start", turnIndex: 0 });
 
 	// 3. User message
+	const userTs = Date.now();
+	conversationMessages.push({ role: "user", content: message, timestamp: userTs });
 	emit({
 		type: "message_start",
 		message: {
 			role: "user",
 			content: message,
-			timestamp: Date.now(),
+			timestamp: userTs,
 		},
 	});
 	emit({
@@ -75,7 +88,7 @@ async function handlePrompt(message: string, commandId: string | undefined): Pro
 		message: {
 			role: "user",
 			content: message,
-			timestamp: Date.now(),
+			timestamp: userTs,
 		},
 	});
 
@@ -130,12 +143,14 @@ async function handlePrompt(message: string, commandId: string | undefined): Pro
 		{ length: streamChunks },
 		(_, i) => `[${instanceId}] chunk-${i} `,
 	).join("");
+	const assistantTs = Date.now();
+	conversationMessages.push({ role: "assistant", content: fullText, timestamp: assistantTs });
 	emit({
 		type: "message_end",
 		message: {
 			role: "assistant",
 			content: fullText,
-			timestamp: Date.now(),
+			timestamp: assistantTs,
 		},
 	});
 
@@ -236,9 +251,38 @@ function handleCommand(cmd: RpcCommand): void {
 				command: "get_messages",
 				success: true,
 				id: cmd.id,
-				data: { messages: [] },
+				data: { messages: conversationMessages },
 			});
 			break;
+
+		case "export_html": {
+			// Write a self-contained HTML file to a temp directory
+			const exportDir = join(tmpdir(), `fake-pi-export-${instanceId}`);
+			mkdirSync(exportDir, { recursive: true });
+			const htmlPath = join(exportDir, "export.html");
+			const htmlContent = [
+				"<!DOCTYPE html>",
+				"<html><head><title>PiBun Export</title>",
+				"<style>body{font-family:system-ui;max-width:800px;margin:0 auto;padding:20px}",
+				".user{background:#e3f2fd;padding:12px;border-radius:8px;margin:8px 0}",
+				".assistant{background:#f5f5f5;padding:12px;border-radius:8px;margin:8px 0}",
+				"h1{color:#333}</style></head><body>",
+				`<h1>Session: fake-session-${instanceId}</h1>`,
+				...conversationMessages.map(
+					(m) => `<div class="${m.role}"><strong>${m.role}:</strong> ${m.content}</div>`,
+				),
+				"</body></html>",
+			].join("\n");
+			writeFileSync(htmlPath, htmlContent);
+			emit({
+				type: "response",
+				command: "export_html",
+				success: true,
+				id: cmd.id,
+				data: { path: htmlPath },
+			});
+			break;
+		}
 
 		case "new_session":
 			emit({

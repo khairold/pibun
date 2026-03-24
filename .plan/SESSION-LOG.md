@@ -5,6 +5,43 @@
 
 ---
 
+## Session 82 — Phase 5 export verification (2026-03-24)
+
+**What happened:**
+- Created comprehensive export verification test at `apps/server/src/export-verify-test.ts` with 89 automated checks:
+  - **HTML export (17 checks):** `session.exportHtml` → Pi's `export_html` RPC → file written → content returned. Verified: valid HTML with DOCTYPE, self-contained styles, session content, assistant responses, file exists on disk.
+  - **Messages retrieval (10 checks):** `session.getMessages` returns actual conversation messages. Verified: non-empty array, user + assistant messages present, content matches prompt, streamed chunks present.
+  - **Stats retrieval (7 checks):** `session.getStats` returns token/cost data. Verified: totalTokens/inputTokens/outputTokens/cost/userMessages/assistantMessages all present and correct types.
+  - **Markdown generation (18 checks):** Tested `messagesToMarkdown()` logic with all message types: user, assistant (with thinking), tool_call (with args), tool_result (success + error), system. Verified: title, model info, token stats, cost, separator, emoji headings, thinking details/summary, code blocks for tool args/results, error flags, blockquotes for system messages, null metadata handling.
+  - **JSON generation (15 checks):** Tested `messagesToJson()` with real messages + stats. Verified: valid JSON, all top-level fields (exportedAt, sessionName, model, stats, messageCount, messages), model details, message structure (role, content, timestamp), null metadata handling.
+  - **Save file fallback (2 checks):** `app.saveExportFile` correctly errors in browser mode (no desktop hooks), error message mentions browser/not available.
+  - **Multi-turn export (7 checks):** Sent 2 prompts, verified messages contain both turns (2 user + 2 assistant), content matches, HTML export reflects full conversation.
+- Enhanced `test-fixtures/fake-pi-streaming.ts`:
+  - Added `conversationMessages[]` array — tracks user + assistant messages from prompts
+  - `get_messages` now returns actual conversation history (was returning empty array)
+  - Added `export_html` handler: writes self-contained HTML file to tmpdir with session content, returns path
+- Added `test:smoke:export` root script
+
+**Items completed:**
+- [x] 5.8 — Verify: export a conversation in all 3 formats, verify content is complete and readable
+
+**Phase 5 Exit Criteria Verified:**
+- ✅ All 3 export formats work (HTML via Pi RPC, Markdown from local messages, JSON from Pi messages + stats)
+- ✅ HTML is self-contained and styled (DOCTYPE, `<style>` tag, semantic HTML classes)
+- ✅ Markdown is clean (headings, code blocks, details tags, emoji prefixes, metadata header)
+- ✅ JSON is complete (exportedAt, sessionName, model details, stats breakdown, full message array)
+
+**Issues encountered:**
+- None — clean verification run. Enhanced fake-pi-streaming fixture for better test coverage.
+
+**Handoff to next session:**
+- **Phase 5 COMPLETE — 89/89 automated checks passed**
+- Next phase: Phase 6 — Custom Themes
+- Next item: 6.1 — Define `Theme` type: `{ id, name, isDark, colors: Record<string, string> }` with semantic color tokens
+- Phase 6 is a UI polish phase — convert hardcoded Tailwind colors to CSS custom properties, build theme selector, persist choice, match Shiki code highlighting to theme
+
+---
+
 ## Session 80 — Phase 5 session.exportHtml WS method + ExportDialog component (2026-03-23)
 
 **What happened:**
