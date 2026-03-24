@@ -193,3 +193,34 @@
 - Also check `isActive` styling — the accent `border-l-2 border-accent-primary` is already correct
 
 ---
+
+## Session 8 — Phase 2.4+2.5+2.6: Active highlight, reuse empty session, session count (2026-03-24)
+
+**What happened:**
+- Removed `isRunning` pulse indicator from `SessionItem` (2.4). Single-session model: only one session runs = always the active one. The pulse dot added no information. Past sessions retain the muted dot as a visual separator.
+- Modified `handleNewSessionInProject` to reuse the active tab if it's in the same project and empty (2.5). Uses `normalizeCwd()` comparison + `store.messages.length === 0` check. Prevents orphan empty sessions from repeated "+" clicks.
+- Changed project header session count badge to exclude empty sessions (2.6). Counts `activeSessions.filter(s => s.messageCount > 0).length + pastSessions.length`. Empty "New session" placeholders don't inflate the count.
+- All changes confined to `Sidebar.tsx` — no cross-file edits needed.
+- **Phase 2 complete** — all 6 items checked off, exit criteria verified.
+
+**Items completed:**
+- [x] 2.4 — Single active highlight: removed running indicator, only `activeTabId` gets accent border/bg
+- [x] 2.5 — "New session" button reuses empty active tab in same project
+- [x] 2.6 — Session count badge excludes empty sessions
+
+**Phase 2 exit criteria verification:**
+- ✅ No orphan empty sessions (auto-removed on switch — 2.1, reused on new — 2.5)
+- ✅ Names update automatically (Pi name > firstMessage > "New session" — 2.2/2.3)
+- ✅ One visual "active" state (accent border only on activeTabId, no running indicator — 2.4)
+- ✅ Clean UX flow for new session → type → switch → return
+
+**Issues encountered:**
+- None. All three items were straightforward Sidebar.tsx edits.
+
+**Handoff to next session:**
+- Next: Phase 3 — Cleanup & Simplify Types
+- Start with 3.1 — Remove unused TabsSlice fields
+- Phase 3 is dead code removal — should be mechanical but needs careful checking of all import sites
+- `TabBar.tsx` is dead code (noted in MEMORY.md #15) — removal covered by Phase 3 cleanup
+
+---

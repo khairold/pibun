@@ -352,8 +352,6 @@ const SessionItem = memo(function SessionItem({
 	const displayName = unifiedSessionName(entry);
 	const messageCount = unifiedSessionMessageCount(entry);
 	const dateStr = unifiedSessionDate(entry);
-	const isRunning =
-		entry.kind === "active" && (entry.tab.status === "running" || entry.tab.status === "waiting");
 
 	const handleClick = useCallback(() => {
 		if (isSwitching) return;
@@ -387,12 +385,8 @@ const SessionItem = memo(function SessionItem({
 				isSwitching && "cursor-wait opacity-60",
 			)}
 		>
-			{/* Status indicator */}
-			{isRunning ? (
-				<span className="mt-1 flex h-3 w-3 shrink-0 items-center justify-center">
-					<span className="h-2 w-2 animate-pulse rounded-full bg-accent-primary" />
-				</span>
-			) : entry.kind === "past" ? (
+			{/* Status indicator — muted dot for past sessions only */}
+			{entry.kind === "past" ? (
 				<span className="mt-1 flex h-3 w-3 shrink-0 items-center justify-center">
 					<span className="h-1.5 w-1.5 rounded-full bg-text-muted/50" />
 				</span>
@@ -1021,14 +1015,34 @@ export function Sidebar() {
 
 	/**
 	 * Create a new session inside a specific project.
-	 * Always creates a fresh tab + Pi session, even if a tab already exists for this CWD.
+	 *
+	 * If the active tab is already in this project and has zero messages,
+	 * reuse it instead of creating another empty session.
+	 * Otherwise, creates a fresh tab + Pi session.
 	 */
 	const handleNewSessionInProject = useCallback(
 		async (project: Project) => {
 			if (!isConnected || isCreating) return;
+
+			// Reuse the active tab if it's in the same project and empty
+			const store = useStore.getState();
+			const activeTab = store.getActiveTab();
+			if (
+				activeTab &&
+				activeTab.cwd &&
+				normalizeCwd(activeTab.cwd) === normalizeCwd(project.cwd) &&
+				store.messages.length === 0
+			) {
+				// Already have an empty session for this project — just focus it
+				if (isMobileWidth()) {
+					setSidebarOpen(false);
+				}
+				return;
+			}
+
 			setIsCreating(true);
 			try {
-				useStore.getState().setActiveProjectId(project.id);
+				store.setActiveProjectId(project.id);
 				await startSession({ cwd: project.cwd });
 				// Auto-close sidebar on mobile after creating
 				if (isMobileWidth()) {
@@ -1304,7 +1318,11 @@ export function Sidebar() {
 						{projectGroups.map((group) => {
 							const groupKey = group.project?.id ?? "orphan";
 							const isExpanded = expandedGroups.has(groupKey);
-							const totalSessions = group.activeSessions.length + group.pastSessions.length;
+							// Count only sessions with messages — excludes empty "New session" placeholders
+							const activeWithMessages = group.activeSessions.filter(
+								(s) => s.messageCount > 0,
+							).length;
+							const totalSessions = activeWithMessages + group.pastSessions.length;
 							const isActiveProject = group.project?.id === activeProjectId;
 
 							return (
@@ -1387,7 +1405,7 @@ export function Sidebar() {
 											)}
 										</div>
 
-										{/* New session in this project — always creates a fresh session */}
+										{/* New session in this project — reuses empty active tab if same project */}
 										{group.project && (
 											<button
 												type="button"
