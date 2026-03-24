@@ -19,6 +19,7 @@ import { ExportDialog } from "@/components/ExportDialog";
 import { ForkDialog } from "@/components/ForkDialog";
 import { GitPanel } from "@/components/GitPanel";
 import { GitStatusBar } from "@/components/GitStatusBar";
+import { ImagePreviewModal } from "@/components/ImagePreviewModal";
 import { ModelSelector } from "@/components/ModelSelector";
 import { PluginManager } from "@/components/PluginManager";
 import { PluginBottomPanels, PluginRightPanels } from "@/components/PluginPanel";
@@ -47,6 +48,9 @@ export function AppShell() {
 		<div className="flex h-screen bg-surface-base text-text-primary">
 			{/* Extension UI dialog overlay (modal — blocks interaction until response) */}
 			<ExtensionDialog />
+
+			{/* Image preview modal — full-size overlay on image click */}
+			<ImagePreviewModal />
 
 			{/* Toast notifications — fixed bottom-right overlay */}
 			<ToastContainer />

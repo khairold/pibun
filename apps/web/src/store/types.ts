@@ -283,6 +283,13 @@ export interface UiSlice {
 	 * Null when no pending text.
 	 */
 	pendingComposerText: string | null;
+	/**
+	 * Image URL to show in the full-size preview modal. Null when modal is closed.
+	 * Set by clicking an image in markdown content or composer preview strip.
+	 */
+	imagePreviewUrl: string | null;
+	/** Alt text for the image preview modal. */
+	imagePreviewAlt: string;
 
 	/** Toggle the sidebar open/closed. */
 	toggleSidebar: () => void;
@@ -290,6 +297,8 @@ export interface UiSlice {
 	setSidebarOpen: (open: boolean) => void;
 	/** Set pending text to insert into the Composer. Null to clear. */
 	setPendingComposerText: (text: string | null) => void;
+	/** Open the image preview modal with the given URL. Null to close. */
+	setImagePreview: (url: string | null, alt?: string) => void;
 }
 
 /** Git state — repository status for the active session's CWD. */

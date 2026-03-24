@@ -2,9 +2,9 @@
 
 > **Spec:** Audit of T3Code, Pi-mono RPC, Electrobun reference repos (2026-03-24)
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
-> **Status:** In Progress
-> **Current Phase:** Phase 1A — Scroll, Performance & Persistence
-> **Last Session:** Session 4 — 2026-03-24
+> **Status:** Phase 1A Complete
+> **Current Phase:** Phase 1B — Thread Status & Activity Indicators
+> **Last Session:** Session 5 — 2026-03-24
 
 ---
 
@@ -38,8 +38,8 @@
 - [x] 1A.2 — Audit all Zustand selectors for referential stability (no new objects/arrays from selectors — use `useShallow` or split selectors)
 - [x] 1A.3 — Add debounced localStorage persistence for key UI state (sidebar open, active tab, theme preference) with `beforeunload` flush
 - [x] 1A.4 — Add composer draft persistence per tab (text + images survive tab switch and page reload, stored in localStorage keyed by tab ID)
-- [ ] 1A.5 — Implement message copy button on assistant messages (copy markdown content to clipboard with toast confirmation)
-- [ ] 1A.6 — Add image preview modal (click any image attachment → full-size overlay with close on Escape/backdrop click)
+- [x] 1A.5 — Implement message copy button on assistant messages (copy markdown content to clipboard with toast confirmation)
+- [x] 1A.6 — Add image preview modal (click any image attachment → full-size overlay with close on Escape/backdrop click)
 
 **Exit criteria:** Streaming chat is smooth with no scroll jank. Tab switch preserves drafts. Users can copy messages and preview images.
 

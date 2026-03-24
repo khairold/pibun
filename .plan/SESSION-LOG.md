@@ -145,3 +145,37 @@
 - Next: 1A.5 — Implement message copy button on assistant messages
 - Composer draft pattern is established. Draft data lives in `appActions.ts` module scope (not Zustand). If future features need to read drafts outside Composer (e.g., tab badge showing "has draft"), expose a `hasDraft(tabId)` function.
 - `consumeDeferredActiveTabId()` still not consumed — will be needed when session list loads and recreates tabs.
+
+---
+
+## Session 5 — Copy button + Image preview modal (2026-03-24)
+
+**What happened:**
+- Implemented copy button on assistant messages (1A.5):
+  - Added `group/assistant` named Tailwind group to AssistantMessage wrapper div
+  - Copy button appears on hover (opacity transition), hidden during streaming
+  - Uses `navigator.clipboard.writeText(message.content)` to copy markdown source
+  - Shows toast confirmation ("Copied to clipboard") + visual check icon for 2s
+  - Button only renders when message has content and is not streaming
+- Implemented image preview modal (1A.6):
+  - Added `imagePreviewUrl` and `imagePreviewAlt` to UiSlice + `setImagePreview` action
+  - Created `ImagePreviewModal` component — fixed overlay with backdrop blur, closes on Escape/backdrop click
+  - Modified Markdown `img` component to be clickable: refactored module-level `components` constant into `createComponents(onImageClick)` factory function, memoized per-render in `MarkdownContent`
+  - Made Composer image thumbnails clickable — calls `setImagePreview` on click
+  - Added `ImagePreviewModal` to AppShell alongside other overlays (ExtensionDialog, ToastContainer)
+- Phase 1A is now complete (all 6 items checked off)
+
+**Items completed:**
+- [x] 1A.5 — Implement message copy button on assistant messages
+- [x] 1A.6 — Add image preview modal
+
+**Issues encountered:**
+- Biome lint flagged `role="dialog"` on a div (wants `<dialog>` element). Removed the role attribute entirely since native `<dialog>` doesn't work well for click-outside-to-close overlay pattern. Other dialogs in codebase use biome-ignore comments but that requires the role to be on the same line as the opening tag.
+- Markdown `components` object was a module-level constant — couldn't access React hooks. Refactored to factory function `createComponents(onImageClick)` with `useMemo` in the component.
+
+**Handoff to next session:**
+- Phase 1A is COMPLETE. Next phase: 1B — Thread Status & Activity Indicators
+- Start with 1B.1 — Add thread/tab status indicators
+- The `group/assistant` hover pattern is established for showing contextual actions on messages
+- Image preview modal state lives in UiSlice — any future image-click needs just call `setImagePreview(url, alt)`
+- `consumeDeferredActiveTabId()` still not consumed

@@ -2,7 +2,7 @@
  * ChatMessages — renderers for the three non-tool message types.
  *
  * - UserMessage — user prompts (right-aligned bubble)
- * - AssistantMessage — streaming text with thinking section + markdown
+ * - AssistantMessage — streaming text with thinking section + markdown + copy button
  * - SystemMessage — compaction/retry notices (centered dividers)
  *
  * These are stable rendering components consumed by ChatView.tsx.
@@ -10,6 +10,7 @@
 
 import { MarkdownContent } from "@/components/Markdown";
 import { cn } from "@/lib/utils";
+import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
@@ -50,8 +51,10 @@ interface AssistantMessageProps {
  */
 export const AssistantMessage = memo(function AssistantMessage({ message }: AssistantMessageProps) {
 	const [thinkingExpanded, setThinkingExpanded] = useState(false);
+	const [copied, setCopied] = useState(false);
 	/** Whether the user has explicitly toggled thinking (overrides auto-expand). */
 	const userToggledRef = useRef(false);
+	const addToast = useStore((s) => s.addToast);
 	const hasThinking = message.thinking.length > 0;
 	const hasContent = message.content.length > 0;
 	const isThinkingActive = message.streaming && hasThinking && !hasContent;
@@ -72,6 +75,21 @@ export const AssistantMessage = memo(function AssistantMessage({ message }: Assi
 		setThinkingExpanded((prev) => !prev);
 	}, []);
 
+	/** Copy assistant message content to clipboard. */
+	const handleCopy = useCallback(() => {
+		if (!message.content) return;
+		navigator.clipboard.writeText(message.content).then(
+			() => {
+				setCopied(true);
+				addToast("Copied to clipboard", "info");
+				setTimeout(() => setCopied(false), 2000);
+			},
+			() => {
+				addToast("Failed to copy", "error");
+			},
+		);
+	}, [message.content, addToast]);
+
 	/** Format character count for display. */
 	const thinkingCharCount = message.thinking.length;
 	const charLabel =
@@ -80,7 +98,7 @@ export const AssistantMessage = memo(function AssistantMessage({ message }: Assi
 			: `${thinkingCharCount} chars`;
 
 	return (
-		<div className="max-w-[85%]">
+		<div className="group/assistant max-w-[85%]">
 			{/* Thinking section */}
 			{hasThinking && (
 				<div className="mb-2">
@@ -164,6 +182,55 @@ export const AssistantMessage = memo(function AssistantMessage({ message }: Assi
 			{!hasContent && !hasThinking && message.streaming && (
 				<div className="text-sm text-text-tertiary">
 					<span className="inline-block h-4 w-1.5 animate-pulse bg-text-tertiary" />
+				</div>
+			)}
+
+			{/* Copy button — visible on hover, hidden while streaming */}
+			{hasContent && !message.streaming && (
+				<div className="mt-1 flex opacity-0 transition-opacity group-hover/assistant:opacity-100">
+					<button
+						type="button"
+						onClick={handleCopy}
+						className={cn(
+							"flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs transition-colors",
+							copied
+								? "text-status-success-text"
+								: "text-text-muted hover:bg-surface-secondary hover:text-text-secondary",
+						)}
+						title="Copy message"
+					>
+						{copied ? (
+							/* Check icon */
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 16 16"
+								fill="currentColor"
+								className="h-3.5 w-3.5"
+								aria-label="Copied"
+								role="img"
+							>
+								<path
+									fillRule="evenodd"
+									d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z"
+									clipRule="evenodd"
+								/>
+							</svg>
+						) : (
+							/* Copy icon */
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 16 16"
+								fill="currentColor"
+								className="h-3.5 w-3.5"
+								aria-label="Copy"
+								role="img"
+							>
+								<path d="M5.5 3.5A1.5 1.5 0 0 1 7 2h5.5A1.5 1.5 0 0 1 14 3.5v7a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 10.5v-7Z" />
+								<path d="M3 5a1 1 0 0 0-1 1v7.5A1.5 1.5 0 0 0 3.5 15H11a1 1 0 0 0 1-1H3.5a.5.5 0 0 1-.5-.5V5Z" />
+							</svg>
+						)}
+						<span>{copied ? "Copied" : "Copy"}</span>
+					</button>
 				</div>
 			)}
 		</div>

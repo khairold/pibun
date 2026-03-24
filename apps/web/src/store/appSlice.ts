@@ -59,10 +59,13 @@ export const createAppSlice: StateCreator<AppStore, [], [], AppSlice> = (set, ge
 	// ---- UI state ----
 	sidebarOpen: isDesktopWidth(),
 	pendingComposerText: null,
+	imagePreviewUrl: null,
+	imagePreviewAlt: "",
 
 	toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 	setSidebarOpen: (open) => set({ sidebarOpen: open }),
 	setPendingComposerText: (text) => set({ pendingComposerText: text }),
+	setImagePreview: (url, alt) => set({ imagePreviewUrl: url, imagePreviewAlt: alt ?? "" }),
 
 	// ---- Update state ----
 	updateStatus: null,

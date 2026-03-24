@@ -26,6 +26,7 @@ import {
 	type ClipboardEvent,
 	type DragEvent,
 	type KeyboardEvent,
+	type MouseEvent,
 	useCallback,
 	useEffect,
 	useRef,
@@ -114,6 +115,7 @@ export function Composer() {
 	const [isDragOver, setIsDragOver] = useState(false);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+	const setImagePreview = useStore((s) => s.setImagePreview);
 	const pendingComposerText = useStore((s) => s.pendingComposerText);
 	const setPendingComposerText = useStore((s) => s.setPendingComposerText);
 
@@ -476,7 +478,12 @@ export function Composer() {
 								<img
 									src={img.previewUrl}
 									alt="Attachment preview"
-									className="h-full w-full object-cover"
+									className="h-full w-full cursor-pointer object-cover transition-opacity hover:opacity-80"
+									onClick={(e: MouseEvent<HTMLImageElement>) => {
+										e.stopPropagation();
+										setImagePreview(img.previewUrl, "Attachment preview");
+									}}
+									onKeyDown={undefined}
 								/>
 								{/* Remove button */}
 								<button
