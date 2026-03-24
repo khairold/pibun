@@ -4,7 +4,7 @@
 > **Goal:** Bring PiBun to feature parity with T3Code, expose all Pi RPC capabilities, leverage Electrobun native features
 > **Status:** Phase 3 in progress
 > **Current Phase:** Phase 3 — Activity Timeline & Diff
-> **Last Session:** Session 25 — 2026-03-24
+> **Last Session:** Session 26 — 2026-03-24
 
 ---
 
@@ -107,7 +107,7 @@
 **Goal:** Transform the flat message list into a rich activity timeline with per-turn diffs and work grouping.
 
 - [x] 3.1 — Refactor ChatView to use `TimelineEntry` union type: `{ kind: "message" } | { kind: "tool-group" } | { kind: "turn-divider" } | { kind: "completion-summary" }`
-- [ ] 3.2 — Group tool calls into collapsible work groups per turn (tool-execution-start through tool-execution-end as one visual unit with summary header)
+- [x] 3.2 — Group tool calls into collapsible work groups per turn (tool-execution-start through tool-execution-end as one visual unit with summary header)
 - [ ] 3.3 — Add turn dividers with timestamp, elapsed time, and collapsed tool count badge
 - [ ] 3.4 — Track per-turn file changes: collect file paths from Edit/Write tool calls, display as "Changed files" badge on turn divider
 - [ ] 3.5 — Add diff data pipeline: server handler to read Pi session file + git diff between turns, new WS method `session.getTurnDiff`

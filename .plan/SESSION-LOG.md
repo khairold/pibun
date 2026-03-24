@@ -772,3 +772,34 @@
 - `consumeDeferredActiveTabId()` still not consumed.
 
 ---
+
+## Session 26 — Collapsible work groups per turn (2026-03-24)
+
+**What happened:**
+- Implemented collapsible work groups for tool calls per turn (3.2):
+  - **TimelineEntry type**: Added `"work-group"` kind with `id: string` and `entries: ToolGroupEntry[]`. Added `ToolGroupEntry` interface (`{ toolCall, toolResult }`) exported from `ChatView.tsx`.
+  - **`groupMessages()` refactored**: Instead of creating individual `"tool-group"` entries per tool_call+tool_result pair, now collects ALL consecutive tool pairs in a run and emits a single `"work-group"` entry. Uses a while loop to consume consecutive `tool_call` messages (each paired with optional `tool_result`), aggregating into a `ToolGroupEntry[]` array.
+  - **WorkGroup component** (`chat/WorkGroup.tsx`): New file with:
+    - `WorkGroup` — collapsible container with summary header showing tool count + overall status (running/success/error). Auto-expands for running groups and single-entry groups. Auto-collapses for completed multi-entry groups. User toggle overrides auto-behavior.
+    - Single-entry optimization: renders `ToolExecutionCard` directly without wrapper chrome.
+    - `CollapsedToolList` — compact view showing up to 6 tool rows with overflow indicator.
+    - `CollapsedToolRow` — single compact row: status dot (colored by result) + tool icon + tool name + one-line arg summary (file path, command, pattern).
+    - `getGroupStatus()` — derives overall status from all entries (running > error > success).
+    - `summarizeEntry()` — tool-specific one-line arg summary for collapsed view.
+  - **TimelineEntryRenderer**: Added `"work-group"` case rendering `WorkGroup`.
+  - **timelineEntryKey**: Added `"work-group"` case returning `entry.id`.
+- Studied T3Code's `MessagesTimeline.tsx` work group pattern for reference: they merge consecutive `"work"` entries with `groupedEntries[]`, show `MAX_VISIBLE_WORK_LOG_ENTRIES = 6`, toggle expand/collapse per group ID. Adapted the core pattern but simplified for PiBun (no separate expand state map — each WorkGroup manages its own via local state).
+
+**Items completed:**
+- [x] 3.2 — Group tool calls into collapsible work groups per turn
+
+**Issues encountered:**
+- Biome flagged unused `ChatMessage` import and unsorted imports in `WorkGroup.tsx`. Fixed by removing unused import and reordering.
+
+**Handoff to next session:**
+- Next: 3.3 — Add turn dividers with timestamp, elapsed time, and collapsed tool count badge
+- `WorkGroup` component lives in `chat/WorkGroup.tsx`. `ToolGroupEntry` is exported from `ChatView.tsx`.
+- The `"tool-group"` kind still exists in `TimelineEntry` union for type completeness but is no longer produced by `groupMessages()` — all tool pairs now go through `"work-group"`. `ToolExecutionCard` is still used (rendered inside `WorkGroup` when expanded, or directly for single-entry groups).
+- `consumeDeferredActiveTabId()` still not consumed.
+
+---

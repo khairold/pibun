@@ -30,6 +30,7 @@ import {
 	UserMessage,
 } from "@/components/chat/ChatMessages";
 import { ToolCallMessage, ToolExecutionCard, ToolResultMessage } from "@/components/chat/ToolCards";
+import { WorkGroup } from "@/components/chat/WorkGroup";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { openProject } from "@/lib/appActions";
 import { cn } from "@/lib/utils";
@@ -43,19 +44,27 @@ import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 // TimelineEntry — the renderable unit in the chat timeline
 // ============================================================================
 
+/** A single tool call + result pair within a work group. */
+export interface ToolGroupEntry {
+	toolCall: ChatMessage;
+	toolResult: ChatMessage | null;
+}
+
 /**
  * A renderable entry in the chat timeline.
  *
  * The flat `ChatMessage[]` from the store is transformed into `TimelineEntry[]`
  * by `groupMessages()`. Each variant maps to a dedicated renderer:
  * - `"message"` → UserMessage / AssistantMessage / SystemMessage
- * - `"tool-group"` → ToolExecutionCard (grouped tool_call + tool_result)
+ * - `"tool-group"` → ToolExecutionCard (single tool_call + tool_result, fallback)
+ * - `"work-group"` → WorkGroup (collapsible group of tool executions per turn)
  * - `"turn-divider"` → TurnDivider (timestamp + tool count badge)
  * - `"completion-summary"` → CompletionSummary ("✓ Worked for Xm Ys")
  */
 export type TimelineEntry =
 	| { kind: "message"; message: ChatMessage }
 	| { kind: "tool-group"; toolCall: ChatMessage; toolResult: ChatMessage | null }
+	| { kind: "work-group"; id: string; entries: ToolGroupEntry[] }
 	| { kind: "turn-divider"; id: string; timestamp: number; toolCount: number }
 	| { kind: "completion-summary"; id: string; timestamp: number; content: string };
 
@@ -66,10 +75,11 @@ const COMPLETION_PREFIX = "✓ Worked for";
  * Group messages into timeline entries.
  *
  * Transformations applied:
- * 1. Adjacent tool_call + tool_result pairs → `"tool-group"` entries
- * 2. Turn dividers inserted before each user message (except the first)
+ * 1. Adjacent tool_call + tool_result pairs → collected as `ToolGroupEntry`
+ * 2. Consecutive tool entries → merged into `"work-group"` entries (collapsible)
+ * 3. Turn dividers inserted before each user message (except the first)
  *    with the preceding turn's tool call count
- * 3. System messages starting with "✓ Worked for" → `"completion-summary"` entries
+ * 4. System messages starting with "✓ Worked for" → `"completion-summary"` entries
  */
 function groupMessages(messages: readonly ChatMessage[]): TimelineEntry[] {
 	const items: TimelineEntry[] = [];
@@ -78,8 +88,9 @@ function groupMessages(messages: readonly ChatMessage[]): TimelineEntry[] {
 	let seenFirstUser = false;
 	/** Tool call count accumulated in the current turn. */
 	let turnToolCount = 0;
-	/** Counter for generating unique divider IDs. */
+	/** Counter for generating unique IDs. */
 	let dividerCounter = 0;
+	let workGroupCounter = 0;
 
 	while (i < messages.length) {
 		const msg = messages[i];
@@ -103,17 +114,27 @@ function groupMessages(messages: readonly ChatMessage[]): TimelineEntry[] {
 		}
 
 		if (msg.type === "tool_call") {
-			turnToolCount++;
-			// Look ahead for matching tool_result
-			const next = i + 1 < messages.length ? messages[i + 1] : undefined;
-			if (next?.type === "tool_result") {
-				items.push({ kind: "tool-group", toolCall: msg, toolResult: next });
-				i += 2; // Skip both messages
-				continue;
+			// Collect all consecutive tool_call (+ optional tool_result) pairs
+			const toolEntries: ToolGroupEntry[] = [];
+			while (i < messages.length && messages[i]?.type === "tool_call") {
+				const tc = messages[i] as ChatMessage;
+				turnToolCount++;
+				const next = i + 1 < messages.length ? messages[i + 1] : undefined;
+				if (next?.type === "tool_result") {
+					toolEntries.push({ toolCall: tc, toolResult: next });
+					i += 2;
+				} else {
+					toolEntries.push({ toolCall: tc, toolResult: null });
+					i += 1;
+				}
 			}
-			// tool_call without immediate result — render as group with null result
-			items.push({ kind: "tool-group", toolCall: msg, toolResult: null });
-			i++;
+
+			// Emit as work-group (even for a single tool — consistent collapsible UI)
+			items.push({
+				kind: "work-group",
+				id: `work-group-${String(++workGroupCounter)}`,
+				entries: toolEntries,
+			});
 			continue;
 		}
 
@@ -166,11 +187,13 @@ const MessageItem = memo(function MessageItem({ message }: { message: ChatMessag
 	}
 });
 
-/** Render a timeline entry (message, tool group, turn divider, or completion summary). */
+/** Render a timeline entry (message, work group, turn divider, or completion summary). */
 const TimelineEntryRenderer = memo(function TimelineEntryRenderer({
 	entry,
 }: { entry: TimelineEntry }) {
 	switch (entry.kind) {
+		case "work-group":
+			return <WorkGroup entries={entry.entries} />;
 		case "tool-group":
 			return <ToolExecutionCard toolCall={entry.toolCall} toolResult={entry.toolResult} />;
 		case "turn-divider":
@@ -185,6 +208,8 @@ const TimelineEntryRenderer = memo(function TimelineEntryRenderer({
 /** Unique key for a timeline entry. */
 function timelineEntryKey(entry: TimelineEntry): string {
 	switch (entry.kind) {
+		case "work-group":
+			return entry.id;
 		case "tool-group":
 			return `tool-group-${entry.toolCall.id}`;
 		case "turn-divider":

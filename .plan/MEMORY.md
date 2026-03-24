@@ -58,6 +58,7 @@
 | 47 | Drag-and-drop image support was already implemented — just never checked off | Composer already had `handleDragOver`, `handleDragLeave`, `handleDrop` handlers calling `addImagesFromFiles`, with `isDragOver` state driving a visual drop overlay. Implemented alongside clipboard paste in an earlier session. | 2026-03-24 |
 | 48 | Image preview strip improved: 80px thumbnails (was 64px), file size badge overlay | `ImageAttachment` and `PersistedImageAttachment` extended with `fileSize: number`. File size captured from `File.size` during `addImagesFromFiles`. `formatFileSize()` helper formats bytes to human-readable (B/KB/MB). Badge rendered as semi-transparent black overlay at bottom-left of thumbnail. Backward compatible — `fileSize ?? 0` for old persisted drafts. | 2026-03-24 |
 | 49 | `ChatItem` renamed to `TimelineEntry` — exported union type with 4 kinds | `"message" \| "tool-group" \| "turn-divider" \| "completion-summary"`. Hyphenated kind names (not underscored) for consistency. `ChatItemRenderer` → `TimelineEntryRenderer`, `chatItemKey` → `timelineEntryKey`. Completion summaries promoted from string-matched system messages to first-class `"completion-summary"` entries — detected by `COMPLETION_PREFIX = "✓ Worked for"` in `groupMessages()`. `CompletionSummary` component in `ChatMessages.tsx` replaces the old `"completion"` case in `SystemMessage`'s `getCategory()`. `SystemCategory` type simplified (no more `"completion"` variant). `TimelineEntry` is exported from `ChatView.tsx` for use by future items (3.2-3.4). | 2026-03-24 |
+| 50 | Work groups via `"work-group"` TimelineEntry kind + `WorkGroup` component in `chat/WorkGroup.tsx` | `groupMessages()` now collects ALL consecutive tool_call (+optional tool_result) pairs into a single `"work-group"` entry with `entries: ToolGroupEntry[]`. `ToolGroupEntry` exported from `ChatView.tsx` as `{ toolCall, toolResult }`. Single-entry work groups render as plain `ToolExecutionCard` (no wrapper). Multi-entry groups render as collapsible card: summary header with tool count + overall status (running/success/error), collapsed view shows compact `CollapsedToolRow` per tool (status dot + icon + name + one-line arg summary, max 6 visible), expanded view shows full `ToolExecutionCard` per tool. Auto-expand: running groups + single entries. Auto-collapse: completed multi-entry groups. User toggle overrides auto-behavior. Follows T3Code's work group pattern (consecutive work entries merged, collapsible, overflow truncation) adapted for PiBun's styling. | 2026-03-24 |
 
 ## Architecture Notes
 
@@ -89,7 +90,8 @@ apps/desktop/         — Electrobun main process, menu, notifications, updater,
 - SettingsPage — full settings panel
 - DiffPanel — side panel with per-turn diffs
 - ~~TurnDivider — visual separator between conversation turns~~ ✅ Done (Session 11)
-- ~~TimelineEntry union type~~ ✅ Done (Session 25): `"message" | "tool-group" | "turn-divider" | "completion-summary"`
+- ~~TimelineEntry union type~~ ✅ Done (Session 25): `"message" | "tool-group" | "work-group" | "turn-divider" | "completion-summary"`
+- ~~WorkGroup component~~ ✅ Done (Session 26): collapsible tool execution groups per turn
 - ThreadContextMenu — right-click actions for sidebar items
 
 ### T3Code Patterns to Study (read before implementing)
