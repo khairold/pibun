@@ -5,6 +5,30 @@
 
 ---
 
+## Session 88 — Phase 6 Verification (2026-03-24)
+
+**What happened:**
+- Completed 6.9 — verification of the entire theme system
+- Created `apps/server/src/theme-verify-test.ts` with 104 automated checks across 9 test suites
+- Test suites: Theme Contracts (17 checks), Theme Definitions (17), Theme CSS Integration (10), Settings Persistence (7), Settings WS Methods (10), Shiki Theme Mapping (10), System Preference (9), Dual Persistence (9), Web Build (4)
+- Added `test:smoke:themes` script to root `package.json`
+- Fixed one false negative in CSS integration check — `UserMessage.tsx` uses `bg-user-bubble-bg`/`text-user-bubble-text` (valid theme tokens, just not in original check pattern)
+- Verified Phase 6 exit criteria: all 5 built-in themes work, code highlighting matches, persists across restart, system preference followed
+
+**Items completed:**
+- [x] 6.9 — Verify: switch themes, code blocks re-highlight, persists across restart, system preference respected
+
+**Issues encountered:**
+- None — all 104/104 checks passed after fixing the `UserMessage.tsx` token pattern detection
+
+**Handoff to next session:**
+- **Phase 6 is COMPLETE.** Next phase: Phase 7 — Plugin System
+- Phase 7 starts with 7.1 — Define plugin manifest: `{ id, name, version, description, panels: PanelConfig[] }`
+- This is a new feature area — read ARCHITECTURE.md and CONVENTIONS.md before starting
+- TerminalInstance.tsx still has hardcoded `TERMINAL_THEME` (xterm.js theme object, not Tailwind) — could be a future improvement
+
+---
+
 ## Session 87 — Phase 6 System preference + Shiki theme matching (2026-03-24)
 
 **What happened:**

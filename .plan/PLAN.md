@@ -1,9 +1,9 @@
 # PiBun v2 — Build Plan
 
 > **Spec:** Parking lot items from v1 plan + new ideas from usage
-> **Status:** Phase 6 in progress
-> **Current Phase:** Phase 6 — Custom Themes
-> **Last Session:** Session 87 — 2026-03-24
+> **Status:** Phase 6 complete — starting Phase 7
+> **Current Phase:** Phase 7 — Plugin System
+> **Last Session:** Session 88 — 2026-03-24
 > **Previous plan:** `.plan/archive/PLAN-v1.md` (97 items, 51 sessions, all complete)
 
 ---
@@ -137,9 +137,9 @@
 - [x] 6.6 — System preference detection: `prefers-color-scheme` → auto-select light/dark
 - [x] 6.7 — Desktop: respect macOS appearance changes (light → dark mode switch)
 - [x] 6.8 — Shiki theme matching: switch code highlighting theme to match app theme
-- [ ] 6.9 — Verify: switch themes, code blocks re-highlight, persists across restart, system preference respected
+- [x] 6.9 — Verify: switch themes, code blocks re-highlight, persists across restart, system preference respected
 
-**Exit criteria:** 5 built-in themes work. Code highlighting matches. Persists. System preference followed.
+**Exit criteria:** 5 built-in themes work. Code highlighting matches. Persists. System preference followed. ✅ ALL VERIFIED — 104/104 automated checks passed.
 
 ---
 
