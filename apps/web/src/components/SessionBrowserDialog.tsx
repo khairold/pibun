@@ -10,7 +10,7 @@
 
 import { fetchSessionList } from "@/lib/sessionActions";
 import { cn } from "@/lib/utils";
-import { addLoadedSession, removeLoadedSession } from "@/lib/workspaceActions";
+import { addLoadedSession, removeLoadedSession } from "@/lib/appActions";
 import { useStore } from "@/store";
 import type { WsSessionSummary } from "@pibun/contracts";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";

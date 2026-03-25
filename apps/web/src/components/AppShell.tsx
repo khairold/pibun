@@ -36,7 +36,7 @@ import { ThemeSelector } from "@/components/ThemeSelector";
 import { ThinkingSelector } from "@/components/ThinkingSelector";
 import { ToastContainer } from "@/components/ToastContainer";
 import { UpdateBanner } from "@/components/UpdateBanner";
-import { ExtensionDialog } from "@/components/extension";
+import { ExtensionDialog } from "@/components/ExtensionDialog";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useWindowTitle } from "@/hooks/useWindowTitle";
 import { createTerminal } from "@/lib/appActions";

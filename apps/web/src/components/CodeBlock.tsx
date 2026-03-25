@@ -6,7 +6,7 @@
  * and language label.
  */
 
-import { useShikiTheme } from "@/hooks/useShikiTheme";
+import { useShikiTheme } from "@/lib/highlighter";
 import { highlightCode } from "@/lib/highlighter";
 import { cn } from "@/lib/utils";
 import { memo, useCallback, useEffect, useRef, useState } from "react";

@@ -20,7 +20,7 @@ import { addProject, createTerminal, openProject, removeProject } from "@/lib/ap
 import { fetchSessionList, switchSession } from "@/lib/sessionActions";
 import { startSession, switchTabAction } from "@/lib/tabActions";
 import { cn, onShortcut } from "@/lib/utils";
-import { removeLoadedSession } from "@/lib/workspaceActions";
+import { removeLoadedSession } from "@/lib/appActions";
 import { useStore } from "@/store";
 import { getTransport, showNativeContextMenu } from "@/wireTransport";
 import type { ContextMenuItem, Project, Session, WsSessionSummary } from "@pibun/contracts";

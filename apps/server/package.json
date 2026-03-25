@@ -6,8 +6,7 @@
 	"exports": {
 		"./server": "./src/server.ts",
 		"./piRpcManager": "./src/piRpcManager.ts",
-		"./projectStore": "./src/projectStore.ts",
-		"./settingsStore": "./src/settingsStore.ts",
+		"./persistence": "./src/persistence.ts",
 		"./terminalManager": "./src/terminalManager.ts",
 		"./pluginStore": "./src/pluginStore.ts"
 	},

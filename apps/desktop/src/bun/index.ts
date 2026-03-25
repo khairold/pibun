@@ -15,7 +15,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { PiRpcManager } from "@pibun/server/piRpcManager";
-import { loadProjects } from "@pibun/server/projectStore";
+import { loadProjects } from "@pibun/server/persistence";
 import { type PiBunServer, broadcastPush, createServer } from "@pibun/server/server";
 import Electrobun, { ApplicationMenu, BrowserWindow, ContextMenu, Utils } from "electrobun/bun";
 import {

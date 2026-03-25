@@ -66,13 +66,17 @@ import type {
 } from "@pibun/contracts";
 import { gitBranch, gitDiff, gitLog, gitStatus, gitTurnDiff } from "../gitService.js";
 import { installPlugin, loadPlugins, setPluginEnabled, uninstallPlugin } from "../pluginStore.js";
-import { addProject, loadProjects, removeProject, updateProject } from "../projectStore.js";
-import { loadSettings, updateSettings } from "../settingsStore.js";
 import {
 	addLoadedSessionPath,
+	addProject,
 	getLoadedSessionPaths,
+	loadProjects,
+	loadSettings,
 	removeLoadedSessionPath,
-} from "../workspaceStore.js";
+	removeProject,
+	updateProject,
+	updateSettings,
+} from "../persistence.js";
 import type { HandlerContext, WsHandler } from "./types.js";
 
 // ============================================================================

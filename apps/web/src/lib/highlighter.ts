@@ -12,6 +12,7 @@
  * @module
  */
 
+import { useSyncExternalStore } from "react";
 import type {
 	BundledLanguage,
 	BundledTheme,
@@ -205,4 +206,19 @@ export async function highlightCode(code: string, lang: string): Promise<string>
 		lang: effectiveLang as BundledLanguage,
 		theme: currentTheme,
 	});
+}
+
+// ============================================================================
+// React Hook — useShikiTheme
+// ============================================================================
+
+/**
+ * React hook for the current Shiki code highlighting theme.
+ *
+ * Subscribes to theme changes via `useSyncExternalStore`. When the app theme
+ * changes and `setShikiTheme()` is called, this hook re-renders components
+ * that depend on the Shiki theme (e.g., CodeBlock, DiffViewer).
+ */
+export function useShikiTheme(): string {
+	return useSyncExternalStore(subscribeShikiTheme, getShikiTheme);
 }

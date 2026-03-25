@@ -22,7 +22,7 @@ import { existsSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import type { ThemeId } from "@pibun/contracts";
-import { loadSettings, updateSettings } from "./settingsStore.js";
+import { loadSettings, updateSettings } from "./persistence.js";
 import {
 	connectWsWithWelcome,
 	createCheckCounter,

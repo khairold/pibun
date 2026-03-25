@@ -35,7 +35,7 @@ import {
 } from "@/lib/sessionActions";
 import { switchTabAction } from "@/lib/tabActions";
 import { emitShortcut, formatDuration } from "@/lib/utils";
-import { addLoadedSession, fetchLoadedSessionPaths } from "@/lib/workspaceActions";
+import { addLoadedSession, fetchLoadedSessionPaths } from "@/lib/appActions";
 import { useStore } from "@/store";
 import type { ChatMessage } from "@/store/types";
 import { WsTransport } from "@/transport";

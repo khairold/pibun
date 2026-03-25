@@ -12,7 +12,7 @@
  * potential reuse in "Diff review mode" (parking lot feature).
  */
 
-import { useShikiTheme } from "@/hooks/useShikiTheme";
+import { useShikiTheme } from "@/lib/highlighter";
 import { type ThemedToken, tokenizeCode } from "@/lib/highlighter";
 import { cn, inferLanguageFromPath } from "@/lib/utils";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
