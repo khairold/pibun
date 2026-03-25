@@ -137,7 +137,7 @@ export function SetupScreen() {
 					{needsInstall && (
 						<>
 							<p className="text-sm text-text-secondary">Install Pi globally with npm:</p>
-							<CommandBlock command="npm install -g @anthropic-ai/pi" />
+							<CommandBlock command="npm install -g @mariozechner/pi-coding-agent" />
 							<p className="text-xs text-text-tertiary">
 								Requires{" "}
 								<a
@@ -158,7 +158,7 @@ export function SetupScreen() {
 							<p className="text-sm text-text-secondary">
 								Your Pi CLI (v{piVersion}) needs to be updated to at least v{minVersion}:
 							</p>
-							<CommandBlock command="npm update -g @anthropic-ai/pi" />
+							<CommandBlock command="npm install -g @mariozechner/pi-coding-agent@latest" />
 						</>
 					)}
 
