@@ -13,7 +13,7 @@
  * - Projects: project directory management
  */
 
-import type { GitChangedFile, Project, SessionTab, TabStatus } from "@pibun/contracts";
+import type { GitChangedFile, Project, Session, TabStatus } from "@pibun/contracts";
 import type { StateCreator } from "zustand";
 import {
 	type AppStore,
@@ -129,7 +129,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	addTab: (partial) => {
 		const state = get();
 		const id = nextTabId();
-		const tab: SessionTab = {
+		const tab: Session = {
 			id,
 			name: partial?.name ?? defaultTabName(),
 			sessionId: partial?.sessionId ?? null,

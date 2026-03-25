@@ -17,7 +17,7 @@ import type {
 	Plugin,
 	PluginPanelPosition,
 	Project,
-	SessionTab,
+	Session,
 	TimestampFormat,
 	TurnDiffResult,
 	WsSessionSummary,
@@ -547,7 +547,7 @@ export interface WorkspacePersistSlice {
  */
 export interface TabsSlice {
 	/** Ordered list of open tabs. */
-	tabs: SessionTab[];
+	tabs: Session[];
 	/** ID of the currently active tab, null when no tabs exist. */
 	activeTabId: string | null;
 
@@ -556,7 +556,7 @@ export interface TabsSlice {
 	 * Returns the new tab's ID.
 	 */
 	addTab: (
-		partial?: Partial<Pick<SessionTab, "name" | "sessionId" | "cwd" | "model" | "thinkingLevel">>,
+		partial?: Partial<Pick<Session, "name" | "sessionId" | "cwd" | "model" | "thinkingLevel">>,
 	) => string;
 	/** Remove a tab by ID. Switches to adjacent tab if active tab is removed. */
 	removeTab: (tabId: string) => void;
@@ -567,9 +567,9 @@ export interface TabsSlice {
 	 */
 	switchTab: (tabId: string) => void;
 	/** Update a tab's metadata (name, model, streaming state, etc.). */
-	updateTab: (tabId: string, updates: Partial<SessionTab>) => void;
+	updateTab: (tabId: string, updates: Partial<Session>) => void;
 	/** Get the currently active tab, or null if no tabs. */
-	getActiveTab: () => SessionTab | null;
+	getActiveTab: () => Session | null;
 	/** Sync the active tab's metadata with current session slice state. */
 	syncActiveTabState: () => void;
 }

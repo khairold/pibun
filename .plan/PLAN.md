@@ -101,11 +101,14 @@ Workspaces map to projects.
 
 ## Parking Lot
 
-Carried from previous plan + new items:
+### Resolved
 
-- [ ] Session resume from sidebar "past sessions" — `switchSession()` approach works but may need refinement for edge cases (session file not found, CWD moved).
-- [ ] Desktop menu rebuild — `file.new-tab` etc. should become `file.new-session`. Electrobun menu config is in `apps/desktop/`.
-- [ ] Consider renaming `SessionTab` to `Session` or `SessionInstance`.
-- [ ] Terminal splits within a tab — currently parked (removed in 3.5). Could return as a feature: split a terminal tab into side-by-side panes. But tabs-first is the right default.
-- [ ] Terminal drag-to-reorder — reorder terminal tabs in the tab bar. Low priority.
-- [ ] Terminal persistence across app restarts — save project→terminal mapping, reconnect on restart.
+- [x] Session resume from sidebar "past sessions" — Verified: `switchSession()` has error handling at every level (ensureSession catches startup failures, switchSession catches RPC errors, both show error banners). No edge cases need additional work.
+- [x] Desktop menu rebuild — Already done: menu has `file.new-session`, no stale tab items. Fixed stale JSDoc comment in `buildMenuConfig`.
+- [x] `SessionTab` renamed to `Session` — Renamed in contracts type definition + all 3 consumer files (store/types.ts, workspaceSlice.ts, Sidebar.tsx).
+
+### Remaining (features, not cleanup)
+
+- [ ] Terminal splits within a tab — re-add `groupId`, split rendering, keybindings. Each tab = one terminal is the right default for now.
+- [ ] Terminal drag-to-reorder — drag handlers on tab bar, reorder state. Low priority.
+- [ ] Terminal persistence across app restarts — serialize project→terminal mapping, storage, PTY reconnection.

@@ -72,7 +72,7 @@ export interface RecentProject {
  *
  * Structure follows DESKTOP.md spec:
  * - PiBun (app menu — first entry with no label on macOS)
- * - File (New Session, New Tab, Open Folder, Open Recent, Close Tab, Close Window)
+ * - File (New Session, Open Folder, Open Recent, Export Session, Close Window)
  * - Edit (standard roles: Undo, Redo, Cut, Copy, Paste, Select All)
  * - View (Toggle Sidebar, Zoom controls)
  * - Session (Abort, Compact, Switch Model, Set Thinking)

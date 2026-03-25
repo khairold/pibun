@@ -23,7 +23,7 @@ import { cn, onShortcut } from "@/lib/utils";
 import { removeLoadedSession } from "@/lib/workspaceActions";
 import { useStore } from "@/store";
 import { getTransport, showNativeContextMenu } from "@/wireTransport";
-import type { ContextMenuItem, Project, SessionTab, WsSessionSummary } from "@pibun/contracts";
+import type { ContextMenuItem, Project, Session, WsSessionSummary } from "@pibun/contracts";
 import {
 	type SyntheticEvent,
 	memo,
@@ -284,7 +284,7 @@ function HtmlProjectContextMenu({
  * Both render identically in the sidebar: name/first-message, date, count.
  */
 type UnifiedSession =
-	| { kind: "active"; tab: SessionTab }
+	| { kind: "active"; tab: Session }
 	| { kind: "past"; session: WsSessionSummary };
 
 /** Get a stable key for a unified session entry. */
@@ -564,7 +564,7 @@ interface ProjectGroup {
 	/** Display name: project name, or short CWD, or "(no project)". */
 	displayName: string;
 	/** Active sessions (open tabs) belonging to this project. */
-	activeSessions: SessionTab[];
+	activeSessions: Session[];
 	/** Past sessions (from Pi filesystem) belonging to this project. */
 	pastSessions: WsSessionSummary[];
 }
@@ -578,7 +578,7 @@ interface ProjectGroup {
  */
 function buildProjectGroups(
 	projects: Project[],
-	tabs: SessionTab[],
+	tabs: Session[],
 	pastSessions: WsSessionSummary[],
 	openSessionIds: Set<string>,
 ): ProjectGroup[] {
@@ -589,8 +589,8 @@ function buildProjectGroups(
 	}
 
 	// Group active sessions by project
-	const projectActiveSessions = new Map<string, SessionTab[]>();
-	const orphanActiveSessions: SessionTab[] = [];
+	const projectActiveSessions = new Map<string, Session[]>();
+	const orphanActiveSessions: Session[] = [];
 	for (const tab of tabs) {
 		if (!tab.cwd) {
 			orphanActiveSessions.push(tab);
