@@ -10,7 +10,11 @@ Small items with clear value. Worth doing.
 
 ## Low Priority
 
-Larger or niche items. Assess when needed.
+Terminal enhancements and larger features. Assess when needed.
+
+- [ ] **Terminal splits within a tab** — Re-add `groupId`, split rendering, keybindings for side-by-side panes within a single terminal tab. Each tab = one terminal is the right default for now.
+- [ ] **Terminal drag-to-reorder** — Drag handlers on content tab bar, reorder state, visual feedback.
+- [ ] **Terminal persistence across app restarts** — Serialize project→terminal mapping to storage, reconnect PTY sessions on restart.
 
 - [ ] **PR status indicators in sidebar** — Show open/closed/merged PR badges per thread. Requires GitHub API polling per branch. Complex, GitHub-specific.
 - [ ] **Pull request dialog** — Checkout a PR into a new thread. Depends on PR indicators + git worktrees.
@@ -36,5 +40,7 @@ Assessed and dropped.
 | v2 | 69 | — | — | 2026-03-23 |
 | v3 | 70 | 52 autopilot + 1 manual | ~5.5 hours (autopilot) | 2026-03-24 |
 | post-v3 | 1 (markdown links) | 1 manual | ~15 min | 2026-03-24 |
+| single-session | 21 | 10 autopilot | — | 2026-03-24 |
+| tabbed-ui | 23 | 15 autopilot | — | 2026-03-25 |
 
 Full plan archives at `.plan/archive/`.

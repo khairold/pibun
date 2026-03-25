@@ -33,6 +33,22 @@ Ship incrementally. Each phase produces a usable artifact. Don't build the deskt
 | Phase 6 | Custom Themes — 5 built-in themes, CSS custom properties, system preference | 104/104 checks ✅ |
 | Phase 7 | Plugin System — manifest, sandboxed iframes, postMessage bridge, example plugin | 116/116 checks ✅ |
 
+### Single-Session Simplification (21 items, 10 sessions)
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 1 | Single-Session Enforcement — one Pi process at a time, remove background routing | ✅ Complete |
+| Phase 2 | Session Lifecycle UX — empty session cleanup, auto-naming, active highlight | ✅ Complete |
+| Phase 3 | Cleanup & Simplify Types — remove dead multi-tab code, simplify `Session` type | ✅ Complete |
+
+### Project-Scoped Tabbed UI (23 items, 15 sessions)
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 1 | Rekey Terminal State — `ownerTabId` → `projectPath`, content tab state model | ✅ Complete |
+| Phase 2 | Content Tab Bar + Full-Size Terminals — `ContentTabBar`, AppShell restructure, auto-create | ✅ Complete |
+| Phase 3 | Polish & Cleanup — rename tabs, keyboard shortcuts, context menu, dead code removal | ✅ Complete |
+
 ---
 
 ## Parking Lot

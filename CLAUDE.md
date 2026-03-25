@@ -141,10 +141,14 @@ bun run test:smoke:plugins
 | 2 | Build fresh, don't fork T3 Code | ~60% of T3 Code is Codex-specific. Pi handles its own state. |
 | 3 | Desktop embeds server in-process | `createServer` and `PiRpcManager` imported directly. Same Bun event loop. |
 | 4 | Menu actions forwarded via WebSocket push | Keeps web app framework-agnostic. No Electrobun view-side dependency. |
-| 5 | Multi-session via `sessionId` on `WsRequest` | Backward compatible — no changes to individual method params. |
-| 6 | Tab IDs are client-generated, not Pi session IDs | Tabs are a UI concept. Tab can exist before session starts. |
+| 5 | Single active session, `sessionId` on `WsRequest` for routing | One Pi process at a time. Sidebar handles session navigation. `sessionId` still on WsRequest for server routing. |
+| 6 | Two session ID domains: PiBun manager ID vs Pi UUID | `sessionId` = PiBun manager ID (`session_{N}_{timestamp}`, routing). `piSessionId` = Pi UUID (session list matching). NEVER conflate. |
 | 7 | `packages/contracts` is types-only, zero runtime | No functions, no classes. Importable without side effects. |
 | 8 | `packages/shared` uses explicit subpath exports | `@pibun/shared/jsonl` not `@pibun/shared`. Prevents unintended coupling. |
+| 9 | Terminals scoped to project, not session | Terminals are workspaces (dev servers, file browsing). Keyed by project path. Switching sessions within same project keeps terminals. Switching projects swaps terminal set (kept alive in background). |
+| 10 | Tabbed main content area | Tab bar: [Chat] + [Terminal 1..N]. Chat = active session. Terminals = project-scoped, full-height, renameable. `activeContentTab` + `projectContentTabs` state. |
+| 11 | Content area uses `hidden` for tab switching | Absolute-positioned layers with `display:none` toggling. Preserves xterm.js instances and screen buffers across tab switches. |
+| 12 | `Session` type (renamed from `SessionTab`) | Client-side session container in `@pibun/contracts`. Holds `sessionId`, `piSessionId`, `cwd`, `model`, `sessionFile`, etc. |
 
 ## Gotchas
 
@@ -158,6 +162,9 @@ bun run test:smoke:plugins
 - **`bun-pty` native library** must be copied into Electrobun app bundle via `electrobun.config.ts`.
 - **Zustand selectors**: Never return new arrays/objects — causes infinite re-renders. Use `useMemo` or `useShallow`.
 - **PiRpcManager**: Removes session from map BEFORE calling `process.stop()` to prevent re-entrant cleanup races.
+- **Session ID domains**: `sessionId` (PiBun manager ID) and `piSessionId` (Pi UUID) are NEVER the same value. `store.sessionId` and `tab.sessionId` must always hold the PiBun manager ID.
+- **Terminal project matching**: `getActiveTab()?.cwd ?? ""` is canonical. In React selectors, use `s.tabs.find(t => t.id === s.activeTabId)?.cwd ?? ""` — don't call store methods inside selectors.
+- **`removeTab` doesn't delete project terminals**: Terminals survive session tab removal. `cleanupEmptyTab` doesn't call `terminal.close`. Terminals belong to the project, not the session.
 
 ## Reference Repos
 
