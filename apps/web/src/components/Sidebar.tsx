@@ -1065,7 +1065,18 @@ export function Sidebar() {
 			if (!isConnected || switchingPath) return;
 			setSwitchingPath(sessionPath);
 			try {
+				// If the current tab is empty (no messages), remove it before switching.
+				// This prevents orphaned "New session" tabs lingering in the sidebar.
+				const store = useStore.getState();
+				const leavingTab = store.getActiveTab();
+				const leavingIsEmpty = leavingTab !== null && store.messages.length === 0;
+
 				await switchSession(sessionPath);
+
+				if (leavingIsEmpty && leavingTab) {
+					store.removeTab(leavingTab.id);
+				}
+
 				// Auto-close sidebar on mobile after switching
 				if (isMobileWidth()) {
 					setSidebarOpen(false);

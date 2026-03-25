@@ -361,12 +361,15 @@ const RecentProjectItem = memo(function RecentProjectItem({
 /**
  * Empty state shown when there are no messages in the current tab.
  *
- * Shows a welcome prompt and recent projects (top 10 by lastOpened)
- * for quick access. Clicking a project opens it in a new tab or
- * switches to an existing tab with the same CWD.
+ * If a project is active (session scoped to a project), shows a minimal
+ * ready-to-type prompt. Otherwise shows recent projects for quick access.
  */
 function EmptyState() {
+	const activeTab = useStore((s) => s.tabs.find((t) => t.id === s.activeTabId));
 	const projects = useStore((s) => s.projects);
+
+	const hasProject = !!activeTab?.cwd;
+	const projectName = activeTab?.cwd?.split("/").pop() ?? "";
 
 	const recentProjects = useMemo(() => projects.slice(0, MAX_RECENT_PROJECTS), [projects]);
 
@@ -376,6 +379,22 @@ function EmptyState() {
 		});
 	}, []);
 
+	// Active project — simple ready-to-type state
+	if (hasProject) {
+		return (
+			<div className="flex flex-1 flex-col items-center justify-center px-4">
+				<div className="w-full max-w-md text-center">
+					<div className="mb-3 text-3xl">{"\u{1F967}"}</div>
+					<p className="text-sm text-text-secondary">
+						Ready to work on <span className="font-medium text-text-primary">{projectName}</span>
+					</p>
+					<p className="mt-1 text-xs text-text-muted">Type a message below to start</p>
+				</div>
+			</div>
+		);
+	}
+
+	// No active project — show project picker
 	return (
 		<div className="flex flex-1 flex-col items-center justify-center px-4">
 			<div className="w-full max-w-md text-center">
