@@ -92,6 +92,7 @@ switchTabAction → snapshots leaving tab → clears store.sessionId →
 | `lib/tabActions.ts` | ~200 | Tab lifecycle (start session, switch, cleanup) |
 | `lib/appActions.ts` | — | `createTerminal()`, `closeTerminal()` |
 | `components/AppShell.tsx` | ~250 | Top-level layout (toolbar + chat + terminal panel) |
+| `components/ContentTabBar.tsx` | ~240 | Content tab bar: Chat + project terminals + [+] button |
 | `components/TerminalPane.tsx` | ~605 | Bottom panel terminal (TO BE REPLACED) |
 | `components/TerminalInstance.tsx` | ~664 | xterm.js wrapper (KEEP — core rendering) |
 

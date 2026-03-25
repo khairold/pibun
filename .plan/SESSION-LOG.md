@@ -133,3 +133,28 @@
 - `TerminalPane.tsx` (605 lines) gets REPLACED by `ContentTabBar` + `TerminalView`. `TerminalInstance.tsx` (664 lines) is KEPT.
 
 ---
+
+## Session 5 — Create ContentTabBar component (2026-03-24)
+
+**What happened:**
+- Created `ContentTabBar.tsx` (~240 lines) — the tab bar component that renders above the main content area
+- Three sub-components: `ChatTab` (always first, not closable), `TerminalTabItem` (per-terminal with close button), `AddTerminalButton` ([+] to create new terminal)
+- Reads `activeContentTab`, `terminalTabs`, `activeTabId` from the Zustand store
+- Filters terminals by `projectPath === activeTab.cwd` using `useMemo` for stable reference
+- Close button disabled when only 1 terminal exists for the project (can't close last terminal)
+- Tab bar hidden entirely when no active project (no CWD set)
+- Active tab highlighted with `border-b-accent-primary` bottom border accent
+- Uses `memo` on `TerminalTabItem` to prevent unnecessary re-renders
+
+**Items completed:**
+- [x] 2.1 — Create `ContentTabBar` component
+
+**Issues encountered:**
+- None. Clean implementation, typecheck and build pass on first attempt.
+
+**Handoff to next session:**
+- Next: 2.2 — Restructure `AppShell` to insert `ContentTabBar` between toolbar and content, conditionally render ChatView+Composer vs full-height terminal
+- `ContentTabBar` is created but NOT yet wired into AppShell — it's imported nowhere
+- Key decision for 2.2: when `activeContentTab` is a terminal ID, render `TerminalInstance` at full height instead of ChatView+Composer. The `TerminalView` wrapper (2.3) may be needed first, OR 2.2 can do inline conditional rendering and 2.3 extracts it.
+
+---
