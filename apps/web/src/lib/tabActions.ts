@@ -19,6 +19,25 @@ import { deleteComposerDraft, fetchGitStatus } from "./appActions";
 import { refreshSessionState, switchSession } from "./sessionActions";
 
 // ============================================================================
+// Switch Generation (race condition guard)
+// ============================================================================
+
+/**
+ * Monotonically increasing counter to detect stale tab/session switch operations.
+ *
+ * When the user switches tabs rapidly, multiple `resumeActiveTabSession` calls
+ * overlap. Each call spawns a Pi process via `session.start`. The server's single-
+ * session model means each new `session.start` kills the previous process. If a
+ * stale switch then calls `session.switchSession` targeting the killed process,
+ * the server returns "Session not found" — which is correct server behavior but
+ * a confusing error for the user.
+ *
+ * The generation counter lets each async switch operation detect if it's been
+ * superseded and bail out silently instead of surfacing stale errors.
+ */
+let switchGeneration = 0;
+
+// ============================================================================
 // Session Start
 // ============================================================================
 
@@ -100,9 +119,15 @@ export async function startSession(options?: { cwd?: string }): Promise<string |
  * Handles the async work after a tab switch: start Pi process, load session
  * messages, refresh state. Called by both switchTabAction and addAndSwitchTabAction.
  *
+ * Uses the `switchGeneration` counter to detect when a newer switch has started.
+ * If superseded, the operation bails silently — the newer switch will handle
+ * everything. This prevents "Session not found" errors from rapid switching.
+ *
  * @param sessionFile The session file to resume, or null if no session.
  */
 async function resumeActiveTabSession(sessionFile: string | null): Promise<void> {
+	const myGeneration = ++switchGeneration;
+
 	if (sessionFile) {
 		// Clear sessionId so ensureSession starts a fresh Pi process
 		// (the old process was stopped when another session started)
@@ -110,6 +135,10 @@ async function resumeActiveTabSession(sessionFile: string | null): Promise<void>
 
 		// switchSession handles: ensureSession (start process) → switch to file → load messages → refresh state
 		const success = await switchSession(sessionFile);
+
+		// Bail if a newer switch has started — our session was likely killed by it
+		if (switchGeneration !== myGeneration) return;
+
 		if (success) {
 			// Sync tab metadata with refreshed session state
 			useStore.getState().syncActiveTabState();

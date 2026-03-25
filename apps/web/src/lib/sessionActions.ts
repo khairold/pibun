@@ -553,6 +553,11 @@ export async function startSessionInFolder(cwd: string): Promise<boolean> {
  * 5. Refresh session state
  *
  * Returns true on success, false on failure or cancellation.
+ *
+ * "Session not found" errors are treated as non-fatal: they typically mean
+ * a newer tab switch killed this session's Pi process (race condition during
+ * rapid switching). The caller (`resumeActiveTabSession`) uses a generation
+ * counter to detect and discard stale results.
  */
 export async function switchSession(sessionPath: string): Promise<boolean> {
 	const store = useStore.getState();
@@ -585,7 +590,15 @@ export async function switchSession(sessionPath: string): Promise<boolean> {
 		await fetchSessionList();
 		return true;
 	} catch (err) {
-		store.setLastError(`Failed to switch session: ${errorMessage(err)}`);
+		const msg = errorMessage(err);
+		// "Session not found" / "stopped" / "not running" errors during switch are
+		// typically caused by a newer tab switch killing this session's Pi process.
+		// Don't surface these as user-visible errors — the caller's generation
+		// counter will discard the stale result anyway.
+		const isStaleSessionError = /not found|stopped|not running|crashed/i.test(msg);
+		if (!isStaleSessionError) {
+			store.setLastError(`Failed to switch session: ${msg}`);
+		}
 		return false;
 	}
 }
