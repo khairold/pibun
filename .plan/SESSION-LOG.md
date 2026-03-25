@@ -381,3 +381,37 @@
 - 2 items remain in Phase 3
 
 ---
+
+## Session 15 — Desktop menu updates + Final verify (2026-03-25)
+
+**What happened:**
+- Added `showChat` (`view.show-chat`) and `newTerminal` (`view.new-terminal`) to `MENU_ACTIONS` in `apps/desktop/src/bun/menu.ts`
+- Added "Show Chat Tab" and "New Terminal Tab" menu items to the View submenu (between Toggle Terminal and the zoom separator)
+- No native accelerators added — `Cmd+1-9` are handled by the web app's keybinding system, not native menus (avoids double-execution)
+- Added `view.show-chat` and `view.new-terminal` case handlers in `wireTransport.ts` `handleMenuAction`
+- "Toggle Terminal" with `Cmd+backtick` retained — already works correctly with the content tab model (updated in session 9)
+- Ran final verification: `bun run typecheck` ✅, `bun run build` ✅, `bun run lint` has pre-existing issues only (none from this plan's changes)
+
+**Items completed:**
+- [x] 3.6 — Desktop menu updates: add content tab navigation commands
+- [x] 3.7 — Final verify: typecheck ✅, build ✅, lint pre-existing only
+
+**Issues encountered:**
+- `bun run lint` reports 6 pre-existing errors + 2 warnings in files untouched by this plan (`multi-session-test.ts`, `SessionBrowserDialog.tsx`, `workspaceSlice.ts`, `Sidebar.tsx`). None relate to the project-scoped tabbed UI work.
+
+**Phase 3 exit criteria verified:**
+- ✅ Terminals renameable (3.1)
+- ✅ Keyboard navigation works (3.2 — Cmd+1-9, Cmd+J)
+- ✅ Context menu on terminal tabs (3.3)
+- ✅ No dead terminal panel code (3.4, 3.5)
+- ✅ Desktop menu updated (3.6)
+- ✅ Clean build (3.7)
+
+**🎉 ALL PHASES COMPLETE — Project-Scoped Tabbed UI plan is finished.**
+
+**Handoff:**
+- All 3 phases (21 items) delivered across 15 sessions
+- Parking lot items remain for future plans: session resume edge cases, desktop menu rebuild (broader scope), SessionTab rename, terminal splits, drag-to-reorder, terminal persistence across restarts
+- Pre-existing lint issues should be addressed in a separate cleanup pass
+
+---

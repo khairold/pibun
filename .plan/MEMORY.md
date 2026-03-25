@@ -43,6 +43,7 @@
 | 26 | Terminal tab context menu: native first, HTML fallback | Right-click on terminal tab tries `showNativeContextMenu` (desktop native). On failure, falls back to `HtmlTerminalContextMenu` (positioned `<div>` with click-outside dismiss). Actions: Rename (triggers inline edit via `externalRenaming` prop), Close (calls `closeTerminal`). Same dual-path pattern used by Sidebar's project context menu. | 2026-03-25 |
 
 | 27 | Split infrastructure fully removed | `TerminalPane.tsx` deleted, `groupId` removed from `TerminalTab`, `splitTerminalTab` removed from slice/types, `splitTerminal` action removed from appActions, keybinding (`mod+shift+\\`) removed, `ShortcutAction` and `KeybindingCommand` unions cleaned, `MAX_TERMINALS_PER_GROUP` constant deleted. Splits parked for potential future return as a separate feature. | 2026-03-25 |
+| 28 | Desktop menu: Show Chat Tab + New Terminal Tab added | Added `view.show-chat` and `view.new-terminal` actions to `MENU_ACTIONS` in desktop `menu.ts`. Menu items in View submenu (no accelerators — Cmd+1-9 handled by web app's keybinding system). Handler in `wireTransport.ts` calls `setActiveContentTab("chat")` and `createTerminal()` respectively. "Toggle Terminal" with Cmd+backtick retained — works correctly with content tab model. | 2026-03-25 |
 
 ## Architecture Notes
 

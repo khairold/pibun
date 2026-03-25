@@ -1,9 +1,9 @@
 # Project-Scoped Tabbed UI — Build Plan
 
 > **Spec:** Main content area with tab bar: session chat + project-scoped terminals
-> **Status:** In Progress
-> **Current Phase:** Phase 3 — Polish & Cleanup
-> **Last Session:** Session 14 — 2026-03-25
+> **Status:** Complete ✅
+> **Current Phase:** All phases complete
+> **Last Session:** Session 15 — 2026-03-25
 
 ---
 
@@ -92,10 +92,10 @@ Workspaces map to projects.
 - [x] 3.3 — Context menu on terminal tabs: Rename, Close. Reuse existing context menu patterns from Sidebar.
 - [x] 3.4 — Delete dead `TerminalPane.tsx` (bottom panel with resize handle, tab strip, split groups — all replaced by ContentTabBar + TerminalView). Remove all imports.
 - [x] 3.5 — Clean up terminal split infrastructure: remove `groupId` from `TerminalTab`, remove `splitTerminalTab` from TerminalSlice, remove `MAX_TERMINALS_PER_GROUP`. Splits are parked — each tab is one terminal.
-- [ ] 3.6 — Desktop menu updates: add content tab navigation commands. Remove old terminal panel toggle menu item if present.
-- [ ] 3.7 — Final verify: `bun run typecheck && bun run build && bun run lint`.
+- [x] 3.6 — Desktop menu updates: add content tab navigation commands. Remove old terminal panel toggle menu item if present.
+- [x] 3.7 — Final verify: `bun run typecheck && bun run build && bun run lint`.
 
-**Exit criteria:** Terminals renameable. Keyboard navigation works. No dead terminal panel code. Clean build.
+**Exit criteria:** Terminals renameable. Keyboard navigation works. No dead terminal panel code. Clean build. ✅ ALL MET
 
 ---
 

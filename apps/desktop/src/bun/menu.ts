@@ -32,6 +32,8 @@ export const MENU_ACTIONS = {
 	toggleSidebar: "view.toggle-sidebar",
 	toggleGitPanel: "view.toggle-git-panel",
 	toggleTerminal: "view.toggle-terminal",
+	showChat: "view.show-chat",
+	newTerminal: "view.new-terminal",
 	zoomIn: "view.zoom-in",
 	zoomOut: "view.zoom-out",
 	zoomActualSize: "view.zoom-actual-size",
@@ -164,6 +166,14 @@ export function buildMenuConfig(recentProjects?: RecentProject[]): ApplicationMe
 					label: "Toggle Terminal",
 					action: MENU_ACTIONS.toggleTerminal,
 					accelerator: "CommandOrControl+`",
+				},
+				{
+					label: "Show Chat Tab",
+					action: MENU_ACTIONS.showChat,
+				},
+				{
+					label: "New Terminal Tab",
+					action: MENU_ACTIONS.newTerminal,
 				},
 				{ type: "separator" },
 				{

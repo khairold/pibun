@@ -635,6 +635,16 @@ function handleMenuAction(data: WsMenuActionData): void {
 			break;
 		}
 
+		case "view.show-chat":
+			useStore.getState().setActiveContentTab("chat");
+			break;
+
+		case "view.new-terminal":
+			createTerminal().catch((err: unknown) => {
+				console.error("[Menu] Failed to create terminal:", err);
+			});
+			break;
+
 		// ── Session ──────────────────────────────────────────────
 		case "session.abort":
 			if (store.isStreaming) {
