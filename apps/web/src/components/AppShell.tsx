@@ -80,10 +80,6 @@ export function AppShell() {
 	const prerequisitePi = useStore((s) => s.prerequisitePi);
 	const prerequisiteReady = useStore((s) => s.prerequisiteReady);
 
-	if (prerequisitePi !== null && !prerequisiteReady) {
-		return <SetupScreen />;
-	}
-
 	const sidebarOpen = useStore((s) => s.sidebarOpen);
 	const toggleSidebar = useStore((s) => s.toggleSidebar);
 	const isWindowFocused = useStore((s) => s.isWindowFocused);
@@ -126,6 +122,11 @@ export function AppShell() {
 				pendingAutoCreateRef.current = null;
 			});
 	}, [activeProjectPath, connectionStatus, projectTerminals.length]);
+
+	// Early return AFTER all hooks — React requires consistent hook count across renders.
+	if (prerequisitePi !== null && !prerequisiteReady) {
+		return <SetupScreen />;
+	}
 
 	return (
 		<div className="flex h-screen bg-surface-base text-text-primary">
