@@ -90,27 +90,6 @@ export async function startSession(options?: { cwd?: string }): Promise<string |
 // Empty Tab Cleanup
 // ============================================================================
 
-/**
- * Remove a tab's UI artifacts after switching away from it.
- * Closes its terminals on the server, deletes the composer draft,
- * and removes the tab from the store.
- *
- * Must be called AFTER the tab is no longer active (post-switchTab).
- * Session stop must happen BEFORE the switch (while transport routes to it).
- */
-function cleanupEmptyTab(tabId: string): void {
-	const store = useStore.getState();
-
-	// Terminals are NOT closed — they belong to the project, not the session tab.
-	// Other sessions in the same project share the same terminal set.
-
-	// Delete composer draft
-	deleteComposerDraft(tabId);
-
-	// Remove from store (non-active tab — just filters it out)
-	store.removeTab(tabId);
-}
-
 // ============================================================================
 // Tab Switching
 // ============================================================================
@@ -142,38 +121,29 @@ export async function switchTabAction(tabId: string): Promise<void> {
 	const targetTab = store.tabs.find((t) => t.id === tabId);
 	if (!targetTab || targetTab.id === store.activeTabId) return;
 
-	// ── Auto-remove empty session ────────────────────────────────
-	// If the leaving tab has zero messages, it's an unused session.
-	// Stop its Pi process (while transport still routes to it), then
-	// remove the tab after switching.
+	// Capture leaving tab info for server-side cleanup (fire-and-forget)
 	const leavingTab = store.getActiveTab();
 	const leavingIsEmpty = leavingTab !== null && store.messages.length === 0;
 
-	if (leavingIsEmpty && leavingTab.sessionId) {
-		try {
-			if (store.isStreaming) {
-				try {
-					await getTransport().request("session.abort");
-				} catch {
-					// Continue even if abort fails
-				}
-			}
-			await getTransport().request("session.stop");
-		} catch (err) {
-			console.warn("[switchTabAction] Failed to stop empty session:", err);
-			// Continue — tab removal shouldn't be blocked by stop failure
-		}
-	}
-
-	// 1. Switch tab in store — snapshots leaving tab, clears messages
+	// 1. Switch tab in store — snapshots leaving tab, clears messages.
+	//    If the leaving tab is empty (0 messages), it's auto-removed synchronously
+	//    in the same state update — no flicker.
 	store.switchTab(tabId);
 
-	// 1b. Clean up the empty leaving tab (now non-active)
-	if (leavingIsEmpty && leavingTab) {
-		cleanupEmptyTab(leavingTab.id);
+	// 2. Server-side cleanup for the empty session (fire-and-forget, non-blocking)
+	if (leavingIsEmpty && leavingTab?.sessionId) {
+		(async () => {
+			try {
+				await getTransport().request("session.stop");
+			} catch {
+				// Best-effort — server will clean up eventually
+			}
+		})();
+		// Clean up composer draft
+		deleteComposerDraft(leavingTab.id);
 	}
 
-	// 2. Resume target session if it has a session file
+	// 3. Resume target session if it has a session file
 	if (targetTab.sessionFile) {
 		// Clear sessionId so ensureSession starts a fresh Pi process
 		// (the old process was stopped when another session started)

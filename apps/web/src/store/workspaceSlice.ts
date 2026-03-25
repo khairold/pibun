@@ -248,6 +248,8 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			// Snapshot the leaving tab's metadata from current session state
 			let updatedTabs = s.tabs;
 			const leavingTab = s.activeTabId ? s.tabs.find((t) => t.id === s.activeTabId) : null;
+			const leavingIsEmpty = leavingTab !== null && s.messages.length === 0;
+
 			if (s.activeTabId) {
 				// NOTE: Do NOT overwrite t.sessionId — it holds the PiBun manager ID
 				// from session.start. Only sync piSessionId for session list matching.
@@ -267,6 +269,12 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 							}
 						: t,
 				);
+			}
+
+			// Auto-remove empty leaving tab (0 messages, never used).
+			// This is synchronous — the tab vanishes in the same render as the switch.
+			if (leavingIsEmpty && leavingTab) {
+				updatedTabs = updatedTabs.filter((t) => t.id !== leavingTab.id);
 			}
 
 			// Determine if this is a same-project or cross-project switch
