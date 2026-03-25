@@ -36,6 +36,39 @@ function errorMessage(err: unknown): string {
 }
 
 // ============================================================================
+// Prerequisites Check
+// ============================================================================
+
+/**
+ * Check system prerequisites (Pi CLI) and update the store.
+ *
+ * Called:
+ * - On `server.welcome` (every WS connect/reconnect)
+ * - On "Re-check" button click from the setup screen
+ *
+ * The server runs `pi --version` and checks against its minimum version.
+ */
+export async function checkPrerequisites(): Promise<void> {
+	const store = useStore.getState();
+	store.setPrerequisiteChecking(true);
+
+	try {
+		const result = await getTransport().request("app.checkPrerequisites");
+		store.setPrerequisiteStatus(result.pi, result.minimumPiVersion, result.ready);
+	} catch (err) {
+		console.error("[prerequisites] Failed to check prerequisites:", err);
+		// On failure, assume not ready so the setup screen shows
+		store.setPrerequisiteStatus(
+			{ found: false, version: null, meetsMinimum: false },
+			"0.61.0",
+			false,
+		);
+	} finally {
+		store.setPrerequisiteChecking(false);
+	}
+}
+
+// ============================================================================
 // Git Actions
 // ============================================================================
 

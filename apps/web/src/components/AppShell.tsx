@@ -28,6 +28,7 @@ import { PluginManager } from "@/components/PluginManager";
 import { PluginBottomPanels, PluginRightPanels } from "@/components/PluginPanel";
 import { SessionStats } from "@/components/SessionStats";
 import { SettingsDialog } from "@/components/SettingsDialog";
+import { SetupScreen } from "@/components/SetupScreen";
 import { Sidebar } from "@/components/Sidebar";
 import { StatusBar } from "@/components/StatusBar";
 import { TerminalInstance } from "@/components/TerminalInstance";
@@ -73,6 +74,15 @@ function SettingsButton() {
 export function AppShell() {
 	useKeyboardShortcuts();
 	useWindowTitle();
+
+	// Gate: show setup screen when Pi CLI is missing or outdated.
+	// `prerequisitePi === null` means the check hasn't completed yet (first load) — don't flash the setup screen.
+	const prerequisitePi = useStore((s) => s.prerequisitePi);
+	const prerequisiteReady = useStore((s) => s.prerequisiteReady);
+
+	if (prerequisitePi !== null && !prerequisiteReady) {
+		return <SetupScreen />;
+	}
 
 	const sidebarOpen = useStore((s) => s.sidebarOpen);
 	const toggleSidebar = useStore((s) => s.toggleSidebar);

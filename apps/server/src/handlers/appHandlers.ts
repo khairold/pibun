@@ -17,6 +17,8 @@ import { join } from "node:path";
 import type {
 	KeybindingRule,
 	PiBunSettings,
+	PrerequisiteCheck,
+	WsAppCheckPrerequisitesResult,
 	WsAppOpenFolderDialogResult,
 	WsAppSaveExportFileParams,
 	WsAppSaveExportFileResult,
@@ -105,6 +107,84 @@ export const handleAppCheckForUpdates: WsHandler<"app.checkForUpdates"> = (
 	}
 	ctx.hooks.onCheckForUpdates();
 	return { ok: true };
+};
+
+// ============================================================================
+// Prerequisites Check
+// ============================================================================
+
+/**
+ * Minimum Pi CLI version required by this PiBun build.
+ * Bump this when PiBun uses new Pi RPC features.
+ */
+const MIN_PI_VERSION = "0.61.0";
+
+/**
+ * Compare two semver strings (major.minor.patch). Returns:
+ * - negative if a < b
+ * - 0 if a === b
+ * - positive if a > b
+ */
+function compareSemver(a: string, b: string): number {
+	const pa = a.split(".").map(Number);
+	const pb = b.split(".").map(Number);
+	for (let i = 0; i < 3; i++) {
+		const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+		if (diff !== 0) return diff;
+	}
+	return 0;
+}
+
+/**
+ * Check if the `pi` CLI is installed and meets the minimum version.
+ *
+ * Runs `pi --version` synchronously (fast — just prints a string and exits).
+ * Returns a PrerequisiteCheck with found/version/meetsMinimum.
+ */
+function checkPiCli(): PrerequisiteCheck {
+	try {
+		const result = Bun.spawnSync(["pi", "--version"], {
+			stdout: "pipe",
+			stderr: "pipe",
+			env: process.env,
+		});
+
+		if (result.exitCode !== 0) {
+			return { found: false, version: null, meetsMinimum: false };
+		}
+
+		const version = result.stdout.toString().trim();
+		if (!version || !/^\d+\.\d+/.test(version)) {
+			// Got output but doesn't look like a version string
+			return { found: true, version: null, meetsMinimum: false };
+		}
+
+		const meetsMinimum = compareSemver(version, MIN_PI_VERSION) >= 0;
+		return { found: true, version, meetsMinimum };
+	} catch {
+		// Binary not found or spawn failed
+		return { found: false, version: null, meetsMinimum: false };
+	}
+}
+
+/**
+ * Check system prerequisites for running PiBun.
+ *
+ * Currently checks only the `pi` CLI. If Pi is installed and meets the
+ * minimum version, Node.js is implicitly satisfied (Pi requires Node).
+ *
+ * Callable on-demand for the "Re-check" button on the setup screen.
+ */
+export const handleAppCheckPrerequisites: WsHandler<"app.checkPrerequisites"> = (
+	_params: undefined,
+	_ctx: HandlerContext,
+): WsAppCheckPrerequisitesResult => {
+	const pi = checkPiCli();
+	return {
+		pi,
+		minimumPiVersion: MIN_PI_VERSION,
+		ready: pi.found && pi.meetsMinimum,
+	};
 };
 
 /**

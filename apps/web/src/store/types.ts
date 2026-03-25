@@ -16,6 +16,7 @@ import type {
 	PiThinkingLevel,
 	Plugin,
 	PluginPanelPosition,
+	PrerequisiteCheck,
 	Project,
 	Session,
 	TimestampFormat,
@@ -114,6 +115,26 @@ export interface ConnectionSlice {
 	clearLastError: () => void;
 	/** Set a provider health issue (persistent until dismissed). */
 	setProviderHealth: (issue: ProviderHealthIssue | null) => void;
+}
+
+/** Prerequisites state — system dependency checks (Pi CLI, Node.js). */
+export interface PrerequisitesSlice {
+	/**
+	 * Pi CLI prerequisite status. Null before the first check completes.
+	 * Checked on WS connect and on-demand via "Re-check" button.
+	 */
+	prerequisitePi: PrerequisiteCheck | null;
+	/** Minimum Pi version required by this PiBun build. */
+	prerequisiteMinPiVersion: string | null;
+	/** True when all prerequisites are met and sessions can be created. */
+	prerequisiteReady: boolean;
+	/** True while a prerequisite check is in progress. */
+	prerequisiteChecking: boolean;
+
+	/** Set prerequisite check results. */
+	setPrerequisiteStatus: (pi: PrerequisiteCheck, minimumPiVersion: string, ready: boolean) => void;
+	/** Set the checking-in-progress flag. */
+	setPrerequisiteChecking: (checking: boolean) => void;
 }
 
 /** Session state — Pi agent session info. */
@@ -675,6 +696,7 @@ export interface PluginsSlice {
 
 /** Full Zustand store type — union of all slices. */
 export type AppStore = ConnectionSlice &
+	PrerequisitesSlice &
 	SessionSlice &
 	MessagesSlice &
 	ModelsSlice &

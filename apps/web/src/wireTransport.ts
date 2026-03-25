@@ -13,6 +13,7 @@
 
 import {
 	addProject,
+	checkPrerequisites,
 	createTerminal,
 	fetchAndApplyKeybindings,
 	fetchAndApplySettings,
@@ -769,6 +770,8 @@ export function initTransport(): () => void {
 	cleanups.push(
 		transport.subscribe("server.welcome", (data) => {
 			console.log(`[PiBun] Connected to server — cwd: ${data.cwd}, version: ${data.version}`);
+			// Check system prerequisites (Pi CLI installed & version)
+			checkPrerequisites();
 			// Fetch available sessions for the sidebar
 			fetchSessionList();
 			// Fetch saved projects for the sidebar

@@ -39,6 +39,7 @@ export type {
 	ModelsSlice,
 	NotificationsSlice,
 	PluginsSlice,
+	PrerequisitesSlice,
 	ProjectsSlice,
 	SessionSlice,
 	TabsSlice,

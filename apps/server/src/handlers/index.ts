@@ -8,6 +8,7 @@
 import {
 	handleAppApplyUpdate,
 	handleAppCheckForUpdates,
+	handleAppCheckPrerequisites,
 	handleAppOpenFolderDialog,
 	handleAppSaveExportFile,
 	handleAppSetWindowTitle,
@@ -157,6 +158,7 @@ export const handlers: HandlerRegistry = {
 	// App-level (desktop integration)
 	"app.applyUpdate": handleAppApplyUpdate,
 	"app.checkForUpdates": handleAppCheckForUpdates,
+	"app.checkPrerequisites": handleAppCheckPrerequisites,
 	"app.openFolderDialog": handleAppOpenFolderDialog,
 	"app.setWindowTitle": handleAppSetWindowTitle,
 	"app.saveExportFile": handleAppSaveExportFile,

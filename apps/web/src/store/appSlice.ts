@@ -17,6 +17,7 @@ import type {
 	ConnectionSlice,
 	ExtensionWidget,
 	NotificationsSlice,
+	PrerequisitesSlice,
 	Toast,
 	UiSlice,
 	UpdateSlice,
@@ -24,7 +25,7 @@ import type {
 
 // ==== Combined Slice Type ====
 
-type AppSlice = ConnectionSlice & UiSlice & UpdateSlice & NotificationsSlice;
+type AppSlice = ConnectionSlice & PrerequisitesSlice & UiSlice & UpdateSlice & NotificationsSlice;
 
 // ==== UI Helpers ====
 
@@ -58,6 +59,20 @@ export const createAppSlice: StateCreator<AppStore, [], [], AppSlice> = (set, ge
 	setLastError: (error) => set({ lastError: error }),
 	clearLastError: () => set({ lastError: null }),
 	setProviderHealth: (issue) => set({ providerHealth: issue }),
+
+	// ---- Prerequisites state ----
+	prerequisitePi: null,
+	prerequisiteMinPiVersion: null,
+	prerequisiteReady: false,
+	prerequisiteChecking: false,
+
+	setPrerequisiteStatus: (pi, minimumPiVersion, ready) =>
+		set({
+			prerequisitePi: pi,
+			prerequisiteMinPiVersion: minimumPiVersion,
+			prerequisiteReady: ready,
+		}),
+	setPrerequisiteChecking: (checking) => set({ prerequisiteChecking: checking }),
 
 	// ---- UI state ----
 	sidebarOpen: isDesktopWidth(),
