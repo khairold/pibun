@@ -1050,12 +1050,34 @@ export function Sidebar() {
 			if (!isConnected || switchingPath) return;
 			setSwitchingPath(sessionPath);
 			try {
+				const store = useStore.getState();
+				const activeTab = store.getActiveTab();
+				const isEmpty = activeTab !== null && store.messages.length === 0;
+
+				// Determine the project this past session belongs to
+				// Session paths look like: /path/to/project/.pi/sessions/xxx.jsonl
+				const sessionDir = sessionPath.replace(/\/\.pi\/sessions\/.*$/, "");
+				const targetProject = store.projects.find(
+					(p) => normalizeCwd(p.cwd) === normalizeCwd(sessionDir),
+				);
+
+				// If the active tab is empty and session is from a different project,
+				// update the tab's cwd so it moves to the correct project group.
+				if (isEmpty && activeTab && targetProject) {
+					const currentCwd = activeTab.cwd ?? "";
+					if (normalizeCwd(currentCwd) !== normalizeCwd(targetProject.cwd)) {
+						store.updateTab(activeTab.id, { cwd: targetProject.cwd });
+						store.setActiveProjectId(targetProject.id);
+					}
+				}
+
 				// switchSession loads the past session INTO the current active tab.
-				// The empty "New session" tab naturally becomes the loaded session
-				// (name, messages, sessionFile all get updated). No tab removal needed.
+				// Name, messages, sessionFile all get updated via refreshSessionState.
 				await switchSession(sessionPath);
 
-				// Auto-close sidebar on mobile after switching
+				// Sync tab metadata after session load
+				useStore.getState().syncActiveTabState();
+
 				if (isMobileWidth()) {
 					setSidebarOpen(false);
 				}
