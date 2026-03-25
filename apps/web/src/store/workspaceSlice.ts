@@ -43,6 +43,22 @@ type WorkspaceSlice = TabsSlice &
 // Tabs helpers
 // ============================================================================
 
+/**
+ * Client-side message cache — keyed by tab ID.
+ *
+ * When leaving a tab, current messages are stashed here. When switching back,
+ * messages are restored immediately so the user sees their conversation
+ * without waiting for the Pi process to start + `get_messages` to complete.
+ *
+ * External to the Zustand store: this is a switching optimization, not UI state.
+ * No reactivity needed — only read/written inside `switchTab`/`addAndSwitchTab`.
+ *
+ * Invalidation: entries are removed when a tab is removed. Naturally overwritten
+ * on each switch-away (latest messages always cached). No TTL needed — messages
+ * only change when the user interacts with the session (single-session model).
+ */
+const messageCache = new Map<string, ChatMessage[]>();
+
 /** Auto-incrementing counter for unique tab IDs. */
 let tabIdCounter = 0;
 
@@ -153,6 +169,9 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	},
 
 	removeTab: (tabId) => {
+		// Clean up message cache for the removed tab
+		messageCache.delete(tabId);
+
 		set((s) => {
 			const newTabs = s.tabs.filter((t) => t.id !== tabId);
 
@@ -175,9 +194,8 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 
 				if (nextTab) {
 					// Set session metadata from the next tab.
-					// Messages are NOT restored from cache — the async action layer
-					// loads them from Pi via session.getMessages.
-					updates.messages = [];
+					// Restore cached messages for instant display.
+					updates.messages = messageCache.get(nextTab.id) ?? [];
 					updates.statuses = new Map<string, string>();
 					updates.extensionWidgets = new Map<string, ExtensionWidget>();
 					updates.sessionId = nextTab.sessionId;
@@ -250,6 +268,11 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			const leavingTab = s.activeTabId ? s.tabs.find((t) => t.id === s.activeTabId) : null;
 			const leavingIsEmpty = leavingTab !== null && s.messages.length === 0;
 
+			// Cache leaving tab's messages for instant restore on switch-back
+			if (s.activeTabId && s.messages.length > 0) {
+				messageCache.set(s.activeTabId, s.messages);
+			}
+
 			if (s.activeTabId) {
 				// NOTE: Do NOT overwrite t.sessionId — it holds the PiBun manager ID
 				// from session.start. Only sync piSessionId for session list matching.
@@ -274,6 +297,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			// Auto-remove empty leaving tab (0 messages, never used).
 			// This is synchronous — the tab vanishes in the same render as the switch.
 			if (leavingIsEmpty && leavingTab) {
+				messageCache.delete(leavingTab.id);
 				updatedTabs = updatedTabs.filter((t) => t.id !== leavingTab.id);
 			}
 
@@ -313,12 +337,15 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				}
 			}
 
+			// Restore cached messages for instant display, or empty if no cache
+			const cachedMessages = messageCache.get(tabId) ?? [];
+
 			return {
 				tabs: updatedTabs,
 				activeTabId: tabId,
-				// Clear messages/statuses/widgets — the async action layer
-				// loads fresh data from Pi via session.getMessages
-				messages: [],
+				// Restore cached messages for instant display. The async action layer
+				// will refresh from Pi via session.getMessages in the background.
+				messages: cachedMessages,
 				statuses: new Map<string, string>(),
 				extensionWidgets: new Map<string, ExtensionWidget>(),
 				extensionTitle: null, // Extension title is per-session, clear on switch
@@ -377,6 +404,11 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			const leavingTab = s.activeTabId ? s.tabs.find((t) => t.id === s.activeTabId) : null;
 			const leavingIsEmpty = leavingTab !== null && s.messages.length === 0;
 
+			// Cache leaving tab's messages for instant restore on switch-back
+			if (s.activeTabId && s.messages.length > 0) {
+				messageCache.set(s.activeTabId, s.messages);
+			}
+
 			if (s.activeTabId) {
 				updatedTabs = s.tabs.map((t) =>
 					t.id === s.activeTabId
@@ -398,6 +430,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 
 			// Auto-remove empty leaving tab (0 messages, never used)
 			if (leavingIsEmpty && leavingTab) {
+				messageCache.delete(leavingTab.id);
 				updatedTabs = updatedTabs.filter((t) => t.id !== leavingTab.id);
 			}
 

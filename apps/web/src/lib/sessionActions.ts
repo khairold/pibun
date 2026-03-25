@@ -218,12 +218,26 @@ function convertPiMessages(piMessages: PiAgentMessage[]): ChatMessage[] {
  *
  * Called after session switch, fork, or folder open to load the
  * existing messages for display.
+ *
+ * If the store already has messages (restored from the client-side message
+ * cache during tab switch), the fetch is skipped — the cache is always fresh
+ * because nothing modifies the session while we're on another tab (single-
+ * session model). This avoids a visual flash (clear → blank → reload).
+ *
+ * Pass `force: true` to bypass the cache check (used by fork, which changes
+ * the message history server-side).
  */
-export async function loadSessionMessages(): Promise<void> {
+export async function loadSessionMessages(options?: { force?: boolean }): Promise<void> {
+	const store = useStore.getState();
+
+	// Skip fetch if cache already populated messages — avoids flash on tab switch
+	if (!options?.force && store.messages.length > 0) {
+		return;
+	}
+
 	try {
 		const result = await getTransport().request("session.getMessages");
 		const chatMessages = convertPiMessages(result.messages);
-		const store = useStore.getState();
 		store.clearMessages();
 		for (const msg of chatMessages) {
 			store.appendMessage(msg);
@@ -437,8 +451,8 @@ export async function forkFromMessage(entryId: string): Promise<boolean> {
 		store.setIsStreaming(false);
 		// Refresh state
 		await refreshSessionState();
-		// Load the forked session's message history
-		await loadSessionMessages();
+		// Load the forked session's message history (force — fork changes history)
+		await loadSessionMessages({ force: true });
 		return true;
 	} catch (err) {
 		store.setLastError(`Failed to fork session: ${errorMessage(err)}`);
