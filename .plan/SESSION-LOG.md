@@ -204,3 +204,25 @@
 - Legacy `TerminalPane` still renders inside the chat layer. Items 2.6 removes it.
 
 ---
+
+## Session 8 — Wire [+]/close buttons + createTerminal auto-switch (2026-03-25)
+
+**What happened:**
+- Updated `createTerminal()` in appActions to call `setActiveContentTab(tabId)` after creating a terminal — [+] button now auto-switches to the new terminal tab (item 2.7)
+- Fixed `removeTerminalTab` in workspaceSlice: when the removed terminal was `activeContentTab`, now selects the adjacent terminal (via `newActiveId`) instead of always falling back to "chat". Only falls back to "chat" when no project terminals remain (item 2.5)
+- Updated auto-create effect in AppShell to call `setActiveContentTab("chat")` after creation (since `createTerminal` now auto-switches, but auto-created terminals should stay on chat)
+- Removed the legacy `setTerminalPanelOpen(true)` call from `createTerminal` — terminal visibility is now controlled by `activeContentTab`
+
+**Items completed:**
+- [x] 2.5 — Wire [+] button and close button behavior
+- [x] 2.7 — Update `createTerminal` to auto-switch to new terminal tab
+
+**Issues encountered:**
+- None. Clean implementation, typecheck and build pass on first attempt.
+
+**Handoff to next session:**
+- Next: 2.6 — Remove `terminalPanelOpen` state, `toggleTerminalPanel`, `setTerminalPanelOpen` from TerminalSlice. Remove `TerminalButton` from AppShell toolbar.
+- `terminalPanelOpen` is still referenced in: workspaceSlice (state + toggle + setter), AppShell (TerminalButton), TerminalPane, useKeyboardShortcuts, wireTransport, store/types.ts (TerminalSlice type)
+- After 2.6, only 2.8 (verification) remains in Phase 2.
+
+---

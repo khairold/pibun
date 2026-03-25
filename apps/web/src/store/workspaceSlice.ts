@@ -470,9 +470,18 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			}
 		}
 
-		// If the removed terminal was the active content tab, fall back to "chat"
-		const contentTabUpdate =
-			state.activeContentTab === tabId ? { activeContentTab: "chat" as string } : {};
+		// If the removed terminal was the active content tab, select adjacent terminal
+		// or fall back to "chat" if no project terminals remain.
+		let contentTabUpdate: Partial<AppStore> = {};
+		if (state.activeContentTab === tabId) {
+			if (projectTabs.length > 0) {
+				// Select the adjacent terminal (same logic as activeTerminalTabId above)
+				contentTabUpdate = { activeContentTab: newActiveId ?? "chat" };
+			} else {
+				// No terminals left — fall back to chat
+				contentTabUpdate = { activeContentTab: "chat" };
+			}
+		}
 
 		set({
 			terminalTabs: newTabs,

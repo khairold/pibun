@@ -163,9 +163,9 @@ export function AppShell() {
 		createTerminal()
 			.then((tabId) => {
 				if (tabId) {
-					// Don't open legacy terminal panel for auto-created terminals.
-					// Stay on chat tab — user didn't explicitly request this terminal.
-					useStore.getState().setTerminalPanelOpen(false);
+					// createTerminal now auto-switches activeContentTab to the new terminal.
+					// But for auto-created terminals, stay on chat — user didn't request this.
+					useStore.getState().setActiveContentTab("chat");
 				}
 			})
 			.finally(() => {

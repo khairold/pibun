@@ -635,9 +635,11 @@ export async function createTerminal(cwd?: string): Promise<string | null> {
 		});
 		const terminalId = result.terminalId;
 
-		// Add terminal tab to store and open panel
+		// Add terminal tab to store (sets activeTerminalTabId automatically)
 		const tabId = store.addTerminalTab(terminalId, resolvedCwd ?? "~");
-		store.setTerminalPanelOpen(true);
+
+		// Auto-switch to the new terminal tab in the content area
+		store.setActiveContentTab(tabId);
 
 		return tabId;
 	} catch (err) {
