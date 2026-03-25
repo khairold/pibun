@@ -16,7 +16,7 @@
 
 import { PluginSidebarPanels } from "@/components/PluginPanel";
 import { SessionBrowserDialog } from "@/components/SessionBrowserDialog";
-import { addProject, createTerminal, openProject, removeProject } from "@/lib/appActions";
+import { addProject, createTerminal, removeProject } from "@/lib/appActions";
 import { fetchSessionList, switchSession } from "@/lib/sessionActions";
 import { startSession, switchTabAction } from "@/lib/tabActions";
 import { cn, onShortcut } from "@/lib/utils";
@@ -984,22 +984,6 @@ export function Sidebar() {
 		setShowAddProjectInput(false);
 	}, []);
 
-	const handleOpenProject = useCallback(
-		async (project: Project) => {
-			if (!isConnected) return;
-			try {
-				await openProject(project);
-				// Auto-close sidebar on mobile after opening
-				if (isMobileWidth()) {
-					setSidebarOpen(false);
-				}
-			} catch (err) {
-				console.error("[Sidebar] Failed to open project:", err);
-			}
-		},
-		[isConnected, setSidebarOpen],
-	);
-
 	const handleRemoveProject = useCallback((projectId: string) => {
 		removeProject(projectId).catch((err: unknown) => {
 			console.error("[Sidebar] Failed to remove project:", err);
@@ -1388,17 +1372,12 @@ export function Sidebar() {
 											</svg>
 										)}
 
-										{/* Project name — clickable to open/focus */}
+										{/* Project name — clickable to expand/collapse only */}
 										{/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled by expand button */}
 										<div
 											className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5"
 											onClick={() => {
-												if (group.project) {
-													handleOpenProject(group.project);
-												}
-												if (!isExpanded) {
-													toggleGroupExpanded(groupKey);
-												}
+												toggleGroupExpanded(groupKey);
 											}}
 											onContextMenu={(e) => {
 												if (group.project) {
