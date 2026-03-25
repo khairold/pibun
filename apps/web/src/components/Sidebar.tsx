@@ -1032,10 +1032,20 @@ export function Sidebar() {
 				return;
 			}
 
+			// If the current tab is empty (different project), remember it for cleanup
+			const leavingTab = activeTab;
+			const leavingIsEmpty = leavingTab !== null && store.messages.length === 0;
+
 			setIsCreating(true);
 			try {
 				store.setActiveProjectId(project.id);
 				await startSession({ cwd: project.cwd });
+
+				// Remove the empty leaving tab now that we've switched away
+				if (leavingIsEmpty && leavingTab) {
+					useStore.getState().removeTab(leavingTab.id);
+				}
+
 				// Auto-close sidebar on mobile after creating
 				if (isMobileWidth()) {
 					setSidebarOpen(false);
