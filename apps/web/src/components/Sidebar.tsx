@@ -385,13 +385,6 @@ const SessionItem = memo(function SessionItem({
 				isSwitching && "cursor-wait opacity-60",
 			)}
 		>
-			{/* Status indicator — muted dot for past sessions only */}
-			{entry.kind === "past" ? (
-				<span className="mt-1 flex h-3 w-3 shrink-0 items-center justify-center">
-					<span className="h-1.5 w-1.5 rounded-full bg-text-muted/50" />
-				</span>
-			) : null}
-
 			<div className="min-w-0 flex-1">
 				<span
 					className={cn("block truncate text-xs", isActive ? "font-medium text-text-primary" : "")}
