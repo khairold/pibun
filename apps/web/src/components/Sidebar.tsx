@@ -18,7 +18,7 @@ import { PluginSidebarPanels } from "@/components/PluginPanel";
 import { SessionBrowserDialog } from "@/components/SessionBrowserDialog";
 import { addProject, createTerminal, removeProject } from "@/lib/appActions";
 import { fetchSessionList } from "@/lib/sessionActions";
-import { startSession, switchTabAction } from "@/lib/tabActions";
+import { addAndSwitchTabAction, startSession, switchTabAction } from "@/lib/tabActions";
 import { cn, onShortcut } from "@/lib/utils";
 import { removeLoadedSession } from "@/lib/appActions";
 import { useStore } from "@/store";
@@ -1062,18 +1062,13 @@ export function Sidebar() {
 
 				// Look up the session's cwd from the session list (authoritative source).
 				const sessionInfo = store.sessionList.find((s) => s.sessionPath === sessionPath);
-				const projectCwd = sessionInfo?.cwd ?? null;
 
-				if (!projectCwd) {
-					console.error("[Sidebar] Cannot find cwd for session:", sessionPath);
+				if (!sessionInfo) {
+					console.error("[Sidebar] Cannot find session info for:", sessionPath);
 					return;
 				}
 
-				// Create a new tab with immutable cwd + sessionFile.
-				// switchTabAction handles:
-				// - Optimistic: switchTab removes empty leaving tab synchronously
-				// - Background: starts Pi process, loads session, fetches messages
-				const tabId = store.addTab({ cwd: projectCwd, sessionFile: sessionPath });
+				const projectCwd = sessionInfo.cwd;
 
 				// Update active project for sidebar highlighting
 				const targetProject = store.projects.find(
@@ -1083,7 +1078,20 @@ export function Sidebar() {
 					store.setActiveProjectId(targetProject.id);
 				}
 
-				await switchTabAction(tabId);
+				// Atomic: create tab + remove empty leaving tab + switch in ONE store update.
+				// Pre-populate with session metadata so:
+				// - Tab shows correct name (not "New session")
+				// - piSessionId matches → past session entry is immediately filtered out
+				// No flash of duplicate entries.
+				const displayName = sessionInfo.name || sessionInfo.firstMessage;
+				await addAndSwitchTabAction({
+					cwd: projectCwd,
+					sessionFile: sessionPath,
+					piSessionId: sessionInfo.sessionId,
+					...(displayName && { name: displayName }),
+					...(sessionInfo.firstMessage && { firstMessage: sessionInfo.firstMessage }),
+					messageCount: sessionInfo.messageCount,
+				});
 
 				if (isMobileWidth()) setSidebarOpen(false);
 			} finally {
@@ -1483,17 +1491,9 @@ export function Sidebar() {
 
 												if (entries.length === 0 && group.project) {
 													return (
-														<button
-															type="button"
-															onClick={() => {
-																if (group.project) {
-																	handleNewSessionInProject(group.project);
-																}
-															}}
-															className="px-3 py-1.5 text-left text-[11px] text-text-muted transition-colors hover:text-text-secondary"
-														>
-															Start a session…
-														</button>
+														<span className="px-3 py-1.5 text-[11px] text-text-muted">
+															No sessions yet
+														</span>
 													);
 												}
 

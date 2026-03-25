@@ -91,6 +91,39 @@ export async function startSession(options?: { cwd?: string }): Promise<string |
 // ============================================================================
 
 // ============================================================================
+// Session Resume (shared between switchTabAction and addAndSwitchTabAction)
+// ============================================================================
+
+/**
+ * Resume a session for the currently active tab.
+ *
+ * Handles the async work after a tab switch: start Pi process, load session
+ * messages, refresh state. Called by both switchTabAction and addAndSwitchTabAction.
+ *
+ * @param sessionFile The session file to resume, or null if no session.
+ */
+async function resumeActiveTabSession(sessionFile: string | null): Promise<void> {
+	if (sessionFile) {
+		// Clear sessionId so ensureSession starts a fresh Pi process
+		// (the old process was stopped when another session started)
+		useStore.getState().setSessionId(null);
+
+		// switchSession handles: ensureSession (start process) → switch to file → load messages → refresh state
+		const success = await switchSession(sessionFile);
+		if (success) {
+			// Sync tab metadata with refreshed session state
+			useStore.getState().syncActiveTabState();
+			// Refresh git status for the session's CWD
+			fetchGitStatus();
+		}
+	} else {
+		// No session to resume — route transport to null
+		// User will start a session by typing (triggers ensureSession)
+		getTransport().setActiveSession(null);
+	}
+}
+
+// ============================================================================
 // Tab Switching
 // ============================================================================
 
@@ -137,23 +170,52 @@ export async function switchTabAction(tabId: string): Promise<void> {
 		deleteComposerDraft(leavingTab.id);
 	}
 
-	// 3. Resume target session if it has a session file
-	if (targetTab.sessionFile) {
-		// Clear sessionId so ensureSession starts a fresh Pi process
-		// (the old process was stopped when another session started)
-		useStore.getState().setSessionId(null);
+	// 3. Resume target session
+	await resumeActiveTabSession(targetTab.sessionFile);
+}
 
-		// switchSession handles: ensureSession (start process) → switch to file → load messages → refresh state
-		const success = await switchSession(targetTab.sessionFile);
-		if (success) {
-			// Sync tab metadata with refreshed session state
-			useStore.getState().syncActiveTabState();
-			// Refresh git status for the session's CWD
-			fetchGitStatus();
-		}
-	} else {
-		// No session to resume — route transport to null
-		// User will start a session by typing (triggers ensureSession)
-		getTransport().setActiveSession(null);
+/**
+ * Atomically create a new tab, switch to it, and resume a session — single-session model.
+ *
+ * Uses store.addAndSwitchTab() to create the tab and remove the empty leaving tab
+ * in a single store update, preventing the flash of both tabs appearing momentarily.
+ * Then performs the async session resume (start Pi process, load messages, etc.).
+ *
+ * @param partial Tab creation params (cwd, sessionFile, etc.)
+ * @returns The new tab ID.
+ */
+export async function addAndSwitchTabAction(
+	partial: Partial<
+		Pick<
+			import("@pibun/contracts").Session,
+			| "name"
+			| "sessionId"
+			| "piSessionId"
+			| "cwd"
+			| "model"
+			| "thinkingLevel"
+			| "sessionFile"
+			| "firstMessage"
+			| "messageCount"
+		>
+	>,
+): Promise<string> {
+	const store = useStore.getState();
+
+	// Capture leaving tab info for draft cleanup
+	const leavingTab = store.getActiveTab();
+	const leavingIsEmpty = leavingTab !== null && store.messages.length === 0;
+
+	// Atomic: create tab + snapshot leaving tab + remove empty leaving tab + switch
+	const tabId = store.addAndSwitchTab(partial);
+
+	// Clean up empty leaving tab's draft
+	if (leavingIsEmpty && leavingTab) {
+		deleteComposerDraft(leavingTab.id);
 	}
+
+	// Resume session
+	await resumeActiveTabSession(partial.sessionFile ?? null);
+
+	return tabId;
 }

@@ -574,6 +574,23 @@ export interface WorkspacePersistSlice {
  * Only one Pi session runs at a time. Messages live in the MessagesSlice
  * (not cached per-tab). Switching tabs clears messages and loads from Pi.
  */
+
+/**
+ * Fields allowed when creating a tab via addTab / addAndSwitchTab.
+ * Includes piSessionId, firstMessage, messageCount so that tabs created
+ * for resuming past sessions can render with correct metadata immediately.
+ */
+type TabInitFields =
+	| "name"
+	| "sessionId"
+	| "piSessionId"
+	| "cwd"
+	| "model"
+	| "thinkingLevel"
+	| "sessionFile"
+	| "firstMessage"
+	| "messageCount";
+
 export interface TabsSlice {
 	/** Ordered list of open tabs. */
 	tabs: Session[];
@@ -583,12 +600,11 @@ export interface TabsSlice {
 	/**
 	 * Create a new tab with optional initial values.
 	 * Returns the new tab's ID.
+	 *
+	 * When resuming a past session, pass piSessionId + name + firstMessage + messageCount
+	 * so the tab renders with correct metadata immediately (no flash).
 	 */
-	addTab: (
-		partial?: Partial<
-			Pick<Session, "name" | "sessionId" | "cwd" | "model" | "thinkingLevel" | "sessionFile">
-		>,
-	) => string;
+	addTab: (partial?: Partial<Pick<Session, TabInitFields>>) => string;
 	/** Remove a tab by ID. Switches to adjacent tab if active tab is removed. */
 	removeTab: (tabId: string) => void;
 	/**
@@ -597,6 +613,17 @@ export interface TabsSlice {
 	 * layer loads fresh data from Pi via session.getMessages.
 	 */
 	switchTab: (tabId: string) => void;
+	/**
+	 * Atomically create a new tab and switch to it in a single store update.
+	 * Prevents flash of both old + new tabs that happens when addTab and
+	 * switchTab are separate set() calls.
+	 * Returns the new tab's ID.
+	 *
+	 * When resuming a past session, pass piSessionId + name + firstMessage + messageCount
+	 * so the tab renders with correct metadata immediately and the past session entry
+	 * is filtered out of the sidebar (no duplicate flash).
+	 */
+	addAndSwitchTab: (partial?: Partial<Pick<Session, TabInitFields>>) => string;
 	/** Update a tab's metadata (name, model, streaming state, etc.). */
 	updateTab: (tabId: string, updates: Partial<Session>) => void;
 	/** Get the currently active tab, or null if no tabs. */

@@ -132,15 +132,15 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			id,
 			name: partial?.name ?? defaultTabName(),
 			sessionId: partial?.sessionId ?? null,
-			piSessionId: null,
+			piSessionId: partial?.piSessionId ?? null,
 			cwd: partial?.cwd ?? null,
 			model: partial?.model ?? null,
 			thinkingLevel: partial?.thinkingLevel ?? "medium",
 			isStreaming: false,
 			status: "idle",
 			gitDirty: false,
-			messageCount: 0,
-			firstMessage: null,
+			messageCount: partial?.messageCount ?? 0,
+			firstMessage: partial?.firstMessage ?? null,
 			createdAt: Date.now(),
 			sessionFile: partial?.sessionFile ?? null,
 		};
@@ -350,6 +350,122 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				diffPanelSelectedFile: null,
 			};
 		});
+	},
+
+	addAndSwitchTab: (partial) => {
+		const id = nextTabId();
+		const newTab: Session = {
+			id,
+			name: partial?.name ?? defaultTabName(),
+			sessionId: partial?.sessionId ?? null,
+			piSessionId: partial?.piSessionId ?? null,
+			cwd: partial?.cwd ?? null,
+			model: partial?.model ?? null,
+			thinkingLevel: partial?.thinkingLevel ?? "medium",
+			isStreaming: false,
+			status: "idle",
+			gitDirty: false,
+			messageCount: partial?.messageCount ?? 0,
+			firstMessage: partial?.firstMessage ?? null,
+			createdAt: Date.now(),
+			sessionFile: partial?.sessionFile ?? null,
+		};
+
+		set((s) => {
+			// Snapshot the leaving tab's metadata from current session state
+			let updatedTabs = s.tabs;
+			const leavingTab = s.activeTabId ? s.tabs.find((t) => t.id === s.activeTabId) : null;
+			const leavingIsEmpty = leavingTab !== null && s.messages.length === 0;
+
+			if (s.activeTabId) {
+				updatedTabs = s.tabs.map((t) =>
+					t.id === s.activeTabId
+						? {
+								...t,
+								isStreaming: s.isStreaming,
+								status: deriveTabStatus(s.isStreaming, s.pendingExtensionUi !== null, t.status),
+								messageCount: s.messages.length,
+								firstMessage: getFirstUserMessage(s.messages) ?? t.firstMessage,
+								model: s.model,
+								thinkingLevel: s.thinkingLevel,
+								piSessionId: s.piSessionId,
+								name: s.sessionName ?? t.name,
+								sessionFile: s.sessionFile,
+							}
+						: t,
+				);
+			}
+
+			// Auto-remove empty leaving tab (0 messages, never used)
+			if (leavingIsEmpty && leavingTab) {
+				updatedTabs = updatedTabs.filter((t) => t.id !== leavingTab.id);
+			}
+
+			// Add the new tab
+			updatedTabs = [...updatedTabs, newTab];
+
+			// Determine same-project vs cross-project for terminal/content state
+			const leavingProject = leavingTab?.cwd ?? "";
+			const targetProject = newTab.cwd ?? "";
+			const sameProject = leavingProject !== "" && leavingProject === targetProject;
+
+			let newActiveTerminalTabId: string | null;
+			let newActiveContentTab: string;
+			let newProjectContentTabs = s.projectContentTabs;
+
+			if (sameProject) {
+				newActiveTerminalTabId = s.activeTerminalTabId;
+				newActiveContentTab = s.activeContentTab;
+			} else {
+				if (leavingProject) {
+					newProjectContentTabs = {
+						...newProjectContentTabs,
+						[leavingProject]: s.activeContentTab,
+					};
+				}
+				newActiveContentTab = newProjectContentTabs[targetProject] ?? "chat";
+				const targetTerminal = s.terminalTabs.find((t) => t.projectPath === targetProject);
+				newActiveTerminalTabId = targetTerminal?.id ?? null;
+				if (newActiveContentTab !== "chat") {
+					const exists = s.terminalTabs.some((t) => t.id === newActiveContentTab);
+					if (!exists) newActiveContentTab = "chat";
+				}
+			}
+
+			return {
+				tabs: updatedTabs,
+				activeTabId: id,
+				messages: [],
+				statuses: new Map<string, string>(),
+				extensionWidgets: new Map<string, ExtensionWidget>(),
+				extensionTitle: null,
+				sessionId: newTab.sessionId,
+				piSessionId: newTab.piSessionId,
+				model: newTab.model,
+				thinkingLevel: newTab.thinkingLevel,
+				isStreaming: newTab.isStreaming,
+				sessionName: newTab.name,
+				sessionFile: newTab.sessionFile,
+				stats: null,
+				agentStartedAt: 0,
+				isCompacting: false,
+				isRetrying: false,
+				retryAttempt: 0,
+				retryMaxAttempts: 0,
+				retryDelayMs: 0,
+				retryStartedAt: 0,
+				activeTerminalTabId: newActiveTerminalTabId,
+				activeContentTab: newActiveContentTab,
+				projectContentTabs: newProjectContentTabs,
+				diffPanelOpen: false,
+				diffPanelFiles: [],
+				diffPanelResult: null,
+				diffPanelError: null,
+				diffPanelSelectedFile: null,
+			};
+		});
+
+		return id;
 	},
 
 	updateTab: (tabId, updates) => {
