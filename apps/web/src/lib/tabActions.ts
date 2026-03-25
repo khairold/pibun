@@ -130,16 +130,10 @@ export async function switchTabAction(tabId: string): Promise<void> {
 	//    in the same state update — no flicker.
 	store.switchTab(tabId);
 
-	// 2. Server-side cleanup for the empty session (fire-and-forget, non-blocking)
-	if (leavingIsEmpty && leavingTab?.sessionId) {
-		(async () => {
-			try {
-				await getTransport().request("session.stop");
-			} catch {
-				// Best-effort — server will clean up eventually
-			}
-		})();
-		// Clean up composer draft
+	// 2. Clean up empty leaving tab's UI artifacts (draft).
+	//    No need to call session.stop — session.start (in ensureSession below)
+	//    automatically stops any existing session on the server.
+	if (leavingIsEmpty && leavingTab) {
 		deleteComposerDraft(leavingTab.id);
 	}
 
