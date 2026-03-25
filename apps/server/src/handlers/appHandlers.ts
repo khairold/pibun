@@ -191,7 +191,8 @@ function checkPiCli(): PrerequisiteCheck {
 			return { found: false, version: null, isLatest: false };
 		}
 
-		const version = result.stdout.toString().trim();
+		// pi --version writes to stderr, not stdout
+		const version = (result.stdout.toString().trim() || result.stderr.toString().trim());
 		if (!version || !/^\d+\.\d+/.test(version)) {
 			return { found: true, version: null, isLatest: false };
 		}
