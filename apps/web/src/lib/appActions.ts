@@ -46,7 +46,7 @@ function errorMessage(err: unknown): string {
  * - On `server.welcome` (every WS connect/reconnect)
  * - On "Re-check" button click from the setup screen
  *
- * The server runs `pi --version` and checks against its minimum version.
+ * The server checks `pi --version` and compares against the latest npm version.
  */
 export async function checkPrerequisites(): Promise<void> {
 	const store = useStore.getState();
@@ -54,15 +54,11 @@ export async function checkPrerequisites(): Promise<void> {
 
 	try {
 		const result = await getTransport().request("app.checkPrerequisites");
-		store.setPrerequisiteStatus(result.pi, result.minimumPiVersion, result.ready);
+		store.setPrerequisiteStatus(result.pi, result.latestPiVersion, result.ready);
 	} catch (err) {
 		console.error("[prerequisites] Failed to check prerequisites:", err);
 		// On failure, assume not ready so the setup screen shows
-		store.setPrerequisiteStatus(
-			{ found: false, version: null, meetsMinimum: false },
-			"0.61.0",
-			false,
-		);
+		store.setPrerequisiteStatus({ found: false, version: null, isLatest: false }, null, false);
 	} finally {
 		store.setPrerequisiteChecking(false);
 	}

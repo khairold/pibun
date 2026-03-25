@@ -918,33 +918,35 @@ export interface WsSessionExportHtmlResult {
 /**
  * Status of a single prerequisite dependency.
  * `found: false` means the binary isn't on PATH.
- * `meetsMinimum: false` means it exists but is too old.
  */
 export interface PrerequisiteCheck {
 	/** Whether the binary was found on PATH. */
 	found: boolean;
 	/** Detected version string (e.g., "0.62.0"), null if not found. */
 	version: string | null;
-	/** Whether the detected version meets the minimum required. */
-	meetsMinimum: boolean;
+	/** Whether the detected version is the latest available from npm. */
+	isLatest: boolean;
 }
 
 /**
  * Result for `app.checkPrerequisites` — system dependency status.
  *
  * PiBun requires the Pi CLI (`pi` command) to be installed via npm.
- * Pi in turn requires Node.js, but if Pi is found and meets the minimum
- * version, Node is implicitly satisfied.
+ * Pi in turn requires Node.js, but if Pi is found, Node is implicitly satisfied.
  */
 export interface WsAppCheckPrerequisitesResult {
 	/** Status of the `pi` CLI binary. */
 	pi: PrerequisiteCheck;
 	/**
-	 * Minimum Pi version required by this PiBun build.
-	 * Displayed on the setup screen so users know what to install.
+	 * Latest Pi version available on npm.
+	 * Displayed on the setup screen so users know what's available.
+	 * Null if the npm registry check failed.
 	 */
-	minimumPiVersion: string;
-	/** True when all prerequisites are met and sessions can be created. */
+	latestPiVersion: string | null;
+	/**
+	 * True when Pi is installed (sessions can be created).
+	 * An outdated version is still functional — user can dismiss the upgrade notice.
+	 */
 	ready: boolean;
 }
 

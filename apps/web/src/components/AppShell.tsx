@@ -75,10 +75,11 @@ export function AppShell() {
 	useKeyboardShortcuts();
 	useWindowTitle();
 
-	// Gate: show setup screen when Pi CLI is missing or outdated.
+	// Gate: show setup screen when Pi CLI is missing, or outdated and not dismissed.
 	// `prerequisitePi === null` means the check hasn't completed yet (first load) — don't flash the setup screen.
 	const prerequisitePi = useStore((s) => s.prerequisitePi);
 	const prerequisiteReady = useStore((s) => s.prerequisiteReady);
+	const prerequisiteDismissed = useStore((s) => s.prerequisiteDismissed);
 
 	const sidebarOpen = useStore((s) => s.sidebarOpen);
 	const toggleSidebar = useStore((s) => s.toggleSidebar);
@@ -124,7 +125,14 @@ export function AppShell() {
 	}, [activeProjectPath, connectionStatus, projectTerminals.length]);
 
 	// Early return AFTER all hooks — React requires consistent hook count across renders.
-	if (prerequisitePi !== null && !prerequisiteReady) {
+	// Show setup screen when:
+	// - Pi is not installed (blocking — can't work without it)
+	// - Pi is installed but outdated AND user hasn't dismissed (informational)
+	const showSetup =
+		prerequisitePi !== null &&
+		(!prerequisiteReady || (!prerequisitePi.isLatest && !prerequisiteDismissed));
+
+	if (showSetup) {
 		return <SetupScreen />;
 	}
 

@@ -62,17 +62,21 @@ export const createAppSlice: StateCreator<AppStore, [], [], AppSlice> = (set, ge
 
 	// ---- Prerequisites state ----
 	prerequisitePi: null,
-	prerequisiteMinPiVersion: null,
+	prerequisiteLatestPiVersion: null,
 	prerequisiteReady: false,
 	prerequisiteChecking: false,
+	prerequisiteDismissed: false,
 
-	setPrerequisiteStatus: (pi, minimumPiVersion, ready) =>
+	setPrerequisiteStatus: (pi, latestPiVersion, ready) =>
 		set({
 			prerequisitePi: pi,
-			prerequisiteMinPiVersion: minimumPiVersion,
+			prerequisiteLatestPiVersion: latestPiVersion,
 			prerequisiteReady: ready,
+			// Reset dismissed when re-checking (user may have upgraded)
+			prerequisiteDismissed: false,
 		}),
 	setPrerequisiteChecking: (checking) => set({ prerequisiteChecking: checking }),
+	dismissPrerequisite: () => set({ prerequisiteDismissed: true }),
 
 	// ---- UI state ----
 	sidebarOpen: isDesktopWidth(),

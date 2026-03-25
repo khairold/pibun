@@ -118,12 +118,6 @@ export const handleAppCheckForUpdates: WsHandler<"app.checkForUpdates"> = (
 // ============================================================================
 
 /**
- * Minimum Pi CLI version required by this PiBun build.
- * Bump this when PiBun uses new Pi RPC features.
- */
-const MIN_PI_VERSION = "0.61.0";
-
-/**
  * Compare two semver strings (major.minor.patch). Returns:
  * - negative if a < b
  * - 0 if a === b
@@ -139,11 +133,51 @@ function compareSemver(a: string, b: string): number {
 	return 0;
 }
 
+/** Cached latest version from npm. Refreshed at most every 5 minutes. */
+let cachedLatestVersion: string | null = null;
+let cachedLatestVersionAt = 0;
+const LATEST_VERSION_TTL_MS = 5 * 60 * 1000;
+
 /**
- * Check if the `pi` CLI is installed and meets the minimum version.
+ * Fetch the latest published version of `@mariozechner/pi-coding-agent` from npm.
+ * Cached for 5 minutes to avoid hammering the registry.
+ * Returns null if the fetch fails (offline, timeout, etc.).
+ */
+async function fetchLatestPiVersion(): Promise<string | null> {
+	if (cachedLatestVersion && Date.now() - cachedLatestVersionAt < LATEST_VERSION_TTL_MS) {
+		return cachedLatestVersion;
+	}
+
+	try {
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), 5000);
+
+		const resp = await fetch("https://registry.npmjs.org/@mariozechner/pi-coding-agent/latest", {
+			headers: { Accept: "application/json" },
+			signal: controller.signal,
+		});
+		clearTimeout(timeout);
+
+		if (!resp.ok) return cachedLatestVersion;
+
+		const data = (await resp.json()) as { version?: string };
+		if (data.version && /^\d+\.\d+/.test(data.version)) {
+			cachedLatestVersion = data.version;
+			cachedLatestVersionAt = Date.now();
+			return cachedLatestVersion;
+		}
+		return cachedLatestVersion;
+	} catch {
+		// Offline or timeout — return stale cache or null
+		return cachedLatestVersion;
+	}
+}
+
+/**
+ * Check if the `pi` CLI is installed and detect its version.
  *
  * Runs `pi --version` synchronously (fast — just prints a string and exits).
- * Returns a PrerequisiteCheck with found/version/meetsMinimum.
+ * The `isLatest` field is set to false here; the caller compares against npm.
  */
 function checkPiCli(): PrerequisiteCheck {
 	try {
@@ -154,40 +188,46 @@ function checkPiCli(): PrerequisiteCheck {
 		});
 
 		if (result.exitCode !== 0) {
-			return { found: false, version: null, meetsMinimum: false };
+			return { found: false, version: null, isLatest: false };
 		}
 
 		const version = result.stdout.toString().trim();
 		if (!version || !/^\d+\.\d+/.test(version)) {
-			// Got output but doesn't look like a version string
-			return { found: true, version: null, meetsMinimum: false };
+			return { found: true, version: null, isLatest: false };
 		}
 
-		const meetsMinimum = compareSemver(version, MIN_PI_VERSION) >= 0;
-		return { found: true, version, meetsMinimum };
+		return { found: true, version, isLatest: false };
 	} catch {
-		// Binary not found or spawn failed
-		return { found: false, version: null, meetsMinimum: false };
+		return { found: false, version: null, isLatest: false };
 	}
 }
 
 /**
  * Check system prerequisites for running PiBun.
  *
- * Currently checks only the `pi` CLI. If Pi is installed and meets the
- * minimum version, Node.js is implicitly satisfied (Pi requires Node).
+ * Checks Pi CLI presence and compares installed version against the latest
+ * available on npm. The `ready` flag is true when Pi is installed (even if
+ * outdated) — users can dismiss the upgrade notice.
  *
  * Callable on-demand for the "Re-check" button on the setup screen.
  */
-export const handleAppCheckPrerequisites: WsHandler<"app.checkPrerequisites"> = (
+export const handleAppCheckPrerequisites: WsHandler<"app.checkPrerequisites"> = async (
 	_params: undefined,
 	_ctx: HandlerContext,
-): WsAppCheckPrerequisitesResult => {
+): Promise<WsAppCheckPrerequisitesResult> => {
 	const pi = checkPiCli();
+	const latestVersion = await fetchLatestPiVersion();
+
+	// Compare installed vs latest
+	if (pi.found && pi.version && latestVersion) {
+		pi.isLatest = compareSemver(pi.version, latestVersion) >= 0;
+	}
+
 	return {
 		pi,
-		minimumPiVersion: MIN_PI_VERSION,
-		ready: pi.found && pi.meetsMinimum,
+		latestPiVersion: latestVersion,
+		// Ready = Pi is installed. Outdated is fine — user can dismiss.
+		ready: pi.found,
 	};
 };
 

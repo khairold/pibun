@@ -117,24 +117,32 @@ export interface ConnectionSlice {
 	setProviderHealth: (issue: ProviderHealthIssue | null) => void;
 }
 
-/** Prerequisites state — system dependency checks (Pi CLI, Node.js). */
+/** Prerequisites state — system dependency checks (Pi CLI). */
 export interface PrerequisitesSlice {
 	/**
 	 * Pi CLI prerequisite status. Null before the first check completes.
 	 * Checked on WS connect and on-demand via "Re-check" button.
 	 */
 	prerequisitePi: PrerequisiteCheck | null;
-	/** Minimum Pi version required by this PiBun build. */
-	prerequisiteMinPiVersion: string | null;
-	/** True when all prerequisites are met and sessions can be created. */
+	/** Latest Pi version available on npm. Null if registry check failed. */
+	prerequisiteLatestPiVersion: string | null;
+	/** True when Pi is installed (sessions can be created). */
 	prerequisiteReady: boolean;
 	/** True while a prerequisite check is in progress. */
 	prerequisiteChecking: boolean;
+	/** True when user dismissed the upgrade notice for an outdated Pi. */
+	prerequisiteDismissed: boolean;
 
 	/** Set prerequisite check results. */
-	setPrerequisiteStatus: (pi: PrerequisiteCheck, minimumPiVersion: string, ready: boolean) => void;
+	setPrerequisiteStatus: (
+		pi: PrerequisiteCheck,
+		latestPiVersion: string | null,
+		ready: boolean,
+	) => void;
 	/** Set the checking-in-progress flag. */
 	setPrerequisiteChecking: (checking: boolean) => void;
+	/** Dismiss the upgrade notice (user chose to continue with outdated Pi). */
+	dismissPrerequisite: () => void;
 }
 
 /** Session state — Pi agent session info. */

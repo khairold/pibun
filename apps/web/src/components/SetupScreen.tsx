@@ -1,9 +1,11 @@
 /**
  * SetupScreen — full-page onboarding when Pi CLI is missing or outdated.
  *
- * Shown instead of the main app when `prerequisiteReady === false`.
- * Provides clear instructions for installing/upgrading Pi with
- * copy-pasteable commands and a "Re-check" button.
+ * Shown instead of the main app when:
+ * - Pi is not installed → blocking, must install before continuing
+ * - Pi is outdated → informational, user can dismiss and continue
+ *
+ * Fetches the latest version from npm (via server) rather than hardcoding a minimum.
  */
 
 import { checkPrerequisites } from "@/lib/appActions";
@@ -43,9 +45,9 @@ function CommandBlock({ command }: { command: string }) {
 	);
 }
 
-/** Status indicator for a prerequisite check. */
-function StatusBadge({ found, meetsMinimum }: { found: boolean; meetsMinimum: boolean }) {
-	if (found && meetsMinimum) {
+/** Status indicator badge. */
+function StatusBadge({ found, isLatest }: { found: boolean; isLatest: boolean }) {
+	if (found && isLatest) {
 		return (
 			<span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-400">
 				<svg
@@ -53,15 +55,15 @@ function StatusBadge({ found, meetsMinimum }: { found: boolean; meetsMinimum: bo
 					viewBox="0 0 16 16"
 					fill="currentColor"
 					role="img"
-					aria-label="Ready"
+					aria-label="Up to date"
 				>
 					<path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z" />
 				</svg>
-				Ready
+				Up to date
 			</span>
 		);
 	}
-	if (found && !meetsMinimum) {
+	if (found && !isLatest) {
 		return (
 			<span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-400">
 				<svg
@@ -69,11 +71,11 @@ function StatusBadge({ found, meetsMinimum }: { found: boolean; meetsMinimum: bo
 					viewBox="0 0 16 16"
 					fill="currentColor"
 					role="img"
-					aria-label="Update needed"
+					aria-label="Update available"
 				>
 					<path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575ZM8 5a.75.75 0 0 0-.75.75v2.5a.75.75 0 0 0 1.5 0v-2.5A.75.75 0 0 0 8 5Zm1 7a1 1 0 1 0-2 0 1 1 0 0 0 2 0Z" />
 				</svg>
-				Update needed
+				Update available
 			</span>
 		);
 	}
@@ -95,16 +97,16 @@ function StatusBadge({ found, meetsMinimum }: { found: boolean; meetsMinimum: bo
 
 export function SetupScreen() {
 	const pi = useStore((s) => s.prerequisitePi);
-	const minVersion = useStore((s) => s.prerequisiteMinPiVersion);
+	const latestVersion = useStore((s) => s.prerequisiteLatestPiVersion);
 	const checking = useStore((s) => s.prerequisiteChecking);
+	const dismiss = useStore((s) => s.dismissPrerequisite);
 
 	const piFound = pi?.found ?? false;
-	const piMeetsMinimum = pi?.meetsMinimum ?? false;
+	const piIsLatest = pi?.isLatest ?? false;
 	const piVersion = pi?.version ?? null;
 
-	// Determine the scenario
 	const needsInstall = !piFound;
-	const needsUpgrade = piFound && !piMeetsMinimum;
+	const needsUpgrade = piFound && !piIsLatest;
 
 	return (
 		<div className="flex h-screen w-screen items-center justify-center bg-surface-primary">
@@ -113,7 +115,9 @@ export function SetupScreen() {
 				<div className="mb-8 text-center">
 					<h1 className="mb-2 text-2xl font-bold text-text-primary">Welcome to PiBun</h1>
 					<p className="text-sm text-text-secondary">
-						PiBun needs the Pi coding agent CLI to work. Let's get you set up.
+						{needsInstall
+							? "PiBun needs the Pi coding agent CLI to work. Let's get you set up."
+							: "A new version of Pi is available."}
 					</p>
 				</div>
 
@@ -124,11 +128,11 @@ export function SetupScreen() {
 							<span className="text-sm font-medium text-text-primary">Pi CLI</span>
 							{piVersion && <span className="text-xs text-text-tertiary">v{piVersion}</span>}
 						</div>
-						<StatusBadge found={piFound} meetsMinimum={piMeetsMinimum} />
+						<StatusBadge found={piFound} isLatest={piIsLatest} />
 					</div>
 
-					{minVersion && (
-						<p className="text-xs text-text-tertiary">Minimum required version: v{minVersion}</p>
+					{latestVersion && (
+						<p className="text-xs text-text-tertiary">Latest available: v{latestVersion}</p>
 					)}
 				</div>
 
@@ -156,19 +160,20 @@ export function SetupScreen() {
 					{needsUpgrade && (
 						<>
 							<p className="text-sm text-text-secondary">
-								Your Pi CLI (v{piVersion}) needs to be updated to at least v{minVersion}:
+								Your Pi CLI (v{piVersion}) can be updated to v{latestVersion}:
 							</p>
 							<CommandBlock command="npm install -g @mariozechner/pi-coding-agent@latest" />
 						</>
 					)}
 
 					{!needsInstall && !needsUpgrade && (
-						<p className="text-sm text-green-400">All prerequisites met. You're good to go!</p>
+						<p className="text-sm text-green-400">Pi is up to date. You're good to go!</p>
 					)}
 				</div>
 
-				{/* Re-check Button */}
-				<div className="flex justify-center">
+				{/* Action Buttons */}
+				<div className="flex items-center justify-center gap-3">
+					{/* Re-check button */}
 					<button
 						type="button"
 						onClick={() => checkPrerequisites()}
@@ -218,6 +223,17 @@ export function SetupScreen() {
 							</>
 						)}
 					</button>
+
+					{/* Skip button — only for upgrades, not for missing Pi */}
+					{needsUpgrade && (
+						<button
+							type="button"
+							onClick={dismiss}
+							className="rounded-lg border border-border-primary bg-surface-primary px-6 py-2.5 text-sm font-medium text-text-tertiary transition-colors hover:bg-surface-secondary hover:text-text-secondary"
+						>
+							Skip for now
+						</button>
+					)}
 				</div>
 			</div>
 		</div>
