@@ -324,3 +324,27 @@
 - After 3.3: 3.4 (delete TerminalPane.tsx), 3.5 (clean up split infrastructure), 3.6 (desktop menu), 3.7 (final verify)
 
 ---
+
+## Session 13 — Context menu on terminal tabs (2026-03-25)
+
+**What happened:**
+- Added right-click context menu to `TerminalTabItem` in `ContentTabBar.tsx` with two actions: Rename and Close
+- Uses the same dual-path pattern as Sidebar's project context menu:
+  1. Try `showNativeContextMenu()` for desktop native menu
+  2. On failure (browser mode), fall back to `HtmlTerminalContextMenu` HTML overlay
+- Added `HtmlTerminalContextMenu` component: positioned `fixed z-[100]` div with click-outside and Escape-to-close handling
+- Added `externalRenaming` prop to `TerminalTabItem`: when the parent sets this to `true`, the tab enters inline edit mode. This bridges the context menu "Rename" action to the tab's `isEditing` state without exposing internal state.
+- Added `onRenamingHandled` callback to clear the parent's `renamingTabId` after the tab has entered edit mode
+- Close action in context menu is disabled when `canCloseTerminal` is false (last terminal for project)
+
+**Items completed:**
+- [x] 3.3 — Context menu on terminal tabs: Rename, Close
+
+**Issues encountered:**
+- None. Clean implementation — typecheck, build, and format all pass on first attempt.
+
+**Handoff to next session:**
+- Next: 3.4 — Delete dead `TerminalPane.tsx` and remove all imports
+- After 3.4: 3.5 (clean up split infrastructure), 3.6 (desktop menu), 3.7 (final verify)
+
+---

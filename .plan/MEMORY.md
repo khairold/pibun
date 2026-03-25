@@ -40,6 +40,7 @@
 | 23 | Terminal tab naming is per-project auto-incrementing | `addTerminalTab` and `splitTerminalTab` compute `maxNum` from existing project terminals matching `/^Terminal (\d+)$/`, then use `maxNum + 1`. Renamed tabs (custom names) don't affect the counter. Global `terminalTabCounter` is still used for unique tab IDs but NOT for display names. | 2026-03-25 |
 | 24 | Terminal tab rename via double-click inline edit | `TerminalTabItem` in `ContentTabBar.tsx` manages `isEditing` state. Double-click label → input with focus+select-all. Enter commits, Escape cancels, blur commits. Empty/whitespace-only names revert. `updateTerminalTab(tabId, { name })` persists. | 2026-03-25 |
 | 25 | Content tab keyboard navigation via `mod+1-9` | `contentTab1` through `contentTab9` commands in `KeybindingCommand`. `mod+1` = always chat. `mod+2-9` = terminal tabs by position within the current project. No-op if target terminal doesn't exist. `mod+j` (`toggleTerminal`) already existed from session 9 for chat↔terminal toggling. | 2026-03-25 |
+| 26 | Terminal tab context menu: native first, HTML fallback | Right-click on terminal tab tries `showNativeContextMenu` (desktop native). On failure, falls back to `HtmlTerminalContextMenu` (positioned `<div>` with click-outside dismiss). Actions: Rename (triggers inline edit via `externalRenaming` prop), Close (calls `closeTerminal`). Same dual-path pattern used by Sidebar's project context menu. | 2026-03-25 |
 
 ## Architecture Notes
 

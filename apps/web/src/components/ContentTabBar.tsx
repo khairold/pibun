@@ -19,6 +19,8 @@ import { closeTerminal, createTerminal } from "@/lib/appActions";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { TerminalTab } from "@/store/types";
+import { showNativeContextMenu } from "@/wireTransport";
+import type { ContextMenuItem } from "@pibun/contracts";
 import {
 	type KeyboardEvent as ReactKeyboardEvent,
 	memo,
@@ -77,20 +79,37 @@ const TerminalTabItem = memo(function TerminalTabItem({
 	tab,
 	isActive,
 	canClose,
+	externalRenaming,
 	onSelect,
 	onClose,
 	onRename,
+	onContextMenu,
+	onRenamingHandled,
 }: {
 	tab: TerminalTab;
 	isActive: boolean;
 	canClose: boolean;
+	/** When true, the parent is requesting this tab to enter rename mode. */
+	externalRenaming: boolean;
 	onSelect: (tabId: string) => void;
 	onClose: (tabId: string) => void;
 	onRename: (tabId: string, newName: string) => void;
+	onContextMenu: (tabId: string, x: number, y: number) => void;
+	/** Called after the external rename request has been handled (to clear parent state). */
+	onRenamingHandled: () => void;
 }) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState(tab.name);
 	const inputRef = useRef<HTMLInputElement>(null);
+
+	// Enter edit mode when parent requests rename (via context menu)
+	useEffect(() => {
+		if (externalRenaming) {
+			setEditValue(tab.name);
+			setIsEditing(true);
+			onRenamingHandled();
+		}
+	}, [externalRenaming, tab.name, onRenamingHandled]);
 
 	// Focus + select all when entering edit mode
 	useEffect(() => {
@@ -113,13 +132,45 @@ const TerminalTabItem = memo(function TerminalTabItem({
 		setIsEditing(false);
 	}, [tab.name]);
 
+	const startRename = useCallback(() => {
+		setEditValue(tab.name);
+		setIsEditing(true);
+	}, [tab.name]);
+
 	const handleDoubleClick = useCallback(
 		(e: React.MouseEvent) => {
 			e.stopPropagation();
-			setEditValue(tab.name);
-			setIsEditing(true);
+			startRename();
 		},
-		[tab.name],
+		[startRename],
+	);
+
+	const handleRightClick = useCallback(
+		(e: React.MouseEvent) => {
+			e.preventDefault();
+			e.stopPropagation();
+
+			const items: ContextMenuItem[] = [
+				{ label: "Rename", action: "rename" },
+				{ type: "separator" },
+				{ label: "Close", action: "close", enabled: canClose },
+			];
+
+			showNativeContextMenu(items, (data) => {
+				switch (data.action) {
+					case "rename":
+						startRename();
+						break;
+					case "close":
+						if (canClose) onClose(tab.id);
+						break;
+				}
+			}).catch(() => {
+				// Native menu unavailable — fall back to HTML context menu
+				onContextMenu(tab.id, e.clientX, e.clientY);
+			});
+		},
+		[tab.id, canClose, onClose, onContextMenu, startRename],
 	);
 
 	const handleInputKeyDown = useCallback(
@@ -149,6 +200,7 @@ const TerminalTabItem = memo(function TerminalTabItem({
 					: "border-b-2 border-b-transparent bg-surface-base text-text-tertiary hover:bg-surface-primary/50 hover:text-text-secondary",
 			)}
 			onClick={() => onSelect(tab.id)}
+			onContextMenu={handleRightClick}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {
 					e.preventDefault();
@@ -260,6 +312,95 @@ function AddTerminalButton({
 }
 
 // ============================================================================
+// Terminal Context Menu (HTML fallback)
+// ============================================================================
+
+interface TerminalContextMenuState {
+	/** Terminal tab the menu is open for. */
+	tabId: string;
+	/** Position of the menu (viewport coordinates). */
+	x: number;
+	y: number;
+}
+
+/**
+ * HTML fallback context menu for terminal tabs.
+ *
+ * Shown when the native context menu is unavailable (browser mode).
+ * Actions: Rename, Close.
+ */
+function HtmlTerminalContextMenu({
+	menu,
+	canClose,
+	onClose,
+	onRename,
+	onCloseTerminal,
+}: {
+	menu: TerminalContextMenuState;
+	canClose: boolean;
+	onClose: () => void;
+	onRename: () => void;
+	onCloseTerminal: () => void;
+}) {
+	const menuRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		function handleClick(e: globalThis.MouseEvent) {
+			if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+				onClose();
+			}
+		}
+		function handleKeyDown(e: KeyboardEvent) {
+			if (e.key === "Escape") onClose();
+		}
+		document.addEventListener("mousedown", handleClick);
+		document.addEventListener("keydown", handleKeyDown);
+		return () => {
+			document.removeEventListener("mousedown", handleClick);
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [onClose]);
+
+	return (
+		<div
+			ref={menuRef}
+			className="fixed z-[100] min-w-[140px] rounded-lg border border-border-primary bg-surface-secondary py-1 shadow-lg"
+			style={{ left: menu.x, top: menu.y }}
+		>
+			<button
+				type="button"
+				onClick={() => {
+					onClose();
+					onRename();
+				}}
+				className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+			>
+				Rename
+			</button>
+			<div className="my-1 border-t border-border-secondary" />
+			<button
+				type="button"
+				disabled={!canClose}
+				onClick={() => {
+					if (canClose) {
+						onClose();
+						onCloseTerminal();
+					}
+				}}
+				className={cn(
+					"flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors",
+					canClose
+						? "text-text-secondary hover:bg-surface-tertiary hover:text-text-primary"
+						: "cursor-not-allowed text-text-muted/50",
+				)}
+			>
+				Close
+			</button>
+		</div>
+	);
+}
+
+// ============================================================================
 // ContentTabBar
 // ============================================================================
 
@@ -287,6 +428,11 @@ export const ContentTabBar = memo(function ContentTabBar() {
 	);
 
 	const canCloseTerminal = projectTerminals.length > 1;
+
+	// Context menu state (HTML fallback)
+	const [contextMenu, setContextMenu] = useState<TerminalContextMenuState | null>(null);
+	// Tab ID that should enter rename mode (triggered by context menu "Rename")
+	const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
 
 	const handleSelectChat = useCallback(() => {
 		setActiveContentTab("chat");
@@ -319,38 +465,81 @@ export const ContentTabBar = memo(function ContentTabBar() {
 		});
 	}, []);
 
+	// Context menu handlers
+	const handleTerminalContextMenu = useCallback((tabId: string, x: number, y: number) => {
+		setContextMenu({ tabId, x, y });
+	}, []);
+
+	const handleCloseContextMenu = useCallback(() => {
+		setContextMenu(null);
+	}, []);
+
+	const handleContextMenuRename = useCallback(() => {
+		if (contextMenu) {
+			setRenamingTabId(contextMenu.tabId);
+			setContextMenu(null);
+		}
+	}, [contextMenu]);
+
+	const handleContextMenuClose = useCallback(() => {
+		if (contextMenu) {
+			handleCloseTerminal(contextMenu.tabId);
+			setContextMenu(null);
+		}
+	}, [contextMenu, handleCloseTerminal]);
+
+	const handleRenamingHandled = useCallback(() => {
+		setRenamingTabId(null);
+	}, []);
+
 	// Don't render the tab bar if there's no active project (no CWD)
 	if (!activeProjectPath) {
 		return null;
 	}
 
 	return (
-		<div
-			className="flex items-center border-b border-border-secondary bg-surface-base"
-			role="tablist"
-			aria-label="Content tabs"
-		>
-			{/* Chat tab — always first */}
-			<ChatTab isActive={activeContentTab === "chat"} onClick={handleSelectChat} />
+		<>
+			<div
+				className="flex items-center border-b border-border-secondary bg-surface-base"
+				role="tablist"
+				aria-label="Content tabs"
+			>
+				{/* Chat tab — always first */}
+				<ChatTab isActive={activeContentTab === "chat"} onClick={handleSelectChat} />
 
-			{/* Terminal tabs — from current project */}
-			{projectTerminals.map((tab) => (
-				<TerminalTabItem
-					key={tab.id}
-					tab={tab}
-					isActive={activeContentTab === tab.id}
+				{/* Terminal tabs — from current project */}
+				{projectTerminals.map((tab) => (
+					<TerminalTabItem
+						key={tab.id}
+						tab={tab}
+						isActive={activeContentTab === tab.id}
+						canClose={canCloseTerminal}
+						externalRenaming={renamingTabId === tab.id}
+						onSelect={handleSelectTerminal}
+						onClose={handleCloseTerminal}
+						onRename={handleRenameTerminal}
+						onContextMenu={handleTerminalContextMenu}
+						onRenamingHandled={handleRenamingHandled}
+					/>
+				))}
+
+				{/* [+] Add terminal button */}
+				<AddTerminalButton onClick={handleAddTerminal} disabled={!isConnected} />
+
+				{/* Spacer to push right-aligned items (future: tab overflow menu) */}
+				<div className="flex-1" />
+			</div>
+
+			{/* HTML fallback context menu (shown when native context menu is unavailable) */}
+			{contextMenu && (
+				<HtmlTerminalContextMenu
+					menu={contextMenu}
 					canClose={canCloseTerminal}
-					onSelect={handleSelectTerminal}
-					onClose={handleCloseTerminal}
-					onRename={handleRenameTerminal}
+					onClose={handleCloseContextMenu}
+					onRename={handleContextMenuRename}
+					onCloseTerminal={handleContextMenuClose}
 				/>
-			))}
-
-			{/* [+] Add terminal button */}
-			<AddTerminalButton onClick={handleAddTerminal} disabled={!isConnected} />
-
-			{/* Spacer to push right-aligned items (future: tab overflow menu) */}
-			<div className="flex-1" />
-		</div>
+			)}
+		</>
 	);
 });
