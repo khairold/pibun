@@ -31,6 +31,7 @@
 | 14 | `switchTab` uses same-project vs cross-project logic | Same project → preserve `activeTerminalTabId` and `activeContentTab`. Cross-project → save/restore via `projectContentTabs`, select first terminal for target project. Both use `leavingTab.cwd === targetTab.cwd` check with empty-string guard. | 2026-03-24 |
 | 15 | `activeContentTab` + `projectContentTabs` added to TerminalSlice | `activeContentTab: string` ("chat" or terminal tab ID). `projectContentTabs: Record<string, string>` maps project path → last content tab. `setActiveContentTab` also persists to the map for the current project. | 2026-03-24 |
 | 16 | `removeTerminalTab` falls back `activeContentTab` to "chat" | If the removed terminal was the `activeContentTab`, resets to "chat". Prevents stale terminal tab ID in content display. | 2026-03-24 |
+| 17 | Content area uses absolute positioning + `hidden` for tab switching | Chat content and each terminal instance are `absolute inset-0` inside a `relative flex-1 min-h-0` container. Inactive layers use Tailwind `hidden` (display:none). This preserves xterm.js instances and their screen buffers across tab switches. ResizeObserver fires when hidden→visible transition occurs, so fitAddon re-fits correctly. | 2026-03-25 |
 
 ## Architecture Notes
 
@@ -93,8 +94,9 @@ switchTabAction → snapshots leaving tab → clears store.sessionId →
 | `lib/appActions.ts` | — | `createTerminal()`, `closeTerminal()` |
 | `components/AppShell.tsx` | ~250 | Top-level layout (toolbar + chat + terminal panel) |
 | `components/ContentTabBar.tsx` | ~240 | Content tab bar: Chat + project terminals + [+] button |
-| `components/TerminalPane.tsx` | ~605 | Bottom panel terminal (TO BE REPLACED) |
-| `components/TerminalInstance.tsx` | ~664 | xterm.js wrapper (KEEP — core rendering) |
+| `components/AppShell.tsx` | ~290 | Top-level layout — now includes ContentTabBar + content switcher (absolute-positioned layers for chat vs terminal) |
+| `components/TerminalPane.tsx` | ~605 | Bottom panel terminal (legacy — still rendered inside chat layer, removed in 2.6) |
+| `components/TerminalInstance.tsx` | ~664 | xterm.js wrapper (KEEP — used both by TerminalPane and by AppShell's full-height terminal layers) |
 
 ## Gotchas & Warnings
 

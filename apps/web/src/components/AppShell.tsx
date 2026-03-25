@@ -14,6 +14,7 @@ import { ChatView } from "@/components/ChatView";
 import { CompactButton } from "@/components/CompactButton";
 import { Composer } from "@/components/Composer";
 import { ConnectionBanner } from "@/components/ConnectionBanner";
+import { ContentTabBar } from "@/components/ContentTabBar";
 import { DiffPanel } from "@/components/DiffPanel";
 import { ErrorBanner, HealthBanner } from "@/components/ErrorBanner";
 import { ExportDialog } from "@/components/ExportDialog";
@@ -29,6 +30,7 @@ import { SessionStats } from "@/components/SessionStats";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { Sidebar } from "@/components/Sidebar";
 import { StatusBar } from "@/components/StatusBar";
+import { TerminalInstance } from "@/components/TerminalInstance";
 
 import { TerminalPane } from "@/components/TerminalPane";
 import { ThemeSelector } from "@/components/ThemeSelector";
@@ -41,7 +43,7 @@ import { useWindowTitle } from "@/hooks/useWindowTitle";
 import { createTerminal } from "@/lib/appActions";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 function TerminalButton() {
 	const terminalPanelOpen = useStore((s) => s.terminalPanelOpen);
@@ -131,6 +133,18 @@ export function AppShell() {
 	const sidebarOpen = useStore((s) => s.sidebarOpen);
 	const toggleSidebar = useStore((s) => s.toggleSidebar);
 	const isWindowFocused = useStore((s) => s.isWindowFocused);
+	const activeContentTab = useStore((s) => s.activeContentTab);
+
+	// Get project terminals for current project — used for full-height terminal rendering
+	const activeProjectPath = useStore((s) => s.tabs.find((t) => t.id === s.activeTabId)?.cwd ?? "");
+	const allTerminalTabs = useStore((s) => s.terminalTabs);
+	const projectTerminals = useMemo(
+		() =>
+			activeProjectPath ? allTerminalTabs.filter((t) => t.projectPath === activeProjectPath) : [],
+		[allTerminalTabs, activeProjectPath],
+	);
+
+	const isChatActive = activeContentTab === "chat";
 
 	return (
 		<div className="flex h-screen bg-surface-base text-text-primary">
@@ -236,27 +250,61 @@ export function AppShell() {
 						</div>
 					</div>
 
-					{/* Git changed files panel — collapsible between toolbar and chat */}
-					<GitPanel />
+					{/* Content tab bar — Chat + Terminal tabs for current project */}
+					<ContentTabBar />
 
-					<ChatView />
+					{/* Content area — chat or full-height terminal, fills remaining space.
+					     Uses relative positioning so children can be absolute-positioned layers.
+					     Only the active layer is visible; inactive ones use `hidden` (display:none)
+					     to preserve xterm.js instances and their screen buffers. */}
+					<div className="relative flex-1 min-h-0">
+						{/* Chat content — session chat, composer, panels */}
+						<div
+							className={cn(
+								"absolute inset-0 flex flex-col overflow-hidden",
+								!isChatActive && "hidden",
+							)}
+						>
+							{/* Git changed files panel — collapsible between toolbar and chat */}
+							<GitPanel />
 
-					{/* Terminal panel — resizable bottom pane */}
-					<TerminalPane />
+							<ChatView />
 
-					{/* Plugin bottom panels — below terminal */}
-					<PluginBottomPanels />
+							{/* Terminal panel — resizable bottom pane (legacy, removed in 2.6) */}
+							<TerminalPane />
 
-					{/* Extension status indicators — shown above composer when active */}
-					<StatusBar />
+							{/* Plugin bottom panels — below terminal */}
+							<PluginBottomPanels />
 
-					{/* Extension widgets above composer */}
-					<ExtensionWidgetBar placement="aboveEditor" />
+							{/* Extension status indicators — shown above composer when active */}
+							<StatusBar />
 
-					<Composer />
+							{/* Extension widgets above composer */}
+							<ExtensionWidgetBar placement="aboveEditor" />
 
-					{/* Extension widgets below composer */}
-					<ExtensionWidgetBar placement="belowEditor" />
+							<Composer />
+
+							{/* Extension widgets below composer */}
+							<ExtensionWidgetBar placement="belowEditor" />
+						</div>
+
+						{/* Full-height terminal instances — one per project terminal.
+						     Each is always mounted (preserving xterm buffer) but only the
+						     active content tab is visible. */}
+						{projectTerminals.map((tab) => (
+							<div
+								key={tab.id}
+								className={cn("absolute inset-0", activeContentTab !== tab.id && "hidden")}
+							>
+								<TerminalInstance
+									terminalId={tab.terminalId}
+									isActive={activeContentTab === tab.id}
+									terminalLabel={tab.name}
+									cwd={tab.cwd}
+								/>
+							</div>
+						))}
+					</div>
 				</main>
 
 				{/* Diff panel — beside main area (toggled via Ctrl/Cmd+D) */}

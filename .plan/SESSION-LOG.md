@@ -158,3 +158,28 @@
 - Key decision for 2.2: when `activeContentTab` is a terminal ID, render `TerminalInstance` at full height instead of ChatView+Composer. The `TerminalView` wrapper (2.3) may be needed first, OR 2.2 can do inline conditional rendering and 2.3 extracts it.
 
 ---
+
+## Session 6 — Restructure AppShell with ContentTabBar + conditional rendering (2026-03-25)
+
+**What happened:**
+- Restructured `AppShell.tsx` to insert `ContentTabBar` between toolbar and content area
+- Content area now uses a `relative flex-1 min-h-0` container with absolute-positioned layers:
+  - Chat layer (`absolute inset-0 flex flex-col`): GitPanel, ChatView, TerminalPane (legacy), PluginBottomPanels, StatusBar, ExtensionWidgetBar, Composer
+  - Terminal layers (`absolute inset-0`): one per project terminal, each rendering `TerminalInstance` at full height
+- Active layer is visible; inactive layers use `hidden` (display:none) to preserve xterm.js instances
+- Imported `ContentTabBar`, `TerminalInstance`, and added `useMemo` for project terminal filtering
+- Added store selectors: `activeContentTab`, `activeProjectPath`, `allTerminalTabs`
+- Computed `isChatActive` boolean for readability
+
+**Items completed:**
+- [x] 2.2 — Restructure `AppShell` with ContentTabBar + conditional chat/terminal rendering
+
+**Issues encountered:**
+- None. Clean implementation — typecheck and build pass on first attempt.
+
+**Handoff to next session:**
+- Next: 2.3 — Create `TerminalView` component (or adapt `TerminalInstance`): full-height terminal rendering without resize handles or panel chrome
+- The current implementation in AppShell renders `TerminalInstance` directly in absolute-positioned divs. 2.3 may extract this into a `TerminalView` wrapper, or it may be a no-op if the current approach is sufficient (TerminalInstance already handles full-height rendering via ResizeObserver + FitAddon).
+- Key concern: when terminal tab becomes visible after being `hidden`, does xterm.js re-fit correctly? ResizeObserver should fire on the hidden→visible dimension change, but needs manual testing.
+
+---
