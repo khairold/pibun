@@ -17,7 +17,7 @@
 import { PluginSidebarPanels } from "@/components/PluginPanel";
 import { SessionBrowserDialog } from "@/components/SessionBrowserDialog";
 import { addProject, createTerminal, removeProject } from "@/lib/appActions";
-import { fetchSessionList, switchSession } from "@/lib/sessionActions";
+import { fetchSessionList } from "@/lib/sessionActions";
 import { startSession, switchTabAction } from "@/lib/tabActions";
 import { cn, onShortcut } from "@/lib/utils";
 import { removeLoadedSession } from "@/lib/appActions";
@@ -1051,36 +1051,36 @@ export function Sidebar() {
 			setSwitchingPath(sessionPath);
 			try {
 				const store = useStore.getState();
-				const activeTab = store.getActiveTab();
-				const isEmpty = activeTab !== null && store.messages.length === 0;
 
-				// Determine the project this past session belongs to
-				// Session paths look like: /path/to/project/.pi/sessions/xxx.jsonl
-				const sessionDir = sessionPath.replace(/\/\.pi\/sessions\/.*$/, "");
+				// Check if a tab already exists for this session file → just switch to it
+				const existingTab = store.tabs.find((t) => t.sessionFile === sessionPath);
+				if (existingTab) {
+					await switchTabAction(existingTab.id);
+					if (isMobileWidth()) setSidebarOpen(false);
+					return;
+				}
+
+				// Derive the project cwd from the session path.
+				// Session paths: /path/to/project/.pi/sessions/xxx.jsonl
+				const projectCwd = sessionPath.replace(/\/\.pi\/sessions\/.*$/, "");
+
+				// Create a new tab with immutable cwd + sessionFile.
+				// switchTabAction handles:
+				// - Optimistic: switchTab removes empty leaving tab synchronously
+				// - Background: starts Pi process, loads session, fetches messages
+				const tabId = store.addTab({ cwd: projectCwd, sessionFile: sessionPath });
+
+				// Update active project for sidebar highlighting
 				const targetProject = store.projects.find(
-					(p) => normalizeCwd(p.cwd) === normalizeCwd(sessionDir),
+					(p) => normalizeCwd(p.cwd) === normalizeCwd(projectCwd),
 				);
-
-				// If the active tab is empty and session is from a different project,
-				// update the tab's cwd so it moves to the correct project group.
-				if (isEmpty && activeTab && targetProject) {
-					const currentCwd = activeTab.cwd ?? "";
-					if (normalizeCwd(currentCwd) !== normalizeCwd(targetProject.cwd)) {
-						store.updateTab(activeTab.id, { cwd: targetProject.cwd });
-						store.setActiveProjectId(targetProject.id);
-					}
+				if (targetProject) {
+					store.setActiveProjectId(targetProject.id);
 				}
 
-				// switchSession loads the past session INTO the current active tab.
-				// Name, messages, sessionFile all get updated via refreshSessionState.
-				await switchSession(sessionPath);
+				await switchTabAction(tabId);
 
-				// Sync tab metadata after session load
-				useStore.getState().syncActiveTabState();
-
-				if (isMobileWidth()) {
-					setSidebarOpen(false);
-				}
+				if (isMobileWidth()) setSidebarOpen(false);
 			} finally {
 				setSwitchingPath(null);
 			}

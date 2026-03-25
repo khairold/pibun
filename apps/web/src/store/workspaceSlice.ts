@@ -142,7 +142,7 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			messageCount: 0,
 			firstMessage: null,
 			createdAt: Date.now(),
-			sessionFile: null,
+			sessionFile: partial?.sessionFile ?? null,
 		};
 
 		set((s) => ({

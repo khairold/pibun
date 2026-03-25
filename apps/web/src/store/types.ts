@@ -585,7 +585,9 @@ export interface TabsSlice {
 	 * Returns the new tab's ID.
 	 */
 	addTab: (
-		partial?: Partial<Pick<Session, "name" | "sessionId" | "cwd" | "model" | "thinkingLevel">>,
+		partial?: Partial<
+			Pick<Session, "name" | "sessionId" | "cwd" | "model" | "thinkingLevel" | "sessionFile">
+		>,
 	) => string;
 	/** Remove a tab by ID. Switches to adjacent tab if active tab is removed. */
 	removeTab: (tabId: string) => void;
