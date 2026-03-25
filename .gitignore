@@ -35,3 +35,4 @@ reference/pi-mono/
 .plan/autopilot-logs/
 
 # Note: .plan/, .pi/, .agents/, CLAUDE.md ARE committed — they're part of the project
+reference/ghostty/
