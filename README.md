@@ -59,12 +59,12 @@ bun run build:desktop:signed     # signed + notarized macOS build
 ## Architecture
 
 ```
-┌─────────────┐     WebSocket      ┌──────────────┐     stdio/JSONL     ┌─────────┐
-│  React UI   │ ◄──────────────────►│  Bun Server  │ ◄──────────────────►│ pi --rpc│
-│  (Vite)     │                     │              │                     │         │
-│  Chat, Tools│                     │  Bridge       │                     │ LLM API │
-│  Sessions   │                     │              │                     │ Tools   │
-└─────────────┘                     └──────────────┘                     └─────────┘
+┌──────────────┐     WebSocket       ┌──────────────┐     stdio/JSONL     ┌──────────┐
+│  React UI    │ ◄──────────────────►│  Bun Server  │ ◄──────────────────►│ pi --rpc │
+│  (Vite)      │                     │              │                     │          │
+│  Chat, Tools │                     │  Bridge      │                     │ LLM API  │
+│  Sessions    │                     │              │                     │ Tools    │
+└──────────────┘                     └──────────────┘                     └──────────┘
          ▲                                  ▲
          └──────── Electrobun webview ──────┘
 ```
