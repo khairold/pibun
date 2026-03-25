@@ -20,7 +20,6 @@ import {
 	type ChatMessage,
 	type ExtensionWidget,
 	type GitSlice,
-	MAX_TERMINALS_PER_GROUP,
 	type PluginsSlice,
 	type ProjectsSlice,
 	type TabsSlice,
@@ -422,7 +421,6 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 			name: `Terminal ${String(maxNum + 1)}`,
 			cwd,
 			isRunning: true,
-			groupId: tabId, // Each new terminal starts in its own group
 			projectPath,
 		};
 		set((s) => ({
@@ -444,22 +442,8 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 
 		let newActiveId = state.activeTerminalTabId;
 		if (state.activeTerminalTabId === tabId) {
-			if (projectTabs.length === 0) {
-				newActiveId = null;
-			} else if (removedTab) {
-				// Prefer a sibling in the same split group first
-				const groupSibling = projectTabs.find((t) => t.groupId === removedTab.groupId);
-				if (groupSibling) {
-					newActiveId = groupSibling.id;
-				} else {
-					// Fall back to first terminal in the same project
-					const first = projectTabs[0];
-					newActiveId = first ? first.id : null;
-				}
-			} else {
-				const first = projectTabs[0];
-				newActiveId = first ? first.id : null;
-			}
+			const first = projectTabs[0];
+			newActiveId = first ? first.id : null;
 		}
 
 		// If the removed terminal was the active content tab, select adjacent terminal
@@ -498,46 +482,6 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	getTerminalTabByTerminalId: (terminalId) => {
 		const state = get();
 		return state.terminalTabs.find((t) => t.terminalId === terminalId) ?? null;
-	},
-
-	splitTerminalTab: (terminalId, cwd) => {
-		const state = get();
-		const activeTermTab = state.activeTerminalTabId
-			? state.terminalTabs.find((t) => t.id === state.activeTerminalTabId)
-			: null;
-		const groupId = activeTermTab ? activeTermTab.groupId : null;
-		const activeSessionTab = state.getActiveTab();
-		const projectPath = activeSessionTab?.cwd ?? "";
-
-		// Check group size limit
-		if (groupId) {
-			const groupSize = state.terminalTabs.filter((t) => t.groupId === groupId).length;
-			if (groupSize >= MAX_TERMINALS_PER_GROUP) return null;
-		}
-
-		const tabId = `ttab-${String(++terminalTabCounter)}`;
-
-		// Per-project auto-incrementing name
-		const projectTabs = state.terminalTabs.filter((t) => t.projectPath === projectPath);
-		const maxNum = projectTabs.reduce((max, t) => {
-			const match = /^Terminal (\d+)$/.exec(t.name);
-			return match ? Math.max(max, Number(match[1])) : max;
-		}, 0);
-
-		const tab: TerminalTab = {
-			id: tabId,
-			terminalId,
-			name: `Terminal ${String(maxNum + 1)}`,
-			cwd,
-			isRunning: true,
-			groupId: groupId ?? tabId, // Join active group, or create new group
-			projectPath,
-		};
-		set((s) => ({
-			terminalTabs: [...s.terminalTabs, tab],
-			activeTerminalTabId: tabId,
-		}));
-		return tabId;
 	},
 
 	// ==== Git state ====

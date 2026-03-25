@@ -10,7 +10,7 @@
  * Must be mounted once at the app level (AppShell).
  */
 
-import { createTerminal, splitTerminal } from "@/lib/appActions";
+import { createTerminal } from "@/lib/appActions";
 import type { WhenContext } from "@/lib/keybindings";
 import { getActiveBindings, resolveCommand } from "@/lib/keybindings";
 import { compactSession, fetchSessionList, startNewSession } from "@/lib/sessionActions";
@@ -247,21 +247,6 @@ export function useKeyboardShortcuts(): void {
 								ctState.setActiveContentTab(targetTerminal.id);
 							}
 						}
-					}
-					break;
-				}
-				case "splitTerminal": {
-					const splitActiveTabCwd = state.getActiveTab()?.cwd ?? "";
-					if (
-						isConnected &&
-						state.activeContentTab !== "chat" &&
-						state.terminalTabs.some((t) => t.projectPath === splitActiveTabCwd)
-					) {
-						e.preventDefault();
-						emitShortcut("splitTerminal");
-						splitTerminal().catch((err: unknown) => {
-							console.error("[Shortcut] Failed to split terminal:", err);
-						});
 					}
 					break;
 				}

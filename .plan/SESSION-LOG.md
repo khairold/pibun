@@ -348,3 +348,36 @@
 - After 3.4: 3.5 (clean up split infrastructure), 3.6 (desktop menu), 3.7 (final verify)
 
 ---
+
+## Session 14 — Delete TerminalPane + clean up split infrastructure (2026-03-25)
+
+**What happened:**
+- Deleted `TerminalPane.tsx` (605 lines of dead code — always returned null since session 9)
+- Updated comment reference in `PluginPanel.tsx` (was mentioning TerminalPane)
+- Removed `groupId` from `TerminalTab` interface in `store/types.ts`
+- Removed `splitTerminalTab` from `TerminalSlice` interface in `store/types.ts`
+- Removed `MAX_TERMINALS_PER_GROUP` constant from `store/types.ts`
+- Removed `splitTerminalTab` implementation from `workspaceSlice.ts` (~40 lines)
+- Removed `groupId` assignment from `addTerminalTab` in `workspaceSlice.ts`
+- Simplified `removeTerminalTab` — removed group sibling preference logic (now just picks first project terminal)
+- Removed `splitTerminal()` function from `lib/appActions.ts` (~30 lines)
+- Removed `splitTerminal` import and case handler from `useKeyboardShortcuts.ts`
+- Removed `mod+shift+\\` keybinding from `lib/keybindings.ts`
+- Removed `splitTerminal` from `SettingsDialog.tsx` shortcut list
+- Removed `splitTerminal` from `KeybindingCommand` type in `packages/contracts/src/domain.ts`
+- Removed `splitTerminal` from `ShortcutAction` type in `lib/utils.ts`
+- Updated JSDoc example in `KeybindingRule` to use `contentTab1` instead of `splitTerminal`
+
+**Items completed:**
+- [x] 3.4 — Delete dead `TerminalPane.tsx` and remove all imports
+- [x] 3.5 — Clean up terminal split infrastructure (groupId, splitTerminalTab, MAX_TERMINALS_PER_GROUP)
+
+**Issues encountered:**
+- None. Clean cleanup — all references found via rg, typecheck and build pass on first attempt.
+
+**Handoff to next session:**
+- Next: 3.6 — Desktop menu updates: add content tab navigation commands, remove old terminal panel toggle menu item if present
+- After 3.6: 3.7 — Final verify (`bun run typecheck && bun run build && bun run lint`)
+- 2 items remain in Phase 3
+
+---

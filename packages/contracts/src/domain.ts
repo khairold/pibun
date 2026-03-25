@@ -345,7 +345,6 @@ export type KeybindingCommand =
 	| "cycleThinking"
 	| "newSession"
 	| "settings"
-	| "splitTerminal"
 	| "toggleBashInput"
 	| "toggleDiffPanel"
 	| "toggleExportDialog"
@@ -380,7 +379,7 @@ export type KeybindingCommand =
  * ```json
  * [
  *   { "key": "mod+j", "command": "toggleTerminal" },
- *   { "key": "mod+d", "command": "splitTerminal", "when": "terminalFocus" },
+ *   { "key": "mod+1", "command": "contentTab1" },
  *   { "key": "mod+d", "command": "toggleDiffPanel", "when": "!terminalFocus" }
  * ]
  * ```

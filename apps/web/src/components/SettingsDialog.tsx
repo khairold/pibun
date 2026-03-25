@@ -418,7 +418,6 @@ const SHORTCUT_COMMANDS: { command: KeybindingCommand; description: string }[] =
 	{ command: "cycleModel", description: "Cycle model" },
 	{ command: "newSession", description: "New session" },
 	{ command: "toggleTerminal", description: "Toggle terminal" },
-	{ command: "splitTerminal", description: "Split terminal" },
 	{ command: "toggleDiffPanel", description: "Toggle diff panel" },
 	{ command: "toggleGitPanel", description: "Toggle git panel" },
 	{ command: "toggleBashInput", description: "Toggle bash input" },

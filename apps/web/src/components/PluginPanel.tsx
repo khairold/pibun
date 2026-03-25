@@ -163,7 +163,7 @@ const PluginPanelFrame = memo(function PluginPanelFrame({
 
 /**
  * Renders all active plugin panels for the "bottom" position.
- * Similar to TerminalPane — appears below the chat area.
+ * Appears below the chat area.
  */
 export function PluginBottomPanels() {
 	const plugins = useStore((s) => s.plugins);

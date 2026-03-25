@@ -290,7 +290,6 @@ export type ShortcutAction =
 	| "cycleModel"
 	| "cycleThinking"
 	| "newSession"
-	| "splitTerminal"
 	| "toggleDiffPanel"
 	| "toggleExportDialog"
 	| "toggleGitPanel"

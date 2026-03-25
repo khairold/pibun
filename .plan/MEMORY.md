@@ -42,6 +42,8 @@
 | 25 | Content tab keyboard navigation via `mod+1-9` | `contentTab1` through `contentTab9` commands in `KeybindingCommand`. `mod+1` = always chat. `mod+2-9` = terminal tabs by position within the current project. No-op if target terminal doesn't exist. `mod+j` (`toggleTerminal`) already existed from session 9 for chat↔terminal toggling. | 2026-03-25 |
 | 26 | Terminal tab context menu: native first, HTML fallback | Right-click on terminal tab tries `showNativeContextMenu` (desktop native). On failure, falls back to `HtmlTerminalContextMenu` (positioned `<div>` with click-outside dismiss). Actions: Rename (triggers inline edit via `externalRenaming` prop), Close (calls `closeTerminal`). Same dual-path pattern used by Sidebar's project context menu. | 2026-03-25 |
 
+| 27 | Split infrastructure fully removed | `TerminalPane.tsx` deleted, `groupId` removed from `TerminalTab`, `splitTerminalTab` removed from slice/types, `splitTerminal` action removed from appActions, keybinding (`mod+shift+\\`) removed, `ShortcutAction` and `KeybindingCommand` unions cleaned, `MAX_TERMINALS_PER_GROUP` constant deleted. Splits parked for potential future return as a separate feature. | 2026-03-25 |
+
 ## Architecture Notes
 
 ### Current Terminal Infrastructure (Post 1.1-1.3)
@@ -50,10 +52,10 @@
 |---|---|---|
 | `TerminalTab.projectPath` | Active tab CWD (was `ownerTabId`) | ✅ Done |
 | `terminalPanelOpen` | ✅ Removed | Terminal visibility controlled by `activeContentTab` |
-| `TerminalPane` | Dead code (always returns null) | → Deleted in Phase 3 (3.4) |
+| `TerminalPane` | ✅ Deleted (3.4) | File removed, all imports cleaned |
 | `TerminalButton` (toolbar) | ✅ Removed | No toolbar toggle — use content tab bar or Ctrl+J |
 | `activeTerminalTabId` | One global active terminal | → Stays, but filtered by project |
-| `groupId` / `splitTerminalTab` | Split pane grouping | → Removed (parked) |
+| `groupId` / `splitTerminalTab` | ✅ Removed (3.5) | `groupId` from TerminalTab, `splitTerminalTab` from slice, `MAX_TERMINALS_PER_GROUP`, `splitTerminal` action + keybinding all deleted |
 
 ### Content Tab State Model (Implemented — items 1.5–1.7)
 
@@ -104,13 +106,11 @@ switchTabAction → snapshots leaving tab → clears store.sessionId →
 | `components/AppShell.tsx` | ~250 | Top-level layout (toolbar + chat + terminal panel) |
 | `components/ContentTabBar.tsx` | ~240 | Content tab bar: Chat + project terminals + [+] button |
 | `components/AppShell.tsx` | ~290 | Top-level layout — now includes ContentTabBar + content switcher (absolute-positioned layers for chat vs terminal) |
-| `components/TerminalPane.tsx` | ~605 | Bottom panel terminal (legacy — still rendered inside chat layer, removed in 2.6) |
-| `components/TerminalInstance.tsx` | ~664 | xterm.js wrapper (KEEP — used both by TerminalPane and by AppShell's full-height terminal layers) |
+| `components/TerminalInstance.tsx` | ~664 | xterm.js wrapper — used by AppShell's full-height terminal layers |
 
 ## Gotchas & Warnings
 
-- `TerminalInstance.tsx` (664 lines) is the xterm.js wrapper — keep it, adapt it for full-height rendering
-- `TerminalPane.tsx` (605 lines) is the bottom panel with resize handle, tab strip, split groups — this gets DELETED and replaced by `ContentTabBar` + inline rendering
+- `TerminalInstance.tsx` (664 lines) is the xterm.js wrapper — renders full-height in AppShell's absolute-positioned layers
 - `createTerminal()` in appActions calls `terminal.create` on the server, then `addTerminalTab` in the store. The server side doesn't need to change — only the client ownership model changes.
 - `closeTerminal()` in appActions calls `terminal.close` on the server + `removeTerminalTab` in store. Same — server unchanged.
 - `syncActiveTabState` must NOT overwrite terminal state on session switch within same project

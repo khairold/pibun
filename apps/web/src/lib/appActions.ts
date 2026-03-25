@@ -650,42 +650,6 @@ export async function createTerminal(cwd?: string): Promise<string | null> {
 }
 
 /**
- * Split the active terminal — creates a new PTY in the same split group.
- * The new terminal appears side-by-side with the active terminal.
- * Returns the new tab ID, or null if the group is full or creation fails.
- */
-export async function splitTerminal(): Promise<string | null> {
-	const store = useStore.getState();
-	const transport = getTransport();
-
-	// Get the active terminal's CWD for the new split
-	const activeTermTab = store.getActiveTerminalTab();
-	const resolvedCwd = activeTermTab?.cwd;
-
-	try {
-		const result = await transport.request("terminal.create", {
-			...(resolvedCwd ? { cwd: resolvedCwd } : {}),
-		});
-		const terminalId = result.terminalId;
-
-		// Add to same group as active terminal
-		const tabId = store.splitTerminalTab(terminalId, resolvedCwd ?? "~");
-		if (!tabId) {
-			// Group is full — close the just-created PTY
-			transport.request("terminal.close", { terminalId }).catch(() => {});
-			store.addToast("Maximum split terminals reached", "warning");
-			return null;
-		}
-
-		return tabId;
-	} catch (err) {
-		const msg = err instanceof Error ? err.message : String(err);
-		useStore.getState().setLastError(`Failed to split terminal: ${msg}`);
-		return null;
-	}
-}
-
-/**
  * Close a terminal tab and kill the PTY on the server.
  */
 export async function closeTerminal(tabId: string): Promise<void> {

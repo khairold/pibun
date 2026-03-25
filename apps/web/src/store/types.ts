@@ -574,9 +574,6 @@ export interface TabsSlice {
 	syncActiveTabState: () => void;
 }
 
-/** Maximum number of terminals visible in a single split group. */
-export const MAX_TERMINALS_PER_GROUP = 4;
-
 /** A terminal tab — represents one PTY session. */
 export interface TerminalTab {
 	/** Client-side tab ID (ttab-1, ttab-2, ...). */
@@ -589,13 +586,6 @@ export interface TerminalTab {
 	cwd: string;
 	/** True while the shell process is running. */
 	isRunning: boolean;
-	/**
-	 * Group ID for split pane grouping. Terminals with the same `groupId`
-	 * are displayed side-by-side in a horizontal split layout.
-	 * Each terminal starts with its own unique `groupId` (same as `id`).
-	 * Splitting creates a new terminal and assigns it the same `groupId`.
-	 */
-	groupId: string;
 	/**
 	 * Project path (normalized CWD) that owns this terminal.
 	 * Terminals are scoped to projects — switching sessions within the same project
@@ -643,12 +633,6 @@ export interface TerminalSlice {
 	getActiveTerminalTab: () => TerminalTab | null;
 	/** Find a terminal tab by its server-side terminalId. */
 	getTerminalTabByTerminalId: (terminalId: string) => TerminalTab | null;
-	/**
-	 * Add a new terminal tab into the same split group as the active terminal.
-	 * If no active terminal exists, creates a new group. Returns the new tab ID.
-	 * Enforces `MAX_TERMINALS_PER_GROUP` limit — returns null if group is full.
-	 */
-	splitTerminalTab: (terminalId: string, cwd: string) => string | null;
 }
 
 /** Active plugin panel info — resolved from Plugin + PanelConfig. */

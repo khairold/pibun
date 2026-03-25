@@ -399,7 +399,6 @@ export const DEFAULT_KEYBINDINGS: readonly KeybindingRule[] = [
 	{ key: "mod+shift+m", command: "cycleThinking" },
 	{ key: "mod+shift+p", command: "togglePluginManager" },
 	{ key: "mod+shift+t", command: "toggleThinkingSelector" },
-	{ key: "mod+shift+\\", command: "splitTerminal" },
 ];
 
 // ============================================================================
