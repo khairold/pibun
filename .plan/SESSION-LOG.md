@@ -253,3 +253,24 @@
 - After 2.8 passes, Phase 2 is COMPLETE. Mark phase done and EXIT.
 
 ---
+
+## Session 10 — Verify Phase 2 (2026-03-25)
+
+**What happened:**
+- Ran `bun run typecheck` — all 5 packages pass (0 errors)
+- Ran `bun run build` — all 3 tasks successful (server, desktop, web)
+- Verified Phase 2 exit criteria: tab bar renders above content, chat tab shows session, terminal tabs show full-height terminals, [+] adds terminals, close removes them, no bottom panel, auto-created default terminal per project
+
+**Items completed:**
+- [x] 2.8 — Verify: `bun run typecheck && bun run build`
+
+**Issues encountered:**
+- None. Clean pass on first attempt.
+
+**Handoff to next session:**
+- Phase 2 COMPLETE. Phase 3 begins: Polish & Cleanup
+- Next: 3.1 — Rename terminal tabs: double-click tab label → inline edit input
+- Phase 3 items: renameable tabs (3.1), keyboard shortcuts (3.2), context menu (3.3), delete dead TerminalPane.tsx (3.4), clean up split infrastructure (3.5), desktop menu updates (3.6), final verify (3.7)
+- TerminalPane.tsx currently always returns null — safe to delete in 3.4
+
+---
