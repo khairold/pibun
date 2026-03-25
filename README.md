@@ -17,6 +17,14 @@ A desktop app for the [Pi coding agent](https://github.com/badlogic/pi-mono). Ch
 - **Model switching** — pick any model Pi supports, adjust thinking level on the fly
 - **Native desktop app** — built with [Electrobun](https://electrobun.dev), not Electron. Bun-native, fast, small.
 
+## Download
+
+**[⬇ PiBun v0.1.0 for macOS (Apple Silicon)](https://github.com/khairold/pibun/releases/download/v0.1.0/stable-macos-arm64-PiBun.dmg)** — 20 MB
+
+> **Note:** This build is unsigned. macOS will warn you on first launch. Right-click the app → Open → Open to bypass Gatekeeper. Linux and Windows builds coming soon.
+
+Requires [Pi](https://github.com/badlogic/pi-mono) installed: `npm i -g @mariozechner/pi-coding-agent`
+
 ## Prerequisites
 
 - [Bun](https://bun.sh) ≥ 1.2.21

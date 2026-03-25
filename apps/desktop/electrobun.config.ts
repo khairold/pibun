@@ -12,7 +12,7 @@ const shouldNotarize =
 // In production, this should point to the GitHub Releases URL or a CDN.
 // The Updater fetches <baseUrl>/<prefix>-update.json to check for updates.
 const releaseBaseUrl =
-	process.env.PIBUN_RELEASE_URL || "https://github.com/pibun/pibun/releases/download/latest";
+	process.env.PIBUN_RELEASE_URL || "https://github.com/khairold/pibun/releases/download/latest";
 
 export default {
 	app: {
