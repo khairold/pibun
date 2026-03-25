@@ -3,7 +3,7 @@
 > **Spec:** Main content area with tab bar: session chat + project-scoped terminals
 > **Status:** In Progress
 > **Current Phase:** Phase 2 — Content Tab Bar + Full-Size Terminals
-> **Last Session:** Session 8 — 2026-03-25
+> **Last Session:** Session 9 — 2026-03-25
 
 ---
 
@@ -75,7 +75,7 @@ Workspaces map to projects.
 - [x] 2.3 — Create `TerminalView` component (or adapt `TerminalInstance`): full-height terminal rendering without resize handles or panel chrome. Takes a terminal tab ID, renders the xterm instance at 100% height.
 - [x] 2.4 — Auto-create default terminal: when a project becomes active (session started or switched to) and no terminals exist for that project path, auto-create one. This ensures the minimum "chat + 1 terminal" constraint.
 - [x] 2.5 — Wire [+] button: clicking adds a new terminal for the current project, switches to it. Wire close button: removes terminal tab (server-side `terminal.close` + store removal), selects adjacent tab, falls back to chat if last terminal closed and re-creates one.
-- [ ] 2.6 — Remove `terminalPanelOpen` state, `toggleTerminalPanel`, `setTerminalPanelOpen` from TerminalSlice. Remove `TerminalButton` from AppShell toolbar. Terminal visibility is now controlled by `activeContentTab`, not a panel toggle.
+- [x] 2.6 — Remove `terminalPanelOpen` state, `toggleTerminalPanel`, `setTerminalPanelOpen` from TerminalSlice. Remove `TerminalButton` from AppShell toolbar. Terminal visibility is now controlled by `activeContentTab`, not a panel toggle.
 - [x] 2.7 — Update `createTerminal` in appActions: after creating server-side terminal, set `activeContentTab` to the new terminal tab ID (auto-switch to it).
 - [ ] 2.8 — Verify: `bun run typecheck && bun run build`. Tab bar visible, chat and terminal tabs switch correctly, terminals are full-height.
 

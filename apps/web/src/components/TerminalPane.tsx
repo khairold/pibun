@@ -1,15 +1,11 @@
 /**
- * TerminalPane — embedded terminal with xterm.js, resizable splitter, and split panes.
+ * TerminalPane — LEGACY bottom panel terminal. Dead code since 2.6.
  *
- * Renders as a bottom panel below ChatView, similar to VS Code's terminal panel.
- * Features:
- * - xterm.js terminal instances with fit addon for auto-resize
- * - Multiple terminal tabs with split pane grouping
- * - Split current terminal horizontally (side-by-side) with independent resize handles
- * - Resizable panel height via drag handle
- * - Theme-matched colors (semantic theme tokens)
- * - Terminal data flows: xterm onData → writeTerminal → server → PTY stdin
- *                        PTY stdout → server → terminal.data push → xterm.write
+ * Terminal visibility is now controlled by `activeContentTab` in the
+ * content tab bar, not by a panel toggle. This file is retained for
+ * compilation only and will be deleted in Phase 3 (item 3.4).
+ *
+ * DO NOT add new code here.
  */
 
 import { closeTerminal, createTerminal, splitTerminal } from "@/lib/appActions";
@@ -331,12 +327,12 @@ const MAX_HEIGHT_RATIO = 0.7; // 70% of viewport
 const DEFAULT_HEIGHT = 280;
 
 export function TerminalPane() {
-	const terminalPanelOpen = useStore((s) => s.terminalPanelOpen);
+	// LEGACY: This component is dead code. Always returns null.
+	// Retained for compilation only — deleted in Phase 3 (item 3.4).
 	const allTerminalTabs = useStore((s) => s.terminalTabs);
 	const activeProjectPath = useStore((s) => s.tabs.find((t) => t.id === s.activeTabId)?.cwd ?? "");
 	const activeTerminalTabId = useStore((s) => s.activeTerminalTabId);
 	const setActiveTerminalTabId = useStore((s) => s.setActiveTerminalTabId);
-	const setTerminalPanelOpen = useStore((s) => s.setTerminalPanelOpen);
 
 	const heightRef = useRef(DEFAULT_HEIGHT);
 	const panelRef = useRef<HTMLDivElement>(null);
@@ -418,10 +414,11 @@ export function TerminalPane() {
 	}, []);
 
 	const handleClosePanel = useCallback(() => {
-		setTerminalPanelOpen(false);
-	}, [setTerminalPanelOpen]);
+		// No-op — legacy dead code
+	}, []);
 
-	if (!terminalPanelOpen) return null;
+	// LEGACY: Always return null. Terminal visibility controlled by activeContentTab.
+	return null;
 
 	// Build tab bar items with group separators
 	const tabBarItems: Array<{ type: "tab"; tab: TerminalTab } | { type: "separator" }> = [];

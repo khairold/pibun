@@ -36,6 +36,7 @@
 | 19 | Auto-create terminal uses `pendingAutoCreateRef` guard | `useEffect` in AppShell watches `activeProjectPath` + `connectionStatus` + `projectTerminals.length`. Guard ref prevents double-creation during React strict mode. After creation, `setActiveContentTab("chat")` restores chat (since `createTerminal` now auto-switches). | 2026-03-25 |
 | 20 | `createTerminal` auto-switches `activeContentTab` | After server-side terminal creation, `createTerminal()` calls `setActiveContentTab(tabId)` to switch the content area to the new terminal. Auto-create in AppShell overrides this back to "chat" since the user didn't request it. | 2026-03-25 |
 | 21 | `removeTerminalTab` selects adjacent terminal, not always "chat" | When the removed terminal was `activeContentTab`, the new `activeContentTab` is set to the next `activeTerminalTabId` (adjacent terminal in same project). Only falls back to "chat" when no project terminals remain. | 2026-03-25 |
+| 22 | `terminalPanelOpen` removed — terminal visibility via `activeContentTab` | No more boolean toggle for terminal panel. `activeContentTab === "chat"` means chat is visible; any other value is a terminal tab ID. `toggleTerminal` shortcut/menu now toggles between `"chat"` and the last active terminal. TerminalPane.tsx is dead code (always returns null), deleted in 3.4. | 2026-03-25 |
 
 ## Architecture Notes
 
@@ -44,9 +45,9 @@
 | Field/Concept | Current | Target |
 |---|---|---|
 | `TerminalTab.projectPath` | Active tab CWD (was `ownerTabId`) | ✅ Done |
-| `terminalPanelOpen` | Boolean toggle | → Removed (content tab controls visibility) |
-| `TerminalPane` | Bottom panel with resize | → Deleted. Replaced by `ContentTabBar` + full-height `TerminalView` |
-| `TerminalButton` (toolbar) | Opens/closes bottom panel | → Removed |
+| `terminalPanelOpen` | ✅ Removed | Terminal visibility controlled by `activeContentTab` |
+| `TerminalPane` | Dead code (always returns null) | → Deleted in Phase 3 (3.4) |
+| `TerminalButton` (toolbar) | ✅ Removed | No toolbar toggle — use content tab bar or Ctrl+J |
 | `activeTerminalTabId` | One global active terminal | → Stays, but filtered by project |
 | `groupId` / `splitTerminalTab` | Split pane grouping | → Removed (parked) |
 

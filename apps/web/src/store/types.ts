@@ -607,8 +607,6 @@ export interface TerminalTab {
 
 /** Terminal state — embedded terminal panel and tabs. */
 export interface TerminalSlice {
-	/** Whether the terminal panel is visible. */
-	terminalPanelOpen: boolean;
 	/** Ordered list of terminal tabs. */
 	terminalTabs: TerminalTab[];
 	/** ID of the active terminal tab, null when no terminals exist. */
@@ -627,10 +625,6 @@ export interface TerminalSlice {
 	 */
 	projectContentTabs: Record<string, string>;
 
-	/** Toggle the terminal panel open/closed. */
-	toggleTerminalPanel: () => void;
-	/** Set the terminal panel open state explicitly. */
-	setTerminalPanelOpen: (open: boolean) => void;
 	/** Add a new terminal tab. Returns the tab ID. */
 	addTerminalTab: (terminalId: string, cwd: string) => string;
 	/** Remove a terminal tab. Switches to adjacent tab if active. */

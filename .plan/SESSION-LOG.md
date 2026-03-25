@@ -226,3 +226,30 @@
 - After 2.6, only 2.8 (verification) remains in Phase 2.
 
 ---
+
+## Session 9 — Remove terminalPanelOpen + TerminalButton (2026-03-25)
+
+**What happened:**
+- Removed `terminalPanelOpen` boolean, `toggleTerminalPanel()`, and `setTerminalPanelOpen()` from TerminalSlice types and workspaceSlice implementation
+- Removed all `terminalPanelOpen` references from `removeTab` and `removeTerminalTab` in workspaceSlice
+- Removed `TerminalButton` component from AppShell toolbar entirely
+- Removed `TerminalPane` rendering from AppShell's chat layer (it was the legacy bottom panel)
+- Updated TerminalPane.tsx to always return null (dead code — compiles but unused, deleted in 3.4)
+- Updated `useKeyboardShortcuts.ts`:
+  - `buildWhenContext`: `terminalOpen` now derived from `activeContentTab !== "chat"`
+  - `splitTerminal`: gated on `activeContentTab !== "chat"` instead of `terminalPanelOpen`
+  - `toggleTerminal`: now toggles between `"chat"` and last active terminal via `setActiveContentTab`
+- Updated `wireTransport.ts` `view.toggle-terminal` menu handler: same toggle logic as shortcut
+
+**Items completed:**
+- [x] 2.6 — Remove `terminalPanelOpen` state, `toggleTerminalPanel`, `setTerminalPanelOpen` from TerminalSlice. Remove `TerminalButton` from AppShell toolbar.
+
+**Issues encountered:**
+- TerminalPane.tsx references removed state fields (`terminalPanelOpen`, `setTerminalPanelOpen`). Since the file isn't deleted until 3.4 (Phase 3), I updated it to always return null. This avoids crossing phase boundaries while keeping the build clean.
+
+**Handoff to next session:**
+- Next: 2.8 — Verify: `bun run typecheck && bun run build`. Tab bar visible, chat and terminal tabs switch correctly, terminals are full-height. This is the final item in Phase 2.
+- Phase 2 exit criteria to verify: Tab bar renders above content. Chat tab shows session. Terminal tabs show full-height terminals. [+] adds terminals, close removes them. No bottom panel. Auto-created default terminal per project.
+- After 2.8 passes, Phase 2 is COMPLETE. Mark phase done and EXIT.
+
+---

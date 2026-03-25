@@ -616,10 +616,17 @@ function handleMenuAction(data: WsMenuActionData): void {
 			const termStore = useStore.getState();
 			const activeTabCwd = termStore.getActiveTab()?.cwd ?? "";
 			const hasOwnedTerms = termStore.terminalTabs.some((t) => t.projectPath === activeTabCwd);
-			if (termStore.terminalPanelOpen) {
-				termStore.setTerminalPanelOpen(false);
+			if (termStore.activeContentTab !== "chat") {
+				// Currently on a terminal tab — switch back to chat
+				termStore.setActiveContentTab("chat");
 			} else if (hasOwnedTerms) {
-				termStore.setTerminalPanelOpen(true);
+				// On chat tab with existing terminals — switch to the active terminal
+				const targetTab =
+					termStore.activeTerminalTabId ??
+					termStore.terminalTabs.find((t) => t.projectPath === activeTabCwd)?.id;
+				if (targetTab) {
+					termStore.setActiveContentTab(targetTab);
+				}
 			} else {
 				createTerminal().catch((err: unknown) => {
 					console.error("[Menu] Failed to create terminal:", err);

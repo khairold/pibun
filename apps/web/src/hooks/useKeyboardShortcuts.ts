@@ -28,11 +28,11 @@ function hasTextSelection(): boolean {
 /** Build the current `when` context from store state. */
 function buildWhenContext(): WhenContext {
 	const state = useStore.getState();
+	const terminalOpen = state.activeContentTab !== "chat";
 	return {
 		terminalFocus:
-			state.terminalPanelOpen &&
-			document.activeElement?.closest("[data-terminal-container]") !== null,
-		terminalOpen: state.terminalPanelOpen,
+			terminalOpen && document.activeElement?.closest("[data-terminal-container]") !== null,
+		terminalOpen,
 		streaming: state.isStreaming,
 		hasSession: state.sessionId !== null,
 		isConnected: state.connectionStatus === "open",
@@ -224,7 +224,7 @@ export function useKeyboardShortcuts(): void {
 					const splitActiveTabCwd = state.getActiveTab()?.cwd ?? "";
 					if (
 						isConnected &&
-						state.terminalPanelOpen &&
+						state.activeContentTab !== "chat" &&
 						state.terminalTabs.some((t) => t.projectPath === splitActiveTabCwd)
 					) {
 						e.preventDefault();
@@ -243,11 +243,19 @@ export function useKeyboardShortcuts(): void {
 					const hasOwnedTerminals = termState.terminalTabs.some(
 						(t) => t.projectPath === toggleActiveTabCwd,
 					);
-					if (termState.terminalPanelOpen) {
-						termState.setTerminalPanelOpen(false);
+					if (termState.activeContentTab !== "chat") {
+						// Currently on a terminal tab — switch back to chat
+						termState.setActiveContentTab("chat");
 					} else if (hasOwnedTerminals) {
-						termState.setTerminalPanelOpen(true);
+						// On chat tab with existing terminals — switch to the active terminal
+						const targetTab =
+							termState.activeTerminalTabId ??
+							termState.terminalTabs.find((t) => t.projectPath === toggleActiveTabCwd)?.id;
+						if (targetTab) {
+							termState.setActiveContentTab(targetTab);
+						}
 					} else if (isConnected) {
+						// No terminals exist — create one (auto-switches via createTerminal)
 						createTerminal().catch((err: unknown) => {
 							console.error("[Shortcut] Failed to create terminal:", err);
 						});

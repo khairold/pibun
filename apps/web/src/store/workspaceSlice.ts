@@ -235,17 +235,6 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 				}
 			}
 
-			// Close panel if no terminals left for the new active tab's project
-			const newActiveTabId = updates.activeTabId ?? s.activeTabId;
-			const newActiveTab = newTabs.find((t) => t.id === newActiveTabId);
-			const activeProjectPath = newActiveTab?.cwd ?? "";
-			const activeProjectTerminals = s.terminalTabs.filter(
-				(t) => t.projectPath === activeProjectPath,
-			);
-			if (activeProjectTerminals.length === 0) {
-				updates.terminalPanelOpen = false;
-			}
-
 			return updates;
 		});
 	},
@@ -396,15 +385,10 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	},
 
 	// ==== Terminal state ====
-	terminalPanelOpen: false,
 	terminalTabs: [],
 	activeTerminalTabId: null,
 	activeContentTab: "chat",
 	projectContentTabs: {},
-
-	toggleTerminalPanel: () => set((state) => ({ terminalPanelOpen: !state.terminalPanelOpen })),
-
-	setTerminalPanelOpen: (open) => set({ terminalPanelOpen: open }),
 
 	setActiveContentTab: (tab) => {
 		const state = get();
@@ -486,8 +470,6 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 		set({
 			terminalTabs: newTabs,
 			activeTerminalTabId: newActiveId,
-			// Close panel if no terminals left for the project
-			...(projectTabs.length === 0 ? { terminalPanelOpen: false } : {}),
 			...contentTabUpdate,
 		});
 	},
