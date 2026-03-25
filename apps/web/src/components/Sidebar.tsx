@@ -407,16 +407,9 @@ const SessionItem = memo(function SessionItem({
 
 			{/* Remove button — only for loaded (past) sessions */}
 			{entry.kind === "past" && onRemoveLoaded && (
-				<span
-					role="button"
-					tabIndex={0}
+				<button
+					type="button"
 					onClick={handleRemove}
-					onKeyDown={(e) => {
-						if (e.key === "Enter" || e.key === " ") {
-							e.preventDefault();
-							handleRemove(e as unknown as React.MouseEvent);
-						}
-					}}
 					className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm text-transparent transition-colors group-hover/session:text-text-muted group-hover/session:hover:text-text-secondary"
 					title="Remove from sidebar"
 				>
@@ -429,7 +422,7 @@ const SessionItem = memo(function SessionItem({
 					>
 						<path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22z" />
 					</svg>
-				</span>
+				</button>
 			)}
 		</button>
 	);
@@ -1028,8 +1021,7 @@ export function Sidebar() {
 			const store = useStore.getState();
 			const activeTab = store.getActiveTab();
 			if (
-				activeTab &&
-				activeTab.cwd &&
+				activeTab?.cwd &&
 				normalizeCwd(activeTab.cwd) === normalizeCwd(project.cwd) &&
 				store.messages.length === 0
 			) {

@@ -151,7 +151,6 @@ async function testThreeSimultaneousSessions(
 
 	for (let i = 0; i < 3; i++) {
 		const reqId = `start-${i}`;
-		const isFirst = i === 0;
 		sendRequest(ws, reqId, "session.start", {});
 		const resp = await waitForResponse(ws, reqId);
 		const result = resp.result as { sessionId?: string } | undefined;

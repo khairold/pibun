@@ -8,8 +8,8 @@
  * Opened via the "Browse past sessions…" link under each project in the Sidebar.
  */
 
-import { cn } from "@/lib/utils";
 import { fetchSessionList } from "@/lib/sessionActions";
+import { cn } from "@/lib/utils";
 import { addLoadedSession, removeLoadedSession } from "@/lib/workspaceActions";
 import { useStore } from "@/store";
 import type { WsSessionSummary } from "@pibun/contracts";
@@ -184,16 +184,15 @@ export function SessionBrowserDialog({
 	const projectName = cwd.split("/").filter(Boolean).pop() ?? cwd;
 
 	return (
-		<div
-			className="fixed inset-0 z-[200] flex items-center justify-center bg-surface-overlay/60 backdrop-blur-sm"
+		<dialog
+			open
+			className="fixed inset-0 z-[200] flex h-full w-full items-center justify-center border-none bg-surface-overlay/60 backdrop-blur-sm"
 			onClick={(e) => {
 				if (e.target === e.currentTarget) onClose();
 			}}
 			onKeyDown={(e) => {
 				if (e.key === "Escape") onClose();
 			}}
-			role="dialog"
-			aria-modal="true"
 			aria-label="Browse past sessions"
 		>
 			<div
@@ -234,7 +233,7 @@ export function SessionBrowserDialog({
 						onChange={(e) => setFilter(e.target.value)}
 						placeholder="Filter sessions…"
 						className="w-full rounded-md border border-border-primary bg-surface-secondary px-3 py-1.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-accent-primary"
-						autoFocus
+						ref={(el) => el?.focus()}
 					/>
 				</div>
 
@@ -266,6 +265,6 @@ export function SessionBrowserDialog({
 					</span>
 				</div>
 			</div>
-		</div>
+		</dialog>
 	);
 }

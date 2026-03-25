@@ -15,17 +15,17 @@
 
 import type { GitChangedFile, Project, Session, TabStatus } from "@pibun/contracts";
 import type { StateCreator } from "zustand";
-import {
-	type AppStore,
-	type ChatMessage,
-	type ExtensionWidget,
-	type GitSlice,
-	type PluginsSlice,
-	type ProjectsSlice,
-	type TabsSlice,
-	type TerminalSlice,
-	type TerminalTab,
-	type WorkspacePersistSlice,
+import type {
+	AppStore,
+	ChatMessage,
+	ExtensionWidget,
+	GitSlice,
+	PluginsSlice,
+	ProjectsSlice,
+	TabsSlice,
+	TerminalSlice,
+	TerminalTab,
+	WorkspacePersistSlice,
 } from "./types";
 
 // ============================================================================
@@ -127,7 +127,6 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 	activeTabId: null,
 
 	addTab: (partial) => {
-		const state = get();
 		const id = nextTabId();
 		const tab: Session = {
 			id,
