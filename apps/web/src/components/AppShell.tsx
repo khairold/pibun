@@ -43,7 +43,7 @@ import { useWindowTitle } from "@/hooks/useWindowTitle";
 import { createTerminal } from "@/lib/appActions";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 function TerminalButton() {
 	const terminalPanelOpen = useStore((s) => s.terminalPanelOpen);
@@ -134,6 +134,7 @@ export function AppShell() {
 	const toggleSidebar = useStore((s) => s.toggleSidebar);
 	const isWindowFocused = useStore((s) => s.isWindowFocused);
 	const activeContentTab = useStore((s) => s.activeContentTab);
+	const connectionStatus = useStore((s) => s.connectionStatus);
 
 	// Get project terminals for current project — used for full-height terminal rendering
 	const activeProjectPath = useStore((s) => s.tabs.find((t) => t.id === s.activeTabId)?.cwd ?? "");
@@ -145,6 +146,32 @@ export function AppShell() {
 	);
 
 	const isChatActive = activeContentTab === "chat";
+
+	// Auto-create a default terminal when a project becomes active with no terminals.
+	// Ensures the minimum "1 chat + 1 terminal" constraint per active project.
+	// Guard ref prevents double-creation during React strict mode or rapid project switches.
+	const pendingAutoCreateRef = useRef<string | null>(null);
+
+	useEffect(() => {
+		if (!activeProjectPath || connectionStatus !== "open" || projectTerminals.length > 0) {
+			return;
+		}
+		// Prevent concurrent auto-creation for the same project
+		if (pendingAutoCreateRef.current === activeProjectPath) return;
+		pendingAutoCreateRef.current = activeProjectPath;
+
+		createTerminal()
+			.then((tabId) => {
+				if (tabId) {
+					// Don't open legacy terminal panel for auto-created terminals.
+					// Stay on chat tab — user didn't explicitly request this terminal.
+					useStore.getState().setTerminalPanelOpen(false);
+				}
+			})
+			.finally(() => {
+				pendingAutoCreateRef.current = null;
+			});
+	}, [activeProjectPath, connectionStatus, projectTerminals.length]);
 
 	return (
 		<div className="flex h-screen bg-surface-base text-text-primary">

@@ -32,6 +32,8 @@
 | 15 | `activeContentTab` + `projectContentTabs` added to TerminalSlice | `activeContentTab: string` ("chat" or terminal tab ID). `projectContentTabs: Record<string, string>` maps project path → last content tab. `setActiveContentTab` also persists to the map for the current project. | 2026-03-24 |
 | 16 | `removeTerminalTab` falls back `activeContentTab` to "chat" | If the removed terminal was the `activeContentTab`, resets to "chat". Prevents stale terminal tab ID in content display. | 2026-03-24 |
 | 17 | Content area uses absolute positioning + `hidden` for tab switching | Chat content and each terminal instance are `absolute inset-0` inside a `relative flex-1 min-h-0` container. Inactive layers use Tailwind `hidden` (display:none). This preserves xterm.js instances and their screen buffers across tab switches. ResizeObserver fires when hidden→visible transition occurs, so fitAddon re-fits correctly. | 2026-03-25 |
+| 18 | No separate `TerminalView` component — TerminalInstance is sufficient | TerminalInstance already renders full-height without resize handles or panel chrome. AppShell wraps each in an absolute-positioned div with `hidden` toggling. Creating a thin `TerminalView` wrapper would violate deep modules convention with no added value. | 2026-03-25 |
+| 19 | Auto-create terminal uses `pendingAutoCreateRef` guard | `useEffect` in AppShell watches `activeProjectPath` + `connectionStatus` + `projectTerminals.length`. Guard ref prevents double-creation during React strict mode. After creation, legacy `terminalPanelOpen` is set to false (stays on chat tab). | 2026-03-25 |
 
 ## Architecture Notes
 

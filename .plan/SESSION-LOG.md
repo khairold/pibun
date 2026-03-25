@@ -183,3 +183,24 @@
 - Key concern: when terminal tab becomes visible after being `hidden`, does xterm.js re-fit correctly? ResizeObserver should fire on the hidden→visible dimension change, but needs manual testing.
 
 ---
+
+## Session 7 — TerminalView verify + Auto-create default terminal (2026-03-25)
+
+**What happened:**
+- Assessed item 2.3 (TerminalView): determined the existing approach from 2.2 is sufficient. TerminalInstance already renders full-height without resize handles or panel chrome. AppShell wraps each terminal in absolute-positioned divs with `hidden` toggling. Creating a separate TerminalView wrapper would be a thin shell that violates the deep modules convention.
+- Implemented item 2.4 (auto-create default terminal): added a `useEffect` in AppShell that watches `activeProjectPath`, `connectionStatus`, and `projectTerminals.length`. When a project becomes active with no terminals and the WS connection is open, auto-creates one terminal via `createTerminal()`. Uses `pendingAutoCreateRef` guard to prevent double-creation during React strict mode. After creation, sets `terminalPanelOpen` to false so the user stays on the chat tab.
+
+**Items completed:**
+- [x] 2.3 — TerminalView (verified existing approach is sufficient — no new component needed)
+- [x] 2.4 — Auto-create default terminal when project becomes active
+
+**Issues encountered:**
+- None. Clean implementation, typecheck and build pass on first attempt.
+
+**Handoff to next session:**
+- Next: 2.5 — Wire [+] button and close button behavior
+- [+] button already calls `createTerminal()` from ContentTabBar. Need to also auto-switch `activeContentTab` to the new terminal. Close button already calls `closeTerminal()`. Need to handle: select adjacent tab on close, fall back to chat if last terminal closed, re-create if minimum constraint violated.
+- Also need 2.7 (update `createTerminal` to set `activeContentTab`) — this is closely related to 2.5.
+- Legacy `TerminalPane` still renders inside the chat layer. Items 2.6 removes it.
+
+---
