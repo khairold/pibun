@@ -371,6 +371,16 @@ export function compileRules(rules: readonly KeybindingRule[]): ResolvedBinding[
  * (and override via last-match-wins).
  */
 export const DEFAULT_KEYBINDINGS: readonly KeybindingRule[] = [
+	// Content tab navigation (mod+1 = chat, mod+2-9 = terminal tabs by position)
+	{ key: "mod+1", command: "contentTab1" },
+	{ key: "mod+2", command: "contentTab2" },
+	{ key: "mod+3", command: "contentTab3" },
+	{ key: "mod+4", command: "contentTab4" },
+	{ key: "mod+5", command: "contentTab5" },
+	{ key: "mod+6", command: "contentTab6" },
+	{ key: "mod+7", command: "contentTab7" },
+	{ key: "mod+8", command: "contentTab8" },
+	{ key: "mod+9", command: "contentTab9" },
 	// Non-shift combos
 	{ key: "mod+c", command: "abort" },
 	{ key: "mod+b", command: "toggleSidebar" },

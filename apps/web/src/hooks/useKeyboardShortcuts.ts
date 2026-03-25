@@ -220,6 +220,36 @@ export function useKeyboardShortcuts(): void {
 					}
 					break;
 				}
+				case "contentTab1":
+				case "contentTab2":
+				case "contentTab3":
+				case "contentTab4":
+				case "contentTab5":
+				case "contentTab6":
+				case "contentTab7":
+				case "contentTab8":
+				case "contentTab9": {
+					e.preventDefault();
+					const tabIndex = Number(command.slice(-1)) - 1; // 0-based: 0=chat, 1=first terminal, etc.
+					const ctState = useStore.getState();
+					if (tabIndex === 0) {
+						// mod+1 = always chat
+						ctState.setActiveContentTab("chat");
+					} else {
+						// mod+2-9 = terminal tabs by position (1-based index into project terminals)
+						const ctActiveProjectPath = ctState.getActiveTab()?.cwd ?? "";
+						if (ctActiveProjectPath) {
+							const ctProjectTerminals = ctState.terminalTabs.filter(
+								(t) => t.projectPath === ctActiveProjectPath,
+							);
+							const targetTerminal = ctProjectTerminals[tabIndex - 1]; // -1 because tabIndex 1 = first terminal
+							if (targetTerminal) {
+								ctState.setActiveContentTab(targetTerminal.id);
+							}
+						}
+					}
+					break;
+				}
 				case "splitTerminal": {
 					const splitActiveTabCwd = state.getActiveTab()?.cwd ?? "";
 					if (

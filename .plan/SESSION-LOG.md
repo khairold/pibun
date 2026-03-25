@@ -303,3 +303,24 @@
 - The `toggleTerminal` shortcut already exists from session 9 (toggles between "chat" and last active terminal). 3.2 adds Ctrl+1-9 positional shortcuts.
 
 ---
+
+## Session 12 — Keyboard shortcuts for content tab navigation (2026-03-25)
+
+**What happened:**
+- Added `contentTab1` through `contentTab9` to `KeybindingCommand` type in `packages/contracts/src/domain.ts`
+- Added default keybindings `mod+1` through `mod+9` in `apps/web/src/lib/keybindings.ts`
+- Added handler case in `useKeyboardShortcuts.ts`: extracts tab index from command name, `mod+1` always switches to chat, `mod+2-9` switches to the Nth terminal in the current project (no-op if target doesn't exist)
+- `Ctrl+J` toggle already existed from session 9 — no changes needed
+
+**Items completed:**
+- [x] 3.2 — Keyboard shortcuts: Ctrl+1 = chat, Ctrl+2-9 = terminal tabs by position, Ctrl+J = toggle chat/terminal
+
+**Issues encountered:**
+- None. Clean implementation — typecheck, build, and format all pass on first attempt.
+
+**Handoff to next session:**
+- Next: 3.3 — Context menu on terminal tabs: Rename, Close. Reuse existing context menu patterns from Sidebar.
+- Key files: `apps/web/src/components/ContentTabBar.tsx` (add right-click handler to `TerminalTabItem`), check Sidebar for context menu pattern to reuse
+- After 3.3: 3.4 (delete TerminalPane.tsx), 3.5 (clean up split infrastructure), 3.6 (desktop menu), 3.7 (final verify)
+
+---
