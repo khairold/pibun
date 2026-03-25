@@ -19,7 +19,15 @@ import { closeTerminal, createTerminal } from "@/lib/appActions";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import type { TerminalTab } from "@/store/types";
-import { memo, useCallback, useMemo } from "react";
+import {
+	type KeyboardEvent as ReactKeyboardEvent,
+	memo,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 
 // ============================================================================
 // Sub-components
@@ -59,20 +67,76 @@ function ChatTab({ isActive, onClick }: { isActive: boolean; onClick: () => void
 	);
 }
 
-/** A single terminal tab with optional close button. */
+/**
+ * A single terminal tab with optional close button and inline rename.
+ *
+ * Double-click the tab label to enter rename mode. Press Enter or blur to confirm.
+ * Press Escape to cancel. Empty names revert to the previous name.
+ */
 const TerminalTabItem = memo(function TerminalTabItem({
 	tab,
 	isActive,
 	canClose,
 	onSelect,
 	onClose,
+	onRename,
 }: {
 	tab: TerminalTab;
 	isActive: boolean;
 	canClose: boolean;
 	onSelect: (tabId: string) => void;
 	onClose: (tabId: string) => void;
+	onRename: (tabId: string, newName: string) => void;
 }) {
+	const [isEditing, setIsEditing] = useState(false);
+	const [editValue, setEditValue] = useState(tab.name);
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	// Focus + select all when entering edit mode
+	useEffect(() => {
+		if (isEditing && inputRef.current) {
+			inputRef.current.focus();
+			inputRef.current.select();
+		}
+	}, [isEditing]);
+
+	const commitRename = useCallback(() => {
+		const trimmed = editValue.trim();
+		if (trimmed && trimmed !== tab.name) {
+			onRename(tab.id, trimmed);
+		}
+		setIsEditing(false);
+	}, [editValue, tab.name, tab.id, onRename]);
+
+	const cancelRename = useCallback(() => {
+		setEditValue(tab.name);
+		setIsEditing(false);
+	}, [tab.name]);
+
+	const handleDoubleClick = useCallback(
+		(e: React.MouseEvent) => {
+			e.stopPropagation();
+			setEditValue(tab.name);
+			setIsEditing(true);
+		},
+		[tab.name],
+	);
+
+	const handleInputKeyDown = useCallback(
+		(e: ReactKeyboardEvent<HTMLInputElement>) => {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				commitRename();
+			} else if (e.key === "Escape") {
+				e.preventDefault();
+				cancelRename();
+			}
+			// Stop propagation so tab-level keyboard shortcuts don't fire
+			e.stopPropagation();
+		},
+		[commitRename, cancelRename],
+	);
+
 	return (
 		<div
 			role="tab"
@@ -103,8 +167,25 @@ const TerminalTabItem = memo(function TerminalTabItem({
 				<path d="M3.5 5.5l3 2.5-3 2.5V5.5zM8 10h4.5v1H8v-1z" />
 			</svg>
 
-			{/* Tab name */}
-			<span className="max-w-[120px] truncate">{tab.name}</span>
+			{/* Tab name — inline edit on double-click */}
+			{isEditing ? (
+				<input
+					ref={inputRef}
+					type="text"
+					value={editValue}
+					onChange={(e) => setEditValue(e.target.value)}
+					onBlur={commitRename}
+					onKeyDown={handleInputKeyDown}
+					onClick={(e) => e.stopPropagation()}
+					className="max-w-[120px] bg-transparent text-xs font-medium text-text-primary outline-none border-b border-accent-primary"
+					spellCheck={false}
+					autoComplete="off"
+				/>
+			) : (
+				<span className="max-w-[120px] truncate" onDoubleClick={handleDoubleClick}>
+					{tab.name}
+				</span>
+			)}
 
 			{/* Running/exited indicator */}
 			{tab.isRunning ? (
@@ -224,6 +305,14 @@ export const ContentTabBar = memo(function ContentTabBar() {
 		});
 	}, []);
 
+	const updateTerminalTab = useStore((s) => s.updateTerminalTab);
+	const handleRenameTerminal = useCallback(
+		(tabId: string, newName: string) => {
+			updateTerminalTab(tabId, { name: newName });
+		},
+		[updateTerminalTab],
+	);
+
 	const handleAddTerminal = useCallback(() => {
 		createTerminal().catch((err: unknown) => {
 			console.error("[ContentTabBar] Failed to create terminal:", err);
@@ -253,6 +342,7 @@ export const ContentTabBar = memo(function ContentTabBar() {
 					canClose={canCloseTerminal}
 					onSelect={handleSelectTerminal}
 					onClose={handleCloseTerminal}
+					onRename={handleRenameTerminal}
 				/>
 			))}
 

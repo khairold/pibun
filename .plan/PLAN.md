@@ -3,7 +3,7 @@
 > **Spec:** Main content area with tab bar: session chat + project-scoped terminals
 > **Status:** In Progress
 > **Current Phase:** Phase 3 — Polish & Cleanup
-> **Last Session:** Session 10 — 2026-03-25
+> **Last Session:** Session 11 — 2026-03-25
 
 ---
 
@@ -87,7 +87,7 @@ Workspaces map to projects.
 
 **Goal:** Renameable terminal tabs, keyboard shortcuts, dead code removal.
 
-- [ ] 3.1 — Rename terminal tabs: double-click tab label → inline edit input. Update `TerminalTab.name` in store. Default name: "Terminal 1", "Terminal 2", auto-incrementing per project.
+- [x] 3.1 — Rename terminal tabs: double-click tab label → inline edit input. Update `TerminalTab.name` in store. Default name: "Terminal 1", "Terminal 2", auto-incrementing per project.
 - [ ] 3.2 — Keyboard shortcuts: `Ctrl+1` = chat tab, `Ctrl+2-9` = terminal tabs by position. `Ctrl+J` = toggle between chat and last active terminal (replaces old terminal panel toggle). Add to `useKeyboardShortcuts`, `KeybindingCommand` type, default bindings.
 - [ ] 3.3 — Context menu on terminal tabs: Rename, Close. Reuse existing context menu patterns from Sidebar.
 - [ ] 3.4 — Delete dead `TerminalPane.tsx` (bottom panel with resize handle, tab strip, split groups — all replaced by ContentTabBar + TerminalView). Remove all imports.

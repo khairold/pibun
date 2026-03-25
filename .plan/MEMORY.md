@@ -37,6 +37,8 @@
 | 20 | `createTerminal` auto-switches `activeContentTab` | After server-side terminal creation, `createTerminal()` calls `setActiveContentTab(tabId)` to switch the content area to the new terminal. Auto-create in AppShell overrides this back to "chat" since the user didn't request it. | 2026-03-25 |
 | 21 | `removeTerminalTab` selects adjacent terminal, not always "chat" | When the removed terminal was `activeContentTab`, the new `activeContentTab` is set to the next `activeTerminalTabId` (adjacent terminal in same project). Only falls back to "chat" when no project terminals remain. | 2026-03-25 |
 | 22 | `terminalPanelOpen` removed — terminal visibility via `activeContentTab` | No more boolean toggle for terminal panel. `activeContentTab === "chat"` means chat is visible; any other value is a terminal tab ID. `toggleTerminal` shortcut/menu now toggles between `"chat"` and the last active terminal. TerminalPane.tsx is dead code (always returns null), deleted in 3.4. | 2026-03-25 |
+| 23 | Terminal tab naming is per-project auto-incrementing | `addTerminalTab` and `splitTerminalTab` compute `maxNum` from existing project terminals matching `/^Terminal (\d+)$/`, then use `maxNum + 1`. Renamed tabs (custom names) don't affect the counter. Global `terminalTabCounter` is still used for unique tab IDs but NOT for display names. | 2026-03-25 |
+| 24 | Terminal tab rename via double-click inline edit | `TerminalTabItem` in `ContentTabBar.tsx` manages `isEditing` state. Double-click label → input with focus+select-all. Enter commits, Escape cancels, blur commits. Empty/whitespace-only names revert. `updateTerminalTab(tabId, { name })` persists. | 2026-03-25 |
 
 ## Architecture Notes
 

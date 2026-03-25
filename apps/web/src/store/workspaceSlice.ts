@@ -408,10 +408,18 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 		const tabId = `ttab-${String(++terminalTabCounter)}`;
 		const activeTab = state.getActiveTab();
 		const projectPath = activeTab?.cwd ?? "";
+
+		// Per-project auto-incrementing name: find highest existing number for this project
+		const projectTabs = state.terminalTabs.filter((t) => t.projectPath === projectPath);
+		const maxNum = projectTabs.reduce((max, t) => {
+			const match = /^Terminal (\d+)$/.exec(t.name);
+			return match ? Math.max(max, Number(match[1])) : max;
+		}, 0);
+
 		const tab: TerminalTab = {
 			id: tabId,
 			terminalId,
-			name: `Terminal ${String(terminalTabCounter)}`,
+			name: `Terminal ${String(maxNum + 1)}`,
 			cwd,
 			isRunning: true,
 			groupId: tabId, // Each new terminal starts in its own group
@@ -508,10 +516,18 @@ export const createWorkspaceSlice: StateCreator<AppStore, [], [], WorkspaceSlice
 		}
 
 		const tabId = `ttab-${String(++terminalTabCounter)}`;
+
+		// Per-project auto-incrementing name
+		const projectTabs = state.terminalTabs.filter((t) => t.projectPath === projectPath);
+		const maxNum = projectTabs.reduce((max, t) => {
+			const match = /^Terminal (\d+)$/.exec(t.name);
+			return match ? Math.max(max, Number(match[1])) : max;
+		}, 0);
+
 		const tab: TerminalTab = {
 			id: tabId,
 			terminalId,
-			name: `Terminal ${String(terminalTabCounter)}`,
+			name: `Terminal ${String(maxNum + 1)}`,
 			cwd,
 			isRunning: true,
 			groupId: groupId ?? tabId, // Join active group, or create new group

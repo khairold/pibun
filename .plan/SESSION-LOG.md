@@ -274,3 +274,32 @@
 - TerminalPane.tsx currently always returns null — safe to delete in 3.4
 
 ---
+
+## Session 11 — Rename terminal tabs (2026-03-25)
+
+**What happened:**
+- Implemented double-click-to-rename on terminal tabs in `ContentTabBar.tsx`:
+  - `TerminalTabItem` now manages `isEditing` local state
+  - Double-click on label text → inline `<input>` with focus + select-all
+  - Enter commits, Escape cancels, blur commits
+  - Empty/whitespace-only names revert to previous name
+  - Input stops event propagation to prevent tab-level keyboard shortcuts
+  - Added `onRename` prop that calls `updateTerminalTab(tabId, { name })`
+- Changed terminal naming from global counter to per-project auto-incrementing:
+  - `addTerminalTab` and `splitTerminalTab` now compute `maxNum` from existing terminals matching `/^Terminal (\d+)$/` in the same project
+  - New terminal name = `Terminal ${maxNum + 1}`
+  - Renamed tabs (custom names like "dev server") don't affect the counter
+  - Global `terminalTabCounter` still used for unique IDs (`ttab-N`), not display names
+
+**Items completed:**
+- [x] 3.1 — Rename terminal tabs: double-click → inline edit, per-project auto-increment
+
+**Issues encountered:**
+- None. Clean implementation, typecheck and build pass on first attempt.
+
+**Handoff to next session:**
+- Next: 3.2 — Keyboard shortcuts: Ctrl+1 = chat, Ctrl+2-9 = terminal tabs by position, Ctrl+J = toggle chat/last terminal
+- Key files: `apps/web/src/hooks/useKeyboardShortcuts.ts`, `apps/web/src/store/types.ts` (`KeybindingCommand`), default bindings
+- The `toggleTerminal` shortcut already exists from session 9 (toggles between "chat" and last active terminal). 3.2 adds Ctrl+1-9 positional shortcuts.
+
+---
