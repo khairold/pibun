@@ -7,7 +7,7 @@
  * 2. Theme CSS — all tokens map to CSS custom properties
  * 3. Settings persistence — server-side read/write via WS methods
  * 4. Settings update — partial merge, theme saved and loaded
- * 5. System preference — "system" resolves to light or dark
+ * 5. Default theme — "dimmed" is the default
  * 6. Shiki theme mapping — each theme has a valid Shiki theme name
  * 7. Theme selector — all themes accessible, system option exists
  * 8. Web build — theme-related files included in dist
@@ -283,10 +283,10 @@ async function testSettingsPersistence(): Promise<void> {
 		const loaded2 = await loadSettings();
 		check("Update to 'light' → loads back correctly", loaded2.themeId === "light");
 
-		// 4. Save "system" preference
-		await updateSettings({ themeId: "system" });
+		// 4. Save "dimmed" preference
+		await updateSettings({ themeId: "dimmed" });
 		const loaded3 = await loadSettings();
-		check("Save 'system' preference → loads back correctly", loaded3.themeId === "system");
+		check("Save 'dimmed' preference → loads back correctly", loaded3.themeId === "dimmed");
 
 		// 5. Save null (clear preference)
 		await updateSettings({ themeId: null });
@@ -365,11 +365,11 @@ async function testSettingsWsMethods(): Promise<void> {
 		const settings2 = getResp2.result?.settings as Record<string, unknown> | undefined;
 		check("settings.get reflects update", settings2?.themeId === "high-contrast-dark");
 
-		// 4. Update to "system"
-		const sysResp = await request(ws, "settings.update", { themeId: "system" });
-		check("settings.update to 'system' succeeds", "result" in sysResp);
-		const sysSettings = sysResp.result?.settings as Record<string, unknown> | undefined;
-		check("settings.update returns 'system'", sysSettings?.themeId === "system");
+		// 4. Update to "dimmed"
+		const dimResp = await request(ws, "settings.update", { themeId: "dimmed" });
+		check("settings.update to 'dimmed' succeeds", "result" in dimResp);
+		const dimSettings = dimResp.result?.settings as Record<string, unknown> | undefined;
+		check("settings.update returns 'dimmed'", dimSettings?.themeId === "dimmed");
 
 		// 5. Update to null (clear)
 		const nullResp = await request(ws, "settings.update", { themeId: null });
@@ -474,39 +474,25 @@ async function testSystemPreference(): Promise<void> {
 		themesSource.includes('addEventListener("change"') && themesSource.includes("matchMedia"),
 	);
 
-	// 3. watchSystemPreference returns unsubscribe function
+	// 3. resolveTheme returns a concrete theme
+	check("resolveTheme exists", themesSource.includes("export function resolveTheme"));
+
+	// 4. DEFAULT_THEME_ID is "dimmed"
 	check(
-		"watchSystemPreference returns unsubscribe",
-		themesSource.includes('removeEventListener("change"'),
+		"DEFAULT_THEME_ID is dimmed",
+		themesSource.includes('DEFAULT_THEME_ID: ThemeId = "dimmed"'),
 	);
 
-	// 4. resolveTheme handles "system" preference
-	check(
-		"resolveTheme handles 'system' preference",
-		themesSource.includes('preference === "system"'),
-	);
-
-	// 5. ThemeSelector watches system preference
+	// 5. ThemeSelector has theme selection
 	const selectorPath = resolve(import.meta.dir, "../../web/src/components/ThemeSelector.tsx");
 	const selectorSource = await Bun.file(selectorPath).text();
-	check(
-		"ThemeSelector imports watchSystemPreference",
-		selectorSource.includes("watchSystemPreference"),
-	);
-	check(
-		"ThemeSelector watches when 'system' is active",
-		selectorSource.includes('activePreference !== "system"') ||
-			selectorSource.includes('activePreference === "system"'),
-	);
-	check(
-		"ThemeSelector has 'System' option",
-		selectorSource.includes("handleSelectSystem") && selectorSource.includes("SystemPreview"),
-	);
+	check("ThemeSelector has theme selection", selectorSource.includes("handleSelectTheme"));
+	check("ThemeSelector uses DEFAULT_THEME_ID", selectorSource.includes("DEFAULT_THEME_ID"));
 
-	// 6. main.tsx defaults to "system" on first visit
+	// 6. main.tsx defaults to DEFAULT_THEME_ID on first visit
 	const mainPath = resolve(import.meta.dir, "../../web/src/main.tsx");
 	const mainSource = await Bun.file(mainPath).text();
-	check("main.tsx defaults to 'system' preference", mainSource.includes('"system"'));
+	check("main.tsx uses DEFAULT_THEME_ID", mainSource.includes("DEFAULT_THEME_ID"));
 	check(
 		"main.tsx applies theme before React renders",
 		mainSource.includes("applyTheme(resolveTheme("),
@@ -618,7 +604,10 @@ async function testThemeContracts(): Promise<void> {
 	check("Theme interface exported", themeSource.includes("export interface Theme"));
 	check("ThemeId type exported", themeSource.includes("export type ThemeId"));
 	check("ThemePreference type exported", themeSource.includes("export type ThemePreference"));
-	check('ThemePreference includes "system"', themeSource.includes('"system"'));
+	check(
+		'ThemePreference is ThemeId (no "system")',
+		themeSource.includes("export type ThemePreference = ThemeId"),
+	);
 
 	// 2. All 5 theme IDs in ThemeId
 	for (const id of THEME_IDS) {

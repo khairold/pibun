@@ -62,6 +62,7 @@ const DEFAULT_SETTINGS: PiBunSettings = {
 	steeringMode: null,
 	followUpMode: null,
 	timestampFormat: "locale",
+	lastOpenedFolder: null,
 };
 
 /**
@@ -96,6 +97,7 @@ export async function loadSettings(): Promise<PiBunSettings> {
 			["relative", "locale", "12h", "24h"].includes(raw.timestampFormat) && {
 				timestampFormat: raw.timestampFormat as PiBunSettings["timestampFormat"],
 			}),
+		lastOpenedFolder: typeof raw.lastOpenedFolder === "string" ? raw.lastOpenedFolder : null,
 	};
 }
 
@@ -134,6 +136,9 @@ export async function updateSettings(updates: Partial<PiBunSettings>): Promise<P
 	}
 	if (updates.timestampFormat !== undefined) {
 		current.timestampFormat = updates.timestampFormat;
+	}
+	if (updates.lastOpenedFolder !== undefined) {
+		current.lastOpenedFolder = updates.lastOpenedFolder;
 	}
 
 	await saveSettings(current);

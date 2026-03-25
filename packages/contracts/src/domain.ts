@@ -246,13 +246,9 @@ export interface Theme {
 export type ThemeId = "light" | "dark" | "dimmed" | "high-contrast-dark" | "high-contrast-light";
 
 /**
- * User's theme preference — either a specific theme ID or "system" to
- * follow the OS dark/light mode setting.
- *
- * When "system" is selected, the app watches `prefers-color-scheme` and
- * auto-switches between "light" and "dark" themes as the OS changes.
+ * User's theme preference — a specific theme ID.
  */
-export type ThemePreference = ThemeId | "system";
+export type ThemePreference = ThemeId;
 
 // ============================================================================
 // Settings
@@ -269,9 +265,8 @@ export type ThemePreference = ThemeId | "system";
  */
 export interface PiBunSettings {
 	/**
-	 * User's theme preference. Can be a specific theme ID (e.g., "dark",
-	 * "light") or "system" to follow the OS dark/light mode setting.
-	 * Null means no preference saved — falls back to system detection.
+	 * User's theme preference (e.g., "dark", "dimmed", "light").
+	 * Null means no preference saved — falls back to "dimmed".
 	 */
 	themeId: ThemePreference | null;
 
@@ -311,6 +306,14 @@ export interface PiBunSettings {
 	 * - `"24h"` — 24-hour clock (e.g., "15:42")
 	 */
 	timestampFormat: TimestampFormat;
+
+	/**
+	 * Last directory opened in the native folder picker.
+	 * Used as the starting folder for subsequent folder dialogs so the user
+	 * doesn't have to navigate back to their projects directory every time.
+	 * Null means no preference — defaults to `~/`.
+	 */
+	lastOpenedFolder: string | null;
 }
 
 /**

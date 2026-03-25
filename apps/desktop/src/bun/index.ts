@@ -15,7 +15,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { PiRpcManager } from "@pibun/server/piRpcManager";
-import { loadProjects } from "@pibun/server/persistence";
+import { loadProjects, loadSettings, updateSettings } from "@pibun/server/persistence";
 import { type PiBunServer, broadcastPush, createServer } from "@pibun/server/server";
 import Electrobun, { ApplicationMenu, BrowserWindow, ContextMenu, Utils } from "electrobun/bun";
 import {
@@ -346,8 +346,12 @@ async function shutdown(reason: string): Promise<void> {
  * @returns The selected folder path, or null if the user cancelled.
  */
 async function openFolderDialogAsync(): Promise<string | null> {
+	// Use the last opened folder as starting point, fall back to ~/
+	const settings = await loadSettings();
+	const startingFolder = settings.lastOpenedFolder ?? "~/";
+
 	const result = await Utils.openFileDialog({
-		startingFolder: "~/",
+		startingFolder,
 		canChooseFiles: false,
 		canChooseDirectory: true,
 		allowsMultipleSelection: false,
@@ -359,6 +363,10 @@ async function openFolderDialogAsync(): Promise<string | null> {
 		console.log("[FileDialog] Folder selection cancelled");
 		return null;
 	}
+
+	// Persist the parent directory so next dialog opens nearby
+	const parentDir = resolve(folderPath, "..");
+	await updateSettings({ lastOpenedFolder: parentDir });
 
 	console.log(`[FileDialog] Folder selected: ${folderPath}`);
 	return folderPath;

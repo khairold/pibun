@@ -23,7 +23,12 @@ import type {
 	WsSettingsUpdateParams,
 } from "@pibun/contracts";
 import { startSession, switchTabAction } from "./tabActions";
-import { THEME_STORAGE_KEY, applyTheme, resolveTheme } from "./themes";
+import {
+	THEME_STORAGE_KEY,
+	applyTheme,
+	notifyThemePreferenceChanged,
+	resolveTheme,
+} from "./themes";
 
 // ============================================================================
 // Helpers
@@ -430,6 +435,7 @@ const DEFAULT_SETTINGS: PiBunSettings = {
 	steeringMode: null,
 	followUpMode: null,
 	timestampFormat: "locale",
+	lastOpenedFolder: null,
 };
 
 /**
@@ -504,6 +510,7 @@ export async function fetchAndApplySettings(): Promise<void> {
 			if (settings.themeId !== currentLocalPref) {
 				applyTheme(resolveTheme(settings.themeId));
 				localStorage.setItem(THEME_STORAGE_KEY, settings.themeId);
+				notifyThemePreferenceChanged(settings.themeId);
 			}
 		}
 	} catch {

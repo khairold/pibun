@@ -416,22 +416,13 @@ export const THEME_LIST: readonly Theme[] = [...BUILTIN_THEMES.values()];
 /**
  * The default theme ID.
  */
-export const DEFAULT_THEME_ID: ThemeId = "dark";
+export const DEFAULT_THEME_ID: ThemeId = "dimmed";
 
 /**
  * Look up a theme by ID. Returns the default theme if ID is unknown.
  */
 export function getThemeById(id: string): Theme {
-	return (BUILTIN_THEMES as ReadonlyMap<string, Theme>).get(id) ?? dark;
-}
-
-/**
- * Get the preferred theme based on system color scheme.
- * Returns "dark" or "light" depending on `prefers-color-scheme`.
- */
-export function getSystemPreferredThemeId(): ThemeId {
-	if (typeof window === "undefined") return DEFAULT_THEME_ID;
-	return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+	return (BUILTIN_THEMES as ReadonlyMap<string, Theme>).get(id) ?? dimmed;
 }
 
 /**
@@ -477,16 +468,27 @@ export function applyTheme(theme: Theme): void {
 export const THEME_STORAGE_KEY = "pibun-theme";
 
 /**
- * Resolve a theme preference to a concrete theme.
+ * Custom event name dispatched when the active theme preference changes
+ * programmatically (e.g., server settings sync on startup).
  *
- * - If preference is "system", returns light/dark based on OS `prefers-color-scheme`.
- * - If preference is a specific ThemeId, returns that theme.
- * - Falls back to the default theme if the ID is unknown.
+ * Components with local `activePreference` state should listen for this
+ * to stay in sync. The `detail` is the new `ThemePreference` value.
+ */
+export const THEME_CHANGED_EVENT = "pibun:theme-preference-changed";
+
+/**
+ * Dispatch a theme preference change event.
+ * Called after updating localStorage so listeners can read the new value.
+ */
+export function notifyThemePreferenceChanged(preference: ThemePreference): void {
+	window.dispatchEvent(new CustomEvent(THEME_CHANGED_EVENT, { detail: preference }));
+}
+
+/**
+ * Resolve a theme preference to a concrete theme.
+ * Falls back to the default theme if the ID is unknown.
  */
 export function resolveTheme(preference: ThemePreference): Theme {
-	if (preference === "system") {
-		return getThemeById(getSystemPreferredThemeId());
-	}
 	return getThemeById(preference);
 }
 
@@ -499,29 +501,4 @@ export function getSavedPreference(): ThemePreference | null {
 	if (typeof window === "undefined") return null;
 	const saved = localStorage.getItem(THEME_STORAGE_KEY);
 	return saved as ThemePreference | null;
-}
-
-/**
- * Watch for OS dark/light mode changes via `matchMedia`.
- *
- * The callback fires whenever the system's `prefers-color-scheme` changes
- * (e.g., macOS switches to/from Dark Mode). The callback receives the
- * ThemeId that the system now prefers ("light" or "dark").
- *
- * In desktop mode (Electrobun's native WebKit webview on macOS), this
- * fires automatically when the user toggles System Settings → Appearance.
- *
- * @returns An unsubscribe function to stop watching.
- */
-export function watchSystemPreference(callback: (themeId: ThemeId) => void): () => void {
-	if (typeof window === "undefined") return () => {};
-
-	const mql = window.matchMedia("(prefers-color-scheme: light)");
-
-	function handler(e: MediaQueryListEvent): void {
-		callback(e.matches ? "light" : "dark");
-	}
-
-	mql.addEventListener("change", handler);
-	return () => mql.removeEventListener("change", handler);
 }

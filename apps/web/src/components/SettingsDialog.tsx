@@ -19,12 +19,11 @@ import {
 } from "@/lib/appActions";
 import { labelForCommand } from "@/lib/keybindings";
 import {
+	DEFAULT_THEME_ID,
+	THEME_CHANGED_EVENT,
 	THEME_LIST,
 	THEME_STORAGE_KEY,
 	applyTheme,
-	getThemeById,
-	resolveTheme,
-	watchSystemPreference,
 } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
@@ -69,7 +68,7 @@ function CheckIcon() {
 function getActivePreference(): ThemePreference {
 	const saved = localStorage.getItem(THEME_STORAGE_KEY);
 	if (saved) return saved as ThemePreference;
-	return "system";
+	return DEFAULT_THEME_ID;
 }
 
 /** Compact theme swatch — smaller than ThemeSelector's preview. */
@@ -114,26 +113,21 @@ function ThemeSwatch({
 function AppearanceSection() {
 	const [activePreference, setActivePreference] = useState<ThemePreference>(getActivePreference);
 
-	// Watch system preference changes when "system" is active
+	// Sync active preference when server settings arrive after mount
 	useEffect(() => {
-		if (activePreference !== "system") return;
-		return watchSystemPreference((systemThemeId) => {
-			applyTheme(getThemeById(systemThemeId));
-		});
-	}, [activePreference]);
+		function handleThemeChanged(e: Event) {
+			const pref = (e as CustomEvent<ThemePreference>).detail;
+			setActivePreference(pref);
+		}
+		window.addEventListener(THEME_CHANGED_EVENT, handleThemeChanged);
+		return () => window.removeEventListener(THEME_CHANGED_EVENT, handleThemeChanged);
+	}, []);
 
 	const handleSelectTheme = useCallback((theme: Theme) => {
 		applyTheme(theme);
 		setActivePreference(theme.id as ThemePreference);
 		localStorage.setItem(THEME_STORAGE_KEY, theme.id);
 		persistThemeToServer(theme.id as ThemePreference);
-	}, []);
-
-	const handleSelectSystem = useCallback(() => {
-		setActivePreference("system");
-		localStorage.setItem(THEME_STORAGE_KEY, "system");
-		persistThemeToServer("system");
-		applyTheme(resolveTheme("system"));
 	}, []);
 
 	return (
@@ -143,41 +137,6 @@ function AppearanceSection() {
 			<span className="mb-2 block text-xs font-medium text-text-secondary">Theme</span>
 
 			<div className="flex flex-col gap-1.5">
-				{/* System option */}
-				<button
-					type="button"
-					onClick={handleSelectSystem}
-					className={cn(
-						"flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-all",
-						activePreference === "system"
-							? "border-accent-primary bg-accent-soft"
-							: "border-border-primary hover:border-text-tertiary hover:bg-surface-secondary",
-					)}
-				>
-					{/* Split swatch */}
-					<div className="flex h-6 w-16 shrink-0 overflow-hidden rounded">
-						<div className="flex flex-1 items-center justify-center bg-white">
-							<span className="text-[7px] font-bold text-neutral-900">A</span>
-						</div>
-						<div className="flex flex-1 items-center justify-center bg-neutral-900">
-							<span className="text-[7px] font-bold text-neutral-100">A</span>
-						</div>
-					</div>
-					<div className="flex flex-col items-start">
-						<span
-							className={cn(
-								"text-xs font-medium",
-								activePreference === "system" ? "text-accent-text" : "text-text-primary",
-							)}
-						>
-							System
-						</span>
-						<span className="text-[10px] text-text-muted">Follow OS preference</span>
-					</div>
-					{activePreference === "system" && <CheckIcon />}
-				</button>
-
-				{/* Theme list */}
 				{THEME_LIST.map((theme) => (
 					<ThemeSwatch
 						key={theme.id}

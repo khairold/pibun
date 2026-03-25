@@ -64,7 +64,7 @@ function ChatTab({ isActive, onClick }: { isActive: boolean; onClick: () => void
 					clipRule="evenodd"
 				/>
 			</svg>
-			Chat
+			Pi
 		</button>
 	);
 }
