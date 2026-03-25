@@ -663,6 +663,11 @@ async function bootstrap(): Promise<void> {
 	// browser via will-navigate and new-window-open event handlers below.
 	wireNavigationRules(mainWindow, webviewUrl);
 
+	// Open WebKit DevTools in dev mode for debugging
+	if (process.env.PIBUN_DEV) {
+		mainWindow.webview.openDevTools();
+	}
+
 	// Step 6: Set up native application menu (initially without recent projects)
 	ApplicationMenu.setApplicationMenu(buildMenuConfig());
 
