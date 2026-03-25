@@ -637,6 +637,9 @@ export function ChatView() {
 	return (
 		<div className="relative flex min-h-0 flex-1 flex-col overflow-hidden" {...containerProps}>
 			<Virtuoso
+				// Key on activeTabId forces remount on tab switch so initialTopMostItemIndex
+				// re-applies. Without this, cached messages render from the top then scroll down.
+				key={activeTabId ?? "default"}
 				ref={virtuosoRef}
 				totalCount={entries.length}
 				itemContent={itemContent}
