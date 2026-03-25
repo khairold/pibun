@@ -1060,9 +1060,14 @@ export function Sidebar() {
 					return;
 				}
 
-				// Derive the project cwd from the session path.
-				// Session paths: /path/to/project/.pi/sessions/xxx.jsonl
-				const projectCwd = sessionPath.replace(/\/\.pi\/sessions\/.*$/, "");
+				// Look up the session's cwd from the session list (authoritative source).
+				const sessionInfo = store.sessionList.find((s) => s.sessionPath === sessionPath);
+				const projectCwd = sessionInfo?.cwd ?? null;
+
+				if (!projectCwd) {
+					console.error("[Sidebar] Cannot find cwd for session:", sessionPath);
+					return;
+				}
 
 				// Create a new tab with immutable cwd + sessionFile.
 				// switchTabAction handles:
