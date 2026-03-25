@@ -501,6 +501,76 @@ function handleExtensionUiRequest(event: PiExtensionUIRequest): void {
 }
 
 // ============================================================================
+// Background Session Events (multi-session)
+// ============================================================================
+
+/**
+ * Handle a Pi event from a background (non-active) session.
+ *
+ * Only updates tab metadata — no message state changes, no streaming deltas.
+ * The sidebar shows real-time status for background tabs (spinning indicator
+ * while streaming, error badge on failure, etc.).
+ *
+ * When the user switches back to the tab, full state is refreshed from Pi
+ * via `get_state` + `get_messages`.
+ */
+function handleBackgroundPiEvent(sessionId: string, event: PiEvent): void {
+	const store = useStore.getState();
+	const tab = store.tabs.find((t) => t.sessionId === sessionId);
+	if (!tab) return;
+
+	switch (event.type) {
+		case "agent_start":
+			store.updateTab(tab.id, { isStreaming: true, status: "running" });
+			break;
+
+		case "agent_end":
+			store.updateTab(tab.id, { isStreaming: false, status: "idle" });
+			break;
+
+		case "auto_retry_end":
+			if (!event.success) {
+				store.updateTab(tab.id, { isStreaming: false, status: "error" });
+			}
+			break;
+
+		case "extension_ui_request":
+			// Dialog-type requests block Pi — mark tab as waiting so user notices
+			if (["select", "confirm", "input", "editor"].includes(event.method)) {
+				store.updateTab(tab.id, { status: "waiting" });
+			}
+			break;
+
+		// All other events (message_update, tool_execution_*, etc.) are display-only.
+		// They'll be captured by get_messages when the user switches back.
+		default:
+			break;
+	}
+}
+
+/**
+ * Re-establish streaming context after switching back to a session that is
+ * mid-stream. Called after `loadSessionMessages` when `isStreaming` is true.
+ *
+ * The module-level `currentAssistantMessageId` was cleared (or pointed at
+ * a different session's message) when the user switched away. After loading
+ * the current messages from Pi, we find the last assistant message and
+ * re-point the streaming state at it so incoming `text_delta` / `thinking_delta`
+ * events append correctly.
+ */
+export function reestablishStreamingContext(): void {
+	const store = useStore.getState();
+	if (!store.isStreaming) return;
+
+	// Find the last assistant message — it's the one being streamed
+	const lastAssistant = [...store.messages].reverse().find((m) => m.type === "assistant");
+	if (lastAssistant) {
+		currentAssistantMessageId = lastAssistant.id;
+		store.setMessageStreaming(lastAssistant.id, true);
+	}
+}
+
+// ============================================================================
 // Open Folder / Open Recent Helpers
 // ============================================================================
 
@@ -742,19 +812,19 @@ export function initTransport(): () => void {
 	);
 
 	// pi.event → Zustand store (unwrap sessionId-tagged envelope)
-	// Single-session model: only one Pi process runs at a time, so all events
-	// go to handlePiEvent. Stale events from an old session (during switch) are skipped.
+	// Multi-session: multiple Pi processes may run concurrently. Events from the
+	// active session get full handling (messages, streaming state, etc.). Events
+	// from background sessions update only tab metadata (isStreaming, status) so
+	// the sidebar reflects real-time progress.
 	cleanups.push(
 		transport.subscribe("pi.event", (data: WsPiEventData) => {
 			const store = useStore.getState();
 			const activeTab = store.tabs.find((t) => t.id === store.activeTabId);
 			const activeSessionId = activeTab?.sessionId ?? store.sessionId;
 
-			// Skip stale events from an old session (can arrive briefly during session switch)
+			// Background session event — update tab metadata only
 			if (data.sessionId && activeSessionId && data.sessionId !== activeSessionId) {
-				console.debug(
-					`[PiBun] Skipping stale event from old session ${data.sessionId} (active: ${activeSessionId})`,
-				);
+				handleBackgroundPiEvent(data.sessionId, data.event);
 				return;
 			}
 
@@ -861,18 +931,18 @@ export function initTransport(): () => void {
 				}
 
 				// If the crashed session is the active one, clear session state
+				// and show persistent health issue. Background crashes only
+				// affect the tab (already updated above) — no global banner.
 				if (store.sessionId === data.sessionId) {
 					store.setSessionId(null);
 					store.setIsStreaming(false);
+					store.setProviderHealth({
+						kind: "process_crashed",
+						message: data.message,
+						sessionId: data.sessionId,
+						detectedAt: Date.now(),
+					});
 				}
-
-				// Set the persistent health issue
-				store.setProviderHealth({
-					kind: "process_crashed",
-					message: data.message,
-					sessionId: data.sessionId,
-					detectedAt: Date.now(),
-				});
 			}
 		}),
 	);

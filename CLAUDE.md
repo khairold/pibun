@@ -141,7 +141,7 @@ bun run test:smoke:plugins
 | 2 | Build fresh, don't fork T3 Code | ~60% of T3 Code is Codex-specific. Pi handles its own state. |
 | 3 | Desktop embeds server in-process | `createServer` and `PiRpcManager` imported directly. Same Bun event loop. |
 | 4 | Menu actions forwarded via WebSocket push | Keeps web app framework-agnostic. No Electrobun view-side dependency. |
-| 5 | Single active session, `sessionId` on `WsRequest` for routing | One Pi process at a time. Sidebar handles session navigation. `sessionId` still on WsRequest for server routing. |
+| 5 | Multiple concurrent sessions, `sessionId` on `WsRequest` for routing | One Pi process per tab — background sessions keep running. `sessionId` on WsRequest routes to the correct process. Tabs reuse their process on switch-back (no restart). Empty/closed tabs stop their process. |
 | 6 | Two session ID domains: PiBun manager ID vs Pi UUID | `sessionId` = PiBun manager ID (`session_{N}_{timestamp}`, routing). `piSessionId` = Pi UUID (session list matching). NEVER conflate. |
 | 7 | `packages/contracts` is types-only, zero runtime | No functions, no classes. Importable without side effects. |
 | 8 | `packages/shared` uses explicit subpath exports | `@pibun/shared/jsonl` not `@pibun/shared`. Prevents unintended coupling. |

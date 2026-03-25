@@ -99,19 +99,18 @@ function assertSuccess(response: PiResponse): void {
  *
  * Creates a Pi subprocess via PiRpcManager, binds it to this WebSocket
  * connection, and wires up event/response forwarding.
+ *
+ * Multi-session: old sessions are kept alive for concurrent work.
+ * The user can send a prompt on Tab A, switch to Tab B, and Tab A's
+ * Pi process continues working in the background. The connection's
+ * `sessionId` is updated to the new session (used as the default for
+ * requests without an explicit sessionId), but old sessions remain
+ * in `sessionIds` and continue forwarding events.
  */
 export const handleSessionStart: WsHandler<"session.start"> = async (
 	params: WsSessionStartParams,
 	ctx: HandlerContext,
 ): Promise<WsMethodResultMap["session.start"]> => {
-	// Single-session: always stop existing session before starting a new one.
-	if (ctx.connection.sessionId) {
-		const oldSessionId = ctx.connection.sessionId;
-		ctx.connection.sessionIds.delete(oldSessionId);
-		await ctx.rpcManager.stopSession(oldSessionId);
-		ctx.connection.sessionId = null;
-	}
-
 	// Create the Pi session — only include defined options (exactOptionalPropertyTypes)
 	const session = ctx.rpcManager.createSession({
 		...(params?.provider && { provider: params.provider }),

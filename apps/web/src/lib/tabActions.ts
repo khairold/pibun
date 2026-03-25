@@ -14,9 +14,9 @@
  */
 
 import { useStore } from "@/store";
-import { getTransport } from "@/wireTransport";
+import { getTransport, reestablishStreamingContext } from "@/wireTransport";
 import { deleteComposerDraft, fetchGitStatus } from "./appActions";
-import { refreshSessionState, switchSession } from "./sessionActions";
+import { loadSessionMessages, refreshSessionState, switchSession } from "./sessionActions";
 
 // ============================================================================
 // Switch Generation (race condition guard)
@@ -106,8 +106,27 @@ export async function startSession(options?: { cwd?: string }): Promise<string |
 }
 
 // ============================================================================
-// Empty Tab Cleanup
+// Session Cleanup (multi-session)
 // ============================================================================
+
+/**
+ * Stop the Pi process for a specific session (fire-and-forget).
+ *
+ * Used when closing a tab or cleaning up an empty tab. The transport's
+ * active session is temporarily set to target the correct process, then
+ * restored. Errors are silently ignored (process may already be dead).
+ */
+function stopSessionProcess(sessionId: string): void {
+	try {
+		const transport = getTransport();
+		const prevActive = transport.activeSessionId;
+		transport.setActiveSession(sessionId);
+		transport.request("session.stop").catch(() => {});
+		transport.setActiveSession(prevActive);
+	} catch {
+		// Transport not initialized or already disposed — ignore
+	}
+}
 
 // ============================================================================
 // Session Resume (shared between switchTabAction and addAndSwitchTabAction)
@@ -116,37 +135,72 @@ export async function startSession(options?: { cwd?: string }): Promise<string |
 /**
  * Resume a session for the currently active tab.
  *
- * Handles the async work after a tab switch: start Pi process, load session
- * messages, refresh state. Called by both switchTabAction and addAndSwitchTabAction.
+ * Three paths:
+ * 1. **Reuse** — tab has `sessionId` (Pi process still alive in background):
+ *    route transport → refresh state + messages from Pi → done.
+ * 2. **Resume from file** — tab has `sessionFile` but no `sessionId`:
+ *    start new Pi process → switch to session file → load messages.
+ * 3. **Empty** — no session, no file: clear routing, user starts by typing.
  *
  * Uses the `switchGeneration` counter to detect when a newer switch has started.
- * If superseded, the operation bails silently — the newer switch will handle
- * everything. This prevents "Session not found" errors from rapid switching.
+ * If superseded, the operation bails silently.
  *
  * @param sessionFile The session file to resume, or null if no session.
+ * @param tabSessionId The tab's existing session ID (process may still be alive), or null.
  */
-async function resumeActiveTabSession(sessionFile: string | null): Promise<void> {
+async function resumeActiveTabSession(
+	sessionFile: string | null,
+	tabSessionId: string | null,
+): Promise<void> {
 	const myGeneration = ++switchGeneration;
 
-	if (sessionFile) {
-		// Clear sessionId so ensureSession starts a fresh Pi process
-		// (the old process was stopped when another session started)
-		useStore.getState().setSessionId(null);
+	if (tabSessionId) {
+		// Path 1: Tab has an existing Pi process — try to reuse it.
+		// The process kept running in the background while we were on another tab.
+		useStore.getState().setSessionId(tabSessionId);
+		getTransport().setActiveSession(tabSessionId);
 
-		// switchSession handles: ensureSession (start process) → switch to file → load messages → refresh state
-		const success = await switchSession(sessionFile);
+		try {
+			// Refresh session state (model, thinking, streaming status)
+			await refreshSessionState();
+			if (switchGeneration !== myGeneration) return;
 
-		// Bail if a newer switch has started — our session was likely killed by it
-		if (switchGeneration !== myGeneration) return;
+			// Load messages from Pi — may include work completed while away.
+			// Force refresh to replace cached messages with authoritative state.
+			await loadSessionMessages({ force: true });
+			if (switchGeneration !== myGeneration) return;
 
-		if (success) {
-			// Sync tab metadata with refreshed session state
+			// If session is mid-stream, re-establish the streaming context
+			// so incoming text_delta events append to the correct message.
+			reestablishStreamingContext();
+
 			useStore.getState().syncActiveTabState();
-			// Refresh git status for the session's CWD
+			fetchGitStatus();
+		} catch {
+			// Process died while we were away — fall through to sessionFile path
+			if (switchGeneration !== myGeneration) return;
+			useStore.getState().setSessionId(null);
+
+			if (sessionFile) {
+				const success = await switchSession(sessionFile);
+				if (switchGeneration !== myGeneration) return;
+				if (success) {
+					useStore.getState().syncActiveTabState();
+					fetchGitStatus();
+				}
+			}
+		}
+	} else if (sessionFile) {
+		// Path 2: No running process, but has a session file — start fresh
+		useStore.getState().setSessionId(null);
+		const success = await switchSession(sessionFile);
+		if (switchGeneration !== myGeneration) return;
+		if (success) {
+			useStore.getState().syncActiveTabState();
 			fetchGitStatus();
 		}
 	} else {
-		// No session to resume — route transport to null
+		// Path 3: No session at all — route transport to null
 		// User will start a session by typing (triggers ensureSession)
 		getTransport().setActiveSession(null);
 	}
@@ -157,18 +211,17 @@ async function resumeActiveTabSession(sessionFile: string | null): Promise<void>
 // ============================================================================
 
 /**
- * Switch to a different tab — single-session model.
+ * Switch to a different tab — multi-session model.
  *
- * Only one Pi process runs at a time. Switching tabs requires:
- * - Auto-removing the leaving tab if it has zero messages (empty session)
- * - Snapshotting the leaving tab's metadata
- * - If the target had a previous session (sessionFile), resuming it:
- *   start a new Pi process → switch to the session file → load messages
- * - If the target has no session, just clear routing (user starts by typing)
+ * Multiple Pi processes run concurrently. Switching tabs:
+ * - Auto-removes the leaving tab if it has zero messages (+ stops its process)
+ * - Snapshots the leaving tab's metadata
+ * - Reuses the target tab's existing Pi process if alive (instant switch)
+ * - Falls back to starting a new process from sessionFile if process died
  *
  * Flow:
  * 0. If leaving tab is empty (0 messages): stop its Pi process, mark for removal
- * 1. `switchTab(tabId)` — snapshot leaving tab, set target metadata, clear messages
+ * 1. `switchTab(tabId)` — snapshot leaving tab, set target metadata, restore cached messages
  * 1b. If leaving tab was empty: remove it from store + clean up terminals/draft
  * 2. If target has a sessionFile to resume:
  *    a. Clear sessionId (so ensureSession starts a fresh Pi process)
@@ -192,15 +245,16 @@ export async function switchTabAction(tabId: string): Promise<void> {
 	//    in the same state update — no flicker.
 	store.switchTab(tabId);
 
-	// 2. Clean up empty leaving tab's UI artifacts (draft).
-	//    No need to call session.stop — session.start (in ensureSession below)
-	//    automatically stops any existing session on the server.
+	// 2. Clean up empty leaving tab — stop its Pi process + remove draft.
 	if (leavingIsEmpty && leavingTab) {
+		if (leavingTab.sessionId) {
+			stopSessionProcess(leavingTab.sessionId);
+		}
 		deleteComposerDraft(leavingTab.id);
 	}
 
-	// 3. Resume target session
-	await resumeActiveTabSession(targetTab.sessionFile);
+	// 3. Resume target session (pass sessionId for process reuse)
+	await resumeActiveTabSession(targetTab.sessionFile, targetTab.sessionId);
 }
 
 /**
@@ -238,13 +292,16 @@ export async function addAndSwitchTabAction(
 	// Atomic: create tab + snapshot leaving tab + remove empty leaving tab + switch
 	const tabId = store.addAndSwitchTab(partial);
 
-	// Clean up empty leaving tab's draft
+	// Clean up empty leaving tab — stop its Pi process + remove draft
 	if (leavingIsEmpty && leavingTab) {
+		if (leavingTab.sessionId) {
+			stopSessionProcess(leavingTab.sessionId);
+		}
 		deleteComposerDraft(leavingTab.id);
 	}
 
-	// Resume session
-	await resumeActiveTabSession(partial.sessionFile ?? null);
+	// Resume session (new tabs don't have a sessionId — always start fresh)
+	await resumeActiveTabSession(partial.sessionFile ?? null, partial.sessionId ?? null);
 
 	return tabId;
 }
