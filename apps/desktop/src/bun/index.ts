@@ -70,7 +70,7 @@ const HEALTH_CHECK_MAX_RETRIES = 30;
 const HEALTH_CHECK_DELAY_MS = 200;
 
 /** Default Vite dev server URL when PIBUN_DEV is set without a custom URL. */
-const DEFAULT_VITE_URL = "http://localhost:5173";
+const DEFAULT_VITE_URL = "http://localhost:24269";
 
 // ============================================================================
 // Dev Mode
@@ -79,14 +79,14 @@ const DEFAULT_VITE_URL = "http://localhost:5173";
 /**
  * Dev mode URL. When set via `PIBUN_DEV_URL` env var, the desktop skips
  * starting the embedded server and points the webview at this URL instead
- * (typically the Vite dev server at http://localhost:5173).
+ * (typically the Vite dev server at http://localhost:24269).
  *
  * Alternatively, set `PIBUN_DEV=1` to use the default Vite URL.
  *
  * In dev mode, the PiBun server and Vite dev server must be started
  * separately:
  *   bun run dev:server   → starts PiBun server on :24242
- *   bun run dev:web      → starts Vite dev server on :5173
+ *   bun run dev:web      → starts Vite dev server on :24269
  *
  * The Vite dev server proxies /ws to ws://localhost:24242 (configured in
  * apps/web/vite.config.ts), so WebSocket connections work transparently.
@@ -615,7 +615,7 @@ async function bootstrap(): Promise<void> {
 		console.log(`Dev mode: loading webview from ${DEV_URL}`);
 		console.log("Ensure server and Vite dev server are running separately:");
 		console.log("  bun run dev:server   → PiBun server on :24242");
-		console.log("  bun run dev:web      → Vite dev server on :5173");
+		console.log("  bun run dev:web      → Vite dev server on :24269");
 		webviewUrl = DEV_URL;
 	} else {
 		// Production mode — start embedded server

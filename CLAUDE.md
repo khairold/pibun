@@ -93,7 +93,7 @@ pibun/
 bun install                  # install all workspace deps
 bun run build                # build all packages
 bun run dev:server           # server only (port 24242)
-bun run dev:web              # Vite dev server only (port 5173)
+bun run dev:web              # Vite dev server only (port 24269)
 bun run dev:desktop          # Electrobun dev mode
 bun run build:desktop        # production desktop build (unsigned)
 bun run build:desktop:signed # signed + notarized macOS build
@@ -130,7 +130,7 @@ bun run test:smoke:plugins
 | Zustand | 5.0.12 |
 | Pi version tested | 0.61.1 |
 | Electrobun | 1.16.0 |
-| Default ports | 24242 (server), 5173 (Vite dev) |
+| Default ports | 24242 (server), 24269 (Vite dev) |
 | Workspace packages | @pibun/contracts, @pibun/shared, @pibun/server, @pibun/web, @pibun/desktop |
 
 ## Key Decisions
