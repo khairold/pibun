@@ -10,6 +10,14 @@
  * - Selection detection → floating "Add to composer" button
  * - Link detection → Cmd/Ctrl-clickable file paths and URLs
  *
+ * Enhanced rendering addons:
+ * - **WebGL** — GPU-accelerated rendering with automatic canvas fallback
+ * - **Unicode 11** — correct width for emoji, CJK, combining characters
+ * - **Ligatures** — font ligature rendering (JetBrains Mono, Fira Code, etc.)
+ * - **Image** — Sixel inline image protocol support
+ * - **Clipboard** — OSC 52 clipboard integration (remote SSH → host clipboard)
+ * - **Serialize** — buffer serialization for future session restore
+ *
  * Each instance subscribes to the `terminal.data` push channel and
  * filters by its own `terminalId`.
  */
@@ -18,7 +26,13 @@ import { resizeTerminal, writeTerminal } from "@/lib/appActions";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { getTransport } from "@/wireTransport";
+import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
+import { ImageAddon } from "@xterm/addon-image";
+import { LigaturesAddon } from "@xterm/addon-ligatures";
+import { SerializeAddon } from "@xterm/addon-serialize";
+import { Unicode11Addon } from "@xterm/addon-unicode11";
+import { WebglAddon } from "@xterm/addon-webgl";
 import type { ILink, ILinkProvider, ITheme } from "@xterm/xterm";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
@@ -445,18 +459,69 @@ export const TerminalInstance = memo(function TerminalInstance({
 			lineHeight: 1.2,
 			cursorBlink: true,
 			cursorStyle: "block",
+			cursorInactiveStyle: "outline",
 			scrollback: 10000,
 			allowProposedApi: true,
 		});
 
+		// ── Core addons (load before open) ──
 		const fitAddon = new FitAddon();
 		terminal.loadAddon(fitAddon);
+
+		const serializeAddon = new SerializeAddon();
+		terminal.loadAddon(serializeAddon);
+
+		// Unicode 11 — correct width for emoji, CJK, combining characters
+		const unicodeAddon = new Unicode11Addon();
+		terminal.loadAddon(unicodeAddon);
+		terminal.unicode.activeVersion = "11";
+
+		// OSC 52 clipboard — remote SSH sessions can copy to host clipboard
+		const clipboardAddon = new ClipboardAddon();
+		terminal.loadAddon(clipboardAddon);
+
+		// Sixel / inline image protocol support
+		const imageAddon = new ImageAddon({
+			enableSizeReports: true,
+			sixelScrolling: true,
+			sixelPaletteLimit: 4096,
+		});
+		terminal.loadAddon(imageAddon);
 
 		terminalRef.current = terminal;
 		fitAddonRef.current = fitAddon;
 
 		// Mount terminal to DOM
 		terminal.open(container);
+
+		// ── Post-open addons (require DOM context) ──
+
+		// Ligatures — load BEFORE WebGL so font feature settings are picked up
+		let ligaturesAddon: LigaturesAddon | null = null;
+		try {
+			ligaturesAddon = new LigaturesAddon();
+			terminal.loadAddon(ligaturesAddon);
+		} catch {
+			// Ligatures addon can fail in some environments — non-critical
+			console.warn("[terminal] Ligatures addon failed to load");
+		}
+
+		// WebGL renderer — GPU-accelerated rendering with canvas fallback
+		let webglAddon: WebglAddon | null = null;
+		try {
+			webglAddon = new WebglAddon();
+			// Fall back to canvas renderer on WebGL context loss
+			webglAddon.onContextLoss(() => {
+				console.warn("[terminal] WebGL context lost — falling back to canvas renderer");
+				webglAddon?.dispose();
+				webglAddon = null;
+			});
+			terminal.loadAddon(webglAddon);
+		} catch {
+			// WebGL not available — canvas renderer is the automatic fallback
+			console.warn("[terminal] WebGL addon failed to load — using canvas renderer");
+			webglAddon = null;
+		}
 
 		// Initial fit (deferred to ensure container has dimensions)
 		requestAnimationFrame(() => {
@@ -586,6 +651,14 @@ export const TerminalInstance = memo(function TerminalInstance({
 				clearTimeout(selectionTimerRef.current);
 				selectionTimerRef.current = null;
 			}
+			// Dispose addons before terminal (terminal.dispose() also disposes them,
+			// but explicit disposal avoids order-dependent bugs in WebGL teardown)
+			webglAddon?.dispose();
+			ligaturesAddon?.dispose();
+			imageAddon.dispose();
+			clipboardAddon.dispose();
+			unicodeAddon.dispose();
+			serializeAddon.dispose();
 			terminal.dispose();
 			terminalRef.current = null;
 			fitAddonRef.current = null;
