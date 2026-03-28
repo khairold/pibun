@@ -18,7 +18,7 @@ export default {
 	app: {
 		name: "PiBun",
 		identifier: "dev.pibun.app",
-		version: "0.1.0",
+		version: "0.1.1",
 	},
 	build: {
 		bun: {

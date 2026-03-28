@@ -19,7 +19,7 @@ A desktop app for the [Pi coding agent](https://github.com/badlogic/pi-mono). Ch
 
 ## Download
 
-**[⬇ PiBun v0.1.0 for macOS (Apple Silicon)](https://github.com/khairold/pibun/releases/download/v0.1.0/stable-macos-arm64-PiBun.dmg)** — 20 MB
+**[⬇ PiBun v0.1.1 for macOS (Apple Silicon)](https://github.com/khairold/pibun/releases/download/v0.1.1/stable-macos-arm64-PiBun.dmg)** — 20 MB
 
 > **Note:** This build is unsigned. macOS will warn you on first launch. Right-click the app → Open → Open to bypass Gatekeeper. Linux and Windows builds coming soon.
 
