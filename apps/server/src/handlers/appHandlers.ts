@@ -77,7 +77,7 @@ import {
 	updateProject,
 	updateSettings,
 } from "../persistence.js";
-import type { HandlerContext, WsHandler } from "./types.js";
+import type { HandlerContext, WsHandler } from "./index.js";
 
 // ============================================================================
 // App — Desktop Integration

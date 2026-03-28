@@ -32,7 +32,7 @@ import type {
 } from "@pibun/contracts";
 import type { PiProcess } from "../piProcess.js";
 import { listSessions } from "../sessionListing.js";
-import type { HandlerContext, WsHandler } from "./types.js";
+import type { HandlerContext, WsHandler } from "./index.js";
 
 // ============================================================================
 // Helpers
