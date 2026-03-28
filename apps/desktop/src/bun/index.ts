@@ -17,6 +17,7 @@ import { resolve } from "node:path";
 import { PiRpcManager } from "@pibun/server/piRpcManager";
 import { loadProjects, loadSettings, updateSettings } from "@pibun/server/persistence";
 import { type PiBunServer, broadcastPush, createServer } from "@pibun/server/server";
+import { resolveShellEnv } from "@pibun/shared/shellEnv";
 import Electrobun, { ApplicationMenu, BrowserWindow, ContextMenu, Utils } from "electrobun/bun";
 import {
 	type MenuAction,
@@ -607,6 +608,12 @@ function wireNavigationRules(mainWindow: BrowserWindow, serverUrl: string): void
  * 6. Wire signal handlers for external termination
  */
 async function bootstrap(): Promise<void> {
+	// Step 0: Resolve the user's real shell PATH.
+	// macOS desktop apps inherit a minimal PATH from Finder/Dock — nvm, Homebrew,
+	// etc. won't be found. This spawns a login shell to get the real environment.
+	// Must run before startServer() / any Pi CLI detection.
+	resolveShellEnv();
+
 	// Step 1: Load saved window state
 	const savedFrame = loadWindowState();
 	currentFrame = savedFrame;

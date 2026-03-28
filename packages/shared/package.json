@@ -4,7 +4,8 @@
 	"private": true,
 	"type": "module",
 	"exports": {
-		"./jsonl": "./src/jsonl.ts"
+		"./jsonl": "./src/jsonl.ts",
+		"./shellEnv": "./src/shellEnv.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit"
